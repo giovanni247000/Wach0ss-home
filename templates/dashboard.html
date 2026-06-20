@@ -2371,9 +2371,11 @@ window.addEventListener("message", async (event) => {
 });
 
 async function startSystemUpdate() {
-    if(confirm("Sei sicuro di voler installare l'aggiornamento? Wach OS scaricherà le novità e si riavvierà da solo. Potrebbe volerci qualche istante.")) {
+    if(confirm("Sei sicuro di voler installare l'aggiornamento?")) {
         
-        // Nasconde il banner e mostra il caricamento
+        // 1. Prendi il nome dell'aggiornamento dal banner
+        const updateName = document.getElementById('update-date-text').innerText;
+        
         document.getElementById('update-banner').style.display = 'none';
         showToast("Download e installazione in corso...", "success");
         
@@ -2381,15 +2383,13 @@ async function startSystemUpdate() {
             const res = await fetch('/api/system_update', { method: 'POST' });
             
             if(res.ok) {
-                showToast("Sistema in fase di riavvio. Attendi...", "success");
+                // 2. Salva nel browser che QUESTA versione è stata installata
+                localStorage.setItem('wachos_last_update', updateName);
                 
-                // Ricarica la pagina dopo 12 secondi (tempo sufficiente per il riavvio del servizio)
-                setTimeout(() => {
-                    location.reload();
-                }, 12000);
+                showToast("Sistema in fase di riavvio. Attendi...", "success");
+                setTimeout(() => { location.reload(); }, 12000);
             } else {
-                const data = await res.json();
-                showToast("Errore: " + data.message, "error");
+                showToast("Errore durante l'aggiornamento", "error");
             }
         } catch(e) {
             showToast("Comando inviato, attendi il riavvio...", "success");
@@ -2406,28 +2406,28 @@ async function checkForUpdates() {
         const url = "https://gist.githubusercontent.com/giovanni247000/2fbe2313b4af91fd435b53a45b1bd046/raw/Aggiornamenti?t=" + new Date().getTime();
         const res = await fetch(url);
         
-        if (!res.ok) {
-            console.error("[WachOS] Errore nel download del Gist. Status:", res.status);
-            return;
-        }
+        if (!res.ok) return;
         
         const text = await res.text();
-        console.log("[WachOS] Testo letto dal Gist:", text); // <-- QUESTO CI SVELERÀ IL MISTERO
-        
         const updatePrefix = "nuovo aggiornamento:";
         const lowerText = text.toLowerCase();
 
         if (lowerText.includes(updatePrefix)) {
-            console.log("[WachOS] Parola chiave trovata!");
             const startIndex = lowerText.indexOf(updatePrefix) + updatePrefix.length;
             const updateInfo = text.substring(startIndex).split('\n')[0].trim();
             
-            console.log("[WachOS] Mostro banner per:", updateInfo);
-            document.getElementById('update-date-text').innerText = updateInfo;
-            document.getElementById('update-banner').style.display = 'flex';
-            lucide.createIcons({root: document.getElementById('update-banner')});
-        } else {
-            console.log("[WachOS] Nessun aggiornamento. Manca la stringa esatta 'nuovo aggiornamento:'");
+            // --- LOGICA DI CONTROLLO ---
+            // Legge dalla memoria del browser se abbiamo già installato QUESTA versione
+            const lastInstalledUpdate = localStorage.getItem('wachos_last_update');
+            
+            if (lastInstalledUpdate !== updateInfo) {
+                // Se la versione è diversa da quella salvata, mostra il banner!
+                document.getElementById('update-date-text').innerText = updateInfo;
+                document.getElementById('update-banner').style.display = 'flex';
+                lucide.createIcons({root: document.getElementById('update-banner')});
+            } else {
+                console.log("[WachOS] Aggiornamento già installato, banner nascosto.");
+            }
         }
     } catch (e) {
         console.error("[WachOS] Errore di rete:", e);
