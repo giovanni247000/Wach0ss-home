@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#060606">
+    
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Orion Home">
+    
+    <title>Accedi | Wach0ss Home Smart Home</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        :root {
+            --bg-dark: #060606;
+            --accent-blue: #0A84FF;
+            --accent-blue-hover: #0066CC;
+            --accent-red: #FF453A;
+            --glass-bg: rgba(20, 20, 22, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #F5F5F7;
+            --text-muted: #8E8E93;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* --- Sfondo Aurora & Particelle --- */
+        .ambient-background {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: -2;
+            background: var(--bg-dark);
+            overflow: hidden;
+        }
+
+        /* Il canvas delle particelle */
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1; /* Sta sopra al bagliore ma sotto la UI */
+            pointer-events: none; /* Impedisce che blocchi i click */
+        }
+
+        .ambient-glow {
+            position: absolute;
+            width: 80vw;
+            height: 80vw;
+            max-width: 800px;
+            max-height: 800px;
+            background: radial-gradient(circle, rgba(10, 132, 255, 0.15) 0%, transparent 60%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            filter: blur(60px);
+            animation: breathe 15s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+
+        @keyframes breathe {
+            0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.7; }
+            100% { transform: translate(-50%, -45%) scale(1.1); opacity: 1; }
+        }
+
+        /* Bagliore rosso di emergenza per il blocco */
+        #lockout-glow {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 100vw; height: 100vh;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(255, 69, 58, 0.15) 0%, transparent 70%);
+            filter: blur(40px);
+            z-index: 0;
+            opacity: 0;
+            transition: opacity 1.5s ease;
+        }
+
+        /* --- Struttura Card Login --- */
+        .login-wrapper {
+            width: 100%;
+            max-width: 420px;
+            padding: 24px;
+            perspective: 1000px;
+            z-index: 10;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 28px;
+            padding: 48px 36px;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.8),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideUpFade {
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* --- Header Form --- */
+        .brand-logo {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 32px;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.05), 0 8px 16px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+
+        .brand-logo img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+
+        .brand-logo i {
+            color: var(--text-main);
+            width: 28px;
+            height: 28px;
+        }
+
+        .card-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .card-header h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .card-header p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* --- Input Premium --- */
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: color 0.3s ease;
+        }
+
+        .input-icon i {
+            width: 20px;
+            height: 20px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            padding: 16px 16px 16px 52px;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255,255,255,0.25);
+            font-weight: 400;
+        }
+
+        .form-input:focus {
+            background: rgba(10, 132, 255, 0.03);
+            border-color: rgba(10, 132, 255, 0.5);
+            box-shadow: 
+                0 0 0 4px rgba(10, 132, 255, 0.15),
+                inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .form-input:focus + .input-icon {
+            color: var(--accent-blue);
+        }
+
+        /* --- Bottone Azione --- */
+        .btn-primary {
+            width: 100%;
+            background: var(--text-main);
+            color: var(--bg-dark);
+            border: none;
+            padding: 16px;
+            border-radius: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 8px 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(255, 255, 255, 0.15);
+            background: #FFFFFF;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.97);
+        }
+
+        /* --- Notifiche di Errore --- */
+        .alert-error {
+            background: rgba(255, 69, 58, 0.1);
+            color: var(--accent-red);
+            padding: 14px 16px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255, 69, 58, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        .alert-error i { width: 18px; height: 18px; flex-shrink: 0;}
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* --- Schermata di Blocco (Lockout) --- */
+        .lockout-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            animation: fadeIn 0.6s ease;
+        }
+
+        .shield-icon {
+            width: 72px; height: 72px;
+            border-radius: 20px;
+            background: rgba(255, 69, 58, 0.1);
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 24px;
+            color: var(--accent-red);
+            box-shadow: 0 0 40px rgba(255, 69, 58, 0.2);
+            animation: pulse-alert 2s infinite cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .shield-icon i { width: 32px; height: 32px; }
+
+        .lockout-container h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 12px;
+        }
+
+        .lockout-container p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            margin-bottom: 32px;
+        }
+
+        .countdown-display {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            width: 100%;
+            font-family: 'Inter', monospace;
+            font-variant-numeric: tabular-nums;
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: var(--accent-red);
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        @keyframes pulse-alert {
+            0% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0.3); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 69, 58, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 69, 58, 0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; } to { opacity: 1; }
+        }
+
+        /* Ottimizzazioni Mobile Estreme */
+        @media (max-width: 480px) {
+            .glass-card { padding: 40px 24px; border-radius: 32px; }
+            .card-header h1 { font-size: 1.6rem; }
+            .countdown-display { font-size: 2.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-background">
+        <div class="ambient-glow"></div>
+        <div id="lockout-glow"></div>
+        <canvas id="particle-canvas"></canvas>
+    </div>
+
+    <div class="login-wrapper">
+        <div class="glass-card">
+            
+            {% if locked_until %}
+            <div class="lockout-container" style="display: flex;">
+                <div class="shield-icon"><i data-lucide="shield-alert"></i></div>
+                <h2>Accesso Sospeso</h2>
+                <p>Per motivi di sicurezza, l'accesso è stato temporaneamente disabilitato.</p>
+                <div class="countdown-display" id="countdown-timer">--:--:--</div>
+            </div>
+            <script>
+                document.getElementById('lockout-glow').style.opacity = '1';
+                const lockedUntilTimestamp = {{ locked_until }};
+                function updateTimer() {
+                    const now = Math.floor(Date.now() / 1000);
+                    const diff = Math.floor(lockedUntilTimestamp - now);
+                    if (diff <= 0) {
+                        document.getElementById('countdown-timer').innerHTML = "00:00:00";
+                        window.location.reload(); 
+                        return;
+                    }
+                    const displayH = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    const displayM = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    const displayS = String(diff % 60).padStart(2, '0');
+                    document.getElementById('countdown-timer').innerHTML = `${displayH}:${displayM}:${displayS}`;
+                }
+                setInterval(updateTimer, 1000); updateTimer();
+            </script>
+            
+            {% elif setup_mode %}
+            <div class="card-header">
+                <div class="brand-logo"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo"></div>
+                <h1>Primo Avvio</h1>
+                <p>Crea il tuo profilo Admin e imposta il server</p>
+            </div>
+
+            {% if error %}<div class="alert-error"><i data-lucide="alert-circle"></i><span>{{ error }}</span></div>{% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="input-group">
+                    <input type="text" name="username" class="form-input" placeholder="Come ti chiami?" required autocomplete="off" autofocus>
+                    <div class="input-icon"><i data-lucide="user"></i></div>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" class="form-input" placeholder="Crea Password" required>
+                    <div class="input-icon"><i data-lucide="key-round"></i></div>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password_confirm" class="form-input" placeholder="Ripeti Password" required>
+                    <div class="input-icon"><i data-lucide="check-circle-2"></i></div>
+                </div>
+
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; text-align: left;">Imposta posizione per le automazioni e il meteo:</p>
+                <div class="input-group" style="display: flex; gap: 8px;">
+                    <div style="flex-grow: 1; position: relative;">
+                        <input type="text" name="location_name" id="loc_name" class="form-input" placeholder="Città" required>
+                        <div class="input-icon"><i data-lucide="map-pin"></i></div>
+                    </div>
+                    <button type="button" onclick="getGPS()" class="btn-primary" style="margin: 0; width: 60px; padding: 0; background: rgba(10, 132, 255, 0.15); color: var(--accent-blue);" title="Usa il GPS del dispositivo">
+                        <i data-lucide="crosshair"></i>
+                    </button>
+                </div>
+                
+                <input type="hidden" name="lat" id="loc_lat" value="">
+                <input type="hidden" name="lon" id="loc_lon" value="">
+
+                <button type="submit" class="btn-primary" style="margin-top: 20px;">Inizializza Sistema</button>
+            </form>
+
+            <script>
+                function getGPS() {
+                    const btn = document.querySelector('button[onclick="getGPS()"]');
+                    btn.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i>`;
+                    lucide.createIcons();
+
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(async function(pos) {
+                            document.getElementById('loc_lat').value = pos.coords.latitude;
+                            document.getElementById('loc_lon').value = pos.coords.longitude;
+                            
+                            try {
+                                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+                                const data = await res.json();
+                                const city = data.address.city || data.address.town || data.address.village || 'Sconosciuta';
+                                document.getElementById('loc_name').value = city;
+                            } catch(e) {
+                                alert("Non sono riuscito a ricavare il nome della città. Scrivila a mano.");
+                            }
+                            btn.innerHTML = `<i data-lucide="check"></i>`; lucide.createIcons();
+                        }, function() {
+                            alert("Devi autorizzare l'uso del GPS dal tuo browser.");
+                            btn.innerHTML = `<i data-lucide="crosshair"></i>`; lucide.createIcons();
+                        });
+                    }
+                }
+            </script>
+            {% else %}
+            <div class="card-header">
+                <div class="brand-logo"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo"></div>
+                <h1>Wach0ss Home</h1>
+                <p>Autenticazione richiesta</p>
+            </div>
+
+            {% if error %}<div class="alert-error"><i data-lucide="alert-circle"></i><span>{{ error }}</span></div>{% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="input-group">
+                    <input type="text" name="username" class="form-input" placeholder="Nome utente" required autocomplete="username" spellcheck="false" autofocus>
+                    <div class="input-icon"><i data-lucide="user"></i></div>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" class="form-input" placeholder="Password di sistema" required autocomplete="current-password">
+                    <div class="input-icon"><i data-lucide="key-round"></i></div>
+                </div>
+                <button type="submit" class="btn-primary">Accedi</button>
+            </form>
+            {% endif %}
+
+        </div>
+    </div>
+
+<script>
+        lucide.createIcons();
+
+        // --- MOTORE PARTICELLE CANVAS INTERATTIVO E PREMIUM ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles;
+
+        // Tracciamento del Mouse
+        let mouse = { x: null, y: null, radius: 150 };
+        
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = event.x;
+            mouse.y = event.y;
+        });
+        
+        window.addEventListener('mouseout', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 0.6; // Velocità fluida
+                this.vy = (Math.random() - 0.5) * 0.6;
+                this.baseRadius = Math.random() * 1.5 + 0.5;
+                this.radius = this.baseRadius;
+            }
+
+            update() {
+                // Interazione col mouse: Repulsione fluida
+                if (mouse.x != null && mouse.y != null) {
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < mouse.radius) {
+                        const forceDirectionX = dx / distance;
+                        const forceDirectionY = dy / distance;
+                        const force = (mouse.radius - distance) / mouse.radius;
+                        // Moltiplicato per -1 per respingere (cambia in +1 per attrarre)
+                        const directionX = forceDirectionX * force * -1; 
+                        const directionY = forceDirectionY * force * -1;
+
+                        this.x += directionX * 2;
+                        this.y += directionY * 2;
+                    }
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Rimbalzo morbido sui bordi
+                if (this.x < 0 || this.x > width) this.vx = -this.vx;
+                if (this.y < 0 || this.y > height) this.vy = -this.vy;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                // Effetto Glow (Bagliore)
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
+                ctx.fill();
+                // Reset dell'ombra per non applicarla alle linee
+                ctx.shadowBlur = 0; 
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            // Calcola la quantità in base allo schermo per non appesantire il telefono
+            const particleCount = Math.floor((width * height) / 10000); 
+            
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                
+                // Disegna le linee tra le particelle
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 110) {
+                        ctx.beginPath();
+                        const opacity = 1 - (distance / 110);
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.4})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Disegna i collegamenti luminosi verso il mouse
+                if (mouse.x != null && mouse.y != null) {
+                    const dx = particles[i].x - mouse.x;
+                    const dy = particles[i].y - mouse.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 140) {
+                        ctx.beginPath();
+                        const opacity = 1 - (distance / 140);
+                        // Raggio azzurrognolo verso il cursore
+                        ctx.strokeStyle = `rgba(10, 132, 255, ${opacity * 0.6})`; 
+                        ctx.lineWidth = 1.2;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // Inizializzazione
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+</html>

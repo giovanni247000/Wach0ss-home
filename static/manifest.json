@@ -1,0 +1,22 @@
+{
+  "name": "WACH0SS Smart Home",
+  "short_name": "Wach OS",
+  "description": "Sistema di controllo avanzato per la tua Smart Home.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

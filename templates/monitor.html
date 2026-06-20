@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Sistema - Wach0ss Home</title>
+    <style>
+        :root {
+            --bg-app: #000000;
+            --bg-panel: #1c1c1e;
+            --bg-input: #2c2c2e;
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e93;
+            --border: #38383a;
+            --accent-blue: #0A84FF;
+            --accent-blue-hover: #0066CC;
+            --accent-red: #FF453A;
+            --accent-red-hover: #D70015;
+            --success-bg: rgba(48, 209, 88, 0.15);
+            --success-text: #30D158;
+            --danger-bg: rgba(255, 69, 58, 0.15);
+            --danger-text: #FF453A;
+        }
+
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg-app); 
+            color: var(--text-primary); 
+            margin: 0; 
+            padding: 2rem 1rem; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* --- HEADER --- */
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 24px; 
+        }
+
+        .header h2 { 
+            margin: 0; 
+            font-size: 1.75rem; 
+            font-weight: 600; 
+            letter-spacing: -0.5px;
+        }
+
+        .btn-back { 
+            text-decoration: none; 
+            color: var(--text-primary); 
+            background: var(--bg-input);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border);
+        }
+
+        .btn-back:hover { background: var(--border); }
+
+        /* --- TOOLBAR (FILTRI) --- */
+        .toolbar { 
+            display: flex; 
+            gap: 12px; 
+            flex-wrap: wrap; 
+            background: var(--bg-panel); 
+            padding: 16px; 
+            border-radius: 12px; 
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0 12px;
+            transition: border-color 0.2s ease;
+        }
+
+        .input-group:focus-within { border-color: var(--accent-blue); }
+
+        .input-group input {
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            padding: 10px 0;
+            font-size: 0.95rem;
+            outline: none;
+            width: 100%;
+        }
+
+        /* Correzione per l'icona del calendario scura sui browser webkit */
+        ::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; cursor: pointer; }
+
+        .btn {
+            padding: 10px 18px; 
+            border-radius: 8px; 
+            border: none; 
+            font-size: 0.95rem;
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary { background: var(--accent-blue); color: #fff; }
+        .btn-primary:hover { background: var(--accent-blue-hover); }
+
+        .btn-secondary { background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: #3a3a3c; }
+
+        .btn-danger { background: rgba(255, 69, 58, 0.15); color: var(--accent-red); margin-left: auto; border: 1px solid rgba(255, 69, 58, 0.3); }
+        .btn-danger:hover { background: var(--accent-red); color: #fff; }
+
+        /* --- TABELLA --- */
+        .table-card {
+            background: var(--bg-panel);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow-x: auto;
+            max-height: 70vh;
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            text-align: left; 
+        }
+
+        th { 
+            background: rgba(28, 28, 30, 0.95); 
+            color: var(--text-secondary); 
+            font-weight: 600; 
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            z-index: 10;
+        }
+
+        td { 
+            padding: 14px 20px; 
+            border-bottom: 1px solid var(--border); 
+            font-size: 0.95rem;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: rgba(255, 255, 255, 0.02); }
+
+        .time-col { color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .entity-col { color: var(--text-primary); font-family: monospace; font-size: 1rem; }
+        
+        /* --- BADGES --- */
+        .badge { 
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px; 
+            border-radius: 20px; 
+            font-size: 0.75rem; 
+            font-weight: 700; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge.on { background: var(--success-bg); color: var(--success-text); }
+        .badge.off { background: var(--danger-bg); color: var(--danger-text); }
+        .badge.neutral { background: var(--bg-input); color: var(--text-secondary); border: 1px solid var(--border); }
+
+        .empty-state { text-align: center; padding: 40px; color: var(--text-secondary); }
+
+        @media (max-width: 768px) {
+            .btn-danger { margin-left: 0; width: 100%; }
+            .toolbar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>⏱️ Monitor Sistema</h2>
+            <a href="/dashboard" class="btn-back">Indietro</a>
+        </div>
+
+        <div class="toolbar">
+            <div class="input-group" style="flex: 1; min-width: 140px;">
+                <input type="date" id="date_from" title="Data Inizio">
+            </div>
+            <div class="input-group" style="flex: 1; min-width: 140px;">
+                <input type="date" id="date_to" title="Data Fine">
+            </div>
+            <div class="input-group" style="flex: 2; min-width: 200px;">
+                <input type="text" id="entity_search" placeholder="Cerca entità (es. switch.luce)">
+            </div>
+            <button class="btn btn-primary" onclick="loadLogs()">Filtra</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Reset</button>
+            <button class="btn btn-danger" onclick="clearAllLogs()">🗑️ Svuota Log</button>
+        </div>
+
+        <div class="table-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data e Ora</th>
+                        <th>Entità</th>
+                        <th>Stato Registrato</th>
+                    </tr>
+                </thead>
+                <tbody id="logs_body">
+                    <tr>
+                        <td colspan="3" class="empty-state">
+                            <span style="font-size: 1.5rem; display: block; margin-bottom: 10px;">⏳</span>
+                            Caricamento dati in corso...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function clearFilters() {
+            document.getElementById('date_from').value = '';
+            document.getElementById('date_to').value = '';
+            document.getElementById('entity_search').value = '';
+            loadLogs();
+        }
+
+        async function loadLogs() {
+            const dateFrom = document.getElementById('date_from').value;
+            const dateTo = document.getElementById('date_to').value;
+            const entity = document.getElementById('entity_search').value;
+
+            let url = '/api/logs?limit=300';
+            if (dateFrom) url += `&date_from=${dateFrom}`;
+            if (dateTo) url += `&date_to=${dateTo}`;
+            if (entity) url += `&entity=${entity}`;
+
+            try {
+                const response = await fetch(url);
+                const logs = await response.json();
+                const tbody = document.getElementById('logs_body');
+                tbody.innerHTML = '';
+
+                if(logs.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="empty-state">
+                                <span style="font-size: 2rem; display: block; margin-bottom: 10px;">📭</span>
+                                Nessun evento registrato per i filtri selezionati.
+                            </td>
+                        </tr>`;
+                    return;
+                }
+
+                logs.forEach(log => {
+                    const row = document.createElement('tr');
+                    
+                    const stateStr = log.state.toLowerCase();
+                    let badgeClass = 'neutral';
+                    if(['on', 'open', 'playing', 'true', '1'].includes(stateStr)) badgeClass = 'on';
+                    if(['off', 'closed', 'paused', 'false', '0'].includes(stateStr)) badgeClass = 'off';
+
+                    row.innerHTML = `
+                        <td class="time-col">${log.timestamp}</td>
+                        <td class="entity-col">${log.entity_id}</td>
+                        <td><span class="badge ${badgeClass}">${log.state}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error("Errore:", error);
+                document.getElementById('logs_body').innerHTML = `
+                    <tr>
+                        <td colspan="3" class="empty-state" style="color: var(--accent-red);">
+                            ⚠️ Errore di comunicazione con il server.
+                        </td>
+                    </tr>`;
+            }
+        }
+
+        async function clearAllLogs() {
+            if (!confirm("Sei sicuro di voler svuotare completamente lo storico del sistema? Questa operazione è irreversibile.")) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/logs', { method: 'DELETE' });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    loadLogs();
+                } else {
+                    alert("Errore durante la cancellazione: " + result.message);
+                }
+            } catch (error) {
+                console.error("Errore:", error);
+                alert("Errore di connessione al server.");
+            }
+        }
+
+        // Inizializza al caricamento della pagina
+        document.addEventListener('DOMContentLoaded', loadLogs);
+    </script>
+</body>
+</html>

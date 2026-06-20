@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Wach0ss Home - Motore Logico</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+    <style>
+        /* === STILE DARK GLASS PREMIUM === */
+        :root {
+            --bg-base: #000000;
+            --card-glass: rgba(28, 28, 30, 0.65);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --text-main: #FFFFFF;
+            --text-sec: #8E8E93;
+            
+            --primary: #0A84FF;
+            --primary-hover: #0066CC;
+            --primary-glow: rgba(10, 132, 255, 0.3);
+            
+            --danger: #FF453A;
+            --danger-bg: rgba(255, 69, 58, 0.15);
+            --success: #32D74B;
+            
+            --shadow-glow: 0 10px 40px rgba(0,0,0,0.8);
+            --radius: 24px;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, sans-serif; 
+            background: var(--bg-base); 
+            background-image: radial-gradient(circle at 50% 0%, rgba(10, 132, 255, 0.15) 0%, transparent 50%);
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        /* === HEADER FLUTTUANTE === */
+/* === HEADER FLUTTUANTE === */
+        .header {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            /* FIX: Calcola in automatico lo spazio della barra del telefono in alto */
+            padding: calc(16px + env(safe-area-inset-top, 24px)) 20px 16px 20px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 { font-size: 1.15rem; font-weight: 700; margin: 0; letter-spacing: 0.5px;}
+
+        .btn-back {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* === CONTENITORE PRINCIPALE === */
+        .container { max-width: 800px; margin: 0 auto; padding: 25px 20px 100px; }
+
+        /* === SEGMENTED CONTROL (Switch Tab Stile iOS Dark) === */
+        .segmented-control {
+            display: flex;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 4px;
+            margin-bottom: 25px;
+        }
+        
+        .segmented-control button {
+            flex: 1;
+            background: transparent;
+            color: var(--text-sec);
+            border: none;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        
+        .segmented-control button.active {
+            background: #2C2C2E;
+            color: var(--text-main);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-title { font-size: 1.3rem; font-weight: 800; margin: 0; letter-spacing: -0.5px; color: #FFF; }
+
+        /* === FORM IN SCURO === */
+        label { 
+            display: block; margin: 24px 0 8px; color: var(--text-sec); 
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+        }
+
+        input[type="text"], input[type="time"], select { 
+            padding: 16px; background: rgba(0, 0, 0, 0.4); color: var(--text-main); 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; width: 100%; 
+            box-sizing: border-box; outline: none; font-size: 1.05rem; font-family: inherit; transition: 0.2s;
+        }
+        
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-glow); background: rgba(0,0,0,0.6);}
+
+        .action-row { 
+            display: flex; gap: 12px; margin-bottom: 12px; align-items: center; 
+            background: rgba(255,255,255,0.03); padding: 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* === OVERRIDE TOMSELECT (Dark Mode) === */
+        .ts-wrapper .ts-control { padding: 16px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; font-size: 1.05rem; color: var(--text-main); box-shadow: none; }
+        .ts-wrapper.focus .ts-control { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-glow); }
+        .ts-dropdown { background: #1C1C1E; border-radius: 14px; border: 1px solid var(--card-border); box-shadow: 0 20px 50px rgba(0,0,0,0.8); margin-top: 5px; color: #FFF; }
+        .ts-dropdown .optgroup-header { font-weight: 700; background: #000; color: var(--text-sec); padding: 8px 12px; }
+        .ts-dropdown .option { padding: 12px; }
+        .ts-dropdown .active { background: rgba(10, 132, 255, 0.2); color: var(--primary); }
+        .ts-wrapper.multi .ts-control > div { background: var(--primary); color: white; border-radius: 8px; padding: 6px 12px; border: none; font-weight: 600;}
+
+        /* === BOTTONI === */
+        button.btn-primary { 
+            background: var(--primary); color: white; border: none; 
+            padding: 16px; border-radius: 16px; cursor: pointer; 
+            font-weight: 700; font-size: 1.05rem; width: 100%; transition: 0.2s; box-shadow: 0 4px 15px var(--primary-glow);
+        }
+        button.btn-primary:active { transform: scale(0.97); }
+        
+        button.btn-secondary { background: rgba(255, 255, 255, 0.1); color: #FFF; border: none; padding: 16px; border-radius: 16px; font-weight: 600; font-size:1rem; cursor: pointer; width: 100%; }
+        
+        button.btn-icon { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--primary); font-size: 1.2rem; }
+        button.btn-icon.danger { color: var(--danger); background: var(--danger-bg); border: none;}
+        
+        .add-fab { position: fixed; bottom: 30px; right: 20px; width: 60px; height: 60px; border-radius: 30px; background: var(--primary); color: #FFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px var(--primary-glow); cursor: pointer; border: none; z-index: 90; transition: 0.2s; }
+        .add-fab:active { transform: scale(0.9); }
+        .add-fab svg { width: 28px; height: 28px; stroke-width: 2.5; }
+
+        /* === LISTE (Dark Glass) === */
+        .list-item { 
+            display: flex; flex-direction: column; padding: 20px; background: rgba(255,255,255,0.03); margin-bottom: 16px; 
+            border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 1px 1px rgba(255,255,255,0.05);
+        }
+        .list-item.disabled { opacity: 0.4; filter: grayscale(100%); background: transparent; border-color: rgba(255,255,255,0.02);}
+        
+        .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .list-title { font-size: 1.2rem; font-weight: 700; color: #FFF; letter-spacing: -0.3px;}
+        .list-subtitle { color: var(--text-sec); font-size: 0.85rem; margin-top: 4px; display: block;}
+        .list-actions { display: flex; gap: 12px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; }
+        .list-actions button { flex: 1; padding: 12px; border-radius: 12px; font-size: 0.95rem; }
+
+        /* === SWITCH IOS === */
+        .switch { position: relative; display: inline-block; width: 50px; height: 30px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 30px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 3px 8px rgba(0,0,0,0.3);}
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* === MODALE A COMPARSA === */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); opacity: 0; pointer-events: none; transition: opacity 0.4s ease; z-index: 2000; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        
+.bottom-modal { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            background: rgba(28, 28, 30, 0.85); backdrop-filter: blur(50px) saturate(250%); -webkit-backdrop-filter: blur(50px) saturate(250%); 
+            border-top: 1px solid rgba(255,255,255,0.15); border-radius: 40px 40px 0 0; padding: 20px 24px 40px; 
+            z-index: 2001; max-height: 90vh; display: flex; flex-direction: column;
+            transform: translateY(100%); will-change: transform; transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s;
+            box-shadow: 0 -20px 60px rgba(0,0,0,0.8); 
+            
+            /* --- FIX CLICK PC --- */
+            pointer-events: none; 
+        }
+        .bottom-modal.active { 
+            transform: translateY(0); 
+            
+            /* --- FIX CLICK PC --- */
+            pointer-events: auto; 
+        }
+        
+        .modal-handle { width: 48px; height: 5px; background: rgba(255,255,255,0.3); border-radius: 10px; margin: 0 auto 24px; flex-shrink: 0; }
+        .modal-header { display: flex; justify-content: center; align-items: center; margin-bottom: 20px; position: relative; flex-shrink: 0;}
+        .modal-title { font-size: 1.2rem; font-weight: 700; color: #FFF; }
+        .modal-scroll-area { overflow-y: auto; overflow-x: hidden; scrollbar-width: none; padding: 0 5px 20px 5px;}
+        
+        /* Chiusura rapida Desktop */
+        @media (min-width: 1024px) {
+            .bottom-modal { top: 50%; left: 50%; bottom: auto; right: auto; transform: translate(-50%, -45%) scale(0.95); width: 600px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.15); opacity: 0; transition: all 0.3s; }
+            .bottom-modal.active { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            .modal-handle { display: none; }
+        }
+
+        @media (max-width: 600px) {
+            .action-row { flex-direction: column; align-items: stretch; background: transparent; padding: 0; border: none; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; border-radius: 0; gap: 10px;}
+            .action-row .btn-icon { width: 100%; height: 50px;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="/mobile" class="btn-back">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            Casa
+        </a>
+        <h1>Motore Logico</h1>
+        <div style="width:24px;"></div>
+    </div>
+
+    <div class="container">
+        
+        <div class="segmented-control">
+            <button class="active" id="btn-tab-auto" onclick="switchTab('auto')">Automazioni</button>
+            <button id="btn-tab-scenes" onclick="switchTab('scenes')">Scenari Locali</button>
+        </div>
+
+        <div id="tab-auto">
+            <div class="section-header">
+                <h3 class="section-title">Regole Attive</h3>
+            </div>
+            
+            <div id="auto_list">
+                <p style="color: var(--text-sec); text-align: center;">Caricamento in corso...</p>
+            </div>
+            
+            <button class="add-fab" onclick="openAutoModal()" title="Crea Automazione">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+        </div>
+
+        <div id="tab-scenes" style="display:none;">
+            <div class="section-header">
+                <h3 class="section-title">Scenari in Memoria</h3>
+            </div>
+            
+            <div id="scene_list">
+                <p style="color: var(--text-sec); text-align: center;">Caricamento in corso...</p>
+            </div>
+            
+            <button class="add-fab" onclick="openSceneModal()" title="Crea Scenario">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-overlay" onclick="closeAllModals()"></div>
+
+    <div class="bottom-modal" id="modal-auto">
+        <div class="modal-handle"></div>
+        <div class="modal-header"><div class="modal-title" id="form-title">✨ Nuova Regola</div></div>
+        
+        <div class="modal-scroll-area">
+            <label>Nome Regola</label>
+            <input type="text" id="a_name" placeholder="Es: Modalità Notte" autocomplete="off">
+            
+            <label>QUANDO ESEGUIRE? (Trigger)</label>
+            <select id="t_type" onchange="updUI()">
+                <option value="time">⏰ Orario Programmato</option>
+                <option value="state">⚡ Cambio di Stato</option>
+            </select>
+            
+            <div id="t_time_div" style="margin-top: 15px;"><input type="time" id="t_time_val"></div>
+            <div id="t_state_div" style="display:none; flex-direction: column; gap:10px; margin-top: 15px;">
+                <select id="t_ent" class="tom-single"></select>
+                <select id="t_val">
+                    <option value="on">Quando diventa ACCESO/APERTO</option>
+                    <option value="off">Quando diventa SPENTO/CHIUSO</option>
+                </select>
+            </div>
+
+            <label>CONDIZIONE (Opzionale)</label>
+            <select id="c_type" onchange="updUI()">
+                <option value="none">Nessuna (Esegui Sempre)</option>
+                <option value="state">Verifica un altro dispositivo prima</option>
+            </select>
+            <div id="c_state_div" style="display:none; flex-direction: column; gap:10px; margin-top: 15px;">
+                <select id="c_ent" class="tom-single"></select>
+                <select id="c_val">
+                    <option value="on">Prosegui solo se è ACCESO</option>
+                    <option value="off">Prosegui solo se è SPENTO</option>
+                </select>
+            </div>
+
+            <label>AZIONI DA ESEGUIRE</label>
+            <div id="actions-container"></div>
+            
+            <button class="btn-secondary" style="margin-top: 10px; background: rgba(255,255,255,0.05);" onclick="addActionRow()">+ Aggiungi Azione</button>
+            
+            <button class="btn-primary" style="margin-top: 30px;" onclick="saveAuto()">Salva Automazione</button>
+        </div>
+    </div>
+
+    <div class="bottom-modal" id="modal-scene">
+        <div class="modal-handle"></div>
+        <div class="modal-header"><div class="modal-title">📸 Salva Snapshot</div></div>
+        
+        <div class="modal-scroll-area">
+            <p style="color:var(--text-sec); font-size:0.9em; line-height: 1.5; margin-bottom: 20px;">
+                Regola manualmente luci e tapparelle in casa. Selezionale nel menu qui sotto e premi Registra. Il sistema memorizzerà i loro stati.
+            </p>
+            <label>Nome Scenario</label>
+            <input type="text" id="s_name" placeholder="Es: Serata Cinema">
+            
+            <label>Seleziona i dispositivi (Fotografa Stato):</label>
+            <select id="s_entities" class="tom-multi" multiple autocomplete="off"></select>
+            
+            <button class="btn-primary" onclick="recordScene()" style="margin-top: 30px;">Salva Scena Ora</button>
+        </div>
+    </div>
+
+
+<script>
+        let editingAutoId = null;
+        let automationsData = [];
+        let scenesData = [];
+        let rawEntities = []; 
+        let telegramContacts = []; // <-- NUOVO: Array per la rubrica Telegram
+        let tsTrigger, tsCondition, tsScene;
+        let tsActions = [];
+
+        function switchTab(tab) {
+            document.getElementById('tab-auto').style.display = tab === 'auto' ? 'block' : 'none';
+            document.getElementById('tab-scenes').style.display = tab === 'scenes' ? 'block' : 'none';
+            
+            document.getElementById('btn-tab-auto').classList.remove('active');
+            document.getElementById('btn-tab-scenes').classList.remove('active');
+            document.getElementById('btn-tab-' + tab).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        // --- GESTIONE MODALI ---
+        function openAutoModal(id = null) {
+            document.getElementById('modal-overlay').classList.add('active');
+            document.getElementById('modal-auto').classList.add('active');
+            if(id) { editAuto(id); } else { resetAutoForm(); }
+        }
+
+        function openSceneModal(id = null) {
+            document.getElementById('modal-overlay').classList.add('active');
+            document.getElementById('modal-scene').classList.add('active');
+            if(id) { editScene(id); } else { document.getElementById('s_name').value = ''; tsScene.clear(); }
+        }
+
+        function closeAllModals() {
+            document.getElementById('modal-overlay').classList.remove('active');
+            document.getElementById('modal-auto').classList.remove('active');
+            document.getElementById('modal-scene').classList.remove('active');
+        }
+
+        function updUI() {
+            const isTime = document.getElementById('t_type').value === 'time';
+            document.getElementById('t_time_div').style.display = isTime ? 'block' : 'none';
+            document.getElementById('t_state_div').style.display = isTime ? 'none' : 'flex';
+
+            const hasCond = document.getElementById('c_type').value === 'state';
+            document.getElementById('c_state_div').style.display = hasCond ? 'flex' : 'none';
+        }
+
+        function getOptionsHTML() {
+            const grouped = {};
+            rawEntities.forEach(e => { if (!grouped[e.domain]) grouped[e.domain] = []; grouped[e.domain].push(e); });
+            
+            let opts = '<option value="">Digita per cercare...</option>';
+            
+            // <-- NUOVO: Aggiungiamo manualmente Telegram in cima alla lista
+            opts += `<optgroup label="SERVIZI">`;
+            opts += `<option value="telegram">📲 Invia Notifica Telegram</option>`;
+            opts += `</optgroup>`;
+
+            for (const [domain, items] of Object.entries(grouped)) {
+                opts += `<optgroup label="${domain.toUpperCase()}">`;
+                items.forEach(e => { opts += `<option value="${e.entity_id}">${e.name}</option>`; });
+                opts += `</optgroup>`;
+            }
+            return opts;
+        }
+
+        // <-- MODIFICATO: Supporta i parametri extra di Telegram
+        function addActionRow(entId = '', val = 'on', tgChat = '', tgMsg = '') {
+            const div = document.createElement('div');
+            div.className = 'action-row';
+            div.style.flexWrap = 'wrap'; // Permette di mandare a capo i campi di Telegram
+            const selectId = 'act-sel-' + Date.now() + Math.random().toString(36).substr(2, 5);
+            
+            // Genera le opzioni per la tendina dei contatti Telegram
+            let tgOptions = `<option value="">Tutti i contatti di default</option>`;
+            telegramContacts.forEach(c => {
+                tgOptions += `<option value="${c.id}">${c.name}</option>`;
+            });
+
+            // HTML dinamico: contiene sia i campi standard (ON/OFF) che quelli Telegram (nascosti di default)
+            div.innerHTML = `
+                <div style="flex-grow:1; width: calc(100% - 60px);">
+                    <select id="${selectId}" class="a-ent">${getOptionsHTML()}</select>
+                </div>
+                <button class="btn-icon danger" onclick="removeActionRow(this, '${selectId}')" style="margin-left: auto;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+
+                <div class="action-std" style="width: 100%; margin-top: 8px;">
+                    <select class="a-val" style="width:100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white;">
+                        <option value="on">Metti ON</option>
+                        <option value="off">Metti OFF</option>
+                    </select>
+                </div>
+
+                <div class="action-tg" style="width: 100%; display: none; flex-direction: column; gap: 8px; margin-top: 8px;">
+                    <select class="tg-chat" style="width:100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white;">
+                        ${tgOptions}
+                    </select>
+                    <textarea class="tg-msg" placeholder="Scrivi il messaggio dell'automazione..." style="width:100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: white; resize: vertical; box-sizing: border-box; font-family: inherit;" rows="2"></textarea>
+                </div>
+            `;
+            document.getElementById('actions-container').appendChild(div);
+            
+            const tsInstance = new TomSelect(`#${selectId}`, { 
+                create: false, 
+                sortField: {field: "text", direction: "asc"},
+                onChange: function(value) {
+                    // <-- NUOVO: Selezionando Telegram, nasconde ON/OFF e mostra Chat e Messaggio
+                    if(value === 'telegram') {
+                        div.querySelector('.action-std').style.display = 'none';
+                        div.querySelector('.action-tg').style.display = 'flex';
+                    } else {
+                        div.querySelector('.action-std').style.display = 'block';
+                        div.querySelector('.action-tg').style.display = 'none';
+                    }
+                }
+            });
+            tsActions.push({ id: selectId, instance: tsInstance });
+            
+            // Ripristina i valori in caso di modifica di una regola esistente
+            if(entId) {
+                tsInstance.setValue(entId);
+                div.querySelector('.a-val').value = val;
+                div.querySelector('.tg-chat').value = tgChat;
+                div.querySelector('.tg-msg').value = tgMsg;
+            }
+        }
+
+        function removeActionRow(btn, selectId) {
+            const index = tsActions.findIndex(item => item.id === selectId);
+            if(index > -1) { tsActions[index].instance.destroy(); tsActions.splice(index, 1); }
+            btn.closest('.action-row').remove();
+        }
+
+        async function loadData() {
+            try {
+                // Recupera entità standard
+                const resEnt = await fetch('/api/entities_for_automations');
+                rawEntities = await resEnt.json();
+                
+                // <-- NUOVO: Recupera la rubrica Telegram dal backend
+                try {
+                    const resTg = await fetch('/api/telegram_chats');
+                    telegramContacts = await resTg.json();
+                } catch(err) { console.error("Modulo Telegram non configurato"); }
+
+                const optsHTML = getOptionsHTML();
+                
+                document.getElementById('t_ent').innerHTML = optsHTML;
+                document.getElementById('c_ent').innerHTML = optsHTML;
+                document.getElementById('s_entities').innerHTML = optsHTML;
+                
+                tsTrigger = new TomSelect("#t_ent", { create: false, sortField: {field: "text", direction: "asc"} });
+                tsCondition = new TomSelect("#c_ent", { create: false, sortField: {field: "text", direction: "asc"} });
+                tsScene = new TomSelect("#s_entities", { plugins: ['remove_button'], create: false, placeholder: "Seleziona dispositivi..." });
+
+                loadLists();
+            } catch(e) { console.error(e); }
+        }
+
+        async function loadLists() {
+            const resAuto = await fetch('/api/automations');
+            automationsData = await resAuto.json();
+            let htmlA = '';
+            automationsData.forEach(a => {
+                const isOffClass = a.is_active ? '' : 'disabled';
+                const checked = a.is_active ? 'checked' : '';
+                htmlA += `<div class="list-item ${isOffClass}" id="auto-item-${a.id}">
+                    <div class="list-header">
+                        <div>
+                            <div class="list-title">${a.name}</div>
+                            <span class="list-subtitle">${a.config.actions.length} Azioni Configurate</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" ${checked} onchange="toggleAuto(${a.id}, this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="list-actions">
+                        <button class="btn-secondary" onclick="openAutoModal(${a.id})">Configura</button>
+                        <button class="btn-secondary" style="color:var(--danger); background: var(--danger-bg);" onclick="del('/api/automations', ${a.id})">Elimina</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('auto_list').innerHTML = htmlA || '<div style="text-align:center; padding:40px; background:rgba(255,255,255,0.03); border-radius:16px; color:var(--text-sec);">Nessuna regola configurata. Tocca il tasto blu per crearne una.</div>';
+
+            const resScenes = await fetch('/api/scenes');
+            scenesData = await resScenes.json();
+            let htmlS = '';
+            scenesData.forEach(s => {
+                htmlS += `<div class="list-item">
+                    <div class="list-header">
+                        <div>
+                            <div class="list-title">${s.name}</div>
+                            <span class="list-subtitle">${s.entities_count} Dispositivi nel set</span>
+                        </div>
+                    </div>
+                    <div class="list-actions">
+                        <button class="btn-secondary" onclick="openSceneModal('${s.id}')">Ispeziona</button>
+                        <button class="btn-secondary" style="color:var(--danger); background: var(--danger-bg);" onclick="del('/api/scenes', '${s.id}')">Elimina</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('scene_list').innerHTML = htmlS || '<div style="text-align:center; padding:40px; background:rgba(255,255,255,0.03); border-radius:16px; color:var(--text-sec);">Nessuno scenario salvato.</div>';
+        }
+
+        async function toggleAuto(id, isActive) {
+            const itemDiv = document.getElementById(`auto-item-${id}`);
+            isActive ? itemDiv.classList.remove('disabled') : itemDiv.classList.add('disabled');
+            await fetch('/api/automations', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: id, is_active: isActive}) });
+        }
+
+        function resetAutoForm() {
+            editingAutoId = null;
+            document.getElementById('form-title').innerText = "✨ Nuova Regola";
+            document.getElementById('a_name').value = '';
+            
+            tsTrigger.clear(); tsCondition.clear();
+            tsActions.forEach(act => act.instance.destroy());
+            tsActions = []; document.getElementById('actions-container').innerHTML = '';
+            
+            addActionRow(); updUI();
+        }
+
+        function editAuto(id) {
+            const auto = automationsData.find(a => a.id === id);
+            if(!auto) return;
+            resetAutoForm();
+            document.getElementById('actions-container').innerHTML = ''; 
+            tsActions = [];
+
+            editingAutoId = auto.id;
+            document.getElementById('form-title').innerText = "✏️ Modifica: " + auto.name;
+            document.getElementById('a_name').value = auto.name;
+            
+            document.getElementById('t_type').value = auto.config.trigger.type;
+            if(auto.config.trigger.type === 'time') document.getElementById('t_time_val').value = auto.config.trigger.value;
+            else { tsTrigger.setValue(auto.config.trigger.entity); document.getElementById('t_val').value = auto.config.trigger.value; }
+
+            document.getElementById('c_type').value = auto.config.condition.type || 'none';
+            if(auto.config.condition.type === 'state') { tsCondition.setValue(auto.config.condition.entity); document.getElementById('c_val').value = auto.config.condition.value; }
+
+            updUI(); 
+            // <-- MODIFICATO: Ripristina correttamente i valori se l'azione era Telegram
+            if(auto.config.actions && auto.config.actions.length > 0) {
+                auto.config.actions.forEach(act => {
+                    if (act.action_type === 'telegram' || act.entity_id === 'telegram') {
+                        addActionRow('telegram', 'on', act.chat_id, act.message);
+                    } else {
+                        addActionRow(act.entity_id, act.state);
+                    }
+                });
+            } else {
+                addActionRow();
+            }
+        }
+
+        function editScene(id) {
+            const scene = scenesData.find(s => s.id === id);
+            if(!scene) return;
+            document.getElementById('s_name').value = scene.name;
+            tsScene.setValue(scene.entities_list);
+        }
+
+        async function saveAuto() {
+            const actions = [];
+            document.querySelectorAll('.action-row').forEach(row => {
+                const selectElement = row.querySelector('.a-ent');
+                const ent = selectElement.tomselect ? selectElement.tomselect.getValue() : '';
+                
+                if(ent) {
+                    // <-- MODIFICATO: Estrae i dati corretti in base al tipo di azione scelta
+                    if (ent === 'telegram') {
+                        actions.push({ 
+                            action_type: 'telegram',
+                            entity_id: 'telegram',
+                            chat_id: row.querySelector('.tg-chat').value,
+                            message: row.querySelector('.tg-msg').value.trim()
+                        });
+                    } else {
+                        actions.push({ 
+                            entity_id: ent, 
+                            state: row.querySelector('.a-val').value 
+                        });
+                    }
+                }
+            });
+
+            if(actions.length === 0) return alert("Inserisci almeno un'azione.");
+            if(!document.getElementById('a_name').value) return alert("Dai un nome alla regola.");
+
+            const data = {
+                id: editingAutoId, 
+                name: document.getElementById('a_name').value,
+                config: {
+                    trigger: { type: document.getElementById('t_type').value, entity: tsTrigger.getValue(), value: document.getElementById('t_type').value === 'time' ? document.getElementById('t_time_val').value : document.getElementById('t_val').value },
+                    condition: { type: document.getElementById('c_type').value, entity: tsCondition.getValue(), value: document.getElementById('c_val').value },
+                    actions: actions
+                }
+            };
+            await fetch('/api/automations', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            closeAllModals(); loadLists(); 
+        }
+
+        async function recordScene() {
+            const entities = tsScene.getValue();
+            if(entities.length === 0) return alert("Seleziona i dispositivi da fotografare.");
+            const name = document.getElementById('s_name').value;
+            if(!name) return alert("Inserisci un nome per lo scenario.");
+
+            await fetch('/api/scenes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, entities}) });
+            closeAllModals(); loadLists(); 
+        }
+
+        async function del(endpoint, id) {
+            if(confirm("L'azione è irreversibile. Procedere?")) {
+                await fetch(endpoint, { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id}) });
+                loadLists();
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
