@@ -14,16 +14,20 @@ echo -e "\e[1;36m[>] Preparazione del sistema Wach OS in corso...\e[0m"
 apt-get update -y > /dev/null 2>&1
 apt-get install python3 python3-pip git libglib2.0-0 libsm6 libxext6 libxrender-dev -y > /dev/null 2>&1
 
-# 2. Installazione librerie Python a livello GLOBALE (Niente venv)
-mkdir -p $INSTALL_DIR
+# 2. Download del sistema Wach OS da GitHub (IL PEZZO CHE MANCAVA!)
+echo -e "\e[1;36m[>] Download del codice sorgente da GitHub...\e[0m"
+rm -rf $INSTALL_DIR 
+git clone https://github.com/giovanni247000/Wach0ss-home.git $INSTALL_DIR -q
+
+# 3. Installazione librerie Python a livello GLOBALE (Niente venv)
 cd $INSTALL_DIR
 echo -e "\e[1;36m[>] Installazione delle librerie Python a livello globale...\e[0m"
 pip3 install flask requests opencv-python-headless xknx soco zeroconf --break-system-packages > /dev/null 2>&1
 
-# 3. Rendiamo eseguibile lo script di aggiornamento (se esiste)
+# 4. Rendiamo eseguibile lo script di aggiornamento (se esiste)
 chmod +x $INSTALL_DIR/update.sh 2>/dev/null || true
 
-# 4. Creazione del servizio Systemd (per l'avvio automatico)
+# 5. Creazione del servizio Systemd (per l'avvio automatico)
 cat <<EOF > /etc/systemd/system/wach_os.service
 [Unit]
 Description=Wach OS System
@@ -41,14 +45,14 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-# 5. Avvio del servizio
+# 6. Avvio del servizio
 echo -e "\e[1;36m[>] Configurazione dei servizi di avvio automatico...\e[0m"
 systemctl daemon-reload
 systemctl enable wach_os > /dev/null 2>&1
 systemctl restart wach_os
 
 # ==========================================
-# 6. ANIMAZIONE E OUTPUT FINALE MIGLIORATO
+# 7. ANIMAZIONE E OUTPUT FINALE MIGLIORATO
 # ==========================================
 
 clear
