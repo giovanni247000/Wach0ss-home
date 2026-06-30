@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impostazioni Server OS</title>
+    <style>
+        :root {
+            --primary: #0066cc;
+            --primary-hover: #005bb5;
+            --bg-body: #f4f5f7;
+            --surface: #ffffff;
+            --text-main: #1d1d1f;
+            --text-muted: #86868b;
+            --border: #e5e5ea;
+            --radius: 16px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.04);
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* HEADER FISSO IN ALTO */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 10px rgba(0,0,0,0.02);
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 102, 204, 0.1);
+            color: var(--primary);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(0, 102, 204, 0.2);
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0;
+        }
+
+        /* CONTENITORE PRINCIPALE ESPANSO */
+        .main-content {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .warning { 
+            background: #fff2f2; 
+            color: #cc0000; 
+            padding: 16px 20px; 
+            border-radius: 12px; 
+            font-size: 1rem; 
+            margin-bottom: 30px; 
+            border: 1px solid #ffcccc; 
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* LAYOUT A GRIGLIA PER LE SCHEDE */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        @media (max-width: 850px) {
+            .dashboard-grid { grid-template-columns: 1fr; }
+            .header { padding: 16px 20px; }
+        }
+
+        /* STILE DELLE SINGOLE SCHEDE (CARDS) */
+        .card {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.15rem;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        /* ELEMENTI DEL FORM */
+        .input-group { margin-bottom: 20px; }
+        
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-size: 0.9rem; 
+            color: var(--text-main); 
+            font-weight: 600; 
+        }
+
+        input, select { 
+            padding: 14px 16px; 
+            width: 100%; 
+            box-sizing: border-box; 
+            border: 1px solid var(--border); 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            border-radius: 10px; 
+            font-size: 1rem; 
+            outline: none; 
+            transition: all 0.2s ease;
+        }
+
+        input:focus, select:focus { 
+            border-color: var(--primary); 
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.15); 
+            background: var(--surface);
+        }
+
+        ::placeholder { color: #a1a1a6; }
+
+        .hint { font-size: 0.85rem; color: var(--text-muted); margin-top: 6px; display: block; }
+
+        /* PULSANTI */
+        .flex-row { display: flex; gap: 10px; align-items: center; }
+        .flex-row select { flex: 1; }
+        .flex-row button { width: auto; }
+
+        .action-btn { 
+            background: #e8e8ed; 
+            color: var(--text-main); 
+            border: 1px solid var(--border); 
+            padding: 14px 16px; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            font-size: 1rem;
+        }
+        .action-btn:hover { background: #d2d2d7; }
+
+        .btn-green { 
+            background: #34C759; color: white; border: none; padding: 10px 16px; 
+            border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px; 
+        }
+        .btn-green:hover { background: #2eb04f; }
+
+        .btn-primary { 
+            background: var(--primary); color: white; padding: 18px; width: 100%; 
+            border: none; border-radius: 12px; cursor: pointer; font-weight: 600; 
+            font-size: 1.1rem; margin-top: 30px; transition: background 0.2s; 
+            box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+        }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+
+        .warning-wifi { 
+            background: #f4f5f7; border: 1px solid var(--border); padding: 16px; 
+            border-radius: 10px; margin-top: 15px;
+        }
+
+        /* SEZIONE FINALE (Sicurezza) */
+        .auth-card {
+            background: rgba(0, 102, 204, 0.03);
+            border-color: rgba(0, 102, 204, 0.2);
+            grid-column: 1 / -1; /* Occupa tutta la larghezza sulla griglia */
+            margin-top: 10px;
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <a href="/dashboard" class="back-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Torna alla Dashboard
+        </a>
+        <h1 class="header-title">Impostazioni OS</h1>
+        <div style="width: 150px;"></div> </header>
+
+    <div class="main-content">
+        
+        <div class="warning">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div>
+                <strong>Attenzione:</strong> Modificando l'indirizzo IP, il server cambierà rete immediatamente. La connessione cadrà e dovrai digitare il nuovo IP nel browser.
+            </div>
+        </div>
+
+        <form id="serverForm" class="dashboard-grid">
+            
+            <div class="card">
+                <h3>🌐 Rete Principale</h3>
+                
+                <div class="input-group">
+                    <label>Nome del Server (Hostname)</label>
+                    <input type="text" name="hostname" value="{{ current_hostname }}" placeholder="es. orion-hub">
+                </div>
+                
+                <div class="input-group">
+                    <label>Interfaccia di Rete</label>
+                    <select name="interface" id="interfaceSelect" onchange="toggleWifi()">
+                        <option value="eth0">Rete Cablata Ethernet (eth0)</option>
+                        <option value="wlan0">Rete Senza Fili Wi-Fi (wlan0)</option>
+                    </select>
+                </div>
+
+                <div id="wifiSection" class="hidden" style="margin-top: 30px; border-top: 1px dashed var(--border); padding-top: 20px;">
+                    <div class="input-group">
+                        <label>Reti Wi-Fi Disponibili</label>
+                        <div class="flex-row">
+                            <select name="wifi_ssid" id="wifiSsidSelect">
+                                <option value="">-- Clicca la rotellina per scansionare --</option>
+                            </select>
+                            <button type="button" onclick="scanWifi()" id="scanBtn" class="action-btn">🔄</button>
+                        </div>
+                    </div>
+
+                    <div id="wifiDisabledWarning" class="warning-wifi hidden">
+                        <strong>Antenna spenta</strong><br>
+                        Il modulo Wi-Fi risulta disabilitato a livello di sistema operativo.<br>
+                        <button type="button" id="enableWifiBtn" class="btn-green" onclick="enableWifi()">Accendi Wi-Fi ora</button>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Password della rete Wi-Fi</label>
+                        <input type="password" name="wifi_password" placeholder="Lascia vuoto se la rete è aperta...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>⚙️ Indirizzamento IP</h3>
+                
+                <div class="input-group">
+                    <label>Nuovo Indirizzo IP</label>
+                    <input type="text" name="ip_address" placeholder="es. 192.168.1.50">
+                    <span class="hint">Lascia vuoto per farti assegnare un IP dal router (DHCP).</span>
+                </div>
+
+                <div class="input-group">
+                    <label>Gateway (Indirizzo del Router)</label>
+                    <input type="text" name="gateway" placeholder="es. 192.168.1.1">
+                </div>
+
+                <div class="input-group">
+                    <label>Server DNS</label>
+                    <input type="text" name="dns" value="8.8.8.8" placeholder="es. 8.8.8.8">
+                    <span class="hint">Il server per la risoluzione dei nomi web.</span>
+                </div>
+            </div>
+
+            <div class="card auth-card">
+                <h3 style="color: var(--primary); border-bottom-color: rgba(0,102,204,0.2);">🔐 Autorizzazione di Sistema</h3>
+                
+                <div class="input-group" style="max-width: 600px; margin: 0 auto; text-align: center;">
+                    <label style="text-align: left;">Password di Sistema (Root/Sudo)</label>
+                    <input type="password" name="os_password" placeholder="La password che usi in SSH..." required style="background: white;">
+                    <span class="hint" style="text-align: left;">Necessaria per autorizzare le modifiche hardware e di rete a basso livello.</span>
+                    
+                    <button type="button" class="btn-primary" onclick="submitSettings()">Salva e Applica Modifiche</button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+
+    <script>
+        function toggleWifi() {
+            const isWifi = document.getElementById('interfaceSelect').value === 'wlan0';
+            const wifiSection = document.getElementById('wifiSection');
+            if(isWifi) {
+                wifiSection.classList.remove('hidden');
+            } else {
+                wifiSection.classList.add('hidden');
+            }
+        }
+
+        function scanWifi() {
+            const btn = document.getElementById('scanBtn');
+            const select = document.getElementById('wifiSsidSelect');
+            const warningBox = document.getElementById('wifiDisabledWarning');
+            
+            btn.innerText = "⏳";
+            warningBox.classList.add('hidden');
+            
+            fetch('/api/wifi_scan')
+            .then(res => res.json())
+            .then(data => {
+                btn.innerText = "🔄";
+                if(data.status === 'success') {
+                    select.innerHTML = '<option value="">-- Seleziona una rete --</option>';
+                    data.networks.forEach(net => {
+                        select.innerHTML += `<option value="${net.ssid}">${net.ssid} (Segnale: ${net.signal}%)</option>`;
+                    });
+                } else {
+                    if(data.message.toLowerCase().includes('disabled')) {
+                        warningBox.classList.remove('hidden');
+                    } else {
+                        alert("Errore scansione: " + data.message);
+                    }
+                }
+            })
+            .catch(err => {
+                btn.innerText = "🔄";
+                alert("Errore di connessione al server.");
+            });
+        }
+
+        function enableWifi() {
+            const osPassword = document.querySelector('input[name="os_password"]').value;
+            if(!osPassword) {
+                alert("⚠️ Inserisci la Password di Sistema nel riquadro in basso per sbloccare l'hardware.");
+                return;
+            }
+
+            const btn = document.getElementById('enableWifiBtn');
+            btn.innerText = "Attivazione in corso...";
+
+            fetch('/api/wifi_enable', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ os_password: osPassword })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    document.getElementById('wifiDisabledWarning').classList.add('hidden');
+                    scanWifi();
+                } else {
+                    btn.innerText = "Accendi Wi-Fi ora";
+                    alert("Errore: " + data.message);
+                }
+            })
+            .catch(err => {
+                btn.innerText = "Accendi Wi-Fi ora";
+                alert("Errore di rete.");
+            });
+        }
+
+        function submitSettings() {
+            const formData = new FormData(document.getElementById('serverForm'));
+            
+            if(!formData.get('os_password')) {
+                alert("Devi inserire la password di sistema per continuare.");
+                return;
+            }
+
+            if(!confirm("Sei sicuro di voler procedere? Se l'IP è errato potresti perdere l'accesso al server.")) return;
+            
+            fetch('/server_settings', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(data.message);
+                    if (formData.get('ip_address') || formData.get('wifi_ssid')) {
+                        document.body.innerHTML = "<div style='display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#f4f5f7; color:#1d1d1f; font-family:-apple-system, sans-serif;'><h2 style='color:#0066cc; margin-bottom:10px;'>Riconnessione in corso... ⏳</h2><p style='color:#86868b; font-size:1.1rem;'>Attendi 15 secondi e collegati al nuovo indirizzo IP (o alla nuova rete).</p></div>";
+                    } else {
+                        window.location.reload();
+                    }
+                } else {
+                    alert("Errore: " + data.message);
+                }
+            })
+            .catch(error => {
+                alert("La connessione con il server si è interrotta. Se hai cambiato IP o rete, l'operazione è andata a buon fine.");
+            });
+        }
+    </script>
+</body>
+</html>
