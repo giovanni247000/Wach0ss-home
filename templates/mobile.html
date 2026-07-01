@@ -2795,8 +2795,28 @@ const entityId = card.dataset.id;
             fetch('/api/media_control', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ entity_id: entityId, action: finalAction }) });
         }
 
-        document.getElementById('volume-slider').addEventListener('change', (e) => {
-            if(currentModalEntity) fetch('/api/media_control', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ entity_id: currentModalEntity, action: 'volume_set', volume: parseFloat(e.target.value / 100) }) });
+document.getElementById('volume-slider').addEventListener('change', (e) => {
+            if (!currentModalEntity) return;
+            
+            // Calcola il nuovo volume
+            const newVolume = parseFloat(e.target.value) / 100;
+            
+            // 1. Aggiorna SUBITO il dato sulla card. 
+            // In questo modo, riaprendo il modale, leggerà questo nuovo valore!
+            document.querySelectorAll(`.hk-card[data-id="${currentModalEntity}"]`).forEach(card => {
+                card.dataset.volume = newVolume;
+            });
+
+            // 2. Invia il comando al server
+            fetch('/api/media_control', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ 
+                    entity_id: currentModalEntity, 
+                    action: 'volume_set', 
+                    volume: newVolume 
+                }) 
+            }).catch(err => console.error("Errore invio volume:", err));
         });
 
         function toggleModalMedia() {
@@ -2877,8 +2897,12 @@ const entityId = card.dataset.id;
 
         initMobile3D();
 
-        document.body.addEventListener('touchmove', function(e) {
-            if (!e.target.closest('#app-wrapper') && !e.target.closest('.modal-scroll-area')) {
+document.body.addEventListener('touchmove', function(e) {
+            // Blocca il rimbalzo della pagina, MA permettilo se tocchiamo un'area di scorrimento
+            // o se stiamo trascinando uno slider (type="range") o toccando i colori
+            if (!e.target.closest('#app-wrapper') && 
+                !e.target.closest('.modal-scroll-area') && 
+                e.target.tagName !== 'INPUT') {
                 e.preventDefault();
             }
         }, { passive: false });
