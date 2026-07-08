@@ -2,9 +2,9 @@
 <img src="./images/logo.png" width="200">
 
 
-1. **INstallazione Linux:**
+1. **Clona la repository:**
    ```bash
-  git clone https://github.com/giovanni247000/Wach0ss-home.git /opt/wach_os && sudo bash /opt/wach_os/install.sh
+   git clone [https://github.com/giovanni247000/Wach0ss-home.git /opt/wach_os && sudo bash /opt/wach_os/install.sh)
 
   # Titolo del Tuo Progetto
 
