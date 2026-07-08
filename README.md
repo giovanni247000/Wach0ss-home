@@ -46,21 +46,36 @@ Ideale per sistemi Linux e **Raspberry Pi**, include sistemi di accesso remoto s
 
 ## 📸 Galleria
 
+### 💻 Interfaccia Desktop & Tablet
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>📱 Schermata Principale</b></td>
-      <td align="center"><b>⚙️ Impostazioni / Automazioni</b></td>
+      <td align="center"><b>Dashboard Principale</b></td>
+      <td align="center"><b>Piantina 3D</b></td>
+      <td align="center"><b>Impostazioni Server</b></td>
     </tr>
     <tr>
-      <!-- Assicurati di avere queste immagini salvate nella cartella "images" -->
-      <td><img src="./images/desktop.png" alt="Dashboard Mobile" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
-      <td><img src="./images/3d.png" alt="Impostazioni" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
-      <td><img src="./images/config.png" alt="Impostazioni" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
-      <td><img src="./images/telefono1.png" alt="Impostazioni" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
-      <td><img src="./images/telefono2.png" alt="Impostazioni" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
-      <td><img src="./images/telefono3.png" alt="Impostazioni" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
-      <td><img src="./images/telefono4.png" alt="Impostazioni" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
+      <td align="center"><img src="./images/desktop.png" alt="Dashboard Desktop" width="280" style="border-radius: 8px;"/></td>
+      <td align="center"><img src="./images/3d.png" alt="Vista 3D" width="280" style="border-radius: 8px;"/></td>
+      <td align="center"><img src="./images/config.png" alt="Configurazioni" width="280" style="border-radius: 8px;"/></td>
+    </tr>
+  </table>
+</div>
+
+### 📱 Esperienza Mobile
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><b>Schermata 1</b></td>
+      <td align="center"><b>Schermata 2</b></td>
+      <td align="center"><b>Schermata 3</b></td>
+      <td align="center"><b>Schermata 4</b></td>
+    </tr>
+    <tr>
+      <td align="center"><img src="./images/telefono1.png" alt="Mobile 1" width="180" style="border-radius: 12px;"/></td>
+      <td align="center"><img src="./images/telefono2.png" alt="Mobile 2" width="180" style="border-radius: 12px;"/></td>
+      <td align="center"><img src="./images/telefono3.png" alt="Mobile 3" width="180" style="border-radius: 12px;"/></td>
+      <td align="center"><img src="./images/telefono4.png" alt="Mobile 4" width="180" style="border-radius: 12px;"/></td>
     </tr>
   </table>
 </div>
