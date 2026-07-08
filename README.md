@@ -1,6 +1,11 @@
 <div align="center">
 <img src="./images/logo.png" width="200">
 
+
+1. **INstallazione Linux:**
+   ```bash
+  git clone https://github.com/giovanni247000/Wach0ss-home.git /opt/wach_os && sudo bash /opt/wach_os/install.sh
+
   # Titolo del Tuo Progetto
 
   **Una breve e accattivante descrizione di cosa fa il tuo progetto in una sola riga.**
@@ -63,6 +68,6 @@ Prima di iniziare, assicurati di avere installato i seguenti strumenti sul tuo c
 
 Segui questi semplici passaggi per clonare la repository e avviare il progetto in locale.
 
-1. **Clona la repository:**
+1. **INstallazione Linux:**
    ```bash
-   git clone [https://github.com/tuo-username/nome-del-tuo-progetto.git](https://github.com/tuo-username/nome-del-tuo-progetto.git)
+  git clone https://github.com/giovanni247000/Wach0ss-home.git /opt/wach_os && sudo bash /opt/wach_os/install.sh
