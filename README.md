@@ -1,5 +1,5 @@
 <div align="center">
-<img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/Github-Dark.svg" alt="Logo" width="120" />
+<img src="./images/logo.png" width="200">
 
   # Titolo del Tuo Progetto
 
