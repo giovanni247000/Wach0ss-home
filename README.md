@@ -1,99 +1,72 @@
 <div align="center">
 
-  <!-- SOSTITUISCI QUESTO LINK CON IL TUO LOGO REALE -->
-  <img src="https://raw.githubusercontent.com/tandpfun/skill-icons/main/icons/RaspberryPi-Dark.svg" alt="Wach0ss Home Logo" width="150" />
+  <img src="./images/logo.png" width="200" alt="Wach0ss Home Logo">
 
   <h1>🌌 Wach0ss Home</h1>
 
   <p>
-    <em>L'Hub Domotico Definitivo: leggero, multipiattaforma e dal design accattivante. Unisce KNX, Home Assistant, Shelly e Sonos in un'unica interfaccia 3D.</em>
+    <em>L'Hub Domotico Definitivo: unisce KNX, Home Assistant, Shelly e Sonos in un'unica incredibile interfaccia 3D.</em>
   </p>
 
   <p>
     <img src="https://img.shields.io/badge/Versione-1.0.0-blueviolet?style=for-the-badge" alt="Versione" />
     <img src="https://img.shields.io/badge/Python-3.9+-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54" alt="Python" />
-    <img src="https://img.shields.io/badge/Flask-Web_Framework-white?style=for-the-badge&logo=flask&logoColor=black" alt="Flask" />
-    <img src="https://img.shields.io/badge/Stato-Attivo-success?style=for-the-badge" alt="Stato" />
+    <img src="https://img.shields.io/badge/Stato-In_Sviluppo-success?style=for-the-badge" alt="Stato" />
   </p>
   
   <p>
     <a href="#-esplora-il-progetto">Esplora</a> •
     <a href="#-funzionalità-principali">Funzioni</a> •
-    <a href="#-installazione-linuxraspberry-pi">Installazione</a> •
-    <a href="#-screenshot">Galleria</a>
+    <a href="#-installazione-veloce">Installazione</a> •
+    <a href="#-galleria">Galleria</a>
   </p>
 
 </div>
 
-<br/>
+---
 
 ## 🚀 Esplora il Progetto
 
-**Wach0ss Home** non è solo una dashboard, è un vero e proprio server domestico indipendente. Nato per superare i limiti di integrazione, permette di gestire la tua casa tramite un'interfaccia intuitiva, supportando piantine 3D interattive e un motore di automazione logica integrato.
+**Wach0ss Home** non è una semplice dashboard, è un vero e proprio server domotico. Progettato per superare ogni limite di integrazione, ti permette di mappare la tua casa tramite piantine 3D interattive e gestirla con un motore logico potentissimo.
 
-Ideale per girare su **Raspberry Pi**, server Linux o macchine Windows, garantisce accesso remoto sicuro tramite Cloudflare Tunnels e ZeroTier, tutto configurabile con un click.
+Ideale per sistemi Linux e **Raspberry Pi**, include sistemi di accesso remoto sicuro (ZeroTier e Cloudflare) configurabili con un solo click.
 
 ---
 
 ## ✨ Funzionalità Principali
 
-Ho sviluppato questo sistema per renderlo un vero "coltellino svizzero" per la domotica:
-
-*   🔌 **Integrazione Universale Nativia:** 
-    *   **KNX:** Controllo diretto su bus (Luci, Tapparelle, Dimmer).
-    *   **Home Assistant:** Collega più istanze HA e sincronizza le entità.
-    *   **Shelly:** Auto-discovery locale (Gen 1 & Gen 2).
-    *   **Sonos:** Rilevamento automatico e riproduzione multi-room.
-    *   **Tapo:** Streaming RTSP in tempo reale con anti-lag (tramite OpenCV).
-*   🗺️ **Piantine 3D Interattive:** Carica i tuoi modelli `.glb` per controllare le luci direttamente dalla riproduzione 3D della tua casa.
-*   🧠 **Motore Automazioni & Scenari:** Crea routine basate su orari, stati o range temporali. Salva lo stato attuale della casa in uno "Scenario" (Snapshot) richiamabile in un click.
-*   🚨 **Sistema di Allarme Integrato:** Sicurezza con PIN, ritardo di uscita, attivazione sirene via Sonos e notifiche Telegram.
-*   🌍 **Accesso Remoto 1-Click:** Installazione automatica di Cloudflare e ZeroTier integrata direttamente nell'interfaccia.
-*   🔐 **Sicurezza Avanzata:** Sistema di blocco IP per tentativi falliti, gestione utenti (Admin/User) e verifica licenza tramite Hardware ID.
+*   🔌 **Integrazione Nativa:** Controllo diretto su bus **KNX**, auto-discovery locale per **Shelly** (Gen 1 & 2), rilevamento automatico **Sonos** e integrazione profonda con **Home Assistant**.
+*   🗺️ **Piantine 3D Interattive:** Carica i tuoi file `.glb` e controlla luci e tapparelle cliccando direttamente sulla riproduzione 3D di casa tua.
+*   🎥 **Streaming Tapo Anti-Lag:** Motore video integrato con OpenCV per flussi RTSP fluidi e in tempo reale.
+*   🧠 **Automazioni & Scenari:** Motore logico proprietario per creare routine (orari, stati, range temporali) e "Snapshots" istantanei della casa.
+*   🚨 **Sistema di Allarme Integrato:** Inserimento con PIN, ritardo di uscita, attivazione sirene via Sonos e notifiche dirette su Telegram.
+*   🌍 **Accesso Remoto 1-Click:** Demoni Cloudflare e ZeroTier preconfigurati.
 
 ---
 
-## 📸 Galleria Immagini
-
-*(Inserisci qui gli screenshot della tua app. Usa file `.png` o `.gif` per mostrare le piantine 3D!)*
+## 📸 Galleria
 
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>Dashboard Mobile</b></td>
-      <td align="center"><b>Editor Piantine 3D</b></td>
+      <td align="center"><b>📱 Schermata Principale</b></td>
+      <td align="center"><b>⚙️ Impostazioni / Automazioni</b></td>
     </tr>
     <tr>
-      <td>
-        <img src="https://images.unsplash.com/photo-1558002038-1055907df827?w=500&q=80" alt="Mobile App" style="border-radius: 10px;" width="350"/>
-      </td>
-      <td>
-        <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=500&q=80" alt="3D Floorplan" style="border-radius: 10px;" width="350"/>
-      </td>
+      <!-- Assicurati di avere queste immagini salvate nella cartella "images" -->
+      <td><img src="./images/screen1.png" alt="Dashboard Mobile" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
+      <td><img src="./images/screen2.png" alt="Impostazioni" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
     </tr>
   </table>
 </div>
 
 ---
 
-## 🛠 Prerequisiti
+## 💻 Installazione Veloce
 
-Essendo un ecosistema completo, assicurati che il tuo server disponga di:
+Il sistema è ottimizzato per Linux/Raspberry Pi. Ti basta **un solo comando** per clonare la repository, creare l'ambiente in `/opt/` e lanciare l'installazione delle dipendenze.
 
-*   **Python 3.8+**
-*   **FFmpeg** (Necessario per lo streaming delle telecamere RTSP)
-*   Accesso Root/Sudo (per le configurazioni di rete avanzate e i servizi)
-
----
-
-## 💻 Installazione (Linux/Raspberry Pi)
-
-Il metodo di installazione è stato ottimizzato per sistemi basati su Debian/Ubuntu. Segui questi passaggi nel terminale:
-
-### 1. Clona e Installa
-Lancia l'installazione automatica che preparerà l'ambiente `/opt/wach_os` e installerà tutte le dipendenze Python:
+Apri il terminale e lancia la magia:
 
 ```bash
-git clone [https://github.com/giovanni247000/Wach0ss-home.git](https://github.com/giovanni247000/Wach0ss-home.git) /opt/wach_os
-cd /opt/wach_os
-sudo bash install.sh
+git clone [https://github.com/giovanni247000/Wach0ss-home.git](https://github.com/giovanni247000/Wach0ss-home.git) /opt/wach_os && sudo bash /opt/wach_os/install.sh
