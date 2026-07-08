@@ -1,5 +1,6 @@
 <div align="center">
-  <img src="INSERISCI_QUI_URL_DEL_TUO_LOGO_O_IMMAGINE" alt="Logo Progetto" width="150"/>
+  <img src="<img width="725" height="735" alt="logo" src="https://github.com/user-attachments/assets/40f6ee50-d6f9-40ec-8f21-f5027c2ac55f" />
+" alt="Logo Progetto" width="150"/>
 
   # Titolo del Tuo Progetto
 
