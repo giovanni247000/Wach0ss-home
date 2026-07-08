@@ -54,8 +54,9 @@ Ideale per sistemi Linux e **Raspberry Pi**, include sistemi di accesso remoto s
     </tr>
     <tr>
       <!-- Assicurati di avere queste immagini salvate nella cartella "images" -->
-      <td><img src="./images/screen1.png" alt="Dashboard Mobile" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
-      <td><img src="./images/screen2.png" alt="Impostazioni" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
+      <td><img src="./images/desktop.png" alt="Dashboard Mobile" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
+      <td><img src="./images/3d.png" alt="Impostazioni" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
+      <td><img src="./images/config.png" alt="Impostazioni" width="400" style="border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);"/></td>
     </tr>
   </table>
 </div>
