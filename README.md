@@ -18,7 +18,8 @@
     <a href="#-esplora-il-progetto">Esplora</a> •
     <a href="#-funzionalità-principali">Funzioni</a> •
     <a href="#-installazione-veloce">Installazione</a> •
-    <a href="#-galleria">Galleria</a>
+    <a href="#-galleria">Galleria</a> •
+    <a href="#-assistenza-e-contatti">Contatti</a>
   </p>
 
 </div>
