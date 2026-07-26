@@ -16,13 +16,21 @@
   
   <p>
     <a href="#-esplora-il-progetto">Esplora</a> •
+    <a href="#-assistenza-e-contatti">Contatti</a> •
     <a href="#-funzionalità-principali">Funzioni</a> •
     <a href="#-installazione-veloce">Installazione</a> •
-    <a href="#-galleria">Galleria</a> •
-    <a href="#-assistenza-e-contatti">Contatti</a>
+    <a href="#-galleria">Galleria</a>
   </p>
 
 </div>
+
+---
+
+## ✉️ Assistenza e Contatti
+
+Per supporto tecnico, segnalazioni di bug, richieste di funzionalità o informazioni sull'app **Wach0ss Home**, il nostro team è a disposizione.
+
+📩 **Email di Supporto:** [team@wach0ss.com](mailto:team@wach0ss.com)
 
 ---
 
