@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Log Sistema - Wach0ss Enterprise</title>
+    
+    <!-- Icone e Libreria Grafici -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* === PALETTE SCADA / GRAFANA STYLE === */
+        :root {
+            --bg-base: #0f172a; 
+            --bg-panel: #1e293b; 
+            --bg-input: #0f172a;
+            
+            --border: #334155; 
+            --border-hover: #475569;
+            
+            --text-main: #f8fafc; 
+            --text-sec: #94a3b8; 
+            
+            --accent: #3b82f6; 
+            --accent-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.2);
+            
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.15);
+            
+            --font-ui: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+            --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+        body { 
+            font-family: var(--font-ui); 
+            background: var(--bg-base); 
+            color: var(--text-main); 
+            padding: 24px; 
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;}
+
+        /* --- HEADER --- */
+        .header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: var(--bg-panel); padding: 20px 24px; border-radius: 16px; border: 1px solid var(--border);
+        }
+        .header-title { display: flex; align-items: center; gap: 16px; }
+        .header-title h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; margin: 0; }
+        .live-badge { display: flex; align-items: center; gap: 8px; background: var(--success-bg); color: var(--success); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);}
+        .live-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        .btn-back { 
+            display: inline-flex; align-items: center; gap: 8px; text-decoration: none; 
+            color: var(--text-main); background: var(--bg-input); padding: 10px 20px;
+            border-radius: 8px; font-weight: 600; font-size: 0.9rem; transition: 0.2s; border: 1px solid var(--border);
+        }
+        .btn-back:hover { background: var(--border); }
+
+        /* --- KPI GRID --- */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
+        .kpi-card { 
+            background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; 
+            padding: 24px; display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden;
+        }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent); }
+        .kpi-title { color: var(--text-sec); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;}
+        .kpi-value { font-size: 2rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); }
+        .kpi-sub { font-size: 0.8rem; color: var(--text-sec); }
+
+        /* --- CHART SECTION --- */
+        .chart-container { 
+            background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; 
+            padding: 24px; height: 300px; width: 100%; position: relative;
+        }
+
+        /* --- TOOLBAR FILTRI --- */
+        .toolbar { 
+            display: flex; gap: 16px; flex-wrap: wrap; background: var(--bg-panel); 
+            padding: 20px; border-radius: 16px; border: 1px solid var(--border); align-items: flex-end;
+        }
+        .input-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 180px; }
+        .input-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; }
+        .input-control {
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+            padding: 12px 16px; color: var(--text-main); font-size: 0.95rem; font-family: var(--font-ui);
+            transition: 0.2s; outline: none; width: 100%;
+        }
+        .input-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        
+        ::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; cursor: pointer; }
+
+        .btn-group { display: flex; gap: 12px; height: 44px; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 0 20px; border-radius: 8px; border: none; font-size: 0.9rem; font-weight: 700; 
+            cursor: pointer; transition: 0.2s; height: 100%;
+        }
+        .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-secondary { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-left: auto; }
+        .btn-danger:hover { background: var(--danger-bg); }
+
+        /* --- TABELLA LOGS --- */
+        .table-wrapper {
+            background: var(--bg-panel); border-radius: 16px; border: 1px solid var(--border);
+            overflow-x: auto; max-height: 600px;
+        }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+        th { 
+            background: rgba(30, 41, 59, 0.95); color: var(--text-sec); font-weight: 700; 
+            font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; padding: 16px 24px;
+            position: sticky; top: 0; backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); z-index: 10;
+        }
+        td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        .time-col { color: var(--text-sec); font-family: var(--font-mono); font-size: 0.9rem; white-space: nowrap; }
+        .entity-col { display: flex; align-items: center; gap: 16px; }
+        .entity-icon { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: var(--bg-input); border-radius: 8px; border: 1px solid var(--border); color: var(--text-sec); flex-shrink: 0;}
+        
+        .badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); }
+        .badge.on { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
+        .badge.off { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge.neutral { background: var(--bg-input); color: var(--text-sec); border: 1px solid var(--border); }
+
+        .empty-state { text-align: center; padding: 60px; color: var(--text-sec); display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+        @media (max-width: 1024px) {
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .btn-danger { margin-left: 0; width: 100%; }
+            .btn-group { width: 100%; }
+            .btn-group .btn { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-title">
+                <div class="live-badge"><div class="live-dot"></div> MONITOR LIVE</div>
+                <h2>Terminale Log di Sistema</h2>
+            </div>
+            <a href="/dashboard" class="btn-back"><i data-lucide="layout-grid" style="width:18px;"></i> Dashboard</a>
+        </div>
+
+        <!-- KPI GRID -->
+        <div class="kpi-grid">
+            <div class="kpi-card" style="border-left-color: var(--accent);">
+                <div class="kpi-title"><i data-lucide="activity" style="width:16px;"></i> Eventi Registrati</div>
+                <div class="kpi-value" id="kpi-total">0</div>
+                <div class="kpi-sub">Nel periodo selezionato</div>
+            </div>
+            <div class="kpi-card" style="border-left-color: var(--warning);">
+                <div class="kpi-title"><i data-lucide="zap" style="width:16px;"></i> Nodo più Attivo</div>
+                <div class="kpi-value" id="kpi-top" style="font-size: 1.2rem; line-height: 2.2rem; word-break: break-word;">-</div>
+                <div class="kpi-sub" id="kpi-top-count">0 attivazioni</div>
+            </div>
+            <div class="kpi-card" style="border-left-color: var(--success);">
+                <div class="kpi-title"><i data-lucide="clock" style="width:16px;"></i> Ultimo Evento</div>
+                <div class="kpi-value" id="kpi-last" style="font-size: 1.2rem; line-height: 2.2rem;">-</div>
+                <div class="kpi-sub">Timestamp sistema</div>
+            </div>
+        </div>
+
+        <!-- GRAFICO -->
+        <div class="chart-container">
+            <canvas id="sysChart"></canvas>
+        </div>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+            <div class="input-group">
+                <label>Da Data</label>
+                <input type="date" id="date_from" class="input-control">
+            </div>
+            <div class="input-group">
+                <label>A Data</label>
+                <input type="date" id="date_to" class="input-control">
+            </div>
+            <div class="input-group" style="flex: 2;">
+                <label>Ricerca Diretta (Live Filter)</label>
+                <!-- Aggiunto oninput="applyFilters()" per filtrare istantaneamente -->
+                <input type="text" id="entity_search" class="input-control" placeholder="Cerca: Luce Soggiorno, ON, OFF..." oninput="applyFilters()">
+            </div>
+            <div class="btn-group">
+                <!-- Il tasto Applica ora serve solo se cambi le date -->
+                <button class="btn btn-primary" onclick="loadLogs()"><i data-lucide="refresh-cw" style="width:16px;"></i> Ricarica DB</button>
+                <button class="btn btn-secondary" onclick="clearFilters()"><i data-lucide="rotate-ccw" style="width:16px;"></i> Reset</button>
+            </div>
+            <button class="btn btn-danger" onclick="clearAllLogs()"><i data-lucide="trash-2" style="width:16px;"></i> Svuota Buffer</button>
+        </div>
+
+        <!-- TABELLA -->
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">Timestamp</th>
+                        <th style="width: 50%;">Nodo Hardware (Nome & ID)</th>
+                        <th style="width: 30%;">Stato Logico</th>
+                    </tr>
+                </thead>
+                <tbody id="logs_body">
+                    <tr>
+                        <td colspan="3" class="empty-state">
+                            <i data-lucide="loader-2" style="width: 48px; height: 48px; color: var(--accent); animation: spin 1s linear infinite;"></i>
+                            <span style="font-weight: 600;">Sincronizzazione dati dal Broker...</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let activityChart = null;
+        let customNamesCache = {}; 
+        let globalLogs = []; // Memoria cache per il Live Filter
+
+        function clearFilters() {
+            document.getElementById('date_from').value = '';
+            document.getElementById('date_to').value = '';
+            document.getElementById('entity_search').value = '';
+            loadLogs();
+        }
+
+        function getIcon(entityId) {
+            if(!entityId) return 'cpu';
+            if(entityId.includes('light.')) return 'lightbulb';
+            if(entityId.includes('cover.')) return 'layout-template';
+            if(entityId.includes('sensor.')) return 'activity';
+            if(entityId.includes('media_player.') || entityId.includes('sonos')) return 'speaker';
+            return 'zap';
+        }
+
+        // CARICAMENTO DAL SERVER (Incluso Recupero Nomi Completi)
+        async function loadLogs() {
+            const dateFrom = document.getElementById('date_from').value;
+            const dateTo = document.getElementById('date_to').value;
+
+            // Mostriamo il loader
+            document.getElementById('logs_body').innerHTML = `
+                <tr><td colspan="3" class="empty-state">
+                    <i data-lucide="loader-2" style="width: 48px; height: 48px; color: var(--accent); animation: spin 1s linear infinite;"></i>
+                    <span style="font-weight: 600;">Sincronizzazione dati dal Broker...</span>
+                </td></tr>`;
+            lucide.createIcons();
+
+            // Richiediamo un buffer più grande dal server visto che ora il filtro lavora nel browser
+            let url = '/api/logs?limit=800'; 
+            if (dateFrom) url += `&date_from=${dateFrom}`;
+            if (dateTo) url += `&date_to=${dateTo}`;
+
+            try {
+                // CHIAMATA DOPPIA: Prendiamo sia i Log che l'intero Dizionario dei Nomi risolti!
+                const [logsRes, namesRes] = await Promise.all([
+                    fetch(url),
+                    fetch('/api/entities_for_automations')
+                ]);
+                
+                globalLogs = await logsRes.json();
+                const entitiesArray = await namesRes.json();
+                
+                // Popola la cache dei nomi combinando nativi e custom
+                customNamesCache = {};
+                entitiesArray.forEach(e => {
+                    customNamesCache[e.entity_id] = e.name;
+                });
+                
+                // Invia alla visualizzazione passando per il filtro live
+                applyFilters();
+
+            } catch (error) {
+                console.error("Errore di Rete:", error);
+                document.getElementById('logs_body').innerHTML = `
+                    <tr><td colspan="3" class="empty-state" style="color: var(--danger);">
+                        <i data-lucide="wifi-off" style="width: 48px; height: 48px;"></i>
+                        <span style="font-weight: 600;">System Halt: Impossibile recuperare i dati.</span>
+                    </td></tr>`;
+                lucide.createIcons();
+            }
+        }
+
+        // FILTRO LIVE NEL BROWSER (Ultra-veloce)
+        function applyFilters() {
+            const searchTerm = document.getElementById('entity_search').value.toLowerCase();
+            let filteredLogs = globalLogs;
+
+            if (searchTerm) {
+                filteredLogs = globalLogs.filter(log => {
+                    const customName = (customNamesCache[log.entity_id] || "").toLowerCase();
+                    const entityId = log.entity_id.toLowerCase();
+                    const state = log.state.toLowerCase();
+                    // Cerca il testo nel Nome, nell'ID originale, o perfino nello Stato (on/off)
+                    return customName.includes(searchTerm) || entityId.includes(searchTerm) || state.includes(searchTerm);
+                });
+            }
+            
+            updateDashboard(filteredLogs);
+        }
+
+        // COSTRUZIONE GRAFICA (Tabella, Grafici e KPI)
+       function updateDashboard(logs) {
+            const tbody = document.getElementById('logs_body');
+            tbody.innerHTML = '';
+
+            if(logs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="empty-state">
+                            <i data-lucide="database" style="width: 48px; height: 48px; opacity: 0.5;"></i>
+                            <span style="font-weight: 600;">Nessun pacchetto dati trovato per i criteri di ricerca.</span>
+                        </td>
+                    </tr>`;
+                lucide.createIcons();
+                updateKPIs([], 0, "-", "Nessun dato");
+                drawChart({});
+                return;
+            }
+
+            // --- 1. POPOLAZIONE TABELLA CON NOMI CUSTOM (PULITA) ---
+            logs.forEach(log => {
+                const row = document.createElement('tr');
+                
+                const stateStr = log.state.toLowerCase();
+                let badgeClass = 'neutral';
+                if(['on', 'open', 'playing', 'true', '1'].includes(stateStr)) badgeClass = 'on';
+                if(['off', 'closed', 'paused', 'false', '0'].includes(stateStr)) badgeClass = 'off';
+
+                const iconName = getIcon(log.entity_id);
+                
+                // Pesca il nome dalla Cache globale
+                let displayName = customNamesCache[log.entity_id] || log.entity_id;
+                let subtitleHtml = '';
+                
+                // Mostra l'ID tecnico in piccolo SOTTO solo se hai impostato un nome personalizzato, 
+                // altrimenti lascia la grafica super pulita senza doppioni.
+                if (customNamesCache[log.entity_id] && customNamesCache[log.entity_id] !== log.entity_id) {
+                    subtitleHtml = `<span style="font-size: 0.75rem; color: var(--text-sec); font-family: var(--font-mono);">${log.entity_id}</span>`;
+                }
+
+                row.innerHTML = `
+                    <td class="time-col">${log.timestamp}</td>
+                    <td>
+                        <div class="entity-col">
+                            <div class="entity-icon"><i data-lucide="${iconName}" style="width:20px;"></i></div>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-weight: 700; font-family: var(--font-ui); font-size: 1rem;">${displayName}</span>
+                                ${subtitleHtml}
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="badge ${badgeClass}">${log.state}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+            lucide.createIcons({ root: tbody });
+
+            // --- 2. CALCOLO KPIs ---
+            const entityCounts = {};
+            const timeDistribution = {};
+
+            logs.forEach(log => {
+                entityCounts[log.entity_id] = (entityCounts[log.entity_id] || 0) + 1;
+                
+                if(log.timestamp && log.timestamp.length >= 13) {
+                    let timeKey = log.timestamp.substring(0, 13) + ":00"; 
+                    timeDistribution[timeKey] = (timeDistribution[timeKey] || 0) + 1;
+                }
+            });
+
+            let topEntity = "-";
+            let maxCount = 0;
+            for(let e in entityCounts) {
+                if(entityCounts[e] > maxCount) { maxCount = entityCounts[e]; topEntity = e; }
+            }
+            
+            const lastEventTime = logs.length > 0 ? logs[0].timestamp.split(' ')[1] : "-";
+
+            updateKPIs(logs.length, maxCount, topEntity, lastEventTime);
+            drawChart(timeDistribution);
+        }
+
+        function updateKPIs(total, topCount, topEntity, lastTime) {
+            document.getElementById('kpi-total').innerText = total;
+            document.getElementById('kpi-top-count').innerText = `${topCount} registrazioni`;
+            
+            // Per la KPI convertiamo il nome al volo
+            let displayTopEntity = customNamesCache[topEntity] || topEntity;
+            if(!customNamesCache[topEntity] && displayTopEntity.includes('.')) {
+                displayTopEntity = displayTopEntity.split('.')[1];
+            }
+            document.getElementById('kpi-top').innerText = displayTopEntity;
+            
+            document.getElementById('kpi-last').innerText = lastTime;
+        }
+
+        function drawChart(timeData) {
+            const ctx = document.getElementById('sysChart').getContext('2d');
+            
+            if(activityChart) {
+                activityChart.destroy();
+            }
+
+            const labels = Object.keys(timeData).sort();
+            const data = labels.map(l => timeData[l]);
+
+            let gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.8)'); 
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+
+            Chart.defaults.color = '#94a3b8';
+            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Inter", sans-serif';
+
+            activityChart = new Chart(ctx, {
+                type: 'line', 
+                data: {
+                    labels: labels.map(l => l.substring(5, 16)),
+                    datasets: [{
+                        label: 'Volume Eventi',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#0f172a',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.3 
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#f8fafc',
+                            bodyColor: '#3b82f6',
+                            borderColor: '#334155',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: '#1e293b', drawBorder: false },
+                            ticks: { precision: 0 }
+                        },
+                        x: { 
+                            grid: { display: false, drawBorder: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function clearAllLogs() {
+            if (!confirm("CRITICAL WARNING: Stai per svuotare il buffer del database log. Tutti i dati storici andranno persi. Procedere?")) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/logs', { method: 'DELETE' });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    clearFilters(); // Ricarica tutto svuotando
+                } else {
+                    alert("Errore del Server: " + result.message);
+                }
+            } catch (error) {
+                console.error("Errore:", error);
+                alert("Timeout: Impossibile comunicare con il server.");
+            }
+        }
+
+        // Accensione Sistema
+        document.addEventListener('DOMContentLoaded', loadLogs);
+    </script>
+</body>
+</html>
