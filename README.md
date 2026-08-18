@@ -98,4 +98,4 @@ Il sistema è ottimizzato per Linux/Raspberry Pi. Ti basta **un solo comando** p
 Apri il terminale e lancia la magia:
 
 ```bash
-git clone [https://github.com/giovanni247000/Wach0ss-home.git](https://github.com/giovanni247000/Wach0ss-home.git) /opt/wach_os && sudo bash /opt/wach_os/install.sh
+git clone https://github.com/giovanni247000/Wach0ss-Home.git /opt/wach_os && sudo bash /opt/wach_os/install.sh
