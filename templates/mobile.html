@@ -1129,9 +1129,7 @@
         <div class="date-time" id="date-display">Caricamento...</div>
     </div>
     <div style="display: flex; gap: 10px; align-items: center;">
-        <button id="mobile-alarm-btn" class="mobile-only" onclick="openAlarmModal()" style="display: none; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 50%; color: white; cursor: pointer; transition: all 0.3s; width: 44px; height: 44px; align-items: center; justify-content: center;">
-            <i data-lucide="shield-check"></i>
-        </button>
+
 
     </div>
 </div>
@@ -1381,15 +1379,7 @@
 
 
 
-    <!-- 2. PULSANTE ALLARME: Appare su Mobile (icona) e su Desktop (barra completa) -->
-    <div id="alarm-nav-item" class="nav-item" style="display: flex; cursor: pointer;" onclick="openAlarmModal()">
-        <i id="sidebar-alarm-icon" data-lucide="shield-check"></i>
-        <!-- Questo div dentro si vede solo su desktop -->
-        <div class="desktop-only" style="display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; margin-left: 12px;">
-            <span>Sicurezza</span>
-            <span id="sidebar-alarm-status" style="font-size: 0.7rem; opacity: 0.6; font-weight: 600; text-transform: uppercase;">Caricamento...</span>
-        </div>
-    </div>
+
 
     <!-- 3. PULSANTE MAPPA DESKTOP: Appare solo su Desktop -->
 
@@ -1657,43 +1647,7 @@
 </div>
 
 
-<div class="bottom-modal" id="alarm-modal">
-    <div class="modal-handle"></div>
-    <button class="close-modal-btn" onclick="closeAllModals()"><i data-lucide="x"></i></button>
-    <div class="modal-header"><div class="modal-title">Sicurezza Casa</div></div>
-    
-    <div class="modal-scroll-area">
-        <div id="statusCardAlarm" class="status-card-alarm state-disarmed">Analisi Sistema...</div>
-        
-        <div id="countdownBox" style="display: none; text-align: center;">
-            <div style="font-size: 0.85rem; color: #8E8E93; font-weight: 500;">Inserire PIN per disattivare:</div>
-            <div id="timerDisplay" class="countdown">60</div>
-        </div>
 
-        <div class="pin-display">
-            <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
-        </div>
-        
-        <div class="keypad">
-            <div class="key" onclick="pressNum('1')">1</div>
-            <div class="key" onclick="pressNum('2')">2</div>
-            <div class="key" onclick="pressNum('3')">3</div>
-            <div class="key" onclick="pressNum('4')">4</div>
-            <div class="key" onclick="pressNum('5')">5</div>
-            <div class="key" onclick="pressNum('6')">6</div>
-            <div class="key" onclick="pressNum('7')">7</div>
-            <div class="key" onclick="pressNum('8')">8</div>
-            <div class="key" onclick="pressNum('9')">9</div>
-            <div class="key action-btn" style="color: #AEAEB2; background: transparent; border: none;" onclick="clearPin()">Canc</div>
-            <div class="key" onclick="pressNum('0')">0</div>
-            <div id="armBtn" class="key action-btn" style="background: rgba(10, 132, 255, 0.15); color: #0A84FF; border: 1px solid rgba(10, 132, 255, 0.25);" onclick="submitPin()">OK</div>
-        </div>
-        
-        <div id="errorBox" class="error-message"></div>
-
-        <a href="/alarm/config" style="background: transparent; color: #636366; padding: 10px; margin-top: 25px; cursor: pointer; font-size: 0.85rem; text-decoration: none; display: block; text-align: center; font-weight: 500;">⚙️ Configura Rete Allarme</a>
-    </div>
-</div>
 
 
 
@@ -2803,27 +2757,16 @@ animate();
 
 async function fetchRealWeather() {
     try {
-        // 1. Ottieni la posizione dal tuo server Flask
-        const locRes = await fetch('/api/location');
-        const locData = await locRes.json();
-        
-        const lat = locData.lat;
-        const lon = locData.lon;
-        const locName = locData.name;
+        // Dati Meteo Finti
+        const currentTemp = 24; 
+        const locName = "Capriasca"; 
+        const details = getWeatherDetails(0, 1); // 0 = Soleggiato, 1 = Giorno (usa 0 per notte)
 
-        // 2. Aggiorna il nome della località nell'interfaccia
+        // Aggiorna il nome della località nell'interfaccia
         const locElement = document.getElementById('weather-loc');
         if (locElement) {
             locElement.innerText = locName;
         }
-
-        // 3. Richiedi il meteo a Open-Meteo con le coordinate dinamiche
-        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,is_day,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Europe%2FBerlin`;
-        const res = await fetch(weatherUrl);
-        const data = await res.json();
-        
-        const currentTemp = Math.round(data.current.temperature_2m); 
-        const details = getWeatherDetails(data.current.weather_code, data.current.is_day);
 
         if (typeof WeatherEffects !== 'undefined') WeatherEffects.setWeather(details.anim);
         
@@ -2846,41 +2789,43 @@ async function fetchRealWeather() {
 
         // Aggiorna Lista Previsioni (Modale)
         const forecastList = document.getElementById('forecast-list');
-        forecastList.innerHTML = ''; 
+        if(forecastList) {
+            forecastList.innerHTML = ''; 
 
-        for(let i = 0; i < 5; i++) {
-            const dateStr = data.daily.time[i];
-            const dateObj = new Date(dateStr);
-            const dayName = i === 0 ? "Oggi" : i === 1 ? "Domani" : dateObj.toLocaleDateString('it-IT', { weekday: 'long' });
-            
-            const maxT = Math.round(data.daily.temperature_2m_max[i]);
-            const minT = Math.round(data.daily.temperature_2m_min[i]);
-            const dayDetails = getWeatherDetails(data.daily.weather_code[i], 1);
+            // Previsioni finte per la settimana
+            const fakeForecasts = [
+                { day: "Oggi", max: 26, min: 18, code: 0 },
+                { day: "Domani", max: 24, min: 17, code: 2 },
+                { day: "Giovedì", max: 22, min: 15, code: 3 },
+                { day: "Venerdì", max: 25, min: 16, code: 61 },
+                { day: "Sabato", max: 27, min: 19, code: 0 }
+            ];
 
-            forecastList.innerHTML += `
-                <div class="forecast-item">
-                    <div class="forecast-day">${dayName}</div>
-                    <div class="forecast-icon">
-                        <i data-lucide="${dayDetails.icon}"></i>
-                        <span>${dayDetails.desc}</span>
+            for(let i = 0; i < fakeForecasts.length; i++) {
+                const dayDetails = getWeatherDetails(fakeForecasts[i].code, 1);
+
+                forecastList.innerHTML += `
+                    <div class="forecast-item">
+                        <div class="forecast-day">${fakeForecasts[i].day}</div>
+                        <div class="forecast-icon">
+                            <i data-lucide="${dayDetails.icon}"></i>
+                            <span>${dayDetails.desc}</span>
+                        </div>
+                        <div class="forecast-temps">
+                            <span class="temp-max">${fakeForecasts[i].max}°</span>
+                            <span class="temp-min">${fakeForecasts[i].min}°</span>
+                        </div>
                     </div>
-                    <div class="forecast-temps">
-                        <span class="temp-max">${maxT}°</span>
-                        <span class="temp-min">${minT}°</span>
-                    </div>
-                </div>
-            `;
+                `;
+            }
         }
-
         lucide.createIcons();
     } catch (err) { 
-        console.error("Errore recupero meteo o posizione:", err); 
+        console.error("Errore rendering meteo simulato:", err); 
     }
 }
 
-// Avvia subito e imposta il refresh ogni 5 minuti (300000 ms)
-fetchRealWeather(); 
-setInterval(fetchRealWeather, 300000);
+fetchRealWeather();
 
         function openWeatherModal() {
             document.getElementById('modal-overlay').classList.add('active'); 
@@ -4140,174 +4085,6 @@ function inlineCoverCmd(event, entityId, action) {
     }
 
 
- // --- LOGICA ALLARME ---
-let currentAlarmPin = "";
-let currentAlarmStatus = "disarmed";
-
-function openAlarmModal() {
-    document.getElementById('modal-overlay').classList.add('active'); 
-    document.getElementById('alarm-modal').classList.add('active'); 
-    document.getElementById('app-wrapper').classList.add('modal-active');
-    clearPin(); // Resetta il PIN ogni volta che si apre
-}
-
-function updatePinDisplay() {
-    const dots = document.querySelectorAll('#alarm-modal .pin-dot');
-    dots.forEach((dot, index) => {
-        if (index < currentAlarmPin.length) dot.classList.add('active');
-        else dot.classList.remove('active');
-    });
-}
-
-function pressNum(num) {
-    if (currentAlarmPin.length < 4) { currentAlarmPin += num; updatePinDisplay(); }
-}
-
-function clearPin() {
-    currentAlarmPin = ""; updatePinDisplay();
-    document.getElementById('errorBox').style.display = 'none';
-}
-
-function submitPin() {
-    if (currentAlarmPin.length < 4) { showAlarmError("Codice PIN incompleto."); return; }
-    const targetState = (currentAlarmStatus === "disarmed") ? "armed" : "disarmed";
-
-    fetch('/api/alarm/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: currentAlarmPin, state: targetState })
-    })
-    .then(res => {
-        if (!res.ok) return res.json().then(err => { throw new Error(err.message || "Codice Errato") });
-        return res.json();
-    })
-    .then(() => { clearPin(); syncAlarmStatus(); })
-    .catch(err => { showAlarmError(err.message); clearPin(); });
-}
-
-function showAlarmError(msg) {
-    const errBox = document.getElementById('errorBox');
-    errBox.innerText = msg; errBox.style.display = 'block';
-}
-
-function syncAlarmStatus() {
-    fetch('/api/alarm/status')
-    .then(res => res.json())
-    .then(data => {
-        const mobBtn = document.getElementById('mobile-alarm-btn');
-        const sideBtn = document.getElementById('alarm-nav-item');
-
-        // 1. SE NON È CONFIGURATO: Nascondi tutto ed esci
-        if (!data.is_configured) {
-            if (mobBtn) mobBtn.style.display = 'none';
-            if (sideBtn) sideBtn.style.display = 'none';
-            return; 
-        }
-
-        // 2. SE È CONFIGURATO: Mostra i pulsanti dinamicamente
-        if (mobBtn) mobBtn.style.display = 'flex';
-        if (sideBtn) sideBtn.style.display = 'flex';
-
-        // Salviamo lo stato precedente prima di aggiornarlo
-        const previousStatus = currentAlarmStatus; 
-        currentAlarmStatus = data.status;
-
-        // --- INIZIO NUOVA LOGICA: AUTO-APERTURA MODALE ---
-        // Se scatta il conto alla rovescia (pending) o l'allarme suona (triggered)...
-        if ((currentAlarmStatus === "pending" || currentAlarmStatus === "triggered") && previousStatus !== currentAlarmStatus) {
-            const alarmModal = document.getElementById('alarm-modal');
-            // ...apri il tastierino da solo (solo se non è già aperto)
-            if (alarmModal && !alarmModal.classList.contains('active')) {
-                openAlarmModal();
-            }
-        }
-        // --- FINE NUOVA LOGICA ---
-
-        const card = document.getElementById('statusCardAlarm');
-        const countdownBox = document.getElementById('countdownBox');
-        const armBtn = document.getElementById('armBtn');
-        const sidebarStatus = document.getElementById('sidebar-alarm-status');
-        const sidebarIcon = document.getElementById('sidebar-alarm-icon');
-        
-        let color = "rgba(255,255,255,0.1)"; 
-        let textColor = "#ffffff";
-        let iconName = "shield-check";
-        let statusText = "Disarmato";
-
-        if (card) card.className = "status-card-alarm"; 
-        
-        // ... (lascia intatto il resto degli if per i colori e testi)
-        
-// TRATTO DALLA TUA FUNZIONE syncAlarmStatus() - MODIFICA SOLO I TESTI IN MAIUSCOLO:
-
-if (data.status === "disarmed") {
-            if(card) { card.innerText = "🔓 Sistema Disarmato"; card.classList.add('state-disarmed'); }
-            if(countdownBox) countdownBox.style.display = 'none';
-            if(armBtn) armBtn.innerText = "ATTIVA"; 
-            iconName = "shield-check"; color = "rgba(48, 209, 88, 0.15)"; textColor = "#30D158"; statusText = "Disarmato";
-            
-        } else if (data.status === "arming") {
-            if(card) { card.innerText = "⏳ Attivazione in corso..."; card.classList.add('state-pending'); }
-            // Mostra il contatore e cambia il testo
-            if(countdownBox) { 
-                countdownBox.style.display = 'block'; 
-                document.getElementById('timerDisplay').innerText = data.seconds_remaining;
-                const label = countdownBox.querySelector('div');
-                if(label) label.innerText = "Il sistema si attiverà tra:";
-            }
-            // Mettiamo ANNULLA perché se premiamo, disarmando fermiamo l'attivazione
-            if(armBtn) armBtn.innerText = "ANNULLA"; 
-            iconName = "shield-alert"; color = "rgba(255, 159, 10, 0.15)"; textColor = "#FF9F0A"; statusText = "In Attivazione";
-            
-        } else if (data.status === "armed") {
-            if(card) { card.innerText = "🔒 Sistema Inserito"; card.classList.add('state-armed'); }
-            if(countdownBox) countdownBox.style.display = 'none'; 
-            if(armBtn) armBtn.innerText = "SBLOCCA";
-            iconName = "shield"; color = "rgba(10, 132, 255, 0.15)"; textColor = "#0A84FF"; statusText = "Inserito";
-            
-        } else if (data.status === "pending") {
-            if(card) { card.innerText = "⚠️ Violazione Rilevata"; card.classList.add('state-pending'); }
-            // Mostra il contatore di emergenza e cambia il testo
-            if(countdownBox) { 
-                countdownBox.style.display = 'block'; 
-                document.getElementById('timerDisplay').innerText = data.seconds_remaining; 
-                const label = countdownBox.querySelector('div');
-                if(label) label.innerText = "Inserire PIN per disattivare:";
-            }
-            if(armBtn) armBtn.innerText = "STOP"; 
-            iconName = "shield-alert"; color = "rgba(255, 159, 10, 0.3)"; textColor = "#FF9F0A"; statusText = "Violazione";
-            
-        } else if (data.status === "triggered") {
-            if(card) { card.innerText = "🚨 ALLARME ATTIVO 🚨"; card.classList.add('state-triggered'); }
-            if(countdownBox) countdownBox.style.display = 'none'; 
-            if(armBtn) armBtn.innerText = "STOP";
-            iconName = "bell-ring"; color = "rgba(255, 69, 58, 0.3)"; textColor = "#FF453A"; statusText = "ALLARME";
-        }
-
-        // Sincronizza lo stile del bottone mobile
-        if (mobBtn) {
-            mobBtn.style.background = color;
-            mobBtn.style.color = textColor;
-            mobBtn.style.borderColor = color;
-            mobBtn.innerHTML = `<i data-lucide="${iconName}"></i>`;
-            lucide.createIcons({ root: mobBtn });
-        }
-        
-        // Sincronizza testi e icone della sidebar desktop
-        if (sidebarStatus) {
-            sidebarStatus.innerText = statusText;
-            sidebarStatus.style.color = textColor;
-        }
-        if (sidebarIcon && sidebarIcon.getAttribute('data-lucide') !== iconName) {
-            sidebarIcon.setAttribute('data-lucide', iconName);
-            lucide.createIcons({ root: sideBtn });
-        }
-    }).catch(err => console.log("Errore sync allarme:", err));
-}
-
-// Avvio della sincronizzazione separata e protetta
-setInterval(syncAlarmStatus, 1500);
-window.addEventListener('load', syncAlarmStatus);   
 
 
 
