@@ -1,101 +1,71 @@
 <div align="center">
 
-  <img src="./images/logo.png" width="200" alt="Wach0ss Home Logo">
+  <img src="./images/logo.png" width="220" alt="Wach0ss Home Logo" style="border-radius: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+
+  <br><br>
 
   <h1>🌌 Wach0ss Home</h1>
-
-  <p>
-    <em>L'Hub Domotico Definitivo: unisce KNX, Home Assistant, Shelly e Sonos in un'unica incredibile interfaccia 3D.</em>
-  </p>
-
-  <p>
-    <img src="https://img.shields.io/badge/Versione-1.0.0-blueviolet?style=for-the-badge" alt="Versione" />
-    <img src="https://img.shields.io/badge/Python-3.9+-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54" alt="Python" />
-    <img src="https://img.shields.io/badge/Stato-In_Sviluppo-success?style=for-the-badge" alt="Stato" />
-  </p>
   
   <p>
-    <a href="#-esplora-il-progetto">Esplora</a> •
-    <a href="#-assistenza-e-contatti">Contatti</a> •
-    <a href="#-funzionalità-principali">Funzioni</a> •
-    <a href="#-installazione-veloce">Installazione</a> •
-    <a href="#-galleria">Galleria</a>
+    <b>L'Hub Domotico di Prossima Generazione.</b><br>
+    <em>Fondi KNX, Home Assistant, Shelly e Sonos in un'unica, sbalorditiva interfaccia 3D.</em>
   </p>
 
+  <br>
+
+  <p>
+    <img src="https://img.shields.io/badge/Versione-1.0.0-blueviolet?style=for-the-badge&logo=git" alt="Versione" />
+    <img src="https://img.shields.io/badge/Python-3.9+-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54" alt="Python" />
+    <img src="https://img.shields.io/badge/Ambiente-Linux%20%7C%20Raspberry-ff9900?style=for-the-badge&logo=raspberry-pi&logoColor=white" alt="Platform" />
+    <img src="https://img.shields.io/badge/Stato-In_Sviluppo-success?style=for-the-badge&logo=checkmarx&logoColor=white" alt="Stato" />
+  </p>
+  
+  <br>
+
+  <p>
+    <a href="#-la-visione"><b>Esplora</b></a> •
+    <a href="#-core-features"><b>Funzionalità</b></a> •
+    <a href="#-installazione-one-click"><b>Installazione</b></a> •
+    <a href="#-galleria-interfacce"><b>Galleria</b></a> •
+    <a href="#-supporto-e-contatti"><b>Contatti</b></a>
+  </p>
+
+  <br>
+
 </div>
 
 ---
 
-## ✉️ Assistenza e Contatti
+## 🚀 La Visione
 
-Per supporto tecnico, segnalazioni di bug, richieste di funzionalità o informazioni sull'app **Wach0ss Home**, il nostro team è a disposizione.
+> **Wach0ss Home non è una semplice dashboard, è il cervello della tua casa.** 
 
-📩 **Email di Supporto:** [team@wach0ss.com](mailto:team@wach0ss.com)
+Progettato per abbattere ogni barriera di integrazione, Wach0ss Home si posiziona come un vero e proprio server domotico indipendente. Ti offre il potere di mappare i tuoi ambienti attraverso **gemelli digitali 3D interattivi** e di governare ogni dispositivo con un motore logico di livello industriale. 
 
----
-
-## 🚀 Esplora il Progetto
-
-**Wach0ss Home** non è una semplice dashboard, è un vero e proprio server domotico. Progettato per superare ogni limite di integrazione, ti permette di mappare la tua casa tramite piantine 3D interattive e gestirla con un motore logico potentissimo.
-
-Ideale per sistemi Linux e **Raspberry Pi**, include sistemi di accesso remoto sicuro (ZeroTier e Cloudflare) configurabili con un solo click.
+Ottimizzato al millesimo di secondo per ambienti Linux e **Raspberry Pi**, integra nativamente tunnel di accesso remoto sicuro (ZeroTier e Cloudflare), portando il controllo globale della tua casa letteralmente a un click di distanza.
 
 ---
 
-## ✨ Funzionalità Principali
+## ✨ Core Features
 
-*   🔌 **Integrazione Nativa:** Controllo diretto su bus **KNX**, auto-discovery locale per **Shelly** (Gen 1 & 2), rilevamento automatico **Sonos** e integrazione profonda con **Home Assistant**.
-*   🗺️ **Piantine 3D Interattive:** Carica i tuoi file `.glb` e controlla luci e tapparelle cliccando direttamente sulla riproduzione 3D di casa tua.
-*   🎥 **Streaming Tapo Anti-Lag:** Motore video integrato con OpenCV per flussi RTSP fluidi e in tempo reale.
-*   🧠 **Automazioni & Scenari:** Motore logico proprietario per creare routine (orari, stati, range temporali) e "Snapshots" istantanei della casa.
-*   🚨 **Sistema di Allarme Integrato:** Inserimento con PIN, ritardo di uscita, attivazione sirene via Sonos e notifiche dirette su Telegram.
-*   🌍 **Accesso Remoto 1-Click:** Demoni Cloudflare e ZeroTier preconfigurati.
+Wach0ss Home è stato ingegnerizzato per offrire un'esperienza fluida, potente e senza compromessi:
 
----
-
-## 📸 Galleria
-
-### 💻 Interfaccia Desktop & Tablet
-<div align="center">
-  <table>
-    <tr>
-      <td align="center"><b>Dashboard Principale</b></td>
-      <td align="center"><b>Piantina 3D</b></td>
-      <td align="center"><b>Impostazioni Server</b></td>
-    </tr>
-    <tr>
-      <td align="center"><img src="./images/desktop.png" alt="Dashboard Desktop" width="280" style="border-radius: 8px;"/></td>
-      <td align="center"><img src="./images/3d.png" alt="Vista 3D" width="280" style="border-radius: 8px;"/></td>
-      <td align="center"><img src="./images/config.png" alt="Configurazioni" width="280" style="border-radius: 8px;"/></td>
-    </tr>
-  </table>
-</div>
-
-### 📱 Esperienza Mobile
-<div align="center">
-  <table>
-    <tr>
-      <td align="center"><b>Schermata 1</b></td>
-      <td align="center"><b>Schermata 2</b></td>
-      <td align="center"><b>Schermata 3</b></td>
-      <td align="center"><b>Schermata 4</b></td>
-    </tr>
-    <tr>
-      <td align="center"><img src="./images/telefono1.png" alt="Mobile 1" width="180" style="border-radius: 12px;"/></td>
-      <td align="center"><img src="./images/telefono2.png" alt="Mobile 2" width="180" style="border-radius: 12px;"/></td>
-      <td align="center"><img src="./images/telefono3.png" alt="Mobile 3" width="180" style="border-radius: 12px;"/></td>
-      <td align="center"><img src="./images/telefono4.png" alt="Mobile 4" width="180" style="border-radius: 12px;"/></td>
-    </tr>
-  </table>
-</div>
+*   ⚡ **Integrazione Assoluta:** Controllo nativo e istantaneo sul bus **KNX**, auto-discovery locale per dispositivi **Shelly** (Gen 1 & 2), rilevamento automatico dell'ecosistema **Sonos** e una sinergia profonda con **Home Assistant**.
+*   🧊 **Gemello Digitale 3D:** Porta la tua casa nel futuro. Carica i tuoi modelli `.glb` personalizzati e interagisci con luci, tapparelle e sensori cliccando direttamente sulla riproduzione tridimensionale dei tuoi ambienti.
+*   🎥 **Visione Real-Time Anti-Lag:** Motore di streaming video proprietario accelerato tramite OpenCV. Goditi i flussi RTSP delle tue telecamere (es. Tapo) in tempo reale, senza scatti o ritardi.
+*   🧠 **Motore Logico Neurale:** Costruisci automazioni complesse senza limiti. Crea routine basate su orari, stati o range temporali, e genera "Snapshots" istantanei per richiamare scenari perfetti in un secondo.
+*   🛡️ **Sicurezza Integrata di Livello Pro:** Sistema di allarme avanzato con tastierino PIN, gestione dei ritardi di uscita, attivazione sirene via Sonos e notifiche di emergenza immediate tramite Telegram.
+*   🌐 **Connettività Globale 1-Click:** Dimentica le configurazioni di rete complesse. Demoni Cloudflare e ZeroTier preconfigurati e pronti all'uso per un accesso remoto blindato e istantaneo.
 
 ---
 
-## 💻 Installazione Veloce
+## 💻 Installazione One-Click
 
-Il sistema è ottimizzato per Linux/Raspberry Pi. Ti basta **un solo comando** per clonare la repository, creare l'ambiente in `/opt/` e lanciare l'installazione delle dipendenze.
+Abbiamo reso il deployment un'esperienza magica. Il sistema è ottimizzato per **Linux e Raspberry Pi**. 
 
-Apri il terminale e lancia la magia:
+Non dovrai configurare decine di file: ti basta **un singolo comando** per clonare la repository, generare l'ambiente dedicato in `/opt/` e avviare il setup automatico di tutte le dipendenze.
+
+> **Note:** Assicurati di avere i privilegi di amministratore (`sudo`) prima di lanciare lo script.
 
 ```bash
-git clone https://github.com/giovanni247000/Wach0ss-Home.git /opt/wach_os && sudo bash /opt/wach_os/install.sh
+git clone [https://github.com/giovanni247000/Wach0ss-Home.git](https://github.com/giovanni247000/Wach0ss-Home.git) /opt/wach_os && sudo bash /opt/wach_os/install.sh
