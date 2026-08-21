@@ -161,11 +161,14 @@ sudo bash /opt/wach_os/install.sh</code></pre>
   <tr>
     <td align="center">
       <strong>Camera Monitoring</strong><br><br>
-      <img src="./images/dashboard.png" width="400">
+      <img src="./images/IMG_5818.PNG" width="400">
     </td>
     <td align="center">
       <strong>Mobile Interface</strong><br><br>
-      <img src="./images/dashboard.png" width="400">
+      <img src="./images/IMG_5819.PNG" width="400">
+    <td align="center">
+      <strong>Mobile Interface</strong><br><br>
+      <img src="./images/IMG_5820.PNG" width="400">
     </td>
   </tr>
 </table>
