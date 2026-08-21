@@ -135,7 +135,7 @@ Wach0ss Home acts as an abstraction layer between the user interface and the dif
 
 <br>
 
-<h3>⚡ One-Command Installation</h3>
+<h3>⚡Command Installation</h3>
 
 <p>
   The easiest way to install <b>Wach0ss Home</b> is to clone the repository
@@ -145,6 +145,10 @@ Wach0ss Home acts as an abstraction layer between the user interface and the dif
 <pre><code>sudo git clone https://github.com/giovanni247000/Wach0ss-Home.git /opt/wach_os
 
 sudo bash /opt/wach_os/install.sh</code></pre>
+
+<h3>⚡ One-Command Installation</h3>
+
+<pre>git clone https://github.com/giovanni247000/Wach0ss-home.git /opt/wach_os && sudo bash /opt/wach_os/install.sh</pre>
 
 <p>
   🚀 Once the installation is complete, Wach0ss Home will be ready to configure.
