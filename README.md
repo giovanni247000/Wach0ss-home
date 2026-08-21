@@ -101,72 +101,174 @@ Wach0ss Home acts as an abstraction layer between the user interface and the dif
                               PHYSICAL HOME
 
 
-💻 Installation
-Wach0ss Home is designed primarily for Linux systems and Raspberry Pi.
+<h2>💻 Installation</h2>
 
-Requirements:
+<p>
+  <b>Wach0ss Home</b> is designed primarily for Linux systems,
+  including Raspberry Pi and other Linux-based machines.
+</p>
 
-🐧 Linux (Raspberry Pi or another Linux machine)
+<h3>📋 Requirements</h3>
 
-🐍 Python 3.9 or newer
+<table>
+  <tr>
+    <td>🐧</td>
+    <td><b>Linux</b></td>
+    <td>Raspberry Pi or another Linux machine</td>
+  </tr>
+  <tr>
+    <td>🐍</td>
+    <td><b>Python 3.9+</b></td>
+    <td>Python 3.9 or newer</td>
+  </tr>
+  <tr>
+    <td>📦</td>
+    <td><b>Git</b></td>
+    <td>Required to clone the repository</td>
+  </tr>
+  <tr>
+    <td>🔑</td>
+    <td><b>sudo privileges</b></td>
+    <td>Required for installation in <code>/opt</code></td>
+  </tr>
+</table>
 
-📦 Git & sudo privileges
+<br>
 
-One-Command Installation:
-The easiest way to install Wach0ss Home is to clone the repository directly into /opt and run the installation script.
+<h3>⚡ One-Command Installation</h3>
 
+<p>
+  The easiest way to install <b>Wach0ss Home</b> is to clone the repository
+  directly into <code>/opt</code> and run the installation script.
+</p>
 
+<pre><code>sudo git clone https://github.com/giovanni247000/Wach0ss-Home.git /opt/wach_os
 
-# 1. Clone the repository
-```bash
-sudo git clone [https://github.com/giovanni247000/Wach0ss-Home.git](https://github.com/giovanni247000/Wach0ss-Home.git) /opt/wach_os
-```
+sudo bash /opt/wach_os/install.sh</code></pre>
 
-# 2. Run the installer
-```bash
-sudo bash /opt/wach_os/install.sh
-```
-
-📸 Gallery
-Camera Monitoring
-
-
-
-
-Mobile Interface
-
-
-🛠️ Technology Stack & Roadmap
-Currently Supported:
-
-KNX, Home Assistant, Shelly, and Sonos integrations.
-
-Interactive 3D environment & digital twin.
-
-Full alarm system (PIN, entry/exit delays, Telegram/Sonos alerts).
-
-Cloudflare & ZeroTier integration for remote access.
-
-Coming Soon:
-
-Advanced 3D interactions and improved mobile experience.
-
-Advanced automation editor and AI-assisted routines.
-
-Energy monitoring & presence detection.
-
-🤝 Contributing & Support
-Wach0ss Home is a personal project, but contributions, ideas, and feedback are highly welcome. If you are experimenting with Wach0ss Home or have an idea, feel free to open an issue in the repository.
+<p>
+  🚀 Once the installation is complete, Wach0ss Home will be ready to configure.
+</p>
 
 
 
 
 
 
+<h2>📸 Gallery</h2>
 
-⭐ If you like the project, consider giving it a star.
+<table>
+  <tr>
+    <td align="center">
+      <strong>Camera Monitoring</strong><br><br>
+      <img src="./images/dashboard.png" width="400">
+    </td>
+    <td align="center">
+      <strong>Mobile Interface</strong><br><br>
+      <img src="./images/dashboard.png" width="400">
+    </td>
+  </tr>
+</table>
 
+<br>
 
-Wach0ss Home · Smart Home Platform · Self Hosted
+<h2>🛠️ Technology Stack</h2>
+
+<p>
+  Wach0ss Home is built around a modular ecosystem designed to integrate
+  different smart-home technologies into a single self-hosted platform.
+</p>
+
+<table>
+  <tr>
+    <td>🏠 <b>KNX</b></td>
+    <td>Home automation & building control</td>
+  </tr>
+  <tr>
+    <td>🤖 <b>Home Assistant</b></td>
+    <td>Smart-home integrations & automation</td>
+  </tr>
+  <tr>
+    <td>⚡ <b>Shelly</b></td>
+    <td>Energy, switches & sensors</td>
+  </tr>
+  <tr>
+    <td>🔊 <b>Sonos</b></td>
+    <td>Multi-room audio & notifications</td>
+  </tr>
+  <tr>
+    <td>🌐 <b>Cloudflare</b></td>
+    <td>Secure remote access</td>
+  </tr>
+  <tr>
+    <td>🔐 <b>ZeroTier</b></td>
+    <td>Private network connectivity</td>
+  </tr>
+</table>
+
+<br>
+
+<h2>🚀 Currently Supported</h2>
+
+<ul>
+  <li>🔌 KNX, Home Assistant, Shelly & Sonos integrations</li>
+  <li>🌐 Interactive 3D environment & digital twin</li>
+  <li>🚨 Full alarm system with PIN protection</li>
+  <li>⏱️ Configurable entry & exit delays</li>
+  <li>📱 Telegram & Sonos alarm notifications</li>
+  <li>☁️ Cloudflare remote access</li>
+  <li>🔐 ZeroTier private networking</li>
+</ul>
+
+<h2>🔮 Roadmap</h2>
+
+<table>
+  <tr>
+    <td>🟢</td>
+    <td><b>Current</b></td>
+    <td>Core smart-home integrations & 3D environment</td>
+  </tr>
+  <tr>
+    <td>🟡</td>
+    <td><b>Coming Soon</b></td>
+    <td>Advanced 3D interactions & improved mobile experience</td>
+  </tr>
+  <tr>
+    <td>🟡</td>
+    <td><b>Coming Soon</b></td>
+    <td>Advanced automation editor & AI-assisted routines</td>
+  </tr>
+  <tr>
+    <td>🟡</td>
+    <td><b>Coming Soon</b></td>
+    <td>Energy monitoring & presence detection</td>
+  </tr>
+</table>
+
+<br>
+
+<h2>🤝 Contributing & Support</h2>
+
+<p>
+  <b>Wach0ss Home</b> is a personal project, but contributions, ideas and
+  feedback are always welcome.
+</p>
+
+<p>
+  Experimenting with Wach0ss Home or have an idea for a new feature?
+  Feel free to open an issue and share your feedback.
+</p>
+
+<p>
+  ⭐ <b>If you like the project, consider giving it a star!</b>
+</p>
+
+<br>
+
+<p align="center">
+  <sub>
+    <b>Wach0ss Home</b> · Smart Home Platform · Self Hosted
+  </sub>
+</p>
 
 
