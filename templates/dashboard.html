@@ -387,43 +387,36 @@
     align-items: start; /* Allinea in alto, così non si deformano se apri un accordion */
 }
         .integration-card {
-            background: #FFFFFF; border: 1px solid #E5E5EA; border-radius: var(--radius-xl); 
-            padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: var(--transition-smooth);
+            background: #FFFFFF; border: 1px solid #E5E5EA; border-radius: var(--radius-xl);
+            padding: 28px; box-shadow: 0 8px 28px rgba(0,0,0,0.05); transition: var(--transition-smooth);
         }
         .integration-card:hover { border-color: #D1D1D6; box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
-        
-        .integration-header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 0; padding-bottom: 0; border-bottom: none; 
-            cursor: pointer; user-select: none; transition: var(--transition-smooth);
-        }
-        .integration-header:hover { opacity: 0.8; }
-        .integration-card.open .integration-header {
-            margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #F2F2F7;
-        }
-        .integration-header .title { 
-            font-weight: 700; font-size: 1.15rem; color: var(--text-main); 
-            display: flex; align-items: center; gap: 10px; margin: 0;
-        }
-        .integration-header .title svg { color: var(--accent); width: 22px; height: 22px; }
-        
-        .accordion-chevron {
-            color: var(--text-muted); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        .integration-card.open .accordion-chevron { transform: rotate(180deg); }
 
-        .integration-content { display: none; animation: fadeInTab 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .integration-card.open .integration-content { display: block; }
-        
-        .setup-badge { 
-            padding: 4px 12px; border-radius: 12px; font-size: 0.7rem; 
-            font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; background: #F5F5F7;
+        .integration-header {
+            display: flex; justify-content: flex-end; align-items: center;
+            margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #F2F2F7;
+            cursor: default; user-select: none;
+        }
+        .integration-title { display: none; }
+        .accordion-chevron { display: none; }
+
+        .integration-content { display: block; animation: fadeInTab 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+        .setup-badge {
+            padding: 5px 14px; border-radius: 20px; font-size: 0.68rem;
+            font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; background: #F5F5F7;
         }
         .bg-ha { color: var(--accent); }
         .bg-tapo { color: var(--warning); }
         .bg-sonos { color: var(--danger); }
         .bg-shelly { color: var(--success); }
         .bg-knx { color: var(--text-muted); }
+
+        .integration-save-bar { margin-top: 4px; }
+        .input-label {
+            display: block; font-size: 0.78rem; font-weight: 700; color: var(--text-muted);
+            margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
         
         .premium-label { 
             display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); 
@@ -465,6 +458,121 @@
         .user-row-actions { opacity: 0; display: flex; gap: 6px; transition: 0.2s; }
         .user-row-card:hover .user-row-actions { opacity: 1; }
 
+        /* --- STORE INTEGRAZIONI (stile "App Store") --- */
+        .store-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+        .store-card {
+            background: #FFFFFF; border: 1px solid #E5E5EA; border-radius: var(--radius-xl);
+            padding: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: var(--transition-smooth);
+            display: flex; flex-direction: column; gap: 2px;
+        }
+        .store-card:hover { border-color: #D1D1D6; box-shadow: 0 14px 32px rgba(0,0,0,0.08); transform: translateY(-3px); }
+        .store-card.installed { border-color: rgba(40, 167, 69, 0.3); background: linear-gradient(180deg, rgba(40,167,69,0.04) 0%, #FFFFFF 65%); }
+        .store-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .store-card-icon {
+            width: 50px; height: 50px; border-radius: 15px;
+            background: linear-gradient(135deg, var(--badge-c1, #F5F5F7), var(--badge-c2, #F5F5F7));
+            display: flex; align-items: center; justify-content: center; color: #FFFFFF; flex-shrink: 0;
+            box-shadow: 0 6px 16px -4px var(--badge-shadow, transparent);
+        }
+        .store-card-icon svg { width: 23px; height: 23px; color: #FFFFFF; }
+        .store-card-name { font-weight: 700; font-size: 1rem; color: var(--text-main); margin-top: 2px; }
+        .store-card-category-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .store-card-category { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); }
+        .store-badge-installed {
+            display: inline-flex; align-items: center; gap: 3px; font-size: 0.64rem; font-weight: 800;
+            color: var(--success); background: rgba(40,167,69,0.12); padding: 2px 7px 2px 6px; border-radius: 20px;
+            text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .store-badge-installed svg { width: 9px; height: 9px; }
+        .store-card-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; flex-grow: 1; }
+        .store-add-btn, .store-open-btn {
+            width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer;
+            background: var(--accent); color: #FFF; display: flex; align-items: center; justify-content: center;
+            transition: var(--transition-smooth); flex-shrink: 0;
+        }
+        .store-add-btn svg, .store-open-btn svg { width: 18px; height: 18px; }
+        .store-add-btn:hover { transform: scale(1.08); box-shadow: 0 4px 12px var(--accent-glow); }
+        .store-open-btn { background: #F5F5F7; color: var(--text-muted); }
+        .store-open-btn:hover { background: #E5E5EA; color: var(--text-main); }
+        .store-installed-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .store-icon-btn {
+            width: 30px; height: 30px; border-radius: 50%; border: 1px solid #E5E5EA; background: #FAFAFC;
+            color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: var(--transition-smooth);
+        }
+        .store-icon-btn svg { width: 15px; height: 15px; }
+        .store-icon-btn:hover { background: #FFFFFF; border-color: #D1D1D6; color: var(--text-main); }
+        .store-icon-btn.danger:hover { color: var(--danger); border-color: var(--danger); background: #FFF0F0; }
+
+        #integrations-detail-grid { max-width: 700px; margin: 0 auto; }
+        #integrations-detail-grid .integration-card { display: none; }
+        #integrations-detail-grid .integration-card.detail-visible { display: block; }
+        #integrations-detail-grid .integration-content { display: block !important; }
+
+        .store-fab {
+            position: fixed; bottom: 32px; right: 32px; width: 60px; height: 60px; border-radius: 50%;
+            background: var(--accent-gradient); color: #FFF; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(10,132,255,0.35);
+            transition: var(--transition-smooth); z-index: 20;
+        }
+        .store-fab:hover { transform: scale(1.08); box-shadow: 0 12px 32px rgba(10,132,255,0.45); }
+        .store-fab svg { width: 28px; height: 28px; }
+        .store-empty-hint {
+            grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: var(--text-muted);
+            font-size: 0.95rem; background: #FAFAFC; border: 1px dashed #D1D1D6; border-radius: var(--radius-lg);
+        }
+
+        .store-popup-content {
+            background: #FFFFFF; border-radius: var(--radius-xl); padding: 22px 24px 24px;
+            width: 92%; max-width: 420px; max-height: 78vh; overflow-y: auto;
+            position: relative; text-align: left; box-shadow: 0 24px 48px rgba(0,0,0,0.22);
+            border: 1px solid rgba(255,255,255,0.8);
+            transform: scale(0.95); transition: 0.2s; opacity: 0;
+        }
+        .modal-overlay.active .store-popup-content { transform: scale(1); opacity: 1; }
+        .store-popup-header { display: flex; align-items: center; gap: 12px; margin-bottom: 2px; }
+        .store-popup-header-icon {
+            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+            background: var(--accent-gradient); color: #FFF;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 6px 14px -3px var(--accent-glow);
+        }
+        .store-popup-header-icon svg { width: 20px; height: 20px; }
+
+        .store-popup-list { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+        .store-row {
+            display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+            border: 1px solid #E5E5EA; border-radius: var(--radius-md); background: #FAFAFC;
+            transition: var(--transition-smooth);
+        }
+        .store-row:hover { background: #FFFFFF; border-color: #D1D1D6; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transform: translateX(2px); }
+        .store-row-icon {
+            width: 34px; height: 34px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--badge-c1, #F5F5F7), var(--badge-c2, #F5F5F7));
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;
+            box-shadow: 0 3px 8px -2px var(--badge-shadow, transparent);
+        }
+        .store-row-icon svg { width: 17px; height: 17px; color: #FFFFFF; }
+        .store-row-icon img { width: 20px; height: 20px; object-fit: contain; }
+        .store-row-info { flex: 1; min-width: 0; }
+        .store-row-name { font-weight: 700; font-size: 0.88rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .store-row-category { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+        .store-row .store-add-btn {
+            width: auto; height: 30px; min-width: 88px; flex-shrink: 0; padding: 0 12px; border-radius: 20px;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+            font-size: 0.76rem; font-weight: 700; background: var(--accent-gradient);
+        }
+        .store-row .store-add-btn svg { width: 13px; height: 13px; }
+        .store-add-btn.downloading { opacity: 0.85; cursor: default; }
+        .store-add-btn.downloading svg { animation: spin 0.7s linear infinite; }
+        .store-empty-hint-slim {
+            text-align: center; padding: 24px 12px; color: var(--text-muted);
+            font-size: 0.85rem; background: #FAFAFC; border: 1px dashed #D1D1D6; border-radius: var(--radius-md);
+        }
     </style>
 </head>
 <body>
@@ -864,19 +972,35 @@
         <div class="takeover-body">
             <form id="setup-network-form" class="takeover-content-wrapper">
                 
-                <div class="takeover-section-header">
+                <div class="takeover-section-header" id="main-section-header">
                     <div>
-                        <h2 class="takeover-title">Infrastruttura e Hub</h2>
-                        <p style="color: var(--text-muted); margin: 8px 0 0 0; font-size: 0.95rem;">Gestisci le connessioni ai server principali e ai protocolli di terze parti.</p>
+                        <h2 class="takeover-title">Integrazioni</h2>
+                        <p style="color: var(--text-muted); margin: 8px 0 0 0; font-size: 0.95rem;">Le tue integrazioni installate. Usa il pulsante + qui sotto per scaricarne di nuove dallo store.</p>
                     </div>
-<button type="button" onclick="saveNetworkSetup()" class="btn-launch btn-primary" style="padding: 12px 24px; font-size: 1rem; box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);">
-    <i data-lucide="save" style="width:18px;height:18px;margin-right:8px;"></i> Salva Configurazione Rete
-</button>
                 </div>
-                
-<div class="settings-grid">
+
+                <div class="takeover-section-header" id="detail-section-header" style="display:none;">
+                    <div style="display:flex; align-items:center; gap:14px;">
+                        <button type="button" class="btn-launch btn-outline btn-icon-only" onclick="backFromDetail()" title="Indietro">
+                            <i data-lucide="chevron-left" style="width:18px; height:18px;"></i>
+                        </button>
+                        <div id="detail-section-icon" class="store-card-icon" style="width:44px; height:44px; border-radius:13px;"></div>
+                        <div>
+                            <h2 class="takeover-title" id="detail-section-title" style="font-size:1.5rem;">Integrazione</h2>
+                            <p style="color: var(--text-muted); margin: 4px 0 0 0; font-size: 0.9rem;" id="detail-section-subtitle"></p>
+                        </div>
+                    </div>
+                </div>
+
+<div class="store-grid" id="integrations-installed-grid"></div>
+
+<button type="button" class="store-fab" id="store-fab" onclick="openStoreCatalog()" title="Aggiungi integrazione">
+    <i data-lucide="plus"></i>
+</button>
+
+<div class="settings-grid" id="integrations-detail-grid" style="display:none;">
     
-    <div class="integration-card" style="border-style: dashed; border-color: var(--accent);">
+    <div class="integration-card" data-key="backup" style="border-style: dashed; border-color: var(--accent);">
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open')">
             <div class="integration-title"><i data-lucide="database"></i> Backup & Ripristino Sistema</div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -896,7 +1020,7 @@
         </div>
     </div>
 
-<div class="integration-card" style="border-left: 4px solid var(--accent);">
+<div class="integration-card" data-key="remotehub" style="border-left: 4px solid var(--accent);">
     <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); loadRemoteHubs();">
         <div class="integration-title"><i data-lucide="server"></i> Wach0ss Remote Hubs</div>
         <div style="display:flex; align-items:center; gap:12px;">
@@ -940,7 +1064,7 @@
 </div>
 
 
-    <div class="integration-card">
+    <div class="integration-card" data-key="ha">
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open')">
             <div class="integration-title"><i data-lucide="home"></i> Home Assistant</div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -966,7 +1090,7 @@
         </div>
     </div>
 
-    <div class="integration-card">
+    <div class="integration-card" data-key="knx">
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open')">
             <div class="integration-title"><i data-lucide="cpu"></i> Protocollo KNX</div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -989,7 +1113,7 @@
         </div>
     </div>
 
-<div class="integration-card">
+<div class="integration-card" data-key="tapo">
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open')">
             <div class="integration-title"><i data-lucide="cctv"></i> Telecamere RTSP</div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -1041,7 +1165,7 @@
         </div>
     </div>
 
-<div class="integration-card">
+<div class="integration-card" data-key="zerotier">
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open')">
             <div class="integration-title"><i data-lucide="network"></i> ZeroTier VPN</div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -1081,7 +1205,7 @@
         </div>
     </div>
 
-<div class="integration-card">
+<div class="integration-card" data-key="shelly">
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); loadShellyDevices();">
             <div class="integration-title"><i data-lucide="zap"></i> Shelly Devices</div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -1103,7 +1227,7 @@
         </div>
     </div>
 
-<div class="integration-card">
+<div class="integration-card" data-key="cloudflare">
     <div class="integration-header" onclick="this.parentElement.classList.toggle('open')">
         <div class="integration-title"><i data-lucide="globe"></i> Pubblica su Internet</div>
         <div style="display:flex; align-items:center; gap:12px;">
@@ -1190,7 +1314,7 @@
 </div>
 
 <!-- MODULO: SONOS -->
-    <div class="integration-card">
+    <div class="integration-card" data-key="sonos">
         <!-- Aggiunto onclick="loadSonosDevices()" -->
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); loadSonosDevices();">
             <div class="integration-title"><i data-lucide="speaker"></i> Sonos</div>
@@ -1222,7 +1346,7 @@
     </div>
 
 
-<div class="integration-card">
+<div class="integration-card" data-key="telegram">
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open')">
             <div class="integration-title"><i data-lucide="send"></i> Bot Telegram</div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -1245,7 +1369,28 @@
         </div>
     </div>
 
+    <div class="integration-save-bar">
+        <button type="button" onclick="saveNetworkSetup()" class="btn-launch btn-primary" style="width:100%; padding: 14px 24px; font-size: 1rem; box-shadow: 0 8px 20px rgba(10, 132, 255, 0.25);">
+            <i data-lucide="save" style="width:18px;height:18px;margin-right:8px;"></i> Salva Configurazione
+        </button>
+    </div>
+
 </div> </form>
+
+<div class="modal-overlay" id="store-popup-overlay" onclick="closeStorePopup(event)">
+    <div class="store-popup-content" onclick="event.stopPropagation()">
+        <button class="modal-close" onclick="closeStorePopup(event)"><i data-lucide="x"></i></button>
+        <div class="store-popup-header">
+            <div class="store-popup-header-icon"><i data-lucide="layout-grid"></i></div>
+            <div>
+                <h2 style="font-size:1.1rem; font-weight:800; color:var(--text-main); margin:0;">Store Integrazioni</h2>
+                <p style="color: var(--text-muted); margin: 3px 0 0 0; font-size: 0.82rem;">Scegli un'integrazione da scaricare.</p>
+            </div>
+        </div>
+        <div class="store-popup-list" id="integrations-catalog-grid"></div>
+    </div>
+</div>
+
         </div> </div> 
 
 
@@ -2721,6 +2866,245 @@ function openSetupModal() {
     checkKnxStatus(); 
     checkZeroTierStatus(); 
     checkCloudflareStatus(); // <--- RIGA AGGIUNTA
+    showView('main');
+    closeStorePopup();
+    renderInstalledGrid();
+    refreshAsyncStoreStatus();
+}
+
+/* ===================== STORE INTEGRAZIONI ===================== */
+
+const HA_INSTANCE_IDS = {{ ha_instances | map('first') | list | tojson }};
+const TAPO_CAMERA_IDS = {{ tapo_cameras | map('first') | list | tojson }};
+const ZEROTIER_NETWORK_IDS = {{ zerotier_networks | tojson }};
+
+const INTEGRATIONS_CATALOG = [
+    { key: 'ha', name: 'Home Assistant', icon: 'home', color: '#18BCF2', logo: null, category: 'Hub', desc: "Collega la tua istanza Home Assistant per importare tutte le entita'.", installed: {{ 'true' if ha_instances else 'false' }}, removable: true },
+    { key: 'knx', name: 'Protocollo KNX', icon: 'cpu', color: '#00A651', logo: null, category: 'Protocollo', desc: 'Collega un gateway KNX/IP per il controllo domotico via bus.', installed: {{ 'true' if knx_ip else 'false' }}, removable: true },
+    { key: 'tapo', name: 'Telecamere RTSP', icon: 'cctv', color: '#00C2A8', logo: null, category: 'Videosorveglianza', desc: 'Aggiungi telecamere RTSP (Tapo e compatibili) allo stream live.', installed: {{ 'true' if tapo_cameras else 'false' }}, removable: true },
+    { key: 'shelly', name: 'Shelly Devices', icon: 'zap', color: '#0FC6A5', logo: null, category: 'Zeroconf', desc: 'Scopri automaticamente i dispositivi Shelly nella rete locale.', installed: true, removable: false, systemType: true },
+    { key: 'sonos', name: 'Sonos', icon: 'speaker', color: '#111111', logo: null, category: 'Audio', desc: 'Collega gli speaker Sonos per la riproduzione multiroom.', installed: {{ 'true' if sonos_ip else 'false' }}, removable: true },
+    { key: 'telegram', name: 'Bot Telegram', icon: 'send', color: '#29A9EA', logo: null, category: 'Notifiche', desc: 'Ricevi notifiche e avvisi dalle automazioni via Telegram.', installed: {{ 'true' if tg_token else 'false' }}, removable: true },
+    { key: 'zerotier', name: 'ZeroTier VPN', icon: 'network', color: '#F79A3E', logo: null, category: 'Rete', desc: 'Accedi da remoto in sicurezza tramite rete VPN privata.', installed: {{ 'true' if zerotier_networks else 'false' }}, removable: true },
+    { key: 'cloudflare', name: 'Pubblica su Internet', icon: 'globe', color: '#F6821F', logo: null, category: 'Rete', desc: 'Rendi raggiungibile il tuo sistema online con un dominio sicuro.', installed: false, removable: true },
+    { key: 'remotehub', name: 'Wach0ss Remote Hubs', icon: 'server', color: '#0066CC', logo: null, category: 'Link', desc: "Collega un'altra istanza Wach0ss e controllane le entita'.", installed: false, removable: true },
+    { key: 'backup', name: 'Backup & Ripristino', icon: 'database', color: '#6B7280', logo: null, category: 'Sistema', desc: 'Esporta o ripristina la configurazione completa del sistema.', installed: true, removable: false, systemType: true }
+];
+
+const DETAIL_TITLES = {
+    ha: ["Home Assistant", "Collega la tua istanza Home Assistant."],
+    knx: ["Protocollo KNX", "Gateway KNX/IP per il controllo via bus."],
+    tapo: ["Telecamere RTSP", "Aggiungi e gestisci le telecamere RTSP."],
+    shelly: ["Shelly Devices", "Scopri i dispositivi Shelly nella rete."],
+    sonos: ["Sonos", "Gestisci gli speaker Sonos."],
+    telegram: ["Bot Telegram", "Notifiche via Telegram."],
+    zerotier: ["ZeroTier VPN", "Accesso remoto sicuro via VPN."],
+    cloudflare: ["Pubblica su Internet", "Rendi raggiungibile il sistema online."],
+    remotehub: ["Wach0ss Remote Hubs", "Collega un'altra istanza Wach0ss."],
+    backup: ["Backup & Ripristino", "Esporta o ripristina la configurazione."]
+};
+
+function showView(view) {
+    document.getElementById('main-section-header').style.display = view === 'main' ? 'flex' : 'none';
+    document.getElementById('integrations-installed-grid').style.display = view === 'main' ? 'grid' : 'none';
+    document.getElementById('store-fab').style.display = view === 'main' ? 'flex' : 'none';
+
+    document.getElementById('detail-section-header').style.display = view === 'detail' ? 'flex' : 'none';
+    document.getElementById('integrations-detail-grid').style.display = view === 'detail' ? 'grid' : 'none';
+}
+
+function integrationIconHtml(item) {
+    return item.logo
+        ? `<img src="${item.logo}" alt="${item.name}">`
+        : `<i data-lucide="${item.icon}"></i>`;
+}
+
+function shadeColor(hex, percent) {
+    hex = (hex || '#0A84FF').replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    let r = parseInt(hex.substring(0, 2), 16) || 0;
+    let g = parseInt(hex.substring(2, 4), 16) || 0;
+    let b = parseInt(hex.substring(4, 6), 16) || 0;
+    r = Math.min(255, Math.max(0, Math.round(r + (percent < 0 ? r : 255 - r) * percent / 100)));
+    g = Math.min(255, Math.max(0, Math.round(g + (percent < 0 ? g : 255 - g) * percent / 100)));
+    b = Math.min(255, Math.max(0, Math.round(b + (percent < 0 ? b : 255 - b) * percent / 100)));
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+function iconBadgeStyle(color) {
+    const c1 = shadeColor(color, 14);
+    const c2 = shadeColor(color, -16);
+    return `--badge-c1:${c1}; --badge-c2:${c2}; --badge-shadow:${color}59;`;
+}
+
+function storeCardHtml(item) {
+    const installedClass = item.installed ? 'installed' : '';
+    let actionHtml = '';
+    if (item.systemType) {
+        actionHtml = `<button type="button" class="store-open-btn" onclick="openIntegrationDetail('${item.key}')" title="Apri"><i data-lucide="arrow-right"></i></button>`;
+    } else if (item.installed) {
+        actionHtml = `<div class="store-installed-actions">
+            <button type="button" class="store-icon-btn" onclick="openIntegrationDetail('${item.key}')" title="Configura"><i data-lucide="settings"></i></button>
+            ${item.removable ? `<button type="button" class="store-icon-btn danger" onclick="uninstallIntegration('${item.key}')" title="Rimuovi"><i data-lucide="trash-2"></i></button>` : ''}
+        </div>`;
+    } else {
+        actionHtml = `<button type="button" class="store-add-btn" onclick="downloadIntegration('${item.key}', this)" title="Scarica"><i data-lucide="download"></i></button>`;
+    }
+    const statusLabel = (item.installed && !item.systemType) ? `<span class="store-badge-installed"><i data-lucide="check"></i>Installata</span>` : '';
+    return `<div class="store-card ${installedClass}" data-store-key="${item.key}">
+        <div class="store-card-top">
+            <div class="store-card-icon" style="${iconBadgeStyle(item.color)}">${integrationIconHtml(item)}</div>
+            ${actionHtml}
+        </div>
+        <div class="store-card-name">${item.name}</div>
+        <div class="store-card-category-row"><span class="store-card-category">${item.category}</span>${statusLabel}</div>
+        <div class="store-card-desc">${item.desc}</div>
+    </div>`;
+}
+
+function storeRowHtml(item) {
+    return `<div class="store-row" data-store-key="${item.key}">
+        <div class="store-row-icon" style="${iconBadgeStyle(item.color)}">${integrationIconHtml(item)}</div>
+        <div class="store-row-info">
+            <div class="store-row-name">${item.name}</div>
+            <div class="store-row-category">${item.category}</div>
+        </div>
+        <button type="button" class="store-add-btn" onclick="downloadIntegration('${item.key}', this)" title="Scarica"><i data-lucide="download"></i><span>Scarica</span></button>
+    </div>`;
+}
+
+function downloadIntegration(key, btn) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    btn.classList.add('downloading');
+    btn.innerHTML = '<i data-lucide="loader-2"></i>';
+    lucide.createIcons({root: btn});
+    setTimeout(() => {
+        closeStorePopup();
+        openIntegrationDetail(key);
+    }, 700);
+}
+
+function renderInstalledGrid() {
+    const grid = document.getElementById('integrations-installed-grid');
+    if (!grid) return;
+    const items = INTEGRATIONS_CATALOG.filter(i => i.installed);
+    grid.innerHTML = items.length
+        ? items.map(storeCardHtml).join('')
+        : `<div class="store-empty-hint">Nessuna integrazione installata. Usa il pulsante + qui sotto per scaricarne una dallo store.</div>`;
+    lucide.createIcons({root: grid});
+}
+
+function renderCatalogGrid() {
+    const grid = document.getElementById('integrations-catalog-grid');
+    if (!grid) return;
+    const items = INTEGRATIONS_CATALOG.filter(i => !i.installed);
+    grid.innerHTML = items.length
+        ? items.map(storeRowHtml).join('')
+        : `<div class="store-empty-hint-slim">Hai gia' scaricato tutte le integrazioni disponibili.</div>`;
+    lucide.createIcons({root: grid});
+}
+
+function openStoreCatalog() {
+    renderCatalogGrid();
+    document.getElementById('store-popup-overlay').classList.add('active');
+    lucide.createIcons({root: document.getElementById('store-popup-overlay')});
+}
+
+function closeStorePopup(e) {
+    if (e) e.preventDefault();
+    document.getElementById('store-popup-overlay').classList.remove('active');
+}
+
+function openIntegrationDetail(key) {
+    showView('detail');
+
+    const grid = document.getElementById('integrations-detail-grid');
+    grid.querySelectorAll('.integration-card').forEach(card => card.classList.remove('detail-visible'));
+    const target = grid.querySelector(`.integration-card[data-key="${key}"]`);
+    if (target) target.classList.add('detail-visible');
+
+    const titleInfo = DETAIL_TITLES[key] || [key, ''];
+    document.getElementById('detail-section-title').innerText = titleInfo[0];
+    document.getElementById('detail-section-subtitle').innerText = titleInfo[1];
+
+    const catalogItem = INTEGRATIONS_CATALOG.find(i => i.key === key);
+    const iconEl = document.getElementById('detail-section-icon');
+    if (iconEl) {
+        if (catalogItem) {
+            iconEl.setAttribute('style', `width:44px; height:44px; border-radius:13px; ${iconBadgeStyle(catalogItem.color)}`);
+            iconEl.innerHTML = integrationIconHtml(catalogItem);
+        } else {
+            iconEl.setAttribute('style', 'width:44px; height:44px; border-radius:13px; background:#F5F5F7;');
+            iconEl.innerHTML = '<i data-lucide="puzzle"></i>';
+        }
+        lucide.createIcons({root: iconEl});
+    }
+
+    if (key === 'remotehub') loadRemoteHubs();
+    if (key === 'shelly') loadShellyDevices();
+    if (key === 'sonos') loadSonosDevices();
+    if (key === 'knx') checkKnxStatus();
+    if (key === 'zerotier') checkZeroTierStatus();
+    if (key === 'cloudflare') checkCloudflareStatus();
+
+    lucide.createIcons({root: target || grid});
+}
+
+function backFromDetail() {
+    document.getElementById('integrations-detail-grid').querySelectorAll('.integration-card').forEach(card => card.classList.remove('detail-visible'));
+    renderInstalledGrid();
+    showView('main');
+    refreshAsyncStoreStatus();
+}
+
+async function refreshAsyncStoreStatus() {
+    try {
+        const res = await fetch('/api/cloudflare/status');
+        const data = await res.json();
+        const item = INTEGRATIONS_CATALOG.find(i => i.key === 'cloudflare');
+        if (item) item.installed = !!data.connected;
+    } catch(e) {}
+    try {
+        const res = await fetch('/api/remote_hub');
+        const hubs = await res.json();
+        const item = INTEGRATIONS_CATALOG.find(i => i.key === 'remotehub');
+        if (item) item.installed = Array.isArray(hubs) && hubs.length > 0;
+    } catch(e) {}
+    renderInstalledGrid();
+    renderCatalogGrid();
+}
+
+async function uninstallIntegration(key) {
+    if (!confirm("Rimuovere questa integrazione? La configurazione salvata verra' eliminata e l'integrazione tornera' disponibile nello store.")) return;
+
+    try {
+        if (key === 'ha') {
+            for (const id of HA_INSTANCE_IDS) { await fetch(`/remove_ha/${id}`); }
+        } else if (key === 'tapo') {
+            for (const id of TAPO_CAMERA_IDS) { await fetch(`/remove_tapo/${id}`); }
+        } else if (key === 'zerotier') {
+            for (const netId of ZEROTIER_NETWORK_IDS) { await fetch(`/remove_zerotier/${netId}`); }
+        } else if (key === 'knx') {
+            await fetch('/remove_knx');
+        } else if (key === 'sonos') {
+            await fetch('/setup', { method: 'POST', body: new URLSearchParams({ sonos_ip: '' }) });
+        } else if (key === 'telegram') {
+            await fetch('/setup', { method: 'POST', body: new URLSearchParams({ telegram_token: '', telegram_chat_id: '' }) });
+        } else if (key === 'cloudflare') {
+            await fetch('/api/cloudflare/remove', { method: 'POST' });
+        } else if (key === 'remotehub') {
+            const res = await fetch('/api/remote_hub');
+            const hubs = await res.json();
+            for (const h of hubs) {
+                await fetch('/api/remote_hub', { method: 'DELETE', headers: {'Content-Type':'application/json'}, body: JSON.stringify({id: h.id}) });
+            }
+        }
+        showToast("Integrazione rimossa", "success");
+        setTimeout(() => { window.location.href = window.location.pathname + '?setup=open'; }, 800);
+    } catch(e) {
+        showToast("Errore durante la rimozione", "error");
+    }
 }
 
 async function checkCloudflareStatus() {
