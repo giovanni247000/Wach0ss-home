@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Wach0ss Home - Motore Logico</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* === PALETTE ENTERPRISE PROFESSIONALE (Dal Primo Modello) === */
+        :root {
+            --bg-base: #f1f5f9; /* Slate 100 - Sfondo pagina */
+            --bg-view: #ffffff; /* Sfondo viste builder */
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0; 
+            --section-bg: #f8fafc; 
+            
+            --text-main: #0f172a; 
+            --text-sec: #64748b; 
+            
+            --primary: #0f172a; 
+            --primary-hover: #1e293b;
+            --accent: #2563eb; 
+            --accent-hover: #1d4ed8;
+            --accent-glow: rgba(37, 99, 235, 0.15);
+            
+            --node-if: #f59e0b; /* Ambra */
+            --node-and: #8b5cf6; /* Viola */
+            --node-then: #10b981; /* Verde */
+            
+            --danger: #ef4444; 
+            --success: #10b981; 
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            
+            --radius-md: 10px;
+            --radius-lg: 16px;
+        }
+
+        /* === RESET & ANIMAZIONI === */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg-base); color: var(--text-main); 
+            height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased;
+        }
+
+        /* === GESTIONE VISTE === */
+        .app-view {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            overflow-y: auto; overflow-x: hidden;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+            background: var(--bg-base); z-index: 10;
+        }
+        .app-view.hidden-right { transform: translateX(100%); opacity: 0; pointer-events: none; }
+        .app-view.hidden-left { transform: translateX(-20%); opacity: 0; pointer-events: none; }
+        
+        .builder-view { background: var(--bg-view); z-index: 20; display: flex; flex-direction: column; }
+
+        /* === NAVBAR E TABS === */
+        .navbar {
+            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            padding: calc(env(safe-area-inset-top, 0px) + 16px) 32px 16px 32px;
+            display: flex; justify-content: space-between; align-items: center; 
+            position: sticky; top: 0; z-index: 100;
+        }
+        .navbar-brand { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px;}
+        
+        .tabs-container { background: white; padding: 6px; border-radius: 12px; display: inline-flex; box-shadow: var(--shadow-sm); border: 1px solid var(--card-border); margin-bottom: 32px; }
+        .tabs-container button { 
+            background: transparent; color: var(--text-sec); border: none; border-radius: 8px;
+            padding: 10px 24px; font-weight: 600; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; 
+        }
+        .tabs-container button.active { background: var(--primary); color: white; box-shadow: var(--shadow-sm); }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 32px; }
+
+        /* === GRIGLIA LISTE (Dashboard) === */
+        .grid-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 24px; }
+
+        .list-item { 
+            display: flex; flex-direction: column; padding: 24px; background: var(--card-bg); 
+            border-radius: var(--radius-lg); border: 1px solid var(--card-border); 
+            box-shadow: var(--shadow-sm); transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative; overflow: hidden;
+        }
+        .list-item::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--accent); opacity: 0; transition: 0.2s; }
+        .list-item:hover { box-shadow: var(--shadow-lg); border-color: #cbd5e1; transform: translateY(-3px);}
+        .list-item:hover::before { opacity: 1; }
+        .list-item.disabled { opacity: 0.6; filter: grayscale(100%); background: var(--bg-base); transform: none; box-shadow: none;}
+        .list-item.disabled::before { background: var(--text-sec); opacity: 1; }
+        
+        .list-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+        .list-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.3px; color: var(--primary);}
+        .list-subtitle { color: var(--text-sec); font-size: 0.85rem; display: flex; align-items: center; gap: 6px; font-weight: 600;}
+        .list-actions { display: flex; gap: 12px; margin-top: auto; border-top: 1px solid var(--section-bg); padding-top: 20px; }
+
+        /* === BOTTONI === */
+        .btn { 
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px; 
+            font-weight: 600; font-size: 0.9rem; border-radius: 8px; cursor: pointer; 
+            transition: all 0.2s; border: 1px solid transparent; padding: 10px 20px; 
+        }
+        .btn-accent { background: var(--accent); color: white; box-shadow: 0 4px 12px var(--accent-glow); }
+        .btn-accent:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-secondary { background: var(--card-bg); color: var(--text-main); border-color: var(--card-border); box-shadow: var(--shadow-sm);}
+        .btn-secondary:hover { background: var(--section-bg); border-color: #cbd5e1; }
+        
+        .btn-back-view {
+            background: transparent; border: 1px solid var(--card-border); border-radius: 8px; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center; color: var(--text-main); cursor: pointer; transition: 0.2s;
+        }
+        .btn-back-view:hover { background: var(--section-bg); }
+
+        .btn-icon-small { 
+            background: transparent; border: 1px solid var(--card-border); border-radius: 8px; width: 38px; height: 38px; 
+            display: flex; align-items: center; justify-content: center; color: var(--text-sec); cursor: pointer; transition: 0.2s; flex-shrink: 0;
+        }
+        .btn-icon-small:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+
+        /* === SWITCH TOGGLE === */
+        .switch { position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 26px; }
+        .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 2px; bottom: 2px; background-color: white; transition: .3s cubic-bezier(0.25, 0.8, 0.25, 1); border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.15);}
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(18px); }
+
+        /* =========================================================
+           === BUILDER: SPLIT SCREEN (FORM + SIMULATORE) ===
+           ========================================================= */
+        .builder-header {
+            display: flex; align-items: center; justify-content: space-between; padding: 20px 40px;
+            border-bottom: 1px solid var(--card-border); background: var(--bg-view); z-index: 100;
+        }
+        .builder-title-input {
+            font-size: 1.6rem; font-weight: 800; border: none; background: transparent; 
+            color: var(--primary); outline: none; width: 100%; border-bottom: 2px solid transparent; transition: 0.2s; letter-spacing: -0.5px;
+        }
+        .builder-title-input:focus { border-bottom-color: var(--accent); }
+
+        .builder-split { display: grid; grid-template-columns: 1fr 500px; flex-grow: 1; height: calc(100vh - 85px); }
+        
+        /* SINISTRA: Form (Stile Primo Modello) */
+        .builder-form-area { padding: 40px 60px 100px 60px; overflow-y: auto; background: var(--bg-view); }
+        
+        .logic-flow { position: relative; padding-left: 28px; }
+        .logic-flow::before { content: ''; position: absolute; left: 0; top: 30px; bottom: 40px; width: 3px; background: #e2e8f0; border-radius: 3px; z-index: 1; }
+
+        .logic-node {
+            position: relative; background: white; border: 1px solid var(--card-border); 
+            border-radius: var(--radius-lg); padding: 24px; margin-bottom: 32px;
+            box-shadow: var(--shadow-sm); z-index: 2; transition: border-color 0.2s;
+        }
+        .logic-node:focus-within { border-color: var(--accent); box-shadow: var(--shadow-md); }
+        .logic-node::before { content: ''; position: absolute; left: -36px; top: 32px; width: 18px; height: 18px; border-radius: 50%; background: white; border: 4px solid var(--card-border); z-index: 3; box-shadow: 0 0 0 4px var(--bg-view); }
+        
+        .node-if { border-top: 4px solid var(--node-if); }
+        .node-if::before { border-color: var(--node-if); }
+        .node-and { border-top: 4px solid var(--node-and); }
+        .node-and::before { border-color: var(--node-and); }
+        .node-then { border-top: 4px solid var(--node-then); }
+        .node-then::before { border-color: var(--node-then); }
+
+        .node-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .node-badge { display: inline-flex; align-items: center; justify-content: center; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.75rem; letter-spacing: 0.5px; }
+        .badge-if { background: #fef3c7; color: #b45309; }
+        .badge-and { background: #f3e8ff; color: #6b21a8; }
+        .badge-then { background: #d1fae5; color: #047857; }
+        .node-title { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin: 0; }
+
+        /* INPUTS FORM */
+        label { display: block; margin: 0 0 8px 0; font-size: 0.85rem; font-weight: 600; color: var(--text-sec); }
+        .form-group { margin-bottom: 20px; }
+        .form-row { display: flex; gap: 16px; align-items: flex-end; }
+        .form-row > * { flex: 1; }
+
+        .form-control {
+            width: 100%; height: 46px; padding: 0 16px; background: var(--section-bg); color: var(--text-main);
+            border: 1px solid var(--card-border); border-radius: 8px; font-size: 0.95rem; transition: all 0.2s; font-weight: 500;
+        }
+        select.form-control { cursor: pointer; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+        .form-control:focus { background: white; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        
+        .action-row { background: var(--section-bg); padding: 16px; border-radius: 8px; border: 1px solid var(--card-border); margin-bottom: 12px; display: flex; flex-direction: column; gap: 16px; transition: 0.2s; }
+        .action-row:hover { background: white; border-color: #cbd5e1; box-shadow: var(--shadow-sm); }
+
+        /* OVERRIDE TOMSELECT ENTERPRISE */
+        .ts-wrapper .ts-control { min-height: 46px; background: var(--section-bg); border: 1px solid var(--card-border); border-radius: 8px; font-weight: 500; padding: 10px 16px; box-shadow: none !important;}
+        .ts-wrapper.focus .ts-control { background: white; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow) !important; }
+        .ts-dropdown { border: 1px solid var(--card-border); border-radius: 8px; box-shadow: var(--shadow-lg); font-weight: 500; z-index: 1000;}
+        .ts-dropdown .optgroup-header { font-weight: 800; background: white; color: var(--text-sec); padding: 12px 16px 8px 16px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;}
+        .ts-wrapper.multi .ts-control > div { background: var(--primary); color: white; border-radius: 6px; padding: 4px 8px; border: none; font-size: 0.85rem;}
+
+        /* DESTRA: Simulatore Interattivo (Adattato a stile Enterprise) */
+        .builder-simulator-area {
+            background: var(--bg-base); border-left: 1px solid var(--card-border);
+            padding: 40px; overflow-y: auto; display: flex; flex-direction: column; position: relative;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px;
+        }
+
+        .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid var(--card-border); box-shadow: var(--shadow-sm); }
+        .preview-title { font-size: 1.1rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        
+        .play-btn {
+            background: var(--accent); color: white; border: none; padding: 10px 20px;
+            border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;
+            cursor: pointer; box-shadow: 0 4px 12px var(--accent-glow); transition: 0.2s; font-size: 0.9rem;
+        }
+        .play-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-glow); background: var(--accent-hover); }
+
+        .sim-container { display: flex; flex-direction: column; position: relative; padding-bottom: 60px; margin-left: 20px;}
+        
+        .sim-path { position: absolute; top: 30px; bottom: 0; left: -14px; width: 4px; background: #e2e8f0; z-index: 1; border-radius: 4px; }
+        .sim-path-fill { position: absolute; top: 0; left: 0; width: 100%; height: 0%; background: var(--accent); transition: height 0.5s ease; border-radius: 4px; }
+
+        .sim-node {
+            position: relative; z-index: 2; margin-bottom: 32px;
+            display: flex; gap: 24px; opacity: 0.7; filter: grayscale(1);
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .sim-node.active { opacity: 1; filter: grayscale(0); }
+        
+        .sim-dot {
+            width: 20px; height: 20px; border-radius: 50%; background: white;
+            border: 4px solid #cbd5e1; flex-shrink: 0; margin-top: 24px; margin-left: -22px;
+            box-shadow: 0 0 0 6px var(--bg-base); transition: 0.3s;
+        }
+        .sim-node.active .sim-dot { border-color: var(--accent); box-shadow: 0 0 0 6px var(--accent-glow); }
+
+        .sim-card {
+            background: white; padding: 20px; border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm); flex: 1; border: 1px solid var(--card-border);
+            display: flex; flex-direction: column; gap: 8px; transition: 0.3s;
+        }
+        .sim-node.active .sim-card { box-shadow: var(--shadow-md); border-color: #cbd5e1; }
+
+        .sim-badge { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        .sim-content { font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 10px; color: var(--text-main); }
+        
+        .device-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
+        .device-card {
+            background: var(--section-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 12px 16px;
+            display: flex; align-items: center; gap: 12px; transition: all 0.4s;
+        }
+        .device-card.sim-on { background: #f0fdf4; border-color: #86efac; color: #166534; box-shadow: 0 2px 8px rgba(22, 101, 52, 0.1); }
+        .device-card.sim-on .lucide { color: #10b981; }
+
+        @media (max-width: 1024px) {
+            .builder-split { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
+            .builder-simulator-area { border-left: none; border-top: 1px solid var(--card-border); }
+            .builder-form-area { padding: 32px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================
+         VISTA DASHBOARD
+         ========================================== -->
+    <div id="view-dashboard" class="app-view">
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <a href="/dashboard" class="btn-back-view" style="border:none;"><i data-lucide="layout-grid" style="width: 20px;"></i></a>
+                <span>Motore Logico <span style="color:var(--text-sec); font-weight:400;">WH</span></span>
+            </div>
+            <div class="tabs-container">
+                <button class="active" id="btn-tab-auto" onclick="switchTab('auto')">Regole & Automazioni</button>
+                <button id="btn-tab-scenes" onclick="switchTab('scenes')">Scenari Locali</button>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- TAB AUTOMAZIONI -->
+            <div id="tab-auto">
+                <div style="display:flex; justify-content:space-between; margin-bottom:24px; align-items:center;">
+                    <h2 style="font-size:1.5rem; font-weight:800; margin:0;">Automazioni Attive</h2>
+                    <button class="btn btn-accent" onclick="openAutoBuilder()">
+                        <i data-lucide="plus" style="width: 18px;"></i> Nuova Regola
+                    </button>
+                </div>
+                <div id="auto_list" class="grid-list">
+                    <div style="text-align:center; grid-column:1/-1; padding:40px; color:var(--text-sec);"><i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i></div>
+                </div>
+            </div>
+
+            <!-- TAB SCENARI -->
+            <div id="tab-scenes" style="display:none;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:24px; align-items:center;">
+                    <h2 style="font-size:1.5rem; font-weight:800; margin:0;">Scenari Memorizzati</h2>
+                    <button class="btn btn-accent" onclick="openSceneBuilder()">
+                        <i data-lucide="camera" style="width: 18px;"></i> Registra Stato
+                    </button>
+                </div>
+                <div id="scene_list" class="grid-list"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+         VISTA BUILDER AUTOMAZIONI
+         ========================================== -->
+    <div id="view-builder-auto" class="app-view builder-view hidden-right">
+        
+        <div class="builder-header">
+            <div style="display: flex; align-items: center; gap: 16px; flex: 1; max-width: 600px;">
+                <button class="btn-back-view" onclick="closeBuilders()" title="Annulla"><i data-lucide="arrow-left" style="width: 20px;"></i></button>
+                <input type="text" class="builder-title-input" id="a_name" placeholder="Es. Modalità Notturna..." autocomplete="off">
+            </div>
+            <button class="btn btn-accent" onclick="saveAuto()"><i data-lucide="save" style="width: 16px;"></i> Salva Configurazione</button>
+        </div>
+
+        <div class="builder-split">
+            <!-- PARTE SINISTRA: FORM PROFESSIONALE -->
+            <div class="builder-form-area" id="auto-inputs-area">
+                <div class="logic-flow">
+                    
+                    <!-- NODO: TRIGGER (IF) -->
+                    <div class="logic-node node-if">
+                        <div class="node-header">
+                            <span class="node-badge badge-if">IF</span>
+                            <h3 class="node-title">Condizione di Avvio (Trigger)</h3>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>L'automazione si attiva quando:</label>
+                            <select id="t_type" class="form-control" onchange="updUI()" style="font-weight: 700;">
+                                <option value="time">Scatta un orario programmato</option>
+                                <option value="state">Cambia lo stato di un dispositivo/sensore</option>
+                            </select>
+                        </div>
+                        
+                        <div id="t_time_div" class="form-group">
+                            <label>Orario di esecuzione</label>
+                            <input type="time" class="form-control" id="t_time_val" style="max-width:200px;">
+                        </div>
+                        
+                        <div id="t_state_div" style="display:none;">
+                            <div class="form-group">
+                                <label>Dispositivo in ascolto</label>
+                                <select id="t_ent"></select>
+                            </div>
+                            
+                            <div class="form-group" id="t_state_exact_div">
+                                <label>Lo stato diviene:</label>
+                                <select id="t_val" class="form-control">
+                                    <option value="on">Attivo (Acceso / Aperto / In Riproduzione)</option>
+                                    <option value="off">Inattivo (Spento / Chiuso / In Pausa)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="t_state_numeric_div" style="display:none;">
+                                <label>Il valore registrato è:</label>
+                                <div class="form-row">
+                                    <select id="t_operator" class="form-control">
+                                        <option value=">">Maggiore di (>)</option>
+                                        <option value="<">Minore di (<)</option>
+                                        <option value="==">Uguale a (==)</option>
+                                    </select>
+                                    <input type="number" id="t_num_val" class="form-control" step="0.1" placeholder="Valore (Es. 22.5)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NODO: CONDIZIONE (AND) -->
+                    <div class="logic-node node-and">
+                        <div class="node-header">
+                            <span class="node-badge badge-and">AND</span>
+                            <h3 class="node-title">Restrizioni (Opzionale)</h3>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Verifica prima di procedere:</label>
+                            <select id="c_type" class="form-control" onchange="updUI()">
+                                <option value="none">Nessuna (Procedi sempre)</option>
+                                <option value="state">Verifica lo stato di un altro dispositivo</option>
+                                <option value="time_range">Permetti solo in una fascia oraria</option>
+                            </select>
+                        </div>
+                        
+                        <div id="c_state_div" style="display:none;">
+                            <div class="form-group">
+                                <label>Dispositivo da verificare</label>
+                                <select id="c_ent"></select>
+                            </div>
+                            <div class="form-group">
+                                <label>Deve trovarsi nello stato:</label>
+                                <select id="c_val" class="form-control">
+                                    <option value="on">Attivo (Acceso / Aperto)</option>
+                                    <option value="off">Inattivo (Spento / Chiuso)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="c_time_range_div" class="form-row" style="display:none;">
+                            <div class="form-group">
+                                <label>Valido dalle ore</label>
+                                <input type="time" class="form-control" id="c_time_start" value="22:00">
+                            </div>
+                            <div class="form-group">
+                                <label>Fino alle ore</label>
+                                <input type="time" class="form-control" id="c_time_end" value="06:00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NODO: AZIONI (THEN) -->
+                    <div class="logic-node node-then" style="margin-bottom: 0;">
+                        <div class="node-header" style="justify-content: space-between;">
+                            <div style="display: flex; gap: 12px; align-items: center;">
+                                <span class="node-badge badge-then">THEN</span>
+                                <h3 class="node-title">Azioni da Eseguire</h3>
+                            </div>
+                            <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="addActionRow()">
+                                <i data-lucide="plus" style="width:14px;"></i> Aggiungi Task
+                            </button>
+                        </div>
+                        
+                        <div id="actions-container"></div>
+                    </div>
+
+                </div>
+            </div>
+            
+            <!-- PARTE DESTRA: SIMULATORE INTERATTIVO -->
+            <div class="builder-simulator-area">
+                <div class="preview-header">
+                    <div class="preview-title"><i data-lucide="cpu" style="color:var(--text-sec);"></i> Console di Test Logico</div>
+                    <button class="play-btn" onclick="runSimulation()" id="btn-simula"><i data-lucide="play" style="width:16px;"></i> Esegui Simulazione</button>
+                </div>
+                
+                <div class="sim-container" id="sim-graph">
+                    <!-- Generato via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==========================================
+         VISTA BUILDER SCENARI
+         ========================================== -->
+    <div id="view-builder-scene" class="app-view builder-view hidden-right">
+        
+        <div class="builder-header">
+            <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
+                <button class="btn-back-view" onclick="closeBuilders()"><i data-lucide="arrow-left"></i></button>
+                <input type="text" class="builder-title-input" id="s_name" placeholder="Nome Scenario..." autocomplete="off">
+            </div>
+            <button class="btn btn-accent" onclick="recordScene()"><i data-lucide="camera" style="width: 16px;"></i> Registra Stato Fisico</button>
+        </div>
+
+        <div class="builder-split">
+            <div class="builder-form-area">
+                <div class="logic-node" style="border-top: 4px solid var(--accent);">
+                    <div class="node-header">
+                        <div style="display:flex; align-items:center; justify-content:center; width:36px; height:36px; background:var(--section-bg); border-radius:8px; margin-right:12px; color:var(--accent);">
+                            <i data-lucide="camera" style="width: 20px;"></i>
+                        </div>
+                        <h3 class="node-title">Fotografia Stati</h3>
+                    </div>
+                    <p style="color:var(--text-sec); font-size:0.95rem; line-height: 1.6; margin: 0 0 24px 0;">
+                        Imposta fisicamente le luci e le tapparelle della stanza come desideri. Selezionale nel menu qui sotto per salvare in memoria il loro stato attuale all'interno di un unico scenario.
+                    </p>
+                    <div class="form-group">
+                        <label>Dispositivi da includere nella registrazione:</label>
+                        <select id="s_entities" multiple autocomplete="off"></select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ANTEPRIMA SCENARIO -->
+            <div class="builder-simulator-area">
+                <div class="preview-header">
+                    <div class="preview-title"><i data-lucide="layers" style="color:var(--text-sec);"></i> Nodi Inclusi nello Scenario</div>
+                </div>
+                <div id="scene-preview" class="device-grid" style="margin-left: 0;"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        lucide.createIcons();
+
+        // Variabili Globali
+        let editingAutoId = null; let automationsData = []; let scenesData = [];
+        let rawEntities = []; let telegramContacts = []; 
+        let tsTrigger, tsCondition, tsScene; let tsActions = [];
+
+        // === NAVIGAZIONE ===
+        const vDash = document.getElementById('view-dashboard');
+        const vAuto = document.getElementById('view-builder-auto');
+        const vScene = document.getElementById('view-builder-scene');
+
+        function switchTab(tab) {
+            document.getElementById('tab-auto').style.display = tab === 'auto' ? 'block' : 'none';
+            document.getElementById('tab-scenes').style.display = tab === 'scenes' ? 'block' : 'none';
+            document.getElementById('btn-tab-auto').classList.remove('active');
+            document.getElementById('btn-tab-scenes').classList.remove('active');
+            document.getElementById('btn-tab-' + tab).classList.add('active');
+        }
+
+        function openAutoBuilder(id = null) {
+            vDash.classList.add('hidden-left'); vAuto.classList.remove('hidden-right');
+            if(id) { editAuto(id); } else { resetAutoForm(); }
+            buildSimulationGraph();
+        }
+
+        function openSceneBuilder(id = null) {
+            vDash.classList.add('hidden-left'); vScene.classList.remove('hidden-right');
+            if(id) { editScene(id); } else { document.getElementById('s_name').value = ''; tsScene.clear(); }
+        }
+
+        function closeBuilders() {
+            vDash.classList.remove('hidden-left'); 
+            vAuto.classList.add('hidden-right'); 
+            vScene.classList.add('hidden-right');
+        }
+
+        // === GESTIONE FORM LOGICA ===
+        function checkTriggerType() {
+            const ent = tsTrigger ? tsTrigger.getValue() : '';
+            if(ent && ent.startsWith('sensor.')) {
+                document.getElementById('t_state_exact_div').style.display = 'none'; document.getElementById('t_state_numeric_div').style.display = 'flex';
+            } else {
+                document.getElementById('t_state_exact_div').style.display = 'block'; document.getElementById('t_state_numeric_div').style.display = 'none';
+            }
+            buildSimulationGraph();
+        }
+
+        function updUI() {
+            const isTime = document.getElementById('t_type').value === 'time';
+            document.getElementById('t_time_div').style.display = isTime ? 'block' : 'none';
+            document.getElementById('t_state_div').style.display = isTime ? 'none' : 'block';
+
+            const cType = document.getElementById('c_type').value;
+            document.getElementById('c_state_div').style.display = (cType === 'state') ? 'block' : 'none';
+            document.getElementById('c_time_range_div').style.display = (cType === 'time_range') ? 'flex' : 'none';
+            buildSimulationGraph();
+        }
+
+        function toggleActionType(selectEl) {
+            const row = selectEl.closest('.action-row'); const val = selectEl.value;
+            row.querySelector('.action-std').style.display = val === 'device' ? 'flex' : 'none';
+            row.querySelector('.action-tg').style.display = val === 'telegram' ? 'flex' : 'none';
+            row.querySelector('.action-popup').style.display = val === 'ui_modal' ? 'flex' : 'none';
+            buildSimulationGraph();
+        }
+
+        function getOptionsHTML() {
+            const grouped = {};
+            rawEntities.forEach(e => { if (!grouped[e.domain]) grouped[e.domain] = []; grouped[e.domain].push(e); });
+            let opts = '<option value="">Seleziona entità...</option>';
+            for (const [domain, items] of Object.entries(grouped)) {
+                opts += `<optgroup label="${domain.toUpperCase()}">`;
+                items.forEach(e => { opts += `<option value="${e.entity_id}">${e.name}</option>`; });
+                opts += `</optgroup>`;
+            }
+            return opts;
+        }
+
+        function addActionRow(actType = 'device', entId = '', val = 'on', tgChat = '', tgMsg = '', pTitle = '', pMsg = '', pImg = '', pEnt = '') {
+            const div = document.createElement('div'); div.className = 'action-row';
+            const selectId = 'act-sel-' + Date.now();
+            let tgOptions = `<option value="">Tutti i contatti configurati</option>`;
+            telegramContacts.forEach(c => { tgOptions += `<option value="${c.id}">${c.name}</option>`; });
+
+            div.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <select class="a-type form-control" style="width:auto; font-weight:700; color:var(--accent); background:transparent; border-color:transparent; padding-left:0;" onchange="toggleActionType(this)">
+                        <option value="device" ${actType==='device'?'selected':''}>⚙️ Azione Dispositivo</option>
+                        <option value="telegram" ${actType==='telegram'?'selected':''}>📨 Notifica Telegram</option>
+                        <option value="ui_modal" ${actType==='ui_modal'?'selected':''}>📱 Popup su App</option>
+                    </select>
+                    <button class="btn-icon-small" onclick="removeActionRow(this, '${selectId}')"><i data-lucide="trash-2" style="width:16px;"></i></button>
+                </div>
+                
+                <div class="action-std form-row" style="${actType==='device' ? 'display:flex;' : 'display:none;'}">
+                    <div style="flex:2;"><select id="${selectId}" class="a-ent">${getOptionsHTML()}</select></div>
+                    <div style="flex:1;">
+                        <select class="a-val form-control">
+                            <option value="on" ${val==='on'?'selected':''}>Esegui: ON</option>
+                            <option value="off" ${val==='off'?'selected':''}>Esegui: OFF</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="action-tg" style="${actType==='telegram' ? 'display:flex;' : 'display:none;'} flex-direction:column; gap:12px;">
+                    <select class="tg-chat form-control">${tgOptions}</select>
+                    <textarea class="tg-msg form-control" placeholder="Testo del messaggio...">${tgMsg}</textarea>
+                </div>
+                
+                <div class="action-popup" style="${actType==='ui_modal' ? 'display:flex;' : 'display:none;'} flex-direction:column; gap:12px;">
+                    <div class="form-row"><input type="text" class="p-title form-control" placeholder="Titolo Allarme" value="${pTitle}"><input type="text" class="p-img form-control" placeholder="URL Foto" value="${pImg}"></div>
+                    <textarea class="p-msg form-control" placeholder="Dettaglio...">${pMsg}</textarea>
+                    <select class="p-ent form-control">${getOptionsHTML()}</select>
+                </div>
+            `;
+            document.getElementById('actions-container').appendChild(div);
+            lucide.createIcons({ root: div });
+            
+            const tsInstance = new TomSelect(`#${selectId}`, { create: false, sortField: {field: "text", direction: "asc"}, onChange: buildSimulationGraph });
+            tsActions.push({ id: selectId, instance: tsInstance });
+            
+            div.querySelectorAll('input, select, textarea').forEach(el => { el.addEventListener('input', buildSimulationGraph); el.addEventListener('change', buildSimulationGraph); });
+            
+            if(pEntSelect = div.querySelector('.p-ent')) pEntSelect.value = pEnt;
+            if(actType === 'telegram' && tgChat) div.querySelector('.tg-chat').value = tgChat;
+            if(actType === 'device' && entId) tsInstance.setValue(entId);
+            
+            buildSimulationGraph();
+        }
+
+        function removeActionRow(btn, selectId) {
+            const index = tsActions.findIndex(item => item.id === selectId);
+            if(index > -1) { tsActions[index].instance.destroy(); tsActions.splice(index, 1); }
+            btn.closest('.action-row').remove(); buildSimulationGraph();
+        }
+
+        // =========================================================================
+        // === MOTORE DI SIMULAZIONE (INTEGRATO NELLO STILE ENTERPRISE) ===
+        // =========================================================================
+        
+        function getEntityName(entityId) {
+            const ent = rawEntities.find(e => e.entity_id === entityId); return ent ? ent.name : entityId;
+        }
+        
+        function getIconForEntity(entityId) {
+            if(!entityId) return 'cpu';
+            if(entityId.startsWith('light.')) return 'lightbulb';
+            if(entityId.startsWith('cover.')) return 'layout-template';
+            if(entityId.startsWith('media_player.')) return 'speaker';
+            if(entityId.startsWith('sensor.')) return 'activity';
+            return 'zap';
+        }
+
+        function buildSimulationGraph() {
+            if (vDash.classList.contains('hidden-left') === false || vAuto.classList.contains('hidden-right')) return;
+            
+            const sim = document.getElementById('sim-graph');
+            let html = '<div class="sim-path"><div class="sim-path-fill" id="sim-fill"></div></div>';
+            let stepCount = 0;
+
+            // NODO 1: TRIGGER
+            const tType = document.getElementById('t_type').value;
+            let tIcon = 'zap', tText = 'Trigger non configurato';
+            if (tType === 'time') {
+                tIcon = 'clock'; tText = `Orologio di sistema: <b>${document.getElementById('t_time_val').value || '00:00'}</b>`;
+            } else {
+                const eName = getEntityName(tsTrigger.getValue()) || '...';
+                tIcon = getIconForEntity(tsTrigger.getValue());
+                if (tsTrigger.getValue().startsWith('sensor.')) {
+                    tText = `${eName} <b>${document.getElementById('t_operator').value} ${document.getElementById('t_num_val').value}</b>`;
+                } else {
+                    tText = `${eName} diventa <b>${document.getElementById('t_val').value.toUpperCase()}</b>`;
+                }
+            }
+            html += `<div class="sim-node" id="sim-node-${stepCount++}">
+                        <div class="sim-dot"></div>
+                        <div class="sim-card" style="border-top: 4px solid var(--node-if);">
+                            <div class="sim-badge" style="color:var(--node-if)">Innesco (IF)</div>
+                            <div class="sim-content"><i data-lucide="${tIcon}" style="color:var(--node-if)"></i> <span>${tText}</span></div>
+                        </div>
+                     </div>`;
+
+            // NODO 2: CONDITION
+            const cType = document.getElementById('c_type').value;
+            if (cType !== 'none') {
+                let cIcon = 'filter', cText = '';
+                if (cType === 'state') {
+                    cText = `${getEntityName(tsCondition.getValue()) || '...'} = <b>${document.getElementById('c_val').value.toUpperCase()}</b>`;
+                } else {
+                    cIcon = 'hourglass'; cText = `Tra le <b>${document.getElementById('c_time_start').value}</b> e le <b>${document.getElementById('c_time_end').value}</b>`;
+                }
+                html += `<div class="sim-node" id="sim-node-${stepCount++}">
+                            <div class="sim-dot"></div>
+                            <div class="sim-card" style="border-top: 4px solid var(--node-and);">
+                                <div class="sim-badge" style="color:var(--node-and)">Verifica (AND)</div>
+                                <div class="sim-content"><i data-lucide="${cIcon}" style="color:var(--node-and)"></i> <span>${cText}</span></div>
+                            </div>
+                         </div>`;
+            }
+
+            // NODO 3: ACTIONS
+            const actionRows = document.querySelectorAll('#actions-container .action-row');
+            if(actionRows.length > 0) {
+                let devicesHTML = '';
+                actionRows.forEach((row, idx) => {
+                    const type = row.querySelector('.a-type').value;
+                    if(type === 'device') {
+                        const ent = row.querySelector('.a-ent');
+                        const val = row.querySelector('.a-val').value;
+                        const eName = getEntityName(ent.tomselect ? ent.tomselect.getValue() : '') || 'Dispositivo';
+                        const icon = getIconForEntity(ent.tomselect ? ent.tomselect.getValue() : '');
+                        devicesHTML += `<div class="device-card" data-target-state="${val}">
+                                            <i data-lucide="${icon}"></i> <span style="font-weight:600; font-size:0.9rem;">${eName}</span>
+                                        </div>`;
+                    } else if (type === 'telegram') {
+                        devicesHTML += `<div class="device-card" data-target-state="on" style="background:#eff6ff; border-color:#bfdbfe; color:#1e40af;">
+                                            <i data-lucide="send" style="color:#2563eb;"></i> <span style="font-weight:600; font-size:0.9rem;">Invio Telegram API</span>
+                                        </div>`;
+                    } else {
+                        devicesHTML += `<div class="device-card" data-target-state="on" style="background:#fdf4ff; border-color:#e879f9; color:#86198f;">
+                                            <i data-lucide="smartphone" style="color:#c026d3;"></i> <span style="font-weight:600; font-size:0.9rem;">Push UI Dashboard</span>
+                                        </div>`;
+                    }
+                });
+
+                html += `<div class="sim-node" id="sim-node-${stepCount++}">
+                            <div class="sim-dot"></div>
+                            <div class="sim-card" style="border-top: 4px solid var(--node-then);">
+                                <div class="sim-badge" style="color:var(--node-then)">Esecuzione (THEN)</div>
+                                <div class="device-grid">${devicesHTML}</div>
+                            </div>
+                         </div>`;
+            } else {
+                 html += `<div class="sim-node" id="sim-node-${stepCount++}" style="opacity:0.4;">
+                            <div class="sim-dot"></div>
+                            <div class="sim-card"><div class="sim-content">Aggiungi un task...</div></div>
+                         </div>`;
+            }
+
+            sim.innerHTML = html;
+            lucide.createIcons({ root: sim });
+        }
+
+        async function runSimulation() {
+            const btn = document.getElementById('btn-simula');
+            btn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> In esecuzione...';
+            btn.style.pointerEvents = 'none';
+            lucide.createIcons();
+
+            document.querySelectorAll('.sim-node').forEach(n => n.classList.remove('active'));
+            document.querySelectorAll('.device-card').forEach(d => d.classList.remove('sim-on'));
+            const pathFill = document.getElementById('sim-fill');
+            pathFill.style.height = '0%';
+            pathFill.style.transition = 'none';
+            
+            await new Promise(r => setTimeout(r, 100));
+            pathFill.style.transition = 'height 1.5s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            
+            const nodes = document.querySelectorAll('.sim-node');
+            pathFill.style.height = '100%';
+
+            for(let i = 0; i < nodes.length; i++) {
+                await new Promise(r => setTimeout(r, 400)); 
+                nodes[i].classList.add('active');
+                
+                if(i === nodes.length - 1) {
+                    const devices = nodes[i].querySelectorAll('.device-card');
+                    for(let d of devices) {
+                        await new Promise(r => setTimeout(r, 200)); 
+                        if(d.getAttribute('data-target-state') === 'on') { d.classList.add('sim-on'); } 
+                        else { d.style.opacity = '0.5'; }
+                    }
+                }
+            }
+
+            await new Promise(r => setTimeout(r, 800));
+            btn.innerHTML = '<i data-lucide="check"></i> Test Completato';
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i data-lucide="play"></i> Ripeti Simulazione';
+                btn.style.pointerEvents = 'auto';
+                lucide.createIcons();
+            }, 2000);
+        }
+
+        function updateScenePreview() {
+            const container = document.getElementById('scene-preview');
+            const entities = tsScene.getValue();
+            let html = '';
+            entities.forEach(entId => {
+                const name = getEntityName(entId);
+                const icon = getIconForEntity(entId);
+                html += `<div class="device-card sim-on" style="background:white; box-shadow:var(--shadow-sm); border-color:var(--accent);">
+                            <i data-lucide="${icon}" style="color:var(--accent);"></i> <span style="font-weight:600; font-size:0.9rem; color:var(--text-main);">${name}</span>
+                        </div>`;
+            });
+            container.innerHTML = html || '<div style="color:var(--text-sec); font-size:0.9rem;">Nessun hardware selezionato.</div>';
+            lucide.createIcons({ root: container });
+        }
+
+
+        // === INIZIALIZZAZIONE DATI & API ===
+        async function loadData() {
+            try {
+                const resEnt = await fetch('/api/entities_for_automations'); rawEntities = await resEnt.json();
+                try { const resTg = await fetch('/api/telegram_chats'); telegramContacts = await resTg.json(); } catch(err) {}
+
+                const optsHTML = getOptionsHTML();
+                document.getElementById('t_ent').innerHTML = optsHTML; document.getElementById('c_ent').innerHTML = optsHTML; document.getElementById('s_entities').innerHTML = optsHTML;
+                
+                tsTrigger = new TomSelect("#t_ent", { create: false, sortField: {field: "text", direction: "asc"}, onChange: checkTriggerType });
+                tsCondition = new TomSelect("#c_ent", { create: false, sortField: {field: "text", direction: "asc"}, onChange: buildSimulationGraph });
+                tsScene = new TomSelect("#s_entities", { plugins: ['remove_button'], create: false, placeholder: "Seleziona Nodi...", onChange: updateScenePreview });
+
+                document.getElementById('auto-inputs-area').querySelectorAll('input, select').forEach(el => {
+                    if(!el.classList.contains('tomselected')) { el.addEventListener('input', buildSimulationGraph); el.addEventListener('change', buildSimulationGraph); }
+                });
+
+                loadLists();
+            } catch(e) {}
+        }
+
+        async function loadLists() {
+            const resAuto = await fetch('/api/automations'); automationsData = await resAuto.json();
+            let htmlA = '';
+            automationsData.forEach(a => {
+                const isOffClass = a.is_active ? '' : 'disabled';
+                const checked = a.is_active ? 'checked' : '';
+                htmlA += `<div class="list-item ${isOffClass}" id="auto-item-${a.id}">
+                    <div class="list-header">
+                        <div>
+                            <div class="list-title">${a.name}</div>
+                            <span class="list-subtitle"><i data-lucide="git-branch" style="width:14px;"></i> Pipeline con ${a.config.actions.length} Task</span>
+                        </div>
+                        <label class="switch"><input type="checkbox" ${checked} onchange="toggleAuto(${a.id}, this.checked)"><span class="slider"></span></label>
+                    </div>
+                    <div class="list-actions">
+                        <button class="btn btn-secondary" style="flex:1;" onclick="openAutoBuilder(${a.id})"><i data-lucide="settings-2" style="width:16px;"></i> Configura</button>
+                        <button class="btn-icon-small" onclick="del('/api/automations', ${a.id})"><i data-lucide="trash-2" style="width:16px;"></i></button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('auto_list').innerHTML = htmlA || '<div style="grid-column:1/-1; text-align:center; padding:60px; color:var(--text-sec);">Nessuna automazione configurata.</div>';
+
+            const resScenes = await fetch('/api/scenes'); scenesData = await resScenes.json();
+            let htmlS = '';
+            scenesData.forEach(s => {
+                htmlS += `<div class="list-item">
+                    <div class="list-header">
+                        <div>
+                            <div class="list-title">${s.name}</div>
+                            <span class="list-subtitle"><i data-lucide="layers" style="width:14px; color:var(--accent);"></i> Cluster di ${s.entities_count} Dispositivi</span>
+                        </div>
+                    </div>
+                    <div class="list-actions">
+                        <button class="btn btn-secondary" style="flex:1;" onclick="openSceneBuilder('${s.id}')"><i data-lucide="eye" style="width:16px;"></i> Ispeziona</button>
+                        <button class="btn-icon-small" onclick="del('/api/scenes', '${s.id}')"><i data-lucide="trash-2" style="width:16px;"></i></button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('scene_list').innerHTML = htmlS || '<div style="grid-column:1/-1; text-align:center; padding:60px; color:var(--text-sec);">Nessun hardware registrato.</div>';
+            lucide.createIcons();
+        }
+
+        async function toggleAuto(id, isActive) {
+            const card = document.getElementById(`auto-item-${id}`);
+            isActive ? card.classList.remove('disabled') : card.classList.add('disabled');
+            await fetch('/api/automations', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id: id, is_active: isActive}) });
+        }
+
+        function resetAutoForm() {
+            editingAutoId = null; document.getElementById('a_name').value = '';
+            tsTrigger.clear(); tsCondition.clear(); tsActions.forEach(act => act.instance.destroy()); tsActions = []; document.getElementById('actions-container').innerHTML = '';
+            addActionRow(); updUI();
+        }
+
+        function editScene(id) {
+            const scene = scenesData.find(s => s.id === id); if(!scene) return;
+            document.getElementById('s_name').value = scene.name; tsScene.setValue(scene.entities_list);
+        }
+
+        function editAuto(id) {
+            const auto = automationsData.find(a => a.id === id); if(!auto) return;
+            resetAutoForm(); document.getElementById('actions-container').innerHTML = ''; tsActions = [];
+            editingAutoId = auto.id; document.getElementById('a_name').value = auto.name;
+            
+            document.getElementById('t_type').value = auto.config.trigger.type;
+            if(auto.config.trigger.type === 'time') { document.getElementById('t_time_val').value = auto.config.trigger.value; } 
+            else { 
+                tsTrigger.setValue(auto.config.trigger.entity); 
+                setTimeout(() => {
+                    if (auto.config.trigger.entity.startsWith('sensor.')) { document.getElementById('t_operator').value = auto.config.trigger.operator || '>'; document.getElementById('t_num_val').value = auto.config.trigger.value; } 
+                    else { document.getElementById('t_val').value = auto.config.trigger.value; }
+                    checkTriggerType();
+                }, 100);
+            }
+
+            document.getElementById('c_type').value = auto.config.condition.type || 'none';
+            if(auto.config.condition.type === 'state') { tsCondition.setValue(auto.config.condition.entity); document.getElementById('c_val').value = auto.config.condition.value; }
+            else if (auto.config.condition.type === 'time_range') { document.getElementById('c_time_start').value = auto.config.condition.start || "22:00"; document.getElementById('c_time_end').value = auto.config.condition.end || "06:00"; }
+            
+            updUI(); 
+            if(auto.config.actions && auto.config.actions.length > 0) { 
+                auto.config.actions.forEach(act => { 
+                    if (act.action_type === 'telegram' || act.entity_id === 'telegram') addActionRow('telegram', '', 'on', act.chat_id, act.message); 
+                    else if (act.action_type === 'ui_modal' || act.entity_id === 'ui_modal') addActionRow('ui_modal', '', 'on', '', '', act.title, act.message, act.image, act.target_entity); 
+                    else addActionRow('device', act.entity_id, act.state); 
+                }); 
+            } else { addActionRow(); }
+            
+            setTimeout(buildSimulationGraph, 200);
+        }
+
+        async function saveAuto() {
+            const actions = [];
+            document.querySelectorAll('.action-row').forEach(row => {
+                const type = row.querySelector('.a-type').value;
+                if (type === 'telegram') actions.push({ action_type: 'telegram', entity_id: 'telegram', chat_id: row.querySelector('.tg-chat').value, message: row.querySelector('.tg-msg').value.trim() });
+                else if (type === 'ui_modal') actions.push({ action_type: 'ui_modal', entity_id: 'ui_modal', title: row.querySelector('.p-title').value, message: row.querySelector('.p-msg').value, image: row.querySelector('.p-img').value, target_entity: row.querySelector('.p-ent').value });
+                else { const sel = row.querySelector('.a-ent'); const ent = sel.tomselect ? sel.tomselect.getValue() : ''; if (ent) actions.push({ entity_id: ent, state: row.querySelector('.a-val').value }); }
+            });
+            if(actions.length === 0) return alert("Errore: Inserisci almeno un Task di azione."); 
+            if(!document.getElementById('a_name').value) return alert("Errore: Specifica un nome per la regola.");
+
+            let triggerVal = document.getElementById('t_type').value === 'time' ? document.getElementById('t_time_val').value : document.getElementById('t_val').value;
+            let operator = "==";
+            if (document.getElementById('t_type').value === 'state' && tsTrigger.getValue().startsWith('sensor.')) { triggerVal = document.getElementById('t_num_val').value; operator = document.getElementById('t_operator').value; }
+
+            const data = {
+                id: editingAutoId, name: document.getElementById('a_name').value,
+                config: { trigger: { type: document.getElementById('t_type').value, entity: tsTrigger.getValue(), value: triggerVal, operator: operator }, condition: { type: document.getElementById('c_type').value, entity: tsCondition.getValue(), value: document.getElementById('c_val').value, start: document.getElementById('c_time_start').value, end: document.getElementById('c_time_end').value }, actions: actions }
+            };
+            await fetch('/api/automations', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            closeBuilders(); loadLists(); 
+        }
+
+        async function recordScene() {
+            const entities = tsScene.getValue(); if(entities.length === 0) return alert("Seleziona almeno un dispositivo da registrare.");
+            const name = document.getElementById('s_name').value; if(!name) return alert("Specifica un nome per lo scenario.");
+            await fetch('/api/scenes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name, entities}) });
+            closeBuilders(); loadLists(); 
+        }
+
+        async function del(endpoint, id) {
+            if(confirm("Sei sicuro di voler eliminare questa configurazione?")) { await fetch(endpoint, { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id}) }); loadLists(); }
+        }
+
+        document.addEventListener("DOMContentLoaded", loadData);
+    </script>
+</body>
+</html>
