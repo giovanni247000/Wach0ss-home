@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#FFFFFF">
+    <meta name="color-scheme" content="light">
+    <title>Wach0ss Home | Mappa Utenti</title>
+    
+    <!-- Icone Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- CSS di Leaflet per la mappa -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        /* RESET & ANTI-FLASH */
+        html, body { 
+            margin: 0; padding: 0; background-color: #F5F5F7 !important; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #1D1D1F; min-height: 100vh; overflow: hidden; 
+            -webkit-font-smoothing: antialiased; -webkit-user-select: none; user-select: none;
+            overscroll-behavior: none;
+        }
+
+        :root {
+            --bg-base: #F5F5F7;
+            --accent-cyan: #0071E3;
+            --safe-top: env(safe-area-inset-top, 30px);
+            --safe-bottom: env(safe-area-inset-bottom, 16px);
+        }
+
+        /* SFONDO MAPPA A TUTTO SCHERMO */
+        #map {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100vw; height: 100vh;
+            z-index: 1;
+            background: #F5F5F7 !important;
+        }
+
+        /* STILE POPUP LEAFLET */
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            background: rgba(255, 255, 255, 0.9) !important;
+            backdrop-filter: blur(25px) saturate(200%);
+            -webkit-backdrop-filter: blur(25px) saturate(200%);
+            color: #1D1D1F !important;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 20px !important;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255,255,255,0.8);
+        }
+        .leaflet-popup-content {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 16px 22px !important;
+        }
+        .leaflet-container a.leaflet-popup-close-button {
+            color: rgba(0,0,0,0.5);
+            padding: 12px;
+        }
+        .leaflet-container a.leaflet-popup-close-button:hover {
+            color: #000;
+        }
+
+        /* DESIGN AVANZATO DEI MARKER */
+        .user-marker-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+        }
+
+        .user-pin-badge {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25), inset 0 2px 4px rgba(255,255,255,0.6);
+            border: 2.5px solid #FFFFFF;
+            position: relative;
+            z-index: 2;
+        }
+
+        .user-pin-badge::after {
+            content: '';
+            position: absolute;
+            top: -6px; left: -6px; right: -6px; bottom: -6px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            opacity: 0.6;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.35); opacity: 0; }
+            100% { transform: scale(0.95); opacity: 0; }
+        }
+
+        .user-pin-badge svg {
+            width: 18px;
+            height: 18px;
+            color: #FFFFFF;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+        }
+
+        .user-name-label {
+            margin-top: 6px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: #1D1D1F;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            letter-spacing: 0.3px;
+            z-index: 2;
+        }
+
+        /* FLOATING NAV & SIDEBAR (MOBILE & DESKTOP) */
+        .floating-nav-wrapper { 
+            position: fixed; bottom: 0; left: 0; right: 0; 
+            padding-bottom: calc(var(--safe-bottom) + 10px); 
+            padding-top: 50px; 
+            background: linear-gradient(to top, rgba(245,245,247,0.9) 0%, transparent 100%); 
+            z-index: 1000; display: flex; justify-content: center; pointer-events: none; 
+        }
+        .floating-nav { 
+            pointer-events: auto; background: rgba(255, 255, 255, 0.75); 
+            backdrop-filter: blur(40px) saturate(250%); -webkit-backdrop-filter: blur(40px) saturate(250%); 
+            border: 1px solid rgba(0,0,0,0.08); border-top: 1px solid rgba(0,0,0,0.12); 
+            border-radius: 100px; padding: 8px 12px; display: flex; justify-content: center; gap: 8px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1), inset 0 1px 1px rgba(255,255,255,0.8); 
+        }
+        .nav-item { 
+            color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; 
+            cursor: pointer; padding: 12px 18px; border-radius: 50px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+            text-decoration: none;
+        }
+        .nav-item i { width: 22px; height: 22px; }
+        .nav-item.active { color: #FFF; background: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .nav-item.active i { filter: none; }
+
+        .desktop-only { display: none !important; }
+        .mobile-only { display: flex !important; }
+
+        /* SIDEBAR PROFESSIONALE CHIARA */
+        @media (min-width: 1024px) {
+            .mobile-only { display: none !important; }
+            .desktop-only { display: flex !important; }
+
+            .floating-nav-wrapper { 
+                top: 0; bottom: 0; left: 0; width: 340px; right: auto; 
+                background: rgba(255, 255, 255, 0.85); 
+                backdrop-filter: blur(50px) saturate(200%); -webkit-backdrop-filter: blur(50px) saturate(200%); 
+                border-right: 1px solid rgba(0,0,0,0.08); border-top: none; padding: 35px 22px 24px 22px; 
+                align-items: stretch; justify-content: flex-start; flex-direction: column; 
+                pointer-events: auto; box-shadow: 15px 0 35px rgba(0,0,0,0.05);
+            }
+
+            .sidebar-header { flex-direction: column; margin-bottom: 20px; padding: 0 8px; }
+            .sidebar-header h2 { font-size: 0.75rem; letter-spacing: 0.12em; color: rgba(0,0,0,0.4); text-transform: uppercase; font-weight: 700; margin-bottom: 10px; }
+            #sidebar-clock { font-size: 3.5rem; font-weight: 300; letter-spacing: -2px; color: #1D1D1F; line-height: 1; }
+            #sidebar-date { font-size: 0.85rem; font-weight: 500; color: var(--accent-cyan); margin-top: 6px; text-transform: capitalize; }
+
+            .sidebar-legend {
+                background: rgba(0, 0, 0, 0.02);
+                border: 1px solid rgba(0, 0, 0, 0.06);
+                border-radius: 22px;
+                padding: 16px;
+                margin-bottom: 20px;
+                display: flex;
+                flex-direction: column;
+                flex-grow: 1;
+                max-height: calc(100vh - 320px);
+                overflow: hidden;
+            }
+            .sidebar-legend-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0, 0, 0, 0.5); font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+            .legend-users-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-right: 4px; }
+            .legend-users-list::-webkit-scrollbar { width: 4px; }
+            .legend-users-list::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.15); border-radius: 4px; }
+            
+            .legend-user-card {
+                display: flex; align-items: center; justify-content: space-between;
+                background: #FFFFFF; padding: 12px 14px; border-radius: 16px;
+                border: 1px solid rgba(0, 0, 0, 0.06); box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+                transition: all 0.25s;
+            }
+            .legend-user-card:hover { border-color: rgba(0, 113, 227, 0.4); box-shadow: 0 4px 12px rgba(0,113,227,0.1); }
+            
+            .legend-user-info { display: flex; align-items: center; gap: 12px; cursor: pointer; flex-grow: 1; }
+            .legend-user-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+            .legend-user-details { display: flex; flex-direction: column; gap: 2px; }
+            .legend-user-name { font-size: 0.9rem; font-weight: 600; color: #1D1D1F; }
+            .legend-user-status { font-size: 0.7rem; color: rgba(0, 0, 0, 0.45); }
+            
+            .legend-user-actions { display: flex; align-items: center; gap: 6px; }
+            .legend-user-action-btn {
+                background: rgba(0, 113, 227, 0.08); color: var(--accent-cyan);
+                border: 1px solid rgba(0, 113, 227, 0.2); width: 28px; height: 28px;
+                border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;
+            }
+            .legend-user-action-btn:hover { background: var(--accent-cyan); color: #FFF; }
+            .legend-user-delete-btn {
+                background: rgba(255, 59, 48, 0.08); color: #FF3B30;
+                border: 1px solid rgba(255, 59, 48, 0.2); width: 28px; height: 28px;
+                border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;
+            }
+            .legend-user-delete-btn:hover { background: #FF3B30; color: #FFF; }
+
+            .floating-nav { flex-direction: column; padding: 0; margin: 0; border: none; background: transparent; backdrop-filter: none; border-radius: 0; box-shadow: none; gap: 8px; align-items: stretch; flex-shrink: 0; }
+            .nav-item { justify-content: flex-start; padding: 12px 18px; border-radius: 14px; color: rgba(0,0,0,0.6); font-size: 0.9rem; font-weight: 600; }
+            .nav-item i { width: 20px; height: 20px; margin-right: 12px; }
+            .nav-item.active { background: #000; color: #FFF; box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+            .nav-item:hover:not(.active) { background: rgba(0,0,0,0.04); color: #000; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div class="floating-nav-wrapper">
+        <div class="sidebar-header desktop-only">
+            <h2>Wach0ss Home</h2>
+            <div id="sidebar-clock">00:00</div>
+            <div id="sidebar-date">Caricamento...</div>
+        </div>
+
+        <div class="sidebar-legend desktop-only">
+            <div class="sidebar-legend-title">
+                <span><i data-lucide="users" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Utenti in Linea</span>
+                <span id="user-count" style="background: rgba(0,0,0,0.06); padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;">0</span>
+            </div>
+            <div class="legend-users-list" id="legend-users-container">
+                <span style="font-size: 0.8rem; color: rgba(0,0,0,0.4); text-align: center; padding: 20px;">Ricerca dispositivi...</span>
+            </div>
+        </div>
+
+        <div class="floating-nav">
+            <div class="nav-item active" style="cursor: pointer;">
+                <i data-lucide="map-pinned"></i>
+                <span class="desktop-only">Mappa Utenti</span>
+            </div>
+            <a href="/" class="nav-item" style="cursor: pointer;">
+                <i data-lucide="layout-grid"></i>
+                <span class="desktop-only">Dashboard</span>
+            </a>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        lucide.createIcons();
+
+        // Orologio Sidebar
+        function updateDateTime() {
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const dateStr = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+            
+            const sidebarClock = document.getElementById('sidebar-clock');
+            const sidebarDate = document.getElementById('sidebar-date');
+            if(sidebarClock) sidebarClock.innerText = timeStr;
+            if(sidebarDate) sidebarDate.innerText = dateStr;
+        }
+        setInterval(updateDateTime, 1000); updateDateTime();
+
+        // Mappa stile Chiaro
+        var map = L.map('map', { zoomControl: false }).setView([41.9028, 12.4964], 6);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CartoDB',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        var markers = {};
+        var firstLoad = true;
+        var usersCache = [];
+        const isAdmin = {{ 'true' if session.get('role') == 'admin' else 'false' }};
+
+        function getUserColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+            return `hsl(${Math.abs(hash) % 360}, 75%, 45%)`; 
+        }
+
+        function centerOnUser(userId) {
+            const user = usersCache.find(u => u.id === userId);
+            if (user) {
+                map.flyTo([user.lat, user.lon], 16, { animate: true, duration: 1.2 });
+                if (markers[user.id]) markers[user.id].openPopup();
+            }
+        }
+
+        function deleteUserLocation(userId) {
+            if (!isAdmin) return;
+            fetch(`/api/location/users/${userId}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (markers[userId]) { map.removeLayer(markers[userId]); delete markers[userId]; }
+                    aggiornaPosizioni();
+                }
+            })
+            .catch(err => console.log("Errore eliminazione:", err));
+        }
+
+        function aggiornaLeggendaDesktop(users) {
+            const container = document.getElementById('legend-users-container');
+            const countSpan = document.getElementById('user-count');
+            if (!container || !countSpan) return;
+
+            countSpan.innerText = users.length;
+            if (users.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.8rem; color: rgba(0,0,0,0.4); text-align: center; padding: 20px;">Nessun utente attivo</span>`;
+                return;
+            }
+
+            let html = '';
+            users.forEach(user => {
+                const color = getUserColor(user.name);
+                html += `
+                    <div class="legend-user-card">
+                        <div class="legend-user-info" onclick="centerOnUser('${user.id}')">
+                            <div class="legend-user-dot" style="background-color: ${color}; color: ${color};"></div>
+                            <div class="legend-user-details">
+                                <span class="legend-user-name">${user.name}</span>
+                                <span class="legend-user-status">GPS Attivo</span>
+                            </div>
+                        </div>
+                        <div class="legend-user-actions">
+                            <div class="legend-user-action-btn" onclick="centerOnUser('${user.id}')" title="Centra">
+                                <i data-lucide="crosshair" style="width: 14px; height: 14px;"></i>
+                            </div>
+                            ${isAdmin ? `
+                            <div class="legend-user-delete-btn" onclick="deleteUserLocation('${user.id}')" title="Nascondi">
+                                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                            </div>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        function aggiornaPosizioni() {
+            fetch('/api/location/users')
+                .then(response => response.json())
+                .then(rawUsers => {
+                    
+                    // ==========================================
+                    // FILTRO ANTI-DOPPIONI AGGRESSIVO (Per Nome)
+                    // ==========================================
+                    const uniqueUsersMap = new Map();
+                    
+                    rawUsers.forEach(user => {
+                        // Pulisce il nome rimuovendo tag come "(Web)" per avere solo "Mario Rossi"
+                        let cleanName = user.name.replace(/ \(Web\)/gi, '').trim();
+
+                        // Se l'utente non è ancora nella mappa, o se questo marker NON è quello webapp, 
+                        // sovrascriviamo, dando quindi priorità all'app nativa.
+                        if (!uniqueUsersMap.has(cleanName) || !user.id.includes('_webapp')) {
+                            uniqueUsersMap.set(cleanName, {
+                                ...user,
+                                name: cleanName // Apparirà solo il nome pulito
+                            });
+                        }
+                    });
+
+                    // Otteniamo la lista finale senza doppioni
+                    const users = Array.from(uniqueUsersMap.values());
+                    usersCache = users;
+                    
+                    aggiornaLeggendaDesktop(users);
+
+                    if (firstLoad && users.length > 0) {
+                        map.setView([users[0].lat, users[0].lon], 14);
+                        firstLoad = false;
+                    }
+
+                    // Rimuovi i marker vecchi
+                    const activeIds = users.map(u => u.id);
+                    Object.keys(markers).forEach(id => {
+                        if (!activeIds.includes(id)) {
+                            map.removeLayer(markers[id]);
+                            delete markers[id];
+                        }
+                    });
+
+                    // Disegna i marker
+                    users.forEach(user => {
+                        var userColor = getUserColor(user.name);
+
+                        var pinHtml = `
+                            <div class="user-marker-container">
+                                <div class="user-pin-badge" style="background-color: ${userColor}; color: ${userColor};">
+                                    <i data-lucide="user"></i>
+                                </div>
+                                <div class="user-name-label">${user.name}</div>
+                            </div>
+                        `;
+
+                        var customIcon = L.divIcon({
+                            className: 'custom-user-marker',
+                            html: pinHtml,
+                            iconSize: [120, 60],
+                            iconAnchor: [60, 20]
+                        });
+
+                        if (markers[user.id]) {
+                            markers[user.id].setLatLng([user.lat, user.lon]);
+                        } else {
+                            var m = L.marker([user.lat, user.lon], { icon: customIcon }).addTo(map)
+                                .bindPopup(`
+                                    <div style="text-align: center; padding: 4px;">
+                                        <b style="font-size: 1rem; color: ${userColor};">${user.name}</b><br>
+                                        <span style="color: rgba(0,0,0,0.5); font-size: 0.75rem;">Ultima posizione GPS attiva</span>
+                                    </div>
+                                `);
+                            markers[user.id] = m;
+                        }
+                    });
+                    
+                    lucide.createIcons();
+                })
+                .catch(err => console.log("Errore aggiornamento mappa:", err));
+        }
+
+        aggiornaPosizioni();
+        setInterval(aggiornaPosizioni, 5000);
+
+        // ==========================================
+        // RILEVAZIONE APP NATIVA (APPLE STORE)
+        // ==========================================
+        function isNativeIOSApp() {
+            const ua = navigator.userAgent;
+            const isIOS = /iPhone|iPad|iPod/i.test(ua);
+            const isWebKit = /WebKit/i.test(ua);
+            const isSafari = /Safari/i.test(ua);
+            const isPWA = window.navigator.standalone === true;
+            
+            // I browser web standard su iOS contengono "Safari".
+            // Le WebViews (app dell'Apple Store) hanno WebKit ma NON "Safari" e NON sono PWA.
+            return isIOS && isWebKit && !isSafari && !isPWA;
+        }
+
+        // ==========================================
+        // TRACCIAMENTO GPS WEB
+        // ==========================================
+        let watchId = null;
+        let lastSentTime = 0;
+
+        function avviaTracciamentoContinuo() {
+            // Se siamo dentro l'App Nativa, NON esegue il tracciamento e NON chiede i permessi!
+            if (isNativeIOSApp()) {
+                console.log("Rilevata App iOS Nativa: Tracciamento Web disattivato (Gestito dall'App).");
+                return;
+            }
+
+            if ("geolocation" in navigator) {
+                watchId = navigator.geolocation.watchPosition(
+                    function(position) {
+                        const now = Date.now();
+                        if (now - lastSentTime > 20000) {
+                            lastSentTime = now;
+                            
+                            fetch('/api/location/update', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    device_id: "{{ session.get('username') }}_webapp",
+                                    name: "{{ session.get('username', 'Utente') }} (Web)",
+                                    lat: position.coords.latitude,
+                                    lon: position.coords.longitude
+                                })
+                            }).catch(err => console.log("Errore invio GPS background:", err));
+                        }
+                    },
+                    function(error) {
+                        console.log("Errore tracciamento GPS: ", error.message);
+                    },
+                    { enableHighAccuracy: true, maximumAge: 0, timeout: 27000 }
+                );
+
+                setInterval(() => {
+                    if (navigator.geolocation && watchId !== null) {
+                        navigator.geolocation.getCurrentPosition(() => {}, () => {}, {maximumAge: 60000, timeout: 5000});
+                    }
+                }, 15000);
+            }
+        }
+
+        window.addEventListener('load', () => {
+            avviaTracciamentoContinuo();
+        });
+    </script>
+</body>
+</html>
