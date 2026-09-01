@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impostazioni Server OS</title>
+    <style>
+        :root {
+            --primary: #0A84FF;
+            --primary-hover: #0071E3;
+            --bg-body: #F2F2F7;
+            --surface: #FFFFFF;
+            --surface-hover: #F9F9FB;
+            --text-main: #1C1C1E;
+            --text-muted: #8E8E93;
+            --border: #C6C6C8;
+            --border-light: #E5E5EA;
+            --border-focus: #0A84FF;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --shadow-md: 0 8px 24px rgba(0,0,0,0.08);
+            --danger: #FF3B30;
+            --danger-bg: #FFE5E5;
+            --success: #34C759;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* HEADER GLASSMORPHISM */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(242, 242, 247, 0.85);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--primary);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: transparent;
+        }
+        .back-btn:hover { background: rgba(10, 132, 255, 0.1); }
+
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin: 0;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* MAIN WRAPPER */
+        .main-content {
+            max-width: 1000px; /* Perfetto per desktop senza disperdere i form */
+            margin: 40px auto;
+            padding: 0 32px;
+        }
+
+        /* WARNING BANNER */
+        .warning { 
+            background: var(--surface); 
+            color: var(--text-main); 
+            padding: 16px 24px; 
+            border-radius: var(--radius-lg); 
+            font-size: 0.95rem; 
+            margin-bottom: 32px; 
+            border: 1px solid var(--danger); 
+            border-left: 6px solid var(--danger);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+        .warning svg { color: var(--danger); flex-shrink: 0; }
+
+        /* MODULI A CARTELLA (ACCORDION) */
+        .module-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            margin-bottom: 24px;
+            overflow: hidden; /* Fondamentale per l'animazione */
+        }
+
+        .module-header {
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+            background: var(--surface);
+            transition: background 0.2s ease;
+        }
+        
+        .module-header:hover {
+            background: var(--surface-hover);
+        }
+
+        .module-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .module-header-left svg { color: var(--primary); }
+        .module-header-left h3 { margin: 0; font-size: 1.2rem; font-weight: 600; color: var(--text-main); }
+
+        .chevron-icon {
+            color: var(--text-muted);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Animazione Apertura Modulo tramite CSS Grid */
+        .module-content-wrapper {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .module-card.open .module-content-wrapper {
+            grid-template-rows: 1fr;
+        }
+
+        .module-card.open .chevron-icon {
+            transform: rotate(180deg);
+        }
+
+        .module-inner {
+            overflow: hidden;
+            padding: 0 32px; /* Il padding top/bottom viene gestito dinamicamente */
+        }
+        
+        .module-card.open .module-inner {
+            padding: 16px 32px 32px 32px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        /* FORMS & INPUTS */
+        .input-group { margin-bottom: 24px; }
+        
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-size: 0.85rem; 
+            color: var(--text-muted); 
+            font-weight: 600; 
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input, select { 
+            padding: 14px 16px; 
+            width: 100%; 
+            box-sizing: border-box; 
+            border: 1px solid var(--border); 
+            background: var(--surface); 
+            color: var(--text-main); 
+            border-radius: var(--radius-md); 
+            font-size: 1rem; 
+            outline: none; 
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus { 
+            border-color: var(--border-focus); 
+            box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.15); 
+        }
+
+        input[readonly] {
+            background: #F9F9FB;
+            color: var(--text-muted);
+            border-style: dashed;
+            cursor: not-allowed;
+        }
+
+        ::placeholder { color: #C7C7CC; }
+        .hint { font-size: 0.85rem; color: var(--text-muted); margin-top: 8px; display: block; line-height: 1.4; }
+
+        /* FLEX UTILITIES */
+        .flex-row { display: flex; gap: 16px; align-items: stretch; }
+        .flex-row input, .flex-row select { flex: 1; }
+
+        /* BUTTONS */
+        button { font-family: inherit; }
+
+        .action-btn { 
+            background: #E5E5EA; color: var(--text-main); border: none; 
+            padding: 0 20px; border-radius: var(--radius-md); cursor: pointer; 
+            transition: all 0.2s ease; font-size: 0.95rem; font-weight: 600;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .action-btn:hover { background: #D1D1D6; }
+
+        .btn-primary { 
+            background: var(--primary); color: white; border: none; 
+            padding: 12px 24px; border-radius: 24px; cursor: pointer; 
+            font-weight: 600; font-size: 0.95rem; transition: all 0.2s ease; 
+            display: flex; align-items: center; gap: 8px;
+        }
+        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3); }
+
+        /* MODALE (POPUP) */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000;
+            opacity: 0; visibility: hidden; transition: all 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        
+        .modal-card {
+            background: var(--surface); padding: 32px;
+            border-radius: var(--radius-lg); width: 90%; max-width: 420px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+            transform: scale(0.95) translateY(10px); transition: all 0.3s ease;
+        }
+        .modal-overlay.active .modal-card { transform: scale(1) translateY(0); }
+
+        .modal-icon { width: 48px; height: 48px; background: rgba(10, 132, 255, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary); margin-bottom: 20px; }
+        .modal-title { margin: 0 0 12px 0; font-size: 1.3rem; color: var(--text-main); font-weight: 600; }
+        
+        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
+        .modal-actions button { flex: 1; padding: 14px; border-radius: var(--radius-md); font-weight: 600; border: none; cursor: pointer; font-size: 1rem; transition: 0.2s; }
+        .btn-cancel { background: #E5E5EA; color: var(--text-main); }
+        .btn-cancel:hover { background: #D1D1D6; }
+        .btn-confirm { background: var(--primary); color: white; }
+        .btn-confirm:hover { background: var(--primary-hover); }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 850px) {
+            .header { padding: 16px 20px; }
+            .header-title { position: static; transform: none; display: none; }
+            .module-header, .module-card.open .module-inner { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER CON PULSANTE SALVA -->
+    <header class="header">
+        <a href="/dashboard" class="back-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Indietro
+        </a>
+        <h1 class="header-title">Impostazioni Sistema</h1>
+        <button class="btn-primary" type="button" onclick="openAuthModal()">
+            Salva Modifiche
+        </button>
+    </header>
+
+    <div class="main-content">
+        
+        <div class="warning">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <div>
+                <strong style="display:block; margin-bottom: 4px;">Avviso di Rete</strong>
+                Modificando l'indirizzo IP, il server cambierà rete immediatamente. La connessione cadrà e dovrai digitare il nuovo IP nel browser.
+            </div>
+        </div>
+
+        <!-- FORM PRINCIPALE -->
+        <form id="serverForm">
+            
+            <!-- CAMPO NASCOSTO PER LA PASSWORD -->
+            <input type="hidden" name="os_password" id="hidden_os_password">
+
+            <!-- MODULO 1: RETE PRINCIPALE -->
+            <div class="module-card">
+                <div class="module-header" onclick="toggleModule(this)">
+                    <div class="module-header-left">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+                        <h3>Rete Principale</h3>
+                    </div>
+                    <svg class="chevron-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                
+                <div class="module-content-wrapper">
+                    <div class="module-inner">
+                        <div class="input-group">
+                            <label>Nome del Server (Hostname)</label>
+                            <input type="text" name="hostname" value="{{ current_hostname }}" placeholder="es. orion-hub">
+                        </div>
+                        
+                        <div class="input-group" style="margin-bottom: 0;">
+                            <label>Interfaccia di Rete</label>
+                            <select name="interface" id="interfaceSelect" onchange="toggleWifi()">
+                                <option value="eth0">Rete Cablata Ethernet (eth0)</option>
+                                <option value="wlan0">Rete Senza Fili Wi-Fi (wlan0)</option>
+                            </select>
+                        </div>
+
+                        <!-- SEZIONE WIFI -->
+                        <div id="wifiSection" class="hidden" style="margin-top: 24px; border-top: 1px dashed var(--border-light); padding-top: 24px;">
+                            <div class="input-group">
+                                <label>Reti Wi-Fi Disponibili</label>
+                                <div class="flex-row">
+                                    <select name="wifi_ssid" id="wifiSsidSelect">
+                                        <option value="">-- Clicca per scansionare --</option>
+                                    </select>
+                                    <button type="button" onclick="scanWifi()" id="scanBtn" class="action-btn">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="wifiDisabledWarning" class="warning-wifi hidden" style="background: rgba(255, 59, 48, 0.08); border: 1px solid rgba(255, 59, 48, 0.2); padding: 16px; border-radius: var(--radius-md); margin-bottom: 24px;">
+                                <strong style="color: var(--danger); display: block; margin-bottom: 4px;">Antenna spenta</strong>
+                                <span style="font-size: 0.9rem; color: var(--text-main);">Il modulo Wi-Fi risulta disabilitato a livello di sistema.</span><br>
+                                <button type="button" id="enableWifiBtn" class="action-btn" style="margin-top: 12px; background: var(--success); color: white; border: none;" onclick="enableWifi()">Accendi Wi-Fi ora</button>
+                            </div>
+                            
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Password della rete Wi-Fi</label>
+                                <input type="password" name="wifi_password" placeholder="Lascia vuoto se aperta...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULO 2: INDIRIZZO IP -->
+            <div class="module-card">
+                <div class="module-header" onclick="toggleModule(this)">
+                    <div class="module-header-left">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                        <h3>Indirizzamento IP</h3>
+                    </div>
+                    <svg class="chevron-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                
+                <div class="module-content-wrapper">
+                    <div class="module-inner">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Nuovo Indirizzo IP</label>
+                                <input type="text" name="ip_address" placeholder="es. 192.168.1.50">
+                                <span class="hint">Vuoto per IP automatico (DHCP).</span>
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Gateway (Router)</label>
+                                <input type="text" name="gateway" placeholder="es. 192.168.1.1">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Server DNS</label>
+                                <input type="text" name="dns" value="8.8.8.8" placeholder="es. 8.8.8.8">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULO 3: POSIZIONE -->
+            <div class="module-card">
+                <div class="module-header" onclick="toggleModule(this)">
+                    <div class="module-header-left">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        <h3>Posizione e Meteo</h3>
+                    </div>
+                    <svg class="chevron-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                
+                <div class="module-content-wrapper">
+                    <div class="module-inner">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Cerca Posizione (Città o Indirizzo)</label>
+                                <div class="flex-row">
+                                    <input type="text" id="searchInput" placeholder="es. Lugano, CH">
+                                    <button type="button" class="action-btn" onclick="geocodeLocation()">Cerca</button>
+                                </div>
+                                <span class="hint" id="geocodeResult" style="margin-top: 8px; font-weight: 500;"></span>
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Nome Visualizzato nell'App</label>
+                                <input type="text" name="location_name" id="locName" value="{{ current_loc_name }}" placeholder="es. Casa Mia">
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Latitudine</label>
+                                <input type="number" step="any" name="lat" id="locLat" value="{{ current_lat }}" readonly>
+                            </div>
+                            <div class="input-group" style="margin-bottom: 0;">
+                                <label>Longitudine</label>
+                                <input type="number" step="any" name="lon" id="locLon" value="{{ current_lon }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+        </form>
+        <!-- MODULO 4: ACCESSI BLOCCATI -->
+        <style>
+            .ipl-row {
+                display: flex; align-items: center; gap: 16px; padding: 16px 18px;
+                border: 1px solid var(--border-light); border-radius: var(--radius-md);
+                background: var(--surface-hover); margin-bottom: 10px;
+            }
+            .ipl-row.blocked { background: var(--danger-bg); border-color: rgba(255,59,48,0.25); }
+            .ipl-row.self { border-color: var(--primary); background: rgba(10,132,255,0.06); }
+            .ipl-badge {
+                width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+                display: flex; align-items: center; justify-content: center; background: #E5E5EA;
+            }
+            .ipl-row.blocked .ipl-badge { background: rgba(255,59,48,0.15); color: var(--danger); }
+            .ipl-row:not(.blocked) .ipl-badge { color: #FF9F0A; }
+            .ipl-info { flex: 1; min-width: 0; }
+            .ipl-ip {
+                font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+                font-weight: 600; font-size: 1rem; color: var(--text-main);
+            }
+            .ipl-meta { font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+            .ipl-meta b { color: var(--danger); font-weight: 600; }
+            .ipl-tag {
+                font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+                background: var(--primary); color: #FFF; padding: 3px 8px; border-radius: 20px; margin-left: 8px;
+                vertical-align: middle;
+            }
+            .ipl-unlock {
+                background: var(--text-main); color: #FFF; border: none; border-radius: var(--radius-md);
+                padding: 11px 18px; font-weight: 600; font-size: 0.88rem; cursor: pointer;
+                flex-shrink: 0; transition: 0.2s;
+            }
+            .ipl-unlock:hover { background: #000; }
+            .ipl-empty {
+                text-align: center; padding: 32px 20px; color: var(--text-muted); font-size: 0.92rem;
+                background: var(--surface-hover); border: 1px dashed var(--border); border-radius: var(--radius-md);
+            }
+            .ipl-foot {
+                display: flex; justify-content: space-between; align-items: center;
+                gap: 16px; margin-top: 20px; flex-wrap: wrap;
+            }
+        </style>
+
+        <div class="module-card" id="ipl-card">
+            <div class="module-header" onclick="toggleModule(this); iplLoad();">
+                <div class="module-header-left">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    <h3>Accessi Bloccati</h3>
+                </div>
+                <svg class="chevron-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+
+            <div class="module-content-wrapper">
+                <div class="module-inner">
+                    <p class="hint" style="margin: 0 0 20px 0;">
+                        Dopo quattro password sbagliate il sistema blocca l'indirizzo di rete da cui arrivano
+                        i tentativi. Il blocco si allunga a ogni recidiva: 5, poi 10, 15 e infine 60 minuti.
+                        Da qui puoi rimuoverlo subito, per esempio se hai sbagliato tu.
+                    </p>
+
+                    <div id="ipl-list">
+                        <div class="ipl-empty">Apri la sezione per caricare l'elenco.</div>
+                    </div>
+
+                    <div class="ipl-foot">
+                        <span class="hint" id="ipl-note" style="margin: 0;"></span>
+                        <button type="button" class="action-btn" onclick="iplUnlock(null, true)">Sblocca tutti</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let iplTimer = null;
+
+            function iplTime(sec) {
+                const m = Math.floor(sec / 60), s = sec % 60;
+                if (m > 0) return m + ' min ' + String(s).padStart(2, '0') + ' s';
+                return s + ' secondi';
+            }
+
+            async function iplLoad() {
+                const list = document.getElementById('ipl-list');
+                const card = document.getElementById('ipl-card');
+                if (!list) return;
+
+                // Aggiorna da solo solo mentre la sezione e' aperta
+                if (iplTimer) { clearInterval(iplTimer); iplTimer = null; }
+                if (!card.classList.contains('open')) return;
+                iplTimer = setInterval(iplRefresh, 10000);
+
+                iplRefresh();
+            }
+
+            async function iplRefresh() {
+                const list = document.getElementById('ipl-list');
+                const card = document.getElementById('ipl-card');
+                if (!list || !card.classList.contains('open')) return;
+
+                try {
+                    const res = await fetch('/api/ip_lockouts', { cache: 'no-store' });
+                    const d = await res.json();
+                    document.getElementById('ipl-note').innerText = 'Il tuo indirizzo attuale: ' + d.your_ip;
+
+                    if (!d.entries.length) {
+                        list.innerHTML = '<div class="ipl-empty">Nessun blocco attivo.<br>Tutti gli indirizzi possono accedere normalmente.</div>';
+                        return;
+                    }
+
+                    list.innerHTML = d.entries.map(e => {
+                        const isSelf = e.ip === d.your_ip;
+                        const stato = e.blocked
+                            ? '<b>Bloccato ancora per ' + iplTime(e.seconds_left) + '</b>'
+                            : e.attempts + ' tentativi falliti — al prossimo scatta il blocco';
+                        const chi = e.last_username ? ' · username provato: "' + e.last_username + '"' : '';
+                        const quando = e.last_attempt ? ' · ' + e.last_attempt : '';
+                        const icona = e.blocked
+                            ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>'
+                            : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+
+                        return '<div class="ipl-row' + (e.blocked ? ' blocked' : '') + (isSelf ? ' self' : '') + '">'
+                             + '<div class="ipl-badge">' + icona + '</div>'
+                             + '<div class="ipl-info">'
+                             + '<div class="ipl-ip">' + e.ip + (isSelf ? '<span class="ipl-tag">Tu</span>' : '') + '</div>'
+                             + '<div class="ipl-meta">' + stato + chi + quando + '</div>'
+                             + '</div>'
+                             + '<button type="button" class="ipl-unlock" onclick="iplUnlock(\'' + e.ip + '\')">Sblocca</button>'
+                             + '</div>';
+                    }).join('');
+                } catch (err) {
+                    list.innerHTML = '<div class="ipl-empty">Impossibile leggere lo stato dei blocchi.</div>';
+                }
+            }
+
+            async function iplUnlock(ip, all) {
+                if (all && !confirm("Rimuovere TUTTI i blocchi e azzerare i tentativi falliti?")) return;
+                try {
+                    const res = await fetch('/api/ip_lockouts', {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(all ? { all: true } : { ip: ip })
+                    });
+                    const d = await res.json();
+                    if (!res.ok) alert(d.message || "Errore");
+                    iplRefresh();
+                } catch (e) {
+                    alert("Errore di rete");
+                }
+            }
+        </script>
+    </div>
+
+    <!-- MODALE SICUREZZA POPUP -->
+    <div class="modal-overlay" id="authModal">
+        <div class="modal-card">
+            <div class="modal-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h3 class="modal-title">Autorizzazione Richiesta</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 24px; line-height: 1.5;">Per confermare, inserisci la tua <strong>password amministratore</strong> di Wach0ss (quella con cui accedi).</p>
+            
+            <input type="password" id="modal_password_input" placeholder="Password amministratore..." style="background: #F2F2F7;">
+            
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeAuthModal()">Annulla</button>
+                <button class="btn-confirm" onclick="confirmAndSave()">Applica</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT JAVASCRIPT -->
+    <script>
+        // Gestione dei Moduli a Cartella (Accordion)
+        function toggleModule(headerElement) {
+            const card = headerElement.closest('.module-card');
+            card.classList.toggle('open');
+        }
+
+        // Apre il primo modulo di default (Opzionale)
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstModule = document.querySelector('.module-card');
+            if(firstModule) firstModule.classList.add('open');
+        });
+
+        // Gestione Interfaccia Wi-Fi
+        function toggleWifi() {
+            const isWifi = document.getElementById('interfaceSelect').value === 'wlan0';
+            const wifiSection = document.getElementById('wifiSection');
+            if(isWifi) {
+                wifiSection.classList.remove('hidden');
+            } else {
+                wifiSection.classList.add('hidden');
+            }
+        }
+
+        // Gestione Modale (Popup)
+        function openAuthModal() {
+            document.getElementById('authModal').classList.add('active');
+            setTimeout(() => document.getElementById('modal_password_input').focus(), 100);
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.remove('active');
+            document.getElementById('modal_password_input').value = '';
+        }
+
+        function confirmAndSave() {
+            const pwd = document.getElementById('modal_password_input').value;
+            if(!pwd) {
+                alert("Devi inserire la password per continuare.");
+                return;
+            }
+            
+            document.getElementById('hidden_os_password').value = pwd;
+            closeAuthModal();
+            submitSettings();
+        }
+
+        // Funzione di Salvataggio al Server
+        function submitSettings() {
+            const formData = new FormData(document.getElementById('serverForm'));
+
+            if(!confirm("Sei sicuro di voler procedere? Attenzione ai cambi IP/Rete.")) return;
+            
+            fetch('/server_settings', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (formData.get('ip_address') || formData.get('wifi_ssid')) {
+                        document.body.innerHTML = "<div style='display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; background:#F2F2F7; color:#1C1C1E; font-family:-apple-system, sans-serif;'><svg style='animation: spin 1s linear infinite; color:#0A84FF; margin-bottom: 20px;' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><line x1='12' y1='2' x2='12' y2='6'></line><line x1='12' y1='18' x2='12' y2='22'></line><line x1='4.93' y1='4.93' x2='7.76' y2='7.76'></line><line x1='16.24' y1='16.24' x2='19.07' y2='19.07'></line><line x1='2' y1='12' x2='6' y2='12'></line><line x1='18' y1='12' x2='22' y2='12'></line><line x1='4.93' y1='19.07' x2='7.76' y2='16.24'></line><line x1='16.24' y1='7.76' x2='19.07' y2='4.93'></line></svg><h2 style='margin:0 0 10px 0; font-weight:600;'>Riconnessione in corso...</h2><p style='color:#8E8E93; margin:0;'>Attendi 15 secondi e collegati al nuovo indirizzo IP (o alla nuova rete).</p><style>@keyframes spin { 100% { transform: rotate(360deg); } }</style></div>";
+                    } else {
+                        alert(data.message);
+                        window.location.reload();
+                    }
+                } else {
+                    alert("Errore: " + data.message);
+                }
+            })
+            .catch(error => {
+                alert("La connessione con il server si è interrotta. Se hai cambiato IP o rete, l'operazione dovrebbe essere andata a buon fine.");
+            });
+        }
+
+        // Ricerca Geografica OpenStreetMap
+        function geocodeLocation() {
+            const query = document.getElementById('searchInput').value;
+            const resultSpan = document.getElementById('geocodeResult');
+            
+            if(!query) {
+                resultSpan.innerText = "⚠️ Inserisci un nome prima di cercare.";
+                resultSpan.style.color = "#FF9F0A";
+                return;
+            }
+            
+            resultSpan.innerText = "Ricerca in corso... ⏳";
+            resultSpan.style.color = "var(--text-muted)";
+            
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
+            .then(res => res.json())
+            .then(data => {
+                if(data && data.length > 0) {
+                    const place = data[0];
+                    document.getElementById('locLat').value = place.lat;
+                    document.getElementById('locLon').value = place.lon;
+                    
+                    const currentName = document.getElementById('locName').value;
+                    if(!currentName || currentName.trim() === "") {
+                        document.getElementById('locName').value = place.display_name.split(',')[0];
+                    }
+                    
+                    resultSpan.innerText = `✅ Trovato: ${place.display_name}`;
+                    resultSpan.style.color = "var(--success)";
+                } else {
+                    resultSpan.innerText = "❌ Nessun risultato. Prova un nome più generico.";
+                    resultSpan.style.color = "var(--danger)";
+                }
+            })
+            .catch(err => {
+                resultSpan.innerText = "❌ Errore di connessione al server di ricerca.";
+                resultSpan.style.color = "var(--danger)";
+            });
+        }
+
+        // Funzioni Scansione e Attivazione Wi-Fi
+        function scanWifi() {
+            const btn = document.getElementById('scanBtn');
+            const select = document.getElementById('wifiSsidSelect');
+            const warningBox = document.getElementById('wifiDisabledWarning');
+            
+            btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-19V2h19zM21.5 22v-6h-19v6h19zM2.5 8l9 8 9-8"/></svg>`;
+            warningBox.classList.add('hidden');
+            
+            fetch('/api/wifi_scan')
+            .then(res => res.json())
+            .then(data => {
+                btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>`;
+                if(data.status === 'success') {
+                    select.innerHTML = '<option value="">-- Seleziona una rete --</option>';
+                    data.networks.forEach(net => {
+                        select.innerHTML += `<option value="${net.ssid}">${net.ssid} (Segnale: ${net.signal}%)</option>`;
+                    });
+                } else {
+                    if(data.message.toLowerCase().includes('disabled')) {
+                        warningBox.classList.remove('hidden');
+                    } else {
+                        alert("Errore scansione: " + data.message);
+                    }
+                }
+            })
+            .catch(err => {
+                btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>`;
+                alert("Errore di connessione al server.");
+            });
+        }
+
+        function enableWifi() {
+            const osPassword = document.getElementById('hidden_os_password').value;
+            if(!osPassword) {
+                alert("Prima di accendere l'antenna, conferma la tua password amministratore salvando le impostazioni.");
+                openAuthModal();
+                return;
+            }
+
+            const btn = document.getElementById('enableWifiBtn');
+            btn.innerText = "Attivazione in corso...";
+
+            fetch('/api/wifi_enable', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ os_password: osPassword })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    document.getElementById('wifiDisabledWarning').classList.add('hidden');
+                    scanWifi();
+                } else {
+                    btn.innerText = "Accendi Wi-Fi ora";
+                    alert("Errore: " + data.message);
+                }
+            })
+            .catch(err => {
+                btn.innerText = "Accendi Wi-Fi ora";
+                alert("Errore di rete.");
+            });
+        }
+    </script>
+</body>
+</html>
