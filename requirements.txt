@@ -1,0 +1,41 @@
+# Librerie di Wach0ss Home - VERSIONI BLOCCATE
+#
+# Le versioni sono fissate apposta: ogni installazione e ogni aggiornamento
+# scaricano sempre queste, su qualsiasi macchina e in qualsiasi momento.
+# Cosi' un aggiornamento del codice non puo' portare sugli impianti gia'
+# installati librerie nuove mai collaudate.
+#
+# Riferimento: Python 3.11 (quello portatile in $INSTALL_DIR/python).
+# Fotografia presa dal server di collaudo il 01/09/2026.
+#
+# Per aggiornare una libreria: cambia il numero QUI, prova sul tuo server,
+# e solo dopo distribuisci. Non togliere i vincoli "==".
+
+# --- usate direttamente da app.py ---
+Flask==3.1.3
+requests==2.34.2
+Werkzeug==3.1.8
+xknx==3.20.0
+soco==0.31.2
+zeroconf==0.151.3
+opencv-python-headless==5.0.0.93
+
+# --- richieste dalle precedenti (bloccate anche queste: sono
+#     quelle che cambiano di nascosto e rompono le installazioni) ---
+appdirs==1.4.4
+blinker==1.9.0
+certifi==2026.7.22
+cffi==2.1.1
+charset-normalizer==3.5.1
+click==8.5.0
+cryptography==50.0.1
+idna==3.19
+ifaddr==0.2.0
+itsdangerous==2.2.0
+Jinja2==3.1.6
+lxml==6.1.2
+MarkupSafe==3.0.3
+numpy==2.4.6
+pycparser==3.0
+urllib3==2.7.0
+xmltodict==1.0.4
