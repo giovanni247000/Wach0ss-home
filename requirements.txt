@@ -1,7 +1,0 @@
-Flask
-requests
-Werkzeug
-xknx
-soco
-zeroconf
-opencv-python-headless
