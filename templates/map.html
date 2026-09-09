@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#FFFFFF">
+    <meta name="color-scheme" content="light">
+    <title>Wach0ss Home | Mappa Utenti</title>
+
+    <!-- Tutto quello che serve sta sul server: la pagina si apre anche senza internet.
+         Senza rete resta senza mappa, ma i pannelli, l'elenco e le scie gia' registrate
+         si vedono lo stesso. Nessun CDN, nessuna versione che cambia sotto i piedi. -->
+    <script src="/static/vendor/lucide-1.41.0.min.js"></script>
+    <link rel="stylesheet" href="/static/vendor/maplibre-gl-5.24.0.css">
+
+<style>
+@import url('/static/fonts/inter.css');   /* Inter servito dal server */
+
+:root {
+    --sfondo:      #EFEFF4;
+    --pannello:    rgba(255,255,255,0.80);
+    --pannello-pieno: #FFFFFF;
+    --testo:       #1C1C1E;
+    --fioco:       #737373;
+    --fioco-2:     rgba(0,0,0,0.42);
+    --accento:     #0A84FF;
+    --verde:       #28A745;
+    --ambra:       #FF9F0A;
+    --rosso:       #DC3545;
+    --bordo:       rgba(0,0,0,0.07);
+    --r-s: 10px; --r-m: 14px; --r-l: 20px; --r-xl: 26px;
+    --ombra:  0 4px 16px rgba(0,0,0,0.07);
+    --ombra-f: 0 18px 44px rgba(0,0,0,0.16);
+    --sicuro-alto:  env(safe-area-inset-top, 0px);
+    --sicuro-basso: env(safe-area-inset-bottom, 0px);
+}
+/* La notte: cambia solo la vernice, non la disposizione. */
+body.notte {
+    --sfondo:      #0E1014;
+    --pannello:    rgba(24,26,32,0.78);
+    --pannello-pieno: #181A20;
+    --testo:       #F2F3F5;
+    --fioco:       #9BA1AC;
+    --fioco-2:     rgba(255,255,255,0.45);
+    --bordo:       rgba(255,255,255,0.09);
+    --ombra:  0 4px 16px rgba(0,0,0,0.35);
+    --ombra-f: 0 18px 44px rgba(0,0,0,0.55);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: var(--sfondo); color: var(--testo);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ================= LA MAPPA ========================================= */
+#map { position: absolute; inset: 0; background: var(--sfondo); }
+.maplibregl-ctrl-attrib {
+    font-size: 10px; background: rgba(255,255,255,0.7) !important;
+    border-radius: 8px 0 0 0;
+}
+body.notte .maplibregl-ctrl-attrib { background: rgba(20,22,28,0.7) !important; }
+body.notte .maplibregl-ctrl-attrib a { color: #9BA1AC; }
+
+/* un velo agli angoli: stacca i pannelli dalla mappa senza una cornice dura */
+.velo {
+    position: absolute; inset: 0; pointer-events: none; z-index: 2;
+    background:
+        linear-gradient(100deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0) 34%),
+        linear-gradient(0deg,  rgba(0,0,0,0.08) 0%, rgba(0,0,0,0) 22%);
+    opacity: 0.5;
+}
+body.notte .velo { opacity: 0.9; }
+
+/* ================= IL PANNELLO ====================================== */
+.pannello {
+    position: absolute; z-index: 5;
+    top: calc(18px + var(--sicuro-alto)); left: 18px; bottom: 18px;
+    width: 336px; display: flex; flex-direction: column; gap: 12px;
+    justify-content: flex-start; pointer-events: none;
+}
+.pannello .piede { margin-top: auto; }   /* la navigazione resta in basso */
+.riquadro {
+    background: var(--pannello);
+    backdrop-filter: blur(26px) saturate(180%);
+    -webkit-backdrop-filter: blur(26px) saturate(180%);
+    border: 1px solid var(--bordo); border-radius: var(--r-xl);
+    box-shadow: var(--ombra-f); pointer-events: auto;
+}
+
+/* --- testa: marchio e orologio --- */
+.testa { padding: 20px 22px 18px; }
+.marchio {
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--fioco-2); margin-bottom: 10px;
+}
+.ora { font-size: 2.5rem; font-weight: 700; letter-spacing: -0.045em; line-height: 1; }
+.data { margin-top: 5px; font-size: 0.82rem; color: var(--accento); font-weight: 600; text-transform: capitalize; }
+
+/* --- il corpo scorrevole --- */
+.corpo { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.corpo::-webkit-scrollbar { width: 5px; }
+.corpo::-webkit-scrollbar-thumb { background: rgba(127,127,127,0.28); border-radius: 3px; }
+.sezione { display: flex; flex-direction: column; flex: 0 0 auto; }
+.sez-testa {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 15px 18px 11px; font-size: 0.7rem; font-weight: 700;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--fioco);
+}
+.sez-testa .con-icona { display: flex; align-items: center; gap: 7px; }
+.sez-testa i { width: 14px; height: 14px; }
+.pallino-conteggio {
+    background: rgba(127,127,127,0.16); color: var(--testo);
+    padding: 2px 9px; border-radius: 10px; font-size: 0.7rem; letter-spacing: 0;
+}
+
+/* --- elenco delle persone --- */
+.elenco { flex: 0 0 auto; overflow-y: auto; max-height: 38vh; padding: 0 12px 14px; display: flex; flex-direction: column; gap: 7px; }
+.elenco::-webkit-scrollbar { width: 5px; }
+.elenco::-webkit-scrollbar-thumb { background: rgba(127,127,127,0.3); border-radius: 3px; }
+
+.scheda {
+    display: flex; align-items: center; gap: 11px; padding: 10px 11px;
+    border-radius: var(--r-m); background: rgba(127,127,127,0.07);
+    border: 1px solid transparent; cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.18s;
+}
+.scheda:hover { background: rgba(127,127,127,0.13); }
+.scheda.spenta { opacity: 0.42; }
+.scheda.scelta { border-color: var(--accento); background: rgba(10,132,255,0.10); }
+
+.gettone {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 0.86rem; letter-spacing: -0.02em;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.18);
+}
+.gettone { position: relative; }
+.gettone.muove::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid var(--c); animation: onda 2.2s ease-out infinite;
+}
+@keyframes onda {
+    0%   { transform: scale(1);   opacity: 0.7; }
+    100% { transform: scale(2.1); opacity: 0; }
+}
+.dati { flex: 1; min-width: 0; }
+.nome { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stato { font-size: 0.72rem; color: var(--fioco); display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+.stato .lucina { width: 6px; height: 6px; border-radius: 50%; background: var(--verde); flex-shrink: 0; }
+.stato .lucina.giallo { background: var(--ambra); }
+.azioni { display: flex; gap: 5px; flex-shrink: 0; }
+.tastino {
+    width: 29px; height: 29px; border-radius: 9px; border: none; cursor: pointer;
+    background: rgba(127,127,127,0.14); color: var(--fioco);
+    display: flex; align-items: center; justify-content: center; transition: all 0.16s;
+}
+.tastino:hover { background: var(--accento); color: #fff; }
+.tastino.pericolo:hover { background: var(--rosso); color: #fff; }
+.tastino i { width: 14px; height: 14px; }
+.vuoto { padding: 24px 12px; text-align: center; font-size: 0.8rem; color: var(--fioco-2); }
+
+/* --- i percorsi --- */
+.percorsi { padding: 0 16px 16px; }
+.giorni { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 3px; margin-bottom: 12px; }
+.giorni::-webkit-scrollbar { display: none; }
+.giorno {
+    flex-shrink: 0; padding: 6px 13px; border-radius: 999px; border: 1px solid var(--bordo);
+    background: transparent; color: var(--fioco); font-family: inherit;
+    font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: all 0.16s;
+}
+.giorno:hover { background: rgba(127,127,127,0.1); }
+.giorno.scelto { background: var(--accento); border-color: var(--accento); color: #fff; }
+
+.numeri { display: flex; gap: 8px; margin-bottom: 12px; }
+.numero {
+    flex: 1; background: rgba(127,127,127,0.08); border-radius: var(--r-m);
+    padding: 10px 11px; text-align: center;
+}
+.numero b { display: block; font-size: 1.12rem; font-weight: 700; letter-spacing: -0.03em;
+             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.numero span { font-size: 0.64rem; color: var(--fioco); text-transform: uppercase; letter-spacing: 0.07em; }
+
+.riga-interruttore { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.riga-interruttore .etichetta { font-size: 0.84rem; font-weight: 600; }
+.leva { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+.leva input { opacity: 0; width: 0; height: 0; position: absolute; }
+.leva .binario {
+    position: absolute; inset: 0; border-radius: 999px; cursor: pointer;
+    background: rgba(127,127,127,0.3); transition: background 0.22s;
+}
+.leva .binario::before {
+    content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+    border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+    transition: transform 0.22s cubic-bezier(0.34,1.4,0.64,1);
+}
+.leva input:checked + .binario { background: var(--verde); }
+.leva input:checked + .binario::before { transform: translateX(18px); }
+
+.nota {
+    font-size: 0.7rem; color: var(--fioco-2); line-height: 1.45;
+    display: flex; align-items: flex-start; gap: 6px; margin-bottom: 11px;
+}
+.nota i { width: 13px; height: 13px; flex-shrink: 0; margin-top: 1px; }
+.svuota {
+    width: 100%; padding: 9px; border-radius: var(--r-m); cursor: pointer;
+    border: 1px solid rgba(220,53,69,0.28); background: rgba(220,53,69,0.07);
+    color: var(--rosso); font-family: inherit; font-size: 0.78rem; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 7px; transition: all 0.16s;
+}
+.svuota:hover { background: var(--rosso); color: #fff; border-color: var(--rosso); }
+.svuota i { width: 14px; height: 14px; }
+
+/* --- il piede: navigazione --- */
+.piede { display: flex; padding: 7px; gap: 5px; }
+.voce {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px; border-radius: var(--r-m); text-decoration: none;
+    color: var(--fioco); font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.16s;
+}
+.voce:hover { background: rgba(127,127,127,0.1); }
+.voce.attiva { background: var(--testo); color: var(--sfondo); }
+.voce i { width: 17px; height: 17px; }
+
+/* ================= I COMANDI DELLA MAPPA ============================ */
+.comandi {
+    position: absolute; z-index: 5; top: calc(18px + var(--sicuro-alto)); right: 18px;
+    display: flex; flex-direction: column; gap: 7px;
+}
+.comando {
+    width: 42px; height: 42px; border-radius: var(--r-m); border: 1px solid var(--bordo);
+    background: var(--pannello); backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    color: var(--testo); cursor: pointer; box-shadow: var(--ombra);
+    display: flex; align-items: center; justify-content: center; transition: all 0.16s;
+}
+.comando:hover { background: var(--pannello-pieno); transform: translateY(-1px); }
+.comando.acceso { background: var(--accento); border-color: var(--accento); color: #fff; }
+.comando i { width: 18px; height: 18px; }
+
+/* ================= SEGNAPOSTI SULLA MAPPA =========================== */
+.segno { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+.segno .bolla {
+    position: relative; width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 0.9rem;
+    border: 3px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.32);
+}
+body.notte .segno .bolla { border-color: #22252C; }
+.segno .bolla::after {
+    content: ''; position: absolute; inset: -3px; border-radius: 50%;
+    border: 2px solid var(--c); opacity: 0;
+}
+.segno.muove .bolla::after { animation: onda 2.2s ease-out infinite; opacity: 1; }
+.segno .cartellino {
+    margin-top: 5px; padding: 3px 9px; border-radius: 999px;
+    background: var(--pannello-pieno); color: var(--testo);
+    font-size: 0.72rem; font-weight: 600; white-space: nowrap;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.20); border: 1px solid var(--bordo);
+}
+.segno-casa {
+    width: 34px; height: 34px; border-radius: 11px;
+    background: var(--pannello-pieno); border: 1px solid var(--bordo);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accento); box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+}
+.segno-casa i { width: 17px; height: 17px; }
+
+/* i palloncini di MapLibre, vestiti come il resto */
+.maplibregl-popup-content {
+    background: var(--pannello-pieno); color: var(--testo);
+    border-radius: var(--r-m); padding: 12px 15px; box-shadow: var(--ombra-f);
+    border: 1px solid var(--bordo); font-family: inherit;
+}
+.maplibregl-popup-tip { border-top-color: var(--pannello-pieno) !important; border-bottom-color: var(--pannello-pieno) !important; }
+.maplibregl-popup-close-button { color: var(--fioco); font-size: 18px; padding: 2px 7px; }
+.pop-nome { font-size: 0.95rem; font-weight: 700; margin-bottom: 3px; }
+.pop-riga { font-size: 0.76rem; color: var(--fioco); }
+
+/* ================= IL TELEFONO ====================================== */
+.maniglia { display: none; }
+@media (max-width: 860px) {
+    .pannello {
+        top: auto; left: 10px; right: 10px; width: auto;
+        bottom: calc(10px + var(--sicuro-basso));
+        max-height: 62vh; gap: 9px;
+        transition: transform 0.34s cubic-bezier(0.22,1,0.36,1);
+    }
+    body.chiuso .pannello { transform: translateY(calc(100% - 62px)); }
+    .testa { display: none; }
+    .comandi { top: calc(12px + var(--sicuro-alto)); right: 12px; flex-direction: row; }
+    .elenco { max-height: 30vh; }
+    .maniglia {
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        width: 100%; padding: 13px; border: none; background: transparent;
+        color: var(--fioco); font-family: inherit; font-size: 0.78rem; font-weight: 700;
+        letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+    }
+    .maniglia i { width: 15px; height: 15px; transition: transform 0.34s; }
+    body.chiuso .maniglia i { transform: rotate(180deg); }
+    .piede .voce span { display: none; }
+    .numeri { gap: 6px; }
+}
+</style>
+</head>
+<body>
+
+    <div id="map"></div>
+    <div class="velo"></div>
+
+    <aside class="pannello">
+
+        <div class="riquadro testa">
+            <div class="marchio">Wach0ss Home</div>
+            <div class="ora" id="ora">00:00</div>
+            <div class="data" id="data">&nbsp;</div>
+        </div>
+
+        <div class="riquadro corpo">
+            <button class="maniglia" id="maniglia">
+                <i data-lucide="chevron-down"></i> <span>Mappa Utenti</span>
+            </button>
+
+            <div class="sezione" style="min-height: 0;">
+                <div class="sez-testa">
+                    <span class="con-icona"><i data-lucide="users"></i> Utenti in Linea</span>
+                    <span class="pallino-conteggio" id="conteggio">0</span>
+                </div>
+                <div class="elenco" id="elenco">
+                    <div class="vuoto">Ricerca dispositivi...</div>
+                </div>
+            </div>
+
+            <div class="sezione">
+                <div class="sez-testa">
+                    <span class="con-icona"><i data-lucide="route"></i> Percorsi</span>
+                </div>
+                <div class="percorsi">
+                    <div class="riga-interruttore">
+                        <span class="etichetta">Registra i percorsi</span>
+                        <label class="leva">
+                            <input type="checkbox" id="interruttore-reg">
+                            <span class="binario"></span>
+                        </label>
+                    </div>
+
+                    <div class="giorni" id="giorni"></div>
+
+                    <div class="numeri">
+                        <div class="numero"><b id="n-strada">0</b><span>Percorso</span></div>
+                        <div class="numero"><b id="n-soste">0</b><span>Soste</span></div>
+                        <div class="numero"><b id="n-spazio">0</b><span>Memoria</span></div>
+                    </div>
+
+                    <div class="nota">
+                        <i data-lucide="shield"></i>
+                        <span>I percorsi restano su questo dispositivo e non vengono inviati a nessuno.</span>
+                    </div>
+
+                    <button class="svuota" id="svuota">
+                        <i data-lucide="trash-2"></i> Cancella i percorsi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <nav class="riquadro piede">
+            <div class="voce attiva"><i data-lucide="map-pinned"></i><span>Mappa Utenti</span></div>
+            <a href="/" class="voce"><i data-lucide="layout-grid"></i><span>Dashboard</span></a>
+        </nav>
+
+    </aside>
+
+    <!-- Le domande delle conferme: stanno qui perche' il traduttore lavora sulla
+         pagina, non dentro il codice. Nascoste, lette al momento del clic. -->
+    <div hidden id="frasi-conferma">
+        <span id="dom-svuota">Cancellare tutti i percorsi salvati su questo dispositivo?</span>
+        <span id="dom-elimina">Eliminare la posizione di</span>
+    </div>
+
+    <div class="comandi">
+        <button class="comando" id="btn-tutti" title="Inquadra tutti" aria-label="Inquadra tutti"><i data-lucide="scan"></i></button>
+        <button class="comando" id="btn-casa" title="Casa" aria-label="Casa"><i data-lucide="home"></i></button>
+        <button class="comando" id="btn-notte" title="Giorno e notte" aria-label="Giorno e notte"><i data-lucide="moon"></i></button>
+        <button class="comando" id="btn-inclina" title="Inclina la vista" aria-label="Inclina la vista"><i data-lucide="box"></i></button>
+    </div>
+
+<script src="/static/vendor/maplibre-gl-5.24.0.min.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    var SONO_ADMIN = {{ 'true' if session.get('role') == 'admin' else 'false' }};
+    var IO_UTENTE  = {{ session.get('username', 'Utente') | tojson }};
+
+    /* =================================================================
+       1. LA MEMORIA DEI PERCORSI
+       Il server tiene solo l'ULTIMA posizione di ogni dispositivo: non
+       esiste nessuno storico e non possiamo crearne uno senza toccare
+       app.py. Quindi la scia se la costruisce questa pagina, guardando le
+       posizioni cambiare, e se la tiene nel browser di QUESTO dispositivo.
+       Conseguenza da dire chiaro: si registra solo mentre la pagina e'
+       aperta, e la storia non e' condivisa con gli altri dispositivi.
+       ================================================================= */
+    var MEM = (function () {
+        var PRE = 'wh_percorso_';
+        var GIORNI_TENUTI = 7;      /* oltre, si butta: e' spazio del browser */
+        var MAX_PUNTI     = 1200;   /* per persona, per giorno */
+
+        function chiave(g) { return PRE + g; }
+
+        function nomeGiorno(d) {
+            return d.getFullYear() + '-' +
+                   String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                   String(d.getDate()).padStart(2, '0');
+        }
+        function oggi() { return nomeGiorno(new Date()); }
+
+        /* La giornata in corso si tiene in memoria e si scrive su disco a gruppi:
+           un setItem a ogni punto vuol dire riscrivere tutta la giornata ogni
+           cinque secondi, e su un tablet a muro sempre acceso e' un lavoro inutile
+           che si sente. */
+        var vivo = { giorno: null, dati: null, sporco: false };
+
+        function leggi(g) {
+            if (vivo.giorno === g && vivo.dati) return vivo.dati;
+            var d;
+            try { d = JSON.parse(localStorage.getItem(chiave(g)) || '{}'); }
+            catch (e) { d = {}; }
+            if (g === oggi()) { vivo.giorno = g; vivo.dati = d; vivo.sporco = false; }
+            return d;
+        }
+        function segna(g, dati) {            /* modificato: si scrivera' fra poco */
+            if (vivo.giorno === g) { vivo.dati = dati; vivo.sporco = true; }
+            else scrivi(g, dati);
+        }
+        function versa() {                   /* scrive davvero */
+            if (!vivo.sporco || !vivo.giorno) return;
+            vivo.sporco = false;
+            scrivi(vivo.giorno, vivo.dati);
+        }
+        function scrivi(g, dati) {
+            try { localStorage.setItem(chiave(g), JSON.stringify(dati)); return true; }
+            catch (e) {
+                /* memoria piena: butto il giorno piu' vecchio e riprovo una volta */
+                var g2 = giorni();
+                if (g2.length > 1) { localStorage.removeItem(chiave(g2[g2.length - 1])); }
+                try { localStorage.setItem(chiave(g), JSON.stringify(dati)); return true; }
+                catch (e2) { return false; }
+            }
+        }
+        function giorni() {
+            var out = [];
+            for (var i = 0; i < localStorage.length; i++) {
+                var k = localStorage.key(i);
+                if (k && k.indexOf(PRE) === 0) out.push(k.slice(PRE.length));
+            }
+            return out.sort().reverse();
+        }
+        function pota() {
+            var g = giorni();
+            for (var i = GIORNI_TENUTI; i < g.length; i++) localStorage.removeItem(chiave(g[i]));
+        }
+        function cancellaTutto() {
+            giorni().forEach(function (g) { localStorage.removeItem(chiave(g)); });
+            vivo.giorno = null; vivo.dati = null; vivo.sporco = false;
+        }
+        function pesoKB() {
+            var n = 0;
+            giorni().forEach(function (g) { n += (localStorage.getItem(chiave(g)) || '').length; });
+            return Math.round(n / 1024);
+        }
+        function scorda() { vivo.giorno = null; vivo.dati = null; vivo.sporco = false; }
+
+        setInterval(versa, 20000);
+        window.addEventListener('pagehide', versa);
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'hidden') versa();
+        });
+
+        return { oggi: oggi, nomeGiorno: nomeGiorno, leggi: leggi, scrivi: scrivi,
+                 segna: segna, versa: versa, scorda: scorda,
+                 giorni: giorni, pota: pota, cancellaTutto: cancellaTutto,
+                 pesoKB: pesoKB, MAX_PUNTI: MAX_PUNTI };
+    })();
+
+    /* regole di annotazione: senza queste la scia diventa un gomitolo,
+       perche' il GPS fermo balla lo stesso di venti metri */
+    var PASSO_METRI   = 25;    /* sotto questo non e' movimento */
+    var VEL_ASSURDA   = 90;    /* m/s (~320 km/h): e' un salto del GPS, non un viaggio */
+    var BUCO          = 900;   /* secondi: oltre, la pagina era chiusa. La linea si spezza */
+    var SOSTA_SECONDI = 420;   /* 7 minuti fermo nello stesso posto = sosta */
+    var CASA_METRI    = 150;
+
+    /* =================================================================
+       2. COSE DI SERVIZIO
+       ================================================================= */
+    var TAVOLOZZA = ['#0A84FF', '#FF375F', '#30D158', '#FF9F0A',
+                     '#BF5AF2', '#00C7BE', '#FF6482', '#5E5CE6'];
+
+    /* Il nome di un dispositivo arriva da /api/location/update, che il server
+       accetta senza chiedere chi sia. Quindi e' testo scritto da uno sconosciuto
+       e non puo' mai entrare nella pagina cosi' com'e': passa sempre di qui. */
+    function pulito(testo) {
+        return String(testo === null || testo === undefined ? '' : testo)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    /* le frasi delle conferme si leggono dalla pagina, gia' tradotte */
+    function frase(id) {
+        var e = document.getElementById(id);
+        return e ? e.textContent.trim() : '';
+    }
+
+    function coloreDi(nome) {
+        var h = 0;
+        for (var i = 0; i < nome.length; i++) h = nome.charCodeAt(i) + ((h << 5) - h);
+        return TAVOLOZZA[Math.abs(h) % TAVOLOZZA.length];
+    }
+    function iniziale(nome) {
+        var p = (nome || '?').trim().split(/\s+/);
+        return (p[0][0] + (p.length > 1 ? p[1][0] : '')).toUpperCase();
+    }
+    function distanza(la1, lo1, la2, lo2) {          /* metri, formula dell'emisenoverso */
+        var R = 6371000, r = Math.PI / 180;
+        var dLa = (la2 - la1) * r, dLo = (lo2 - lo1) * r;
+        var a = Math.sin(dLa / 2) * Math.sin(dLa / 2) +
+                Math.cos(la1 * r) * Math.cos(la2 * r) * Math.sin(dLo / 2) * Math.sin(dLo / 2);
+        return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+    /* I punti portano l'orario VERO (secondi dal 1970), non i secondi da
+       mezzanotte: con i secondi da mezzanotte, una pagina lasciata aperta a
+       cavallo della notte calcola distanze e durate all'indietro. */
+    function adesso() { return Math.floor(Date.now() / 1000); }
+    function comeOra(t) {
+        var d = new Date(t * 1000);
+        return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+    function comeDurata(s) {
+        if (s < 3600) return Math.round(s / 60) + ' min';
+        var h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
+        return h + ' h' + (m ? ' ' + m : '');
+    }
+    function comeStrada(m) {
+        return m < 1000 ? Math.round(m) + ' m' : (m / 1000).toFixed(1) + ' km';
+    }
+    function conservaScelta(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function ricordaScelta(k, d)  { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+
+    /* =================================================================
+       3. LA MAPPA
+       Piastrelle vettoriali OpenFreeMap: nessuna chiave, uso commerciale
+       permesso, e lo stesso identico servizio si puo' ospitare da soli
+       cambiando questo indirizzo. L'attribuzione e' obbligatoria e la
+       mette MapLibre da sola.
+       ================================================================= */
+    var STILI = {
+        giorno: 'https://tiles.openfreemap.org/styles/positron',
+        notte:  'https://tiles.openfreemap.org/styles/dark'
+    };
+    var notte = ricordaScelta('wh_mappa_notte', '0') === '1';
+    if (notte) document.body.classList.add('notte');
+
+    var map = new maplibregl.Map({
+        container: 'map',
+        style: notte ? STILI.notte : STILI.giorno,
+        center: [12.4964, 41.9028],
+        zoom: 4.6,
+        attributionControl: { compact: true },
+        dragRotate: true,
+        pitchWithRotate: true
+    });
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+
+    var casa = null;              /* {lat, lon, name} */
+    var segnoCasa = null;
+    var segni = {};               /* nome -> {marker, elemento} */
+    var elenco = [];              /* le persone dell'ultimo giro */
+    var nascosti = {};            /* nome -> true: scia spenta */
+    var scelto = null;            /* la persona selezionata nell'elenco */
+    var giornoScelto = MEM.oggi();
+    var registra = ricordaScelta('wh_percorso_attivo', '1') === '1';
+    var primoGiro = true;
+    var mappaPronta = false;
+
+    /* --- i livelli delle scie: si aggiungono una volta sola --- */
+    function preparaLivelli() {
+        if (map.getSource('scie')) return;
+
+        map.addSource('scie', { type: 'geojson', data: vuoto(), lineMetrics: true });
+        map.addSource('soste', { type: 'geojson', data: vuoto() });
+
+        /* l'alone: e' quello che fa sembrare la scia luminosa invece che disegnata */
+        map.addLayer({
+            id: 'scie-alone', type: 'line', source: 'scie',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+                'line-color': ['get', 'colore'],
+                'line-width': ['interpolate', ['linear'], ['zoom'], 8, 6, 16, 16],
+                'line-opacity': 0.16, 'line-blur': 6
+            }
+        });
+        map.addLayer({
+            id: 'scie-linea', type: 'line', source: 'scie',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: {
+                'line-color': ['get', 'colore'],
+                'line-width': ['interpolate', ['linear'], ['zoom'], 8, 1.6, 16, 4],
+                'line-opacity': ['case', ['==', ['get', 'recente'], 1], 0.95, 0.42]
+            }
+        });
+        /* i tratti mancanti (pagina chiusa) si vedono per quello che sono:
+           tratteggiati, non inventati */
+        map.addLayer({
+            id: 'scie-buchi', type: 'line', source: 'scie',
+            filter: ['==', ['get', 'buco'], 1],
+            layout: { 'line-cap': 'butt' },
+            paint: {
+                'line-color': ['get', 'colore'], 'line-width': 1.4,
+                'line-opacity': 0.35, 'line-dasharray': [1.5, 2.5]
+            }
+        });
+        map.addLayer({
+            id: 'soste-cerchio', type: 'circle', source: 'soste',
+            paint: {
+                'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, 4, 16, 9],
+                'circle-color': ['get', 'colore'],
+                'circle-opacity': 0.9,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': notte ? '#181A20' : '#FFFFFF'
+            }
+        });
+        map.addLayer({
+            id: 'soste-scritta', type: 'symbol', source: 'soste',
+            minzoom: 12,
+            layout: {
+                'text-field': ['get', 'quanto'],
+                'text-font': ['Noto Sans Regular'],
+                'text-size': 11, 'text-offset': [0, 1.3], 'text-anchor': 'top',
+                'text-allow-overlap': false
+            },
+            paint: {
+                'text-color': notte ? '#F2F3F5' : '#1C1C1E',
+                'text-halo-color': notte ? '#0E1014' : '#FFFFFF',
+                'text-halo-width': 1.6
+            }
+        });
+
+        map.addSource('casa', { type: 'geojson', data: vuoto() });
+        map.addLayer({
+            id: 'casa-cerchio', type: 'circle', source: 'casa',
+            paint: {
+                'circle-radius': ['interpolate', ['exponential', 2], ['zoom'],
+                                  10, 3, 20, ['/', 4194304, ['^', 2, 4]]],
+                'circle-color': '#0A84FF', 'circle-opacity': 0.07,
+                'circle-stroke-width': 1, 'circle-stroke-color': '#0A84FF',
+                'circle-stroke-opacity': 0.28
+            }
+        }, 'scie-alone');
+    }
+    function vuoto() { return { type: 'FeatureCollection', features: [] }; }
+
+    /* 'style.load' e non 'load': il primo scatta appena lo stile e' letto, il secondo
+       aspetta anche l'ultima piastrella. Su una connessione lenta la differenza sono
+       secondi in cui il cliente guarda una mappa vuota senza i suoi. Scatta anche a
+       ogni cambio di stile (giorno/notte), che azzera i livelli nostri. */
+    map.on('style.load', function () {
+        mappaPronta = true;
+        preparaLivelli();
+        disegnaScie();
+        if (casa) mostraCasa();
+        aggiornaSegni();
+        if (primoGiro && elenco.length) { primoGiro = false; inquadraTutti(); }
+    });
+
+    /* =================================================================
+       4. ANNOTARE I PUNTI
+       ================================================================= */
+    /* Un punto e' [orario, lat, lon, fermo]: 'fermo' sono i secondi che quella
+       persona e' rimasta li' mentre la guardavamo. Chi sta in casa tutto il giorno
+       occupa UN punto, non trecento: e la sosta diventa un dato che abbiamo
+       osservato, non una cosa indovinata rimettendo insieme i puntini. */
+    function annota(nome, lat, lon) {
+        if (!registra) return;
+        var g = MEM.oggi();
+        var dati = MEM.leggi(g);
+        var scia = dati[nome] || (dati[nome] = []);
+        var t = adesso();
+        var u = scia[scia.length - 1];
+
+        if (!u) {
+            scia.push([t, +lat.toFixed(5), +lon.toFixed(5), 0]);
+        } else {
+            var vistoFinoA = u[0] + (u[3] || 0);
+            var pausa = t - vistoFinoA;
+            var d = distanza(u[1], u[2], lat, lon);
+
+            if (pausa > BUCO) {
+                /* la pagina era chiusa: non sappiamo cosa e' successo in mezzo.
+                   Si comincia un punto nuovo, e il vuoto restera' un vuoto. */
+                scia.push([t, +lat.toFixed(5), +lon.toFixed(5), 0]);
+            } else if (d < PASSO_METRI) {
+                u[3] = t - u[0];                     /* fermo li': allungo la sosta */
+            } else if (pausa > 0 && d / pausa > VEL_ASSURDA) {
+                return;                              /* salto impossibile: e' il GPS che sbaglia */
+            } else {
+                scia.push([t, +lat.toFixed(5), +lon.toFixed(5), 0]);
+            }
+        }
+
+        if (scia.length > MEM.MAX_PUNTI) scia.splice(0, scia.length - MEM.MAX_PUNTI);
+        MEM.segna(g, dati);
+        if (g === giornoScelto) disegnaScie();
+    }
+
+    /* =================================================================
+       5. DISEGNARE LE SCIE
+       ================================================================= */
+    function disegnaScie() {
+        if (!mappaPronta || !map.getSource('scie')) return;
+
+        var dati   = MEM.leggi(giornoScelto);
+        var linee  = vuoto();
+        var soste  = vuoto();
+        var strada = 0, quanteSoste = 0;
+        var ora    = adesso();
+
+        Object.keys(dati).forEach(function (nome) {
+            if (nascosti[nome]) return;
+            if (scelto && scelto !== nome) return;
+            var punti = dati[nome];
+            if (!punti || !punti.length) return;
+            var colore = coloreDi(nome);
+
+            /* --- la linea, spezzata dove la pagina era chiusa ---
+               Un vuoto non si chiude mai con una linea piena: quella sarebbe una
+               strada che nessuno ci ha detto essere stata percorsa. Resta un
+               tratteggio, che si legge per quello che e': qui non sappiamo. */
+            var tratto = [punti[0]];
+            function chiudi(recente) {
+                if (tratto.length >= 2) {
+                    linee.features.push({
+                        type: 'Feature',
+                        properties: { nome: nome, colore: colore, recente: recente ? 1 : 0, buco: 0 },
+                        geometry: { type: 'LineString', coordinates: tratto.map(function (p) { return [p[2], p[1]]; }) }
+                    });
+                }
+                tratto = [];
+            }
+            for (var i = 1; i < punti.length; i++) {
+                var prima = punti[i - 1];
+                var pausa = punti[i][0] - (prima[0] + (prima[3] || 0));
+                strada += distanza(prima[1], prima[2], punti[i][1], punti[i][2]);
+                if (pausa > BUCO) {
+                    chiudi(false);
+                    linee.features.push({
+                        type: 'Feature',
+                        properties: { nome: nome, colore: colore, recente: 0, buco: 1 },
+                        geometry: { type: 'LineString', coordinates: [
+                            [prima[2], prima[1]], [punti[i][2], punti[i][1]] ] }
+                    });
+                    tratto = [punti[i]];
+                } else {
+                    tratto.push(punti[i]);
+                }
+            }
+            chiudi(false);
+
+            /* l'ultima mezz'ora si accende: e' "dove sta andando adesso" */
+            var coda = [];
+            for (var j = punti.length - 1; j >= 0 && ora - punti[j][0] < 1800; j--) coda.unshift(punti[j]);
+            if (coda.length >= 2) {
+                linee.features.push({
+                    type: 'Feature',
+                    properties: { nome: nome, colore: colore, recente: 1, buco: 0 },
+                    geometry: { type: 'LineString', coordinates: coda.map(function (p) { return [p[2], p[1]]; }) }
+                });
+            }
+
+            /* --- le soste ---
+               Non si indovinano rimettendo insieme i puntini: sono scritte sul
+               punto stesso, perche' le abbiamo viste succedere. Quello che
+               diciamo e' quanto l'abbiamo GUARDATA, e per questo si scrive
+               "almeno": se la pagina e' stata chiusa, la sosta e' durata di piu'. */
+            punti.forEach(function (pt, k) {
+                var fermo = pt[3] || 0;
+                if (fermo < SOSTA_SECONDI) return;
+                quanteSoste++;
+                var tagliata = (k === punti.length - 1) ||
+                               (punti[k + 1][0] - (pt[0] + fermo) > BUCO);
+                soste.features.push({
+                    type: 'Feature',
+                    properties: {
+                        colore: colore, nome: nome,
+                        quanto: (tagliata ? 'almeno ' : '') + comeDurata(fermo),
+                        orario: comeOra(pt[0]) + ' \u2013 ' + comeOra(pt[0] + fermo)
+                    },
+                    geometry: { type: 'Point', coordinates: [pt[2], pt[1]] }
+                });
+            });
+        });
+
+        map.getSource('scie').setData(linee);
+        map.getSource('soste').setData(soste);
+
+        document.getElementById('n-strada').textContent = comeStrada(strada);
+        document.getElementById('n-soste').textContent  = quanteSoste;
+        document.getElementById('n-spazio').textContent = MEM.pesoKB() + ' KB';
+    }
+
+    /* =================================================================
+       6. LE PERSONE
+       ================================================================= */
+    function aggiornaSegni() {
+        if (!mappaPronta) return;
+        var vivi = {};
+
+        elenco.forEach(function (p) {
+            vivi[p.name] = true;
+            var colore = coloreDi(p.name);
+            var s = segni[p.name];
+
+            if (!s) {
+                var el = document.createElement('div');
+                el.className = 'segno';
+                el.innerHTML =
+                    '<div class="bolla" style="background:' + colore + ';--c:' + colore + '">' +
+                        pulito(iniziale(p.name)) +
+                    '</div>' +
+                    '<div class="cartellino" data-no-tr></div>';
+                el.querySelector('.cartellino').textContent = p.name;
+                el.addEventListener('click', function () { scegli(p.name); });
+                var m = new maplibregl.Marker({ element: el, anchor: 'center' })
+                            .setLngLat([p.lon, p.lat]).addTo(map);
+                s = segni[p.name] = { marker: m, el: el };
+            } else {
+                s.marker.setLngLat([p.lon, p.lat]);
+            }
+            s.el.classList.toggle('muove', !!p.muove);
+            s.el.style.opacity = (scelto && scelto !== p.name) ? 0.35 : 1;
+        });
+
+        Object.keys(segni).forEach(function (n) {
+            if (!vivi[n]) { segni[n].marker.remove(); delete segni[n]; }
+        });
+    }
+
+    function mostraCasa() {
+        if (!casa || !mappaPronta) return;
+        if (map.getSource('casa')) {
+            map.getSource('casa').setData({
+                type: 'FeatureCollection',
+                features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [casa.lon, casa.lat] } }]
+            });
+        }
+        if (!segnoCasa) {
+            var el = document.createElement('div');
+            el.className = 'segno-casa';
+            el.innerHTML = '<i data-lucide="home"></i>';
+            segnoCasa = new maplibregl.Marker({ element: el, anchor: 'center' })
+                            .setLngLat([casa.lon, casa.lat])
+                            .setPopup(new maplibregl.Popup({ offset: 20, closeButton: false })
+                                .setHTML('<div class="pop-nome" data-no-tr>' + pulito(casa.name) + '</div>'))
+                            .addTo(map);
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function scegli(nome) {
+        scelto = (scelto === nome) ? null : nome;
+        disegnaScie();
+        aggiornaSegni();
+        disegnaElenco();
+        if (scelto) centraSu(scelto);
+    }
+    function centraSu(nome) {
+        var p = elenco.filter(function (x) { return x.name === nome; })[0];
+        if (p) map.flyTo({ center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200, essential: true });
+    }
+
+    /* =================================================================
+       7. L'ELENCO NEL PANNELLO
+       ================================================================= */
+    function disegnaElenco() {
+        var cont = document.getElementById('elenco');
+        document.getElementById('conteggio').textContent = elenco.length;
+
+        if (!elenco.length) {
+            cont.innerHTML = '<div class="vuoto">Nessun utente attivo</div>';
+            return;
+        }
+        var html = '';
+        elenco.forEach(function (p) {
+            var colore = coloreDi(p.name);
+            var stato, luce = '';
+            if (p.aCasa)      { stato = 'A casa'; }
+            else if (p.muove) { stato = 'In movimento'; }
+            else              { stato = 'Fermo'; luce = ' giallo'; }
+
+            html +=
+            '<div class="scheda' + (nascosti[p.name] ? ' spenta' : '') + (scelto === p.name ? ' scelta' : '') + '" data-nome="' + pulito(p.name) + '">' +
+                '<div class="gettone" style="background:' + colore + ';--c:' + colore + '">' + iniziale(p.name) + '</div>' +
+                '<div class="dati">' +
+                    '<div class="nome" data-no-tr>' + pulito(p.name) + '</div>' +
+                    '<div class="stato"><span class="lucina' + luce + '"></span>' + stato + '</div>' +
+                '</div>' +
+                '<div class="azioni">' +
+                    '<button class="tastino" data-fa="scia" title="Percorsi"><i data-lucide="' + (nascosti[p.name] ? 'eye-off' : 'eye') + '"></i></button>' +
+                    '<button class="tastino" data-fa="centra" title="Centra"><i data-lucide="locate-fixed"></i></button>' +
+                    (SONO_ADMIN ? '<button class="tastino pericolo" data-fa="togli" title="Elimina la posizione"><i data-lucide="trash-2"></i></button>' : '') +
+                '</div>' +
+            '</div>';
+        });
+        cont.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    document.getElementById('elenco').addEventListener('click', function (e) {
+        var scheda = e.target.closest('.scheda');
+        if (!scheda) return;
+        var nome = scheda.getAttribute('data-nome');
+        var bot  = e.target.closest('.tastino');
+
+        if (!bot) { scegli(nome); return; }
+        var fa = bot.getAttribute('data-fa');
+
+        if (fa === 'centra') { centraSu(nome); }
+        else if (fa === 'scia') {
+            if (nascosti[nome]) delete nascosti[nome]; else nascosti[nome] = true;
+            disegnaScie(); disegnaElenco();
+        }
+        else if (fa === 'togli') { togliUtente(nome); }
+    });
+
+    function togliUtente(nome) {
+        if (!SONO_ADMIN) return;
+        var p = elenco.filter(function (x) { return x.name === nome; })[0];
+        if (!p) return;
+        /* sul pannello a muro un dito di troppo cancellava la posizione senza
+           chiedere niente: e' irreversibile finche' quel telefono non si rifa' vivo */
+        if (!confirm(frase('dom-elimina') + ' ' + nome + '?')) return;
+        fetch('/api/location/users/' + encodeURIComponent(p.id), { method: 'DELETE' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (d.status === 'success') {
+                    if (segni[nome]) { segni[nome].marker.remove(); delete segni[nome]; }
+                    aggiornaPosizioni();
+                }
+            })
+            .catch(function () {});
+    }
+
+    /* =================================================================
+       8. IL GIRO DELLE POSIZIONI
+       Stessa API di prima e stesso filtro anti-doppioni: l'app nativa
+       vince sul "_webapp" della stessa persona.
+       ================================================================= */
+    function aggiornaPosizioni() {
+        fetch('/api/location/users')
+            .then(function (r) { return r.json(); })
+            .then(function (grezzi) {
+                var unici = {};
+                grezzi.forEach(function (u) {
+                    var pulito = String(u.name || '').replace(/ \(Web\)/gi, '').trim();
+                    if (!pulito) return;
+                    if (!unici[pulito] || String(u.id).indexOf('_webapp') === -1) {
+                        unici[pulito] = { id: u.id, name: pulito, lat: +u.lat, lon: +u.lon };
+                    }
+                });
+
+                var prima = {};
+                elenco.forEach(function (p) { prima[p.name] = p; });
+
+                elenco = Object.keys(unici).map(function (n) {
+                    var p = unici[n], v = prima[n];
+                    p.muove = v ? distanza(v.lat, v.lon, p.lat, p.lon) > PASSO_METRI : false;
+                    p.aCasa = casa ? distanza(casa.lat, casa.lon, p.lat, p.lon) < CASA_METRI : false;
+                    annota(p.name, p.lat, p.lon);
+                    return p;
+                });
+
+                disegnaElenco();
+                aggiornaSegni();
+
+                if (primoGiro && elenco.length) { primoGiro = false; inquadraTutti(); }
+            })
+            .catch(function (e) { console.warn('[mappa] giro delle posizioni non riuscito:', e); });
+    }
+
+    function inquadraTutti() {
+        var punti = elenco.map(function (p) { return [p.lon, p.lat]; });
+        if (casa) punti.push([casa.lon, casa.lat]);
+        if (!punti.length) return;
+        if (punti.length === 1) { map.flyTo({ center: punti[0], zoom: 15, duration: 1200 }); return; }
+
+        /* Il margine deve stare fuori dai pannelli, ma non puo' essere piu' largo
+           dello schermo: sul telefono il pannello sta in basso, non a sinistra,
+           e un margine sinistro da 380px su uno schermo da 375 non lascia spazio
+           a niente e l'inquadratura non viene fatta. */
+        var largo = map.getContainer().clientWidth;
+        var alto  = map.getContainer().clientHeight;
+        var telefono = largo <= 860;
+        var m = {
+            top:    Math.min(90, Math.round(alto * 0.12)),
+            bottom: telefono ? Math.min(Math.round(alto * 0.42), alto - 120) : Math.min(90, Math.round(alto * 0.12)),
+            left:   telefono ? 40 : Math.min(380, Math.round(largo * 0.34)),
+            right:  40
+        };
+        var b = punti.reduce(function (acc, c) { return acc.extend(c); },
+                             new maplibregl.LngLatBounds(punti[0], punti[0]));
+        map.fitBounds(b, { padding: m, maxZoom: 16, duration: 1200 });
+    }
+
+    /* =================================================================
+       9. I COMANDI
+       ================================================================= */
+    document.getElementById('btn-tutti').addEventListener('click', inquadraTutti);
+    document.getElementById('btn-casa').addEventListener('click', function () {
+        if (casa) map.flyTo({ center: [casa.lon, casa.lat], zoom: 16, duration: 1200 });
+    });
+    document.getElementById('btn-inclina').addEventListener('click', function () {
+        var giu = map.getPitch() < 20;
+        this.classList.toggle('acceso', giu);
+        map.easeTo({ pitch: giu ? 55 : 0, duration: 900 });
+    });
+    document.getElementById('btn-notte').addEventListener('click', function () {
+        notte = !notte;
+        document.body.classList.toggle('notte', notte);
+        conservaScelta('wh_mappa_notte', notte ? '1' : '0');
+        this.querySelector('i').setAttribute('data-lucide', notte ? 'sun' : 'moon');
+        if (window.lucide) lucide.createIcons();
+        segnoCasa = null;                     /* il segno di casa viene ricreato con lo stile */
+        map.setStyle(notte ? STILI.notte : STILI.giorno);
+    });
+
+    var lev = document.getElementById('interruttore-reg');
+    lev.checked = registra;
+    lev.addEventListener('change', function () {
+        registra = this.checked;
+        conservaScelta('wh_percorso_attivo', registra ? '1' : '0');
+    });
+
+    document.getElementById('svuota').addEventListener('click', function () {
+        if (!confirm(frase('dom-svuota'))) return;
+        MEM.cancellaTutto();
+        disegnaGiorni();
+        disegnaScie();
+    });
+
+    document.getElementById('maniglia').addEventListener('click', function () {
+        document.body.classList.toggle('chiuso');
+    });
+
+    /* --- i giorni disponibili --- */
+    function disegnaGiorni() {
+        var cont = document.getElementById('giorni');
+        var g = MEM.giorni();
+        var oggi = MEM.oggi();
+        var ieri = MEM.nomeGiorno(new Date(Date.now() - 86400000));
+        if (g.indexOf(oggi) === -1) g.unshift(oggi);
+        if (giornoScelto && g.indexOf(giornoScelto) === -1) giornoScelto = oggi;
+
+        cont.innerHTML = g.slice(0, 7).map(function (x) {
+            var eti = x === oggi ? 'Oggi' : (x === ieri ? 'Ieri' : x.slice(8) + '/' + x.slice(5, 7));
+            return '<button class="giorno' + (x === giornoScelto ? ' scelto' : '') + '" data-g="' + x + '">' + eti + '</button>';
+        }).join('');
+    }
+    document.getElementById('giorni').addEventListener('click', function (e) {
+        var b = e.target.closest('.giorno');
+        if (!b) return;
+        giornoScelto = b.getAttribute('data-g');
+        disegnaGiorni();
+        disegnaScie();
+    });
+
+    /* --- il palloncino delle soste --- */
+    map.on('click', 'soste-cerchio', function (e) {
+        var f = e.features && e.features[0];
+        if (!f) return;
+        new maplibregl.Popup({ offset: 12 })
+            .setLngLat(f.geometry.coordinates)
+            .setHTML('<div class="pop-nome" data-no-tr>' + pulito(f.properties.nome) + '</div>' +
+                     '<div class="pop-riga">' + pulito(f.properties.quanto) + ' · <span data-no-tr>' +
+                     pulito(f.properties.orario) + '</span></div>')
+            .addTo(map);
+    });
+    map.on('mouseenter', 'soste-cerchio', function () { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'soste-cerchio', function () { map.getCanvas().style.cursor = ''; });
+
+    /* =================================================================
+       10. OROLOGIO
+       ================================================================= */
+    function orologio() {
+        var d = new Date();
+        document.getElementById('ora').textContent =
+            String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+        document.getElementById('data').textContent =
+            d.toLocaleDateString(document.documentElement.lang || 'it', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+
+    /* =================================================================
+       11. IL TRACCIAMENTO GPS DI QUESTO DISPOSITIVO
+       Identico a prima: se siamo dentro l'app iOS nativa non si tocca
+       niente, perche' li' il GPS lo gestisce l'app.
+       ================================================================= */
+    function appNativaIOS() {
+        var ua = navigator.userAgent;
+        return /iPhone|iPad|iPod/i.test(ua) && /WebKit/i.test(ua) &&
+               !/Safari/i.test(ua) && window.navigator.standalone !== true;
+    }
+    var guardia = null, ultimoInvio = 0;
+    function avviaTracciamento() {
+        if (appNativaIOS()) return;
+        if (!('geolocation' in navigator)) return;
+        guardia = navigator.geolocation.watchPosition(
+            function (pos) {
+                var ora = Date.now();
+                if (ora - ultimoInvio <= 20000) return;
+                ultimoInvio = ora;
+                fetch('/api/location/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_id: IO_UTENTE + '_webapp',
+                        name: IO_UTENTE + ' (Web)',
+                        lat: pos.coords.latitude,
+                        lon: pos.coords.longitude
+                    })
+                }).catch(function () {});
+            },
+            function () {},
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 27000 }
+        );
+        setInterval(function () {
+            if (navigator.geolocation && guardia !== null) {
+                navigator.geolocation.getCurrentPosition(function () {}, function () {}, { maximumAge: 60000, timeout: 5000 });
+            }
+        }, 15000);
+    }
+
+    /* =================================================================
+       12. AVVIO
+       ================================================================= */
+    if (window.lucide) lucide.createIcons();
+    MEM.pota();
+    disegnaGiorni();
+    orologio();
+    setInterval(orologio, 1000);
+
+    fetch('/api/location')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d && d.lat && d.lon) { casa = { lat: +d.lat, lon: +d.lon, name: d.name }; mostraCasa(); }
+        })
+        .catch(function () {});
+
+    aggiornaPosizioni();
+    setInterval(aggiornaPosizioni, 5000);
+    window.addEventListener('load', avviaTracciamento);
+    window.addEventListener('resize', function () { map.resize(); });
+})();
+</script>
+</body>
+</html>
