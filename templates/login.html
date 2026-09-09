@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#040407">
+
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Orion Home">
+
+    <title>Accedi | Wach0ss Home Smart Home</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+    /* =====================================================================
+       ACCESSO — LA CASA AL BUIO
+       Una stanza vera: la finestra con la notte fuori, il tavolino, la
+       lampada. Si tira la cordicella, la luce si accende con un guizzo e
+       la casa si sveglia. Tutto disegnato qui dentro: nessuna immagine da
+       scaricare, funziona anche su un impianto senza internet.
+       ===================================================================== */
+    :root {
+        --luce:       #FFD9A0;
+        --luce-forte: #FFF0D2;
+        --ambra:      #FFB865;
+        --luna:       #7FA6FF;
+        --blu:        #0A84FF;
+        --testo:      #F4F4F8;
+        --fioco:      rgba(244,244,248,0.52);
+        --bordo:      rgba(255,255,255,0.13);
+        --danger:     #FF453A;
+        --t:          1.6s;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+        margin: 0; padding: 0; height: 100%; overflow: hidden;
+        background: #040407; color: var(--testo);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* ================= LA STANZA ======================================== */
+    /* Dove sta il centro della lampada. Il palco e' una riga: lampada, spazio, riquadro,
+       il tutto centrato. Quindi la lampada e' spostata a sinistra di mezzo riquadro piu'
+       mezzo spazio. Serve per far partire le luci DALLA LAMPADA e non dal centro dello
+       schermo, che e' l'errore che si vedeva prima. */
+    :root {
+        --lamp-l:    clamp(180px, 26vw, 330px);                        /* quanto e' larga la lampada */
+        --lampx:     calc(50% - (clamp(24px, 7vw, 110px) + 410px) / 2); /* dove sta, in orizzontale */
+        --lamp-piede: calc(24.5vh - 0.0409 * var(--lamp-l));            /* il piede, dal fondo dello schermo */
+        --lamp-orlo:  calc(var(--lamp-piede) + 0.678 * var(--lamp-l));  /* l'orlo basso del paralume */
+        --lamp-cima:  calc(var(--lamp-piede) + 1.26 * var(--lamp-l));   /* l'orlo alto del paralume */
+    }
+
+    .scena { position: fixed; inset: 0; overflow: hidden; z-index: 0; perspective: 1200px; }
+    .strato { position: absolute; inset: -4%; will-change: transform; transition: transform 0.9s cubic-bezier(0.22,1,0.36,1); }
+
+    /* il muro: la notte, poi il caldo della lampada */
+    .muro {
+        background:
+            radial-gradient(90% 70% at 22% 8%, rgba(90,130,220,0.10) 0%, rgba(0,0,0,0) 55%),
+            linear-gradient(175deg, #0B0C14 0%, #07070C 48%, #030305 100%);
+        transition: background var(--t) ease;
+    }
+    body.accesa .muro {
+        background:
+            radial-gradient(80% 60% at 22% 6%, rgba(90,130,220,0.07) 0%, rgba(0,0,0,0) 50%),
+            /* la macchia calda: sta sopra la lampada e cade piano allontanandosi */
+            radial-gradient(62% 46% at var(--lampx) 44%, rgba(255,190,116,0.30) 0%, rgba(255,152,78,0.10) 42%, rgba(0,0,0,0) 74%),
+            radial-gradient(120% 90% at var(--lampx) 44%, rgba(255,160,90,0.10) 0%, rgba(0,0,0,0) 62%),
+            linear-gradient(175deg, #1B1826 0%, #121019 50%, #08070C 100%);
+    }
+    /* battiscopa: dà profondità alla parete */
+    .muro::after {
+        content: ''; position: absolute; left: 0; right: 0; bottom: 26%; height: 2px;
+        background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.02) 100%);
+    }
+
+    /* ---- LA FINESTRA: si vede anche al buio, ed è la cosa che dà respiro -- */
+    .finestra {
+        position: absolute; left: 9%; top: 15%; width: 17vw; min-width: 170px; height: 34vh; min-height: 210px;
+        border-radius: 10px 10px 4px 4px;
+        background: linear-gradient(180deg, #0D1730 0%, #0A1226 55%, #070D1C 100%);
+        box-shadow: inset 0 0 60px rgba(0,0,0,0.75), 0 0 60px rgba(90,130,220,0.10);
+        overflow: hidden;
+        border: 1px solid rgba(160,190,255,0.10);
+    }
+    .finestra::before {   /* la traversa della finestra */
+        content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px;
+        background: rgba(10,12,20,0.9); box-shadow: 0 0 8px rgba(0,0,0,0.6);
+    }
+    .finestra::after {
+        content: ''; position: absolute; left: 0; right: 0; top: 46%; height: 3px;
+        background: rgba(10,12,20,0.9); box-shadow: 0 0 8px rgba(0,0,0,0.6);
+    }
+    /* Con la stanza accesa la finestra si spegne: l'occhio si abitua alla luce vicina
+       e la notte fuori sembra piu' scura. Arriva dopo, non subito. */
+    .stelle { position: absolute; inset: 0; opacity: 0.9; transition: opacity 1.4s ease; }
+    body.accesa .stelle { opacity: 0.40; transition-delay: 0.9s; }
+    body.accesa .citta  { opacity: 0.15; transition-delay: 0.9s; }
+    .stella { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #CFE0FF; }
+    .citta {                       /* le luci lontane della città, sfocate come si vedono davvero */
+        position: absolute; left: 0; right: 0; bottom: 0; height: 26%;
+        background:
+            repeating-linear-gradient(90deg, rgba(255,206,140,0.75) 0 2px, rgba(0,0,0,0) 2px 11px),
+            linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(8,12,24,0.95) 78%);
+        opacity: 0.30; filter: blur(2.2px); transition: opacity 1.4s ease;
+        -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 45%, #000 100%);
+                mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 45%, #000 100%);
+    }
+    /* la luce lunare che entra e si posa sul pavimento */
+    .raggio-luna {
+        position: absolute; left: 4%; top: 10%; width: 34vw; height: 92vh;
+        background: linear-gradient(168deg, rgba(120,160,255,0.10) 0%, rgba(120,160,255,0.03) 40%, rgba(0,0,0,0) 70%);
+        transform: skewX(-11deg); pointer-events: none;
+        transition: opacity var(--t) ease;
+    }
+    body.accesa .raggio-luna { opacity: 0.35; }
+
+    /* ---- IL TAVOLINO ---------------------------------------------------- */
+    .tavolo {
+        position: absolute; left: 0; right: 0; bottom: 0; height: 26%;
+        background: linear-gradient(180deg, #14131A 0%, #0C0B10 40%, #060609 100%);
+        border-top: 1px solid rgba(255,255,255,0.06);
+        transition: background var(--t) ease, box-shadow var(--t) ease;
+    }
+    body.accesa .tavolo {
+        background: linear-gradient(180deg, #2A2320 0%, #191419 45%, #08070B 100%);
+        box-shadow: inset 0 24px 60px rgba(255,170,90,0.10);
+    }
+    /* il piano e' lucidato: appena sotto il bordo restituisce un lustro, e il legno
+       ha una venatura che si legge solo di sbieco, quando la luce lo prende basso */
+    .tavolo::before {
+        content: ''; position: absolute; left: 0; right: 0; top: 0; height: 46%;
+        background:
+            repeating-linear-gradient(91deg, rgba(255,255,255,0.016) 0 2px, rgba(0,0,0,0) 2px 7px),
+            linear-gradient(180deg, rgba(255,236,206,0.055) 0%, rgba(255,220,175,0.014) 42%, rgba(255,210,160,0) 100%);
+        opacity: 0; transition: opacity var(--t) ease 0.36s; pointer-events: none;
+    }
+    body.accesa .tavolo::before { opacity: 1; }
+    /* la pozza di luce sul piano, sotto la lampada */
+    .pozza {
+        position: absolute; bottom: 0; left: var(--lampx); width: 74vmin; height: 26.5%;
+        transform: translateX(-50%);
+        background: radial-gradient(50% 100% at 50% 0%, rgba(255,196,126,0.34) 0%, rgba(255,160,90,0.10) 45%, rgba(0,0,0,0) 76%);
+        opacity: 0; transition: opacity var(--t) ease; pointer-events: none;
+    }
+    .pozza::after {
+        content: ''; position: absolute; left: 50%; top: 0; width: 84px; height: 62%;
+        margin-left: -42px; filter: blur(11px);
+        background: linear-gradient(180deg, rgba(255,206,140,0.30) 0%, rgba(255,180,105,0.08) 55%, rgba(255,170,90,0) 100%);
+    }
+    body.accesa .pozza { opacity: 1; }
+
+    /* Il cono che scende dall'orlo del paralume: parte largo quanto il paralume e si
+       apre fino al tavolo. La forma sta sul figlio, la sfocatura sul padre: cosi' i bordi
+       restano morbidi invece di essere tagliati netti. */
+    .cono {
+        position: absolute; bottom: 0; left: var(--lampx);
+        width: calc(2.05 * var(--lamp-l)); height: var(--lamp-orlo);
+        transform: translateX(-50%);
+        filter: blur(22px); mix-blend-mode: screen;
+        opacity: 0; transition: opacity var(--t) ease; pointer-events: none;
+    }
+    .cono::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(180deg, rgba(255,220,162,0.34) 0%, rgba(255,190,120,0.15) 42%,
+                                            rgba(255,162,92,0.035) 80%, rgba(255,150,80,0) 100%);
+        clip-path: polygon(34% 0%, 66% 0%, 100% 100%, 0% 100%);
+    }
+    body.accesa .cono { opacity: 1; }
+
+    /* L'ombra del paralume esiste solo dove c'e' la lampada: sul telefono nemmeno nasce */
+    .ombra-paralume { display: none; }
+
+    /* E il cono che sale: un paralume aperto sopra manda luce anche al soffitto.
+       E' la meta' che mancava, ed e' quella che fa sembrare la stanza vera. */
+    .cono-su {
+        position: absolute; bottom: var(--lamp-cima); left: var(--lampx);
+        width: calc(1.9 * var(--lamp-l)); height: 40vh;
+        transform: translateX(-50%);
+        filter: blur(26px); mix-blend-mode: screen;
+        opacity: 0; transition: opacity var(--t) ease; pointer-events: none;
+    }
+    .cono-su::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(to top, rgba(255,214,152,0.26) 0%, rgba(255,184,114,0.09) 48%, rgba(255,160,90,0) 100%);
+        clip-path: polygon(0% 0%, 100% 0%, 61% 100%, 39% 100%);
+    }
+    body.accesa .cono-su { opacity: 1; }
+
+    /* ---- LA PIANTA in un angolo ----------------------------------------- */
+    .pianta { position: absolute; right: 2.5%; bottom: 24%; width: 11vw; min-width: 100px; max-width: 150px;
+              opacity: 0.26; transition: opacity var(--t) ease; }
+    body.accesa .pianta { opacity: 0.6; }
+
+    /* ---- IL PANNELLO A MURO che si accende ------------------------------ */
+    .pannello {
+        position: absolute; left: 9%; top: 6%;
+        width: 84px; height: 56px; border-radius: 12px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        transition: background var(--t) ease, border-color var(--t) ease, box-shadow var(--t) ease;
+    }
+    .pannello span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.10); transition: all var(--t) ease; }
+    body.accesa .pannello { background: rgba(255,255,255,0.055); border-color: rgba(255,200,140,0.20); box-shadow: 0 0 26px rgba(255,180,110,0.10); }
+    body.accesa .pannello span:nth-child(1) { background: #30D158; box-shadow: 0 0 10px rgba(48,209,88,0.9); }
+    body.accesa .pannello span:nth-child(2) { background: var(--ambra); box-shadow: 0 0 10px rgba(255,184,101,0.9); }
+    body.accesa .pannello span:nth-child(3) { background: var(--blu);   box-shadow: 0 0 10px rgba(10,132,255,0.9); }
+    @media (max-width: 1150px) { .pannello, .pianta, .finestra, .raggio-luna { display: none; } }
+
+    /* Il bagliore blu che respira: e' lo sfondo storico dell'accesso, quello che il
+       cliente vede sul telefono da sempre. Sul computer c'e' la stanza, quindi resta spento. */
+    .alone-blu {
+        position: absolute; top: 50%; left: 50%; display: none; pointer-events: none;
+        width: 80vw; height: 80vw; max-width: 800px; max-height: 800px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(10,132,255,0.15) 0%, rgba(0,0,0,0) 60%);
+        filter: blur(60px); transform: translate(-50%, -50%);
+        animation: respiroBlu 15s ease-in-out infinite alternate;
+    }
+    @keyframes respiroBlu {
+        0%   { transform: translate(-50%, -50%) scale(0.9); opacity: 0.7; }
+        100% { transform: translate(-50%, -45%) scale(1.1); opacity: 1; }
+    }
+
+    #particle-canvas { position: absolute; inset: 0; opacity: 0.30; transition: opacity var(--t) ease; }
+    body.accesa #particle-canvas { opacity: 1; }
+
+    #lockout-glow {
+        position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease; pointer-events: none;
+        background: radial-gradient(70% 60% at 50% 40%, rgba(255,69,58,0.22) 0%, rgba(0,0,0,0) 70%);
+    }
+
+    /* ---- LE TARGHETTE DELLA DOMOTICA ------------------------------------ */
+    .oggetti { position: absolute; inset: 0; pointer-events: none; }
+    .oggetto {
+        position: absolute; display: flex; align-items: center; gap: 9px;
+        padding: 11px 15px; border-radius: 17px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+        color: rgba(244,244,248,0.78); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.01em;
+        opacity: 0; transform: translateY(14px) scale(0.96);
+        transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.22,1,0.36,1);
+    }
+    body.accesa .oggetto { opacity: 1; transform: none; }
+    .oggetto i { width: 15px; height: 15px; color: var(--ambra); }
+    .oggetto .pallino { width: 6px; height: 6px; border-radius: 50%; background: #30D158; box-shadow: 0 0 9px rgba(48,209,88,0.85); }
+    .oggetto:nth-child(1) { top: 12%; left: 30%;  transition-delay: 0.5s; }
+    .oggetto:nth-child(2) { top: 70%; left: 5%;   transition-delay: 0.68s; }
+    .oggetto:nth-child(3) { top: 11%; right: 4%;  transition-delay: 0.86s; }
+    .oggetto:nth-child(4) { top: 47%; right: 3%;  transition-delay: 1.04s; }
+    @media (max-width: 1250px) { .oggetti { display: none; } }
+
+    /* ================= IL PALCO ========================================= */
+    .palco {
+        position: relative; z-index: 2; height: 100%; width: 100%;
+        display: flex; align-items: center; justify-content: center;
+        gap: clamp(24px, 7vw, 110px); padding: 24px;
+    }
+
+    /* ---- LA LAMPADA ----------------------------------------------------- */
+    /* La scritta esce dal flusso: se occupa spazio alza la lampada e la stacca dal tavolo.
+       E la lampada si aggancia al basso, non al centro: il piede deve finire un dito
+       SOTTO il bordo del tavolo, altrimenti sembra appesa per aria.
+       Il tavolo e' alto 26vh; sotto il piede l'SVG ha un 3% di vuoto; il palco ha 24px
+       di bordo. Da qui il conto. */
+    .lato-lampada {
+        position: relative; display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+        align-self: flex-end;
+        margin-bottom: calc(var(--lamp-piede) - 24px);
+    }
+    .lampada-blocco { position: relative; width: max-content; }
+    .lampada { width: clamp(180px, 26vw, 330px); height: auto; display: block; overflow: visible; }
+
+    .paralume-luce { opacity: 0; transition: opacity 0.5s ease; }
+    body.accesa .paralume-luce { opacity: 1; }
+    /* anche il metallo e la base prendono il caldo della lampadina */
+    .lampada { filter: saturate(0.42) brightness(0.72); transition: filter var(--t) ease; }
+    body.accesa .lampada { filter: saturate(1.06) brightness(1.06) drop-shadow(0 10px 40px rgba(255,170,90,0.25)); }
+
+    .alone {
+        position: absolute; top: 4%; left: 50%; width: 175%; padding-bottom: 175%;
+        transform: translateX(-50%); border-radius: 50%; pointer-events: none;
+        background: radial-gradient(circle, rgba(255,214,150,0.32) 0%, rgba(255,175,95,0.11) 38%, rgba(0,0,0,0) 68%);
+        opacity: 0; transition: opacity var(--t) ease;
+        mix-blend-mode: screen;
+    }
+    body.accesa .alone { opacity: 1; }
+
+    /* il guizzo di accensione: due battiti e poi luce piena */
+    @keyframes guizzo {
+        0%   { opacity: 0; }
+        8%   { opacity: 1; }
+        14%  { opacity: 0.15; }
+        22%  { opacity: 1; }
+        30%  { opacity: 0.45; }
+        100% { opacity: 1; }
+    }
+    body.accesa .paralume-luce, body.accesa .alone { animation: guizzo 1.1s ease-out; }
+    /* quando la luce era gia' accesa (password sbagliata, ricarica, telefono)
+       non si rifa' la scenetta: la stanza e' semplicemente illuminata */
+    /* La stanza non si accende tutta insieme: prima il bulbo, poi la luce che esce,
+       poi il muro che si scalda, per ultimo il piano. Sono decimi di secondo, ma sono
+       quelli che fanno la differenza fra "una luce si e' accesa" e "qualcuno ha acceso
+       la lampada". */
+    .cono            { transition-delay: 0.10s; }
+    .ombra-paralume  { transition-delay: 0.12s; }
+    .cono-su         { transition-delay: 0.17s; }
+    .muro            { transition-delay: 0.18s; }
+    .pozza           { transition-delay: 0.24s; }
+    .tavolo          { transition-delay: 0.32s; }
+
+    /* Dopo l'accensione la luce non resta immobile: respira appena, come una
+       lampadina calda vera. Un sette per cento, non si nota e si sente. */
+    @keyframes fiato { 0%, 100% { opacity: 1; } 50% { opacity: 0.93; } }
+    body.accesa .alone { animation: guizzo 1.1s ease-out, fiato 9s ease-in-out 1.2s infinite; }
+
+    /* Quando la scenetta non si deve rifare (password sbagliata, ricarica, telefono)
+       tutto e' gia' al suo posto: niente attese, niente guizzo. Il respiro resta. */
+    /* i riflessi sul metallo non ci sono finche' non c'e' la lampadina, e sfarfallano
+       insieme a lei: perche' sono lei, rispecchiata nell'ottone e nel bronzo */
+    .riflesso-caldo { opacity: 0; transition: opacity var(--t) ease; }
+    body.accesa .riflesso-caldo { opacity: 1; animation: guizzo 1.1s ease-out; }
+    body.senza-scena .riflesso-caldo { animation: none; transition: none; }
+
+    body.senza-scena .paralume-luce { animation: none; }
+    body.senza-scena .alone { animation: fiato 9s ease-in-out infinite; }
+    body.senza-scena .lato-accesso, body.senza-scena .oggetto,
+    body.senza-scena .muro, body.senza-scena .tavolo, body.senza-scena .tavolo::before,
+    body.senza-scena .cono, body.senza-scena .cono-su, body.senza-scena .ombra-paralume,
+    body.senza-scena .stelle, body.senza-scena .citta,
+    body.senza-scena .pozza, body.senza-scena .pianta, body.senza-scena .pannello { transition: none; }
+    body.senza-scena .oggetto, body.senza-scena .cono, body.senza-scena .cono-su,
+    body.senza-scena .ombra-paralume, body.senza-scena .muro, body.senza-scena .pozza,
+    body.senza-scena .stelle, body.senza-scena .citta,
+    body.senza-scena .tavolo, body.senza-scena .tavolo::before { transition-delay: 0s; }
+
+    /* ---- LA CORDICELLA --------------------------------------------------- */
+    .cordicella {
+        position: absolute; top: 41%; right: 13%;
+        width: 36px; padding: 0; border: none; background: transparent;
+        display: flex; flex-direction: column; align-items: center;
+        cursor: grab; z-index: 3; transform-origin: top center;
+        transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .cordicella:active { cursor: grabbing; }
+    /* a luce accesa la cordicella resta appesa (fa parte della lampada) ma
+       non e' piu' un comando: tirarla di nuovo non spegne niente. */
+    body.accesa .cordicella { pointer-events: none; cursor: default; }
+    .cordicella .filo {
+        width: 2px; height: clamp(54px, 9vh, 92px);
+        background: linear-gradient(180deg, rgba(255,235,200,0.42), rgba(255,225,180,0.16));
+        border-radius: 2px;
+    }
+    .cordicella .pomello {
+        width: 14px; height: 14px; border-radius: 50%; margin-top: -1px;
+        background: radial-gradient(circle at 32% 28%, #FFF6E2, #D8B478 55%, #8A6B3C);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.12) inset, 0 0 14px rgba(255,200,130,0.35);
+    }
+    @keyframes richiamo { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+    body:not(.accesa) .cordicella { animation: richiamo 2.4s ease-in-out infinite; }
+    .cordicella.tirata { transform: translateY(34px); animation: none; }
+    .cordicella:focus-visible { outline: 2px solid var(--ambra); outline-offset: 8px; border-radius: 14px; }
+
+    /* ---- IL SUGGERIMENTO -------------------------------------------------- */
+    .suggerimento {
+        position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+        margin-top: 26px; white-space: nowrap; display: flex; align-items: center; gap: 9px;
+        color: rgba(244,244,248,0.62); font-size: 0.9rem; font-weight: 500; letter-spacing: 0.04em;
+        text-shadow: 0 0 22px rgba(255,200,140,0.28);
+        opacity: 0.95; transition: opacity 0.5s ease;
+    }
+    .suggerimento i { width: 17px; height: 17px; color: var(--ambra); }
+    @keyframes respiro { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+    body:not(.accesa) .suggerimento { animation: respiro 2.6s ease-in-out infinite; }
+    body.accesa .suggerimento { opacity: 0 !important; pointer-events: none; }
+
+    /* ---- IL RIQUADRO DI ACCESSO ------------------------------------------- */
+    .lato-accesso {
+        width: 100%; max-width: 410px;
+        opacity: 0; transform: translateY(28px) scale(0.96); pointer-events: none;
+        transition: opacity 0.9s ease 0.5s, transform 1s cubic-bezier(0.22,1,0.36,1) 0.5s,
+                    max-width 0.9s cubic-bezier(0.22,1,0.36,1), margin 0.9s ease;
+    }
+    body:not(.accesa) .lato-accesso { max-width: 0; margin: 0 -14px; overflow: hidden; }
+    body.accesa .lato-accesso { opacity: 1; transform: none; pointer-events: auto; }
+
+    .glass-card {
+        position: relative;
+        background: linear-gradient(155deg, rgba(40,36,44,0.72) 0%, rgba(22,21,28,0.70) 100%);
+        backdrop-filter: blur(42px) saturate(180%); -webkit-backdrop-filter: blur(42px) saturate(180%);
+        border: 1px solid var(--bordo);
+        border-radius: 32px; padding: 40px 34px; text-align: center;
+        box-shadow: 0 40px 90px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.09);
+    }
+    /* il bordo caldo dal lato della lampada */
+    .glass-card::before {
+        content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+        background: linear-gradient(120deg, rgba(255,196,126,0.55) 0%, rgba(255,255,255,0.06) 42%, rgba(255,255,255,0) 70%);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor; mask-composite: exclude;
+        pointer-events: none;
+    }
+
+    .card-header { margin-bottom: 30px; }
+    .brand-logo {
+        width: 72px; height: 72px; margin: 0 auto 18px auto;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .brand-logo img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 26px rgba(255,190,120,0.35)); }
+    .card-header h1 { margin: 0 0 7px 0; font-size: 1.72rem; font-weight: 800; letter-spacing: -0.03em; }
+    .card-header p  { margin: 0; font-size: 0.9rem; color: var(--fioco); letter-spacing: 0.01em; }
+
+    .input-group { position: relative; margin-bottom: 13px; text-align: left; }
+    .form-input {
+        width: 100%; padding: 16px 16px 16px 48px;
+        background: rgba(255,255,255,0.055);
+        border: 1px solid rgba(255,255,255,0.09);
+        border-radius: 17px; color: var(--testo);
+        font-family: inherit; font-size: 0.97rem;
+        transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+    }
+    .form-input::placeholder { color: rgba(244,244,248,0.34); }
+    .form-input:focus {
+        outline: none; background: rgba(255,255,255,0.085);
+        border-color: rgba(255,200,130,0.6);
+        box-shadow: 0 0 0 4px rgba(255,190,120,0.11);
+    }
+    .input-icon { position: absolute; left: 17px; top: 50%; transform: translateY(-50%); color: rgba(244,244,248,0.38); display: flex; pointer-events: none; }
+    .input-icon i { width: 18px; height: 18px; }
+
+    .btn-primary {
+        width: 100%; margin-top: 10px; padding: 16px;
+        background: linear-gradient(135deg, #FFD08A 0%, #FF9A3D 100%);
+        color: #2A1902; border: none; border-radius: 17px;
+        font-family: inherit; font-size: 1rem; font-weight: 700;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+        box-shadow: 0 14px 34px rgba(255,160,80,0.30);
+        transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.06); box-shadow: 0 18px 40px rgba(255,160,80,0.38); }
+    .btn-primary:active { transform: translateY(0) scale(0.99); }
+
+    .alert-error {
+        display: flex; align-items: center; gap: 10px; text-align: left;
+        background: rgba(255,69,58,0.13); border: 1px solid rgba(255,69,58,0.30);
+        color: #FFB4AE; border-radius: 15px; padding: 12px 15px; margin-bottom: 17px; font-size: 0.86rem;
+    }
+    .alert-error i { width: 17px; height: 17px; flex-shrink: 0; }
+
+    .lockout-container { flex-direction: column; align-items: center; gap: 11px; }
+    .shield-icon { color: var(--danger); }
+    .shield-icon i { width: 46px; height: 46px; }
+    .lockout-container h2 { margin: 0; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; }
+    .lockout-container p  { margin: 0; font-size: 0.88rem; color: var(--fioco); }
+    .countdown-display { margin-top: 12px; font-size: 2.2rem; font-weight: 800; letter-spacing: 0.06em; color: var(--danger); font-variant-numeric: tabular-nums; }
+
+    .wh-lingua-angolo {
+        position: fixed; top: calc(18px + env(safe-area-inset-top)); right: 18px; z-index: 5;
+        opacity: 0.4; transition: opacity 0.6s ease;
+    }
+    .wh-lingua-angolo:hover, body.accesa .wh-lingua-angolo { opacity: 1; }
+
+    /* =====================================================================
+       QUELLO CHE LA LAMPADA ILLUMINA
+       Solo sul computer: sul telefono la lampada non c'e' proprio, quindi
+       tutto questo blocco non deve nemmeno essere letto.
+       ===================================================================== */
+    @media (min-width: 861px) {
+        /* Dietro al paralume il muro NON e' il punto piu' chiaro: il paralume fa
+           ombra alla sua altezza, e la luce passa sopra e sotto. Senza questa fascia
+           la lampada sembra una macchia luminosa incollata al muro. */
+        .ombra-paralume {
+            display: block;
+            position: absolute; left: var(--lampx); bottom: var(--lamp-orlo);
+            width: calc(3.4 * var(--lamp-l)); height: calc(0.62 * var(--lamp-l));
+            transform: translateX(-50%);
+            background: radial-gradient(closest-side, rgba(6,4,10,0.42) 0%, rgba(6,4,10,0.16) 52%, rgba(6,4,10,0) 100%);
+            filter: blur(30px); pointer-events: none;
+            opacity: 0; transition: opacity var(--t) ease;
+        }
+        body.accesa .ombra-paralume { opacity: 1; }
+
+        /* Il riquadro sta nella stanza, e la lampada gli sta a sinistra: quel bordo
+           deve prendere luce, l'altro no. */
+        body.accesa .glass-card {
+            box-shadow: 0 40px 90px rgba(0,0,0,0.65),
+                        inset 0 1px 0 rgba(255,255,255,0.09),
+                        inset 30px 0 70px -34px rgba(255,196,130,0.75),
+                        -22px 0 60px -30px rgba(255,170,95,0.28);
+        }
+
+        /* Le targhette prendono il filo di luce dal lato dove sta la lampada:
+           quella sopra da sotto, quella a sinistra da destra, quelle a destra da sinistra.
+           E piu' sono lontane, meno luce prendono. */
+        body.accesa .oggetto:nth-child(1) { box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 -1px 0 rgba(255,206,146,0.42); }
+        body.accesa .oggetto:nth-child(2) { box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset -1px 0 0 rgba(255,200,140,0.26); }
+        body.accesa .oggetto:nth-child(3) { box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset  1px 0 0 rgba(255,196,134,0.16); }
+        body.accesa .oggetto:nth-child(4) { box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset  1px 0 0 rgba(255,196,134,0.16); }
+
+        /* Il vetro della finestra riflette la lampada: una riga calda sul montante
+           dalla parte giusta, appena accennata. */
+        .finestra { position: absolute; }
+        body.accesa .finestra { box-shadow: inset 0 0 60px rgba(0,0,0,0.75), 0 0 60px rgba(90,130,220,0.10),
+                                            inset -26px 0 44px -30px rgba(255,190,120,0.55); }
+    }
+
+    /* =====================================================================
+       IL TELEFONO — LA GRAFICA DI SEMPRE
+       Sul telefono la stanza con la lampada non c'e': torna esattamente
+       l'accesso che il cliente conosce, fondo nero, bagliore blu che respira,
+       pulviscolo con le linee, riquadro di vetro e tasto bianco.
+       Ogni regola qui sotto rimette i valori originali: colori, raggi,
+       spaziature e caratteri sono quelli di prima, uno per uno.
+       ===================================================================== */
+    @media (max-width: 860px) {
+        /* la stanza sparisce tutta: niente lampada, niente tavolo, niente targhette,
+           e nemmeno le luci che la lampada buttava sul muro */
+        .lato-lampada, .finestra, .raggio-luna, .pianta, .pannello, .oggetti,
+        .pozza, .cono, .cono-su, .ombra-paralume, .tavolo, .muro::after { display: none; }
+
+        /* il fondo: nero pieno, con sopra il bagliore blu */
+        html, body { background: #060606; }
+        .muro { background: #060606 !important; }
+        .alone-blu { display: block; }
+
+        /* il pulviscolo qui e' bianco e collegato, come nell'accesso di sempre */
+        #particle-canvas { opacity: 1; }
+        #lockout-glow { background: radial-gradient(circle at 50% 50%, rgba(255,69,58,0.15) 0%, rgba(0,0,0,0) 70%); filter: blur(40px); }
+
+        /* il riquadro sta al centro dello schermo, largo al massimo 420 */
+        .palco { flex-direction: column; gap: 0; align-items: center; justify-content: center;
+                 padding: 24px 24px calc(24px + env(safe-area-inset-bottom)); }
+        .lato-accesso { max-width: 420px; width: 100%; }
+
+        .glass-card {
+            background: rgba(20,20,22,0.65);
+            backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-top: 1px solid rgba(255,255,255,0.15);
+            border-radius: 28px; padding: 48px 36px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        .glass-card::before { display: none; }   /* niente bordo caldo: qui non c'e' nessuna lampada */
+
+        .card-header { margin-bottom: 40px; }
+        .card-header h1 { font-size: 1.75rem; font-weight: 600; margin-bottom: 8px; }
+        .card-header p  { font-size: 0.95rem; color: #8E8E93; }
+
+        .brand-logo {
+            width: 56px; height: 56px; margin: 0 auto 32px auto; border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.05), 0 8px 16px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+        .brand-logo img { width: 32px; height: 32px; filter: none; }
+
+        .input-group { margin-bottom: 20px; }
+        .form-input {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.08);
+            padding: 16px 16px 16px 52px; border-radius: 16px; font-size: 1rem;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .form-input::placeholder { color: rgba(255,255,255,0.25); }
+        .form-input:focus {
+            background: rgba(10,132,255,0.03);
+            border-color: rgba(10,132,255,0.5);
+            box-shadow: 0 0 0 4px rgba(10,132,255,0.15), inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .input-icon { left: 18px; color: #8E8E93; transition: color 0.3s ease; }
+        .input-icon i { width: 20px; height: 20px; }
+        .form-input:focus + .input-icon { color: #0A84FF; }
+
+        .btn-primary {
+            background: #F5F5F7; color: #060606;
+            padding: 16px; border-radius: 16px; margin-top: 12px;
+            font-size: 1rem; font-weight: 600;
+            box-shadow: 0 8px 20px rgba(255,255,255,0.1);
+        }
+        .btn-primary:hover { filter: none; background: #FFFFFF; box-shadow: 0 12px 25px rgba(255,255,255,0.15); }
+        .btn-primary:active { transform: scale(0.97); }
+
+        .alert-error {
+            background: rgba(255,69,58,0.1); border: 1px solid rgba(255,69,58,0.2);
+            color: #FF453A; border-radius: 14px; padding: 14px 16px; margin-bottom: 24px; font-size: 0.9rem;
+        }
+        .alert-error i { width: 18px; height: 18px; }
+
+        .shield-icon {
+            width: 72px; height: 72px; border-radius: 20px;
+            background: rgba(255,69,58,0.1); border: 1px solid rgba(255,69,58,0.3);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .lockout-container h2 { font-size: 1.5rem; font-weight: 600; }
+        .lockout-container p  { color: #8E8E93; }
+        .countdown-display { color: #FF453A; }
+
+        /* il riquadro entra dal basso, come ha sempre fatto */
+        body.senza-scena .lato-accesso { animation: salitaRiquadro 0.8s cubic-bezier(0.16,1,0.3,1) both; }
+        .wh-lingua-angolo { top: max(16px, env(safe-area-inset-top)); right: 16px; opacity: 1; }
+    }
+    @keyframes salitaRiquadro { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    /* sugli schermi stretti il riquadro si stringeva un po': era cosi' anche prima */
+    @media (max-width: 480px) {
+        .glass-card { padding: 40px 24px; border-radius: 32px; }
+        .card-header h1 { font-size: 1.6rem; }
+        .countdown-display { font-size: 2.2rem; }
+    }
+    @media (max-height: 700px) and (min-width: 861px) { .lampada { width: 128px; } .cordicella .filo { height: 38px; } }
+
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition-duration: 0.01ms !important; } }
+    </style>
+</head>
+<body class="spenta">
+
+    <div class="scena" id="scena">
+        <div class="strato muro" data-p="6"></div>
+        <div class="alone-blu"></div>
+
+        <div class="strato" data-p="14">
+            <div class="finestra">
+                <div class="stelle" id="stelle"></div>
+                <div class="citta"></div>
+            </div>
+            <div class="raggio-luna"></div>
+            <div class="pannello"><span></span><span></span><span></span></div>
+        </div>
+
+        <div class="strato" data-p="10">
+            <svg class="pianta" viewBox="0 0 120 190" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M60 190V96" stroke="#2E3A2E" stroke-width="4" stroke-linecap="round"/>
+                <path d="M60 118C60 118 28 108 20 78c22-2 40 16 40 40Z" fill="#26372A"/>
+                <path d="M60 106C60 106 92 96 100 66c-22-2-40 16-40 40Z" fill="#2C4030"/>
+                <path d="M60 138C60 138 32 132 24 108c20-1 36 12 36 30Z" fill="#223022"/>
+                <path d="M60 128C60 128 88 120 96 98c-20-1-36 12-36 30Z" fill="#283A2C"/>
+                <path d="M44 190h32l-5-32H49z" fill="#3A3038"/>
+                <ellipse cx="60" cy="158" rx="16" ry="4" fill="#4A3E48"/>
+            </svg>
+        </div>
+
+        <canvas id="particle-canvas"></canvas>
+        <div class="ombra-paralume"></div>
+        <div class="cono-su"></div>
+        <div class="cono"></div>
+        <div id="lockout-glow"></div>
+        <div class="tavolo"></div>
+        <div class="pozza"></div>
+
+        <div class="oggetti">
+            <div class="oggetto"><i data-lucide="lightbulb"></i> Luci <span class="pallino"></span></div>
+            <div class="oggetto"><i data-lucide="thermometer"></i> Clima <span class="pallino"></span></div>
+            <div class="oggetto"><i data-lucide="blinds"></i> Tapparelle <span class="pallino"></span></div>
+            <div class="oggetto"><i data-lucide="shield-check"></i> Sicurezza <span class="pallino"></span></div>
+        </div>
+    </div>
+
+    <div class="wh-lingua-angolo">
+<!-- ===== LINGUA: INIZIO =====
+     Selettore della lingua. Autonomo: porta con sé stile e comportamento, non tocca il resto
+     della pagina. Il colore acceso è il blu di Wach0ss, che si legge sia su fondo chiaro sia scuro.
+     Per toglierlo: cancellare da "LINGUA: INIZIO" a "LINGUA: FINE". -->
+<div class="wh-lingua" role="group" aria-label="Lingua / Language">
+    <button type="button" data-l="it" title="Italiano" lang="it">IT</button>
+    <button type="button" data-l="en" title="English" lang="en">EN</button>
+</div>
+<style>
+.wh-lingua { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(127,127,127,0.16);
+             font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; vertical-align: middle; }
+.wh-lingua button { border: 0; background: transparent; color: inherit; opacity: 0.6; padding: 7px 11px; border-radius: 8px;
+                    cursor: pointer; font: inherit; letter-spacing: 0.05em; min-width: 38px; min-height: 30px; }
+.wh-lingua button:hover { opacity: 0.85; }
+.wh-lingua button.on { background: #0A84FF; color: #fff; opacity: 1; }
+.wh-lingua button:focus-visible { outline: 2px solid #0A84FF; outline-offset: 2px; }
+</style>
+<script>
+(function () {
+    // la lingua vera e' quella con cui il server ha servito la pagina (<html lang>), non il
+    // cookie: se l'impianto e' in inglese e il telefono non ha ancora il cookie, il cookie mente
+    var attuale = (document.documentElement.getAttribute('lang') || 'it').slice(0, 2).toLowerCase();
+    document.querySelectorAll('.wh-lingua').forEach(function (box) {
+        box.querySelectorAll('button').forEach(function (b) {
+            if (b.dataset.l === attuale) b.classList.add('on');
+            b.addEventListener('click', function () {
+                if (b.dataset.l === attuale) return;
+                var fine = function () { location.reload(); };
+                fetch('/api/lingua', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                       body: JSON.stringify({ lingua: b.dataset.l }) }).then(function (r) {
+                    // se il server non ha potuto salvarla (per esempio quando le API sono chiuse)
+                    // la lingua si segna lo stesso su questo dispositivo
+                    if (!r || !r.ok) document.cookie = 'wh_lang=' + b.dataset.l + ';path=/;max-age=157680000';
+                    fine();
+                }).catch(function () {
+                    document.cookie = 'wh_lang=' + b.dataset.l + ';path=/;max-age=157680000'; fine();
+                });
+            });
+        });
+    });
+})();
+</script>
+<!-- ===== LINGUA: FINE ===== -->
+    </div>
+
+    <main class="palco">
+
+        <div class="lato-lampada">
+            <div class="lampada-blocco">
+            <div class="alone"></div>
+
+            <svg class="lampada" viewBox="0 0 220 300" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <defs>
+                    <linearGradient id="gTela" x1="0.1" y1="0" x2="0.95" y2="1">
+                        <stop offset="0%"   stop-color="#43424F"/>
+                        <stop offset="42%"  stop-color="#2B2A35"/>
+                        <stop offset="100%" stop-color="#17161E"/>
+                    </linearGradient>
+                    <linearGradient id="gTelaAccesa" x1="0.5" y1="0" x2="0.5" y2="1">
+                        <stop offset="0%"   stop-color="#4E4234"/>
+                        <stop offset="30%"  stop-color="#7A6142"/>
+                        <stop offset="72%"  stop-color="#C69B62"/>
+                        <stop offset="100%" stop-color="#F0C98C"/>
+                    </linearGradient>
+                    <linearGradient id="gOttone" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%"   stop-color="#3C3327"/>
+                        <stop offset="38%"  stop-color="#C4A268"/>
+                        <stop offset="60%"  stop-color="#8A7043"/>
+                        <stop offset="100%" stop-color="#2E2A22"/>
+                    </linearGradient>
+                    <linearGradient id="gBase" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%"   stop-color="#584835"/>
+                        <stop offset="55%"  stop-color="#332A20"/>
+                        <stop offset="100%" stop-color="#181310"/>
+                    </linearGradient>
+                    <radialGradient id="gBulbo" cx="50%" cy="40%" r="60%">
+                        <stop offset="0%"   stop-color="#FFF8E8"/>
+                        <stop offset="45%"  stop-color="#FFD79B"/>
+                        <stop offset="100%" stop-color="rgba(255,170,90,0)"/>
+                    </radialGradient>
+                    <!-- il calore che sale dal basso: la tela si accende verso l'orlo,
+                         in alto resta ancora fredda. E' come si comporta una tela tesa
+                         con la lampadina sotto la meta' del paralume. -->
+                    <radialGradient id="gTelaFuoco" cx="50%" cy="86%" r="64%">
+                        <stop offset="0%"   stop-color="#FFF3D6" stop-opacity="0.95"/>
+                        <stop offset="38%"  stop-color="#FFD8A0" stop-opacity="0.52"/>
+                        <stop offset="100%" stop-color="#FFB86A" stop-opacity="0"/>
+                    </radialGradient>
+                    <!-- la sagoma della lampadina che si intravede dietro la stoffa -->
+                    <radialGradient id="gFilamento" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%"   stop-color="#FFFDF4" stop-opacity="0.85"/>
+                        <stop offset="45%"  stop-color="#FFE0AC" stop-opacity="0.33"/>
+                        <stop offset="100%" stop-color="#FFC078" stop-opacity="0"/>
+                    </radialGradient>
+                    <!-- l'orlo basso: li' la tela e' piu' sottile e brucia di bianco -->
+                    <linearGradient id="gOrlo" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%"   stop-color="#FFB86A" stop-opacity="0.20"/>
+                        <stop offset="50%"  stop-color="#FFF6DF" stop-opacity="0.95"/>
+                        <stop offset="100%" stop-color="#FFB86A" stop-opacity="0.20"/>
+                    </linearGradient>
+                    <!-- quello che succede dentro al paralume non deve uscire dai bordi -->
+                    <clipPath id="cTela"><path d="M46 126 L78 30 h64 l32 96 z"/></clipPath>
+                    <!-- la riga speculare sullo stelo: bianca sotto il paralume, si spegne scendendo -->
+                    <linearGradient id="gSpecolo" x1="0.5" y1="0" x2="0.5" y2="1">
+                        <stop offset="0%"   stop-color="#FFF6E2" stop-opacity="0.95"/>
+                        <stop offset="18%"  stop-color="#FFE0AE" stop-opacity="0.70"/>
+                        <stop offset="52%"  stop-color="#D8B478" stop-opacity="0.30"/>
+                        <stop offset="100%" stop-color="#8A6B3C" stop-opacity="0.12"/>
+                    </linearGradient>
+                    <radialGradient id="gColletto" cx="42%" cy="30%" r="70%">
+                        <stop offset="0%"   stop-color="#FFEFCE" stop-opacity="0.85"/>
+                        <stop offset="100%" stop-color="#FFEFCE" stop-opacity="0"/>
+                    </radialGradient>
+                    <!-- il bronzo prende luce dalla spalla, non dal fondo -->
+                    <linearGradient id="gBronzoAcceso" x1="0.5" y1="0" x2="0.5" y2="1">
+                        <stop offset="0%"   stop-color="#FFD9A0" stop-opacity="0.34"/>
+                        <stop offset="55%"  stop-color="#FFB865" stop-opacity="0.08"/>
+                        <stop offset="100%" stop-color="#FFB865" stop-opacity="0"/>
+                    </linearGradient>
+                    <!-- il filo di luce sullo spigolo: acceso al centro, spento agli estremi -->
+                    <linearGradient id="gFiloBordo" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%"   stop-color="#FFE0AE" stop-opacity="0"/>
+                        <stop offset="30%"  stop-color="#FFF3D6" stop-opacity="0.85"/>
+                        <stop offset="62%"  stop-color="#FFD9A0" stop-opacity="0.55"/>
+                        <stop offset="100%" stop-color="#FFD9A0" stop-opacity="0"/>
+                    </linearGradient>
+                    <radialGradient id="gPiattoBase" cx="46%" cy="34%" r="66%">
+                        <stop offset="0%"   stop-color="#FFEBC6" stop-opacity="0.5"/>
+                        <stop offset="100%" stop-color="#FFEBC6" stop-opacity="0"/>
+                    </radialGradient>
+                    <filter id="morbido" x="-60%" y="-60%" width="220%" height="220%">
+                        <feGaussianBlur stdDeviation="9"/>
+                    </filter>
+                    <filter id="tenue" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="4.5"/>
+                    </filter>
+                </defs>
+
+                <!-- ombra della lampada sul piano -->
+                <ellipse class="ombra" cx="110" cy="281" rx="74" ry="10" fill="#000" opacity="0.55" filter="url(#morbido)"/>
+
+                <!-- base in bronzo -->
+                <path d="M66 279c0-11 20-18 44-18s44 7 44 18z" fill="url(#gBase)"/>
+                <!-- la luce viene da sopra: schiarisce la spalla della campana e muore a meta' -->
+                <path class="riflesso-caldo" d="M66 279c0-11 20-18 44-18s44 7 44 18z" fill="url(#gBronzoAcceso)"/>
+                <ellipse cx="110" cy="261" rx="44" ry="9" fill="#41352A"/>
+                <!-- il filo di luce sul bordo alto: e' li' che il metallo taglia la luce -->
+                <path class="riflesso-caldo" d="M66 261a44 9 0 0 1 88 0" fill="none"
+                      stroke="url(#gFiloBordo)" stroke-width="1.6" stroke-linecap="round"/>
+                <ellipse cx="110" cy="259" rx="30" ry="6" fill="#5A4A36" opacity="0.7"/>
+                <!-- il piatto interno della base raccoglie un po' di caldo -->
+                <ellipse class="riflesso-caldo" cx="110" cy="259" rx="30" ry="6" fill="url(#gPiattoBase)"/>
+
+                <!-- stelo in ottone: un tubo tornito, non un cilindro dipinto -->
+                <rect x="104" y="132" width="12" height="130" rx="6" fill="url(#gOttone)"/>
+                <!-- la riga che rispecchia il bulbo: stretta, spostata a sinistra come tutta la luce -->
+                <rect class="riflesso-caldo" x="106.6" y="133" width="2.2" height="128" rx="1.1" fill="url(#gSpecolo)"/>
+                <!-- il metallo raccoglie anche il buio: bordo destro in controluce -->
+                <rect x="113.4" y="133" width="1.6" height="128" rx="0.8" fill="#0B0906" opacity="0.45"/>
+                <!-- due anelli di tornitura: spezzano la riga e danno la scala -->
+                <rect x="103" y="150" width="14" height="3"   rx="1.5" fill="#0B0906" opacity="0.30"/>
+                <rect x="103" y="149" width="14" height="1.2" rx="0.6" fill="#E8C98A" opacity="0.30"/>
+                <rect x="103" y="243" width="14" height="3"   rx="1.5" fill="#0B0906" opacity="0.30"/>
+                <rect x="103" y="242" width="14" height="1.2" rx="0.6" fill="#E8C98A" opacity="0.30"/>
+                <ellipse cx="110" cy="132" rx="13" ry="5" fill="#A98A55"/>
+                <ellipse class="riflesso-caldo" cx="110" cy="131" rx="13" ry="5" fill="url(#gColletto)"/>
+                <circle cx="110" cy="128" r="8" fill="url(#gOttone)"/>
+                <!-- il punto di fuoco sul portalampada -->
+                <circle class="riflesso-caldo" cx="107.6" cy="125.4" r="2.6" fill="#FFF3D6" fill-opacity="0.75"/>
+
+                <!-- paralume spento -->
+                <path class="paralume-buio" d="M46 126 L78 30 h64 l32 96 z" fill="url(#gTela)" stroke="rgba(255,255,255,0.11)" stroke-width="1.3"/>
+                <ellipse cx="110" cy="30" rx="32" ry="7" fill="#2F2E39" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+
+                <!-- paralume acceso: la tela che filtra la luce -->
+                <g class="paralume-luce">
+                    <path d="M46 126 L78 30 h64 l32 96 z" fill="url(#gTelaAccesa)" stroke="rgba(255,215,155,0.55)" stroke-width="1.5"/>
+                    <g clip-path="url(#cTela)">
+                        <!-- il calore che sale verso l'orlo -->
+                        <ellipse cx="110" cy="118" rx="80" ry="54" fill="url(#gTelaFuoco)"/>
+                        <!-- la lampadina che si intravede dietro la stoffa -->
+                        <ellipse cx="110" cy="96" rx="26" ry="30" fill="url(#gFilamento)" filter="url(#tenue)"/>
+                        <!-- le stecche del telaio: la tela e' tesa su queste e li' passa meno luce -->
+                        <path d="M78 30 L46 126 M142 30 L174 126 M96 30 L88 126 M124 30 L132 126"
+                              stroke="#7A5A34" stroke-opacity="0.30" stroke-width="1.4"/>
+                        <!-- la cucitura verticale -->
+                        <path d="M110 30 V126" stroke="#8A6438" stroke-opacity="0.16" stroke-width="1"/>
+                    </g>
+                    <ellipse cx="110" cy="30" rx="32" ry="7" fill="#6B5334" stroke="rgba(255,215,155,0.45)" stroke-width="1"/>
+                    <!-- l'orlo inferiore acceso: li' la tela e' piu' sottile -->
+                    <path d="M46 126 h128" stroke="url(#gOrlo)" stroke-width="2.4"/>
+                    <!-- la luce che esce dal fondo -->
+                    <ellipse cx="110" cy="126" rx="70" ry="16" fill="url(#gBulbo)"/>
+                    <ellipse cx="110" cy="126" rx="40" ry="9" fill="#FFEFCE"/>
+                    <ellipse cx="110" cy="126" rx="20" ry="5" fill="#FFFDF6"/>
+                    <!-- e dalla cima, verso il soffitto -->
+                    <ellipse cx="110" cy="30" rx="24" ry="5" fill="#FFE3B4" opacity="0.55"/>
+                    <ellipse cx="110" cy="28" rx="13" ry="3" fill="#FFF7E4" opacity="0.8"/>
+                </g>
+
+                <ellipse cx="110" cy="126" rx="64" ry="14" fill="none" stroke="rgba(255,255,255,0.13)" stroke-width="1.3"/>
+            </svg>
+
+            <button type="button" id="cordicella" class="cordicella"
+                    aria-label="Tira la cordicella per accendere la luce" title="Tira la cordicella per accendere la luce">
+                <span class="filo"></span>
+                <span class="pomello"></span>
+            </button>
+            </div>
+
+            <div class="suggerimento" id="suggerimento">
+                <i data-lucide="arrow-down"></i>
+                <span>Tira la cordicella per accendere</span>
+            </div>
+        </div>
+
+        <div class="lato-accesso" id="lato-accesso">
+        <div class="glass-card">
+            {% if locked_until %}
+            <div class="lockout-container" style="display: flex;">
+                <div class="shield-icon"><i data-lucide="shield-alert"></i></div>
+                <h2>Accesso Sospeso</h2>
+                <p>Per motivi di sicurezza, l'accesso è stato temporaneamente disabilitato.</p>
+                <div class="countdown-display" id="countdown-timer">--:--:--</div>
+            </div>
+            <script>
+                document.getElementById('lockout-glow').style.opacity = '1';
+                const lockedUntilTimestamp = {{ locked_until }};
+                function updateTimer() {
+                    const now = Math.floor(Date.now() / 1000);
+                    const diff = Math.floor(lockedUntilTimestamp - now);
+                    if (diff <= 0) {
+                        document.getElementById('countdown-timer').innerHTML = "00:00:00";
+                        window.location.reload(); 
+                        return;
+                    }
+                    const displayH = String(Math.floor(diff / 3600)).padStart(2, '0');
+                    const displayM = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                    const displayS = String(diff % 60).padStart(2, '0');
+                    document.getElementById('countdown-timer').innerHTML = `${displayH}:${displayM}:${displayS}`;
+                }
+                setInterval(updateTimer, 1000); updateTimer();
+            </script>
+            
+            {% elif setup_mode %}
+            <div class="card-header">
+                <div class="brand-logo"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo"></div>
+                <h1>Primo Avvio</h1>
+                <p>Crea il tuo profilo Admin e imposta il server</p>
+            </div>
+
+            {% if error %}<div class="alert-error"><i data-lucide="alert-circle"></i><span>{{ error }}</span></div>{% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="input-group">
+                    <input type="text" name="username" class="form-input" placeholder="Come ti chiami?" required autocomplete="off" autofocus>
+                    <div class="input-icon"><i data-lucide="user"></i></div>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" class="form-input" placeholder="Crea Password" required>
+                    <div class="input-icon"><i data-lucide="key-round"></i></div>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password_confirm" class="form-input" placeholder="Ripeti Password" required>
+                    <div class="input-icon"><i data-lucide="check-circle-2"></i></div>
+                </div>
+
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; text-align: left;">Imposta posizione per le automazioni e il meteo:</p>
+                <div class="input-group" style="display: flex; gap: 8px;">
+                    <div style="flex-grow: 1; position: relative;">
+                        <input type="text" name="location_name" id="loc_name" class="form-input" placeholder="Città" required>
+                        <div class="input-icon"><i data-lucide="map-pin"></i></div>
+                    </div>
+                    <button type="button" onclick="getGPS()" class="btn-primary" style="margin: 0; width: 60px; padding: 0; background: rgba(10, 132, 255, 0.15); color: var(--accent-blue);" title="Usa il GPS del dispositivo">
+                        <i data-lucide="crosshair"></i>
+                    </button>
+                </div>
+                
+                <input type="hidden" name="lat" id="loc_lat" value="">
+                <input type="hidden" name="lon" id="loc_lon" value="">
+
+                <button type="submit" class="btn-primary" style="margin-top: 20px;">Inizializza Sistema</button>
+            </form>
+
+            <script>
+                function getGPS() {
+                    const btn = document.querySelector('button[onclick="getGPS()"]');
+                    btn.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i>`;
+                    lucide.createIcons();
+
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(async function(pos) {
+                            document.getElementById('loc_lat').value = pos.coords.latitude;
+                            document.getElementById('loc_lon').value = pos.coords.longitude;
+                            
+                            try {
+                                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+                                const data = await res.json();
+                                const city = data.address.city || data.address.town || data.address.village || 'Sconosciuta';
+                                document.getElementById('loc_name').value = city;
+                            } catch(e) {
+                                alert("Non sono riuscito a ricavare il nome della città. Scrivila a mano.");
+                            }
+                            btn.innerHTML = `<i data-lucide="check"></i>`; lucide.createIcons();
+                        }, function() {
+                            alert("Devi autorizzare l'uso del GPS dal tuo browser.");
+                            btn.innerHTML = `<i data-lucide="crosshair"></i>`; lucide.createIcons();
+                        });
+                    }
+                }
+            </script>
+            {% else %}
+            <div class="card-header">
+                <div class="brand-logo"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo"></div>
+                <h1>Wach0ss Home</h1>
+                <p>Autenticazione richiesta</p>
+            </div>
+
+            {% if error %}<div class="alert-error"><i data-lucide="alert-circle"></i><span>{{ error }}</span></div>{% endif %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="input-group">
+                    <input type="text" name="username" class="form-input" placeholder="Nome utente" required autocomplete="username" spellcheck="false" autofocus>
+                    <div class="input-icon"><i data-lucide="user"></i></div>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" class="form-input" placeholder="Password di sistema" required autocomplete="current-password">
+                    <div class="input-icon"><i data-lucide="key-round"></i></div>
+                </div>
+                <button type="submit" class="btn-primary">Accedi</button>
+            </form>
+            {% endif %}        </div>
+        </div>
+
+    </main>
+
+<script>
+    lucide.createIcons();
+
+    /* le stelle fuori dalla finestra: sparse una volta sola */
+    (function () {
+        const cielo = document.getElementById('stelle');
+        if (!cielo) return;
+        let html = '';
+        for (let i = 0; i < 34; i++) {
+            const x = Math.random() * 100, y = Math.random() * 78;
+            const o = 0.25 + Math.random() * 0.65, d = (Math.random() * 3).toFixed(1);
+            html += '<i class="stella" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;opacity:' + o.toFixed(2) +
+                    ';animation:respiro ' + (2.5 + Math.random() * 3).toFixed(1) + 's ease-in-out ' + d + 's infinite"></i>';
+        }
+        cielo.innerHTML = html;
+    })();
+
+    /* =====================================================================
+       LA CORDICELLA
+       Si tira col dito, col mouse o con la tastiera: e' un <button> vero.
+       In blocco accessi la luce si accende da sola: li' non c'e' niente da
+       giocare, c'e' solo da leggere.
+       ===================================================================== */
+    (function () {
+        const corpo = document.body;
+        const corda = document.getElementById('cordicella');
+        let accesa = false;
+
+        function ricorda() { try { sessionStorage.setItem('wh_luce_accesa', '1'); } catch (e) {} }
+        function giaAccesa() { try { return sessionStorage.getItem('wh_luce_accesa') === '1'; } catch (e) { return false; } }
+
+        // accensione senza scena: la luce c'e' e basta
+        function accendiSubito() {
+            if (accesa) return;
+            accesa = true; ricorda();
+            corpo.classList.add('accesa', 'senza-scena');
+            corpo.classList.remove('spenta');
+        }
+
+        function accendi() {
+            if (accesa) return;
+            accesa = true; ricorda();
+            corda.classList.add('tirata');
+            setTimeout(function () { corda.classList.remove('tirata'); }, 430);
+            setTimeout(function () {
+                corpo.classList.add('accesa');
+                corpo.classList.remove('spenta');
+                setTimeout(function () {
+                    const primo = document.querySelector('#lato-accesso input:not([type=hidden])');
+                    if (primo && window.innerWidth > 860) primo.focus();
+                }, 1000);
+            }, 200);
+        }
+
+        corda.addEventListener('click', accendi);
+
+        let partenza = null;
+        corda.addEventListener('pointerdown', function (e) { partenza = e.clientY; corda.setPointerCapture(e.pointerId); });
+        corda.addEventListener('pointermove', function (e) {
+            if (partenza === null || accesa) return;
+            const d = Math.max(0, Math.min(48, e.clientY - partenza));
+            corda.style.transform = 'translateY(' + d + 'px)';
+            if (d >= 28) { partenza = null; corda.style.transform = ''; accendi(); }
+        });
+        function molla() { if (partenza === null) return; partenza = null; corda.style.transform = ''; }
+        corda.addEventListener('pointerup', molla);
+        corda.addEventListener('pointercancel', molla);
+
+        /* La cordicella si tira UNA VOLTA SOLA per sessione. Se hai sbagliato la
+           password, o se ricarichi, la luce e' gia' accesa: nessuno vuole rifare
+           il giochino ogni volta che scrive male una lettera.
+           Sul telefono la lampada non c'e' proprio: si entra e basta. */
+        const telefono = window.matchMedia('(max-width: 860px)').matches;
+        const errore   = !!document.querySelector('.alert-error');
+        const blocco   = !!document.querySelector('.lockout-container');
+        if (telefono || errore || blocco || giaAccesa()) {
+            accendiSubito();
+            if (errore) {
+                const primo = document.querySelector('#lato-accesso input[type=password], #lato-accesso input:not([type=hidden])');
+                if (primo) primo.focus();
+            }
+        }
+
+        /* rete di sicurezza: se qualcosa impedisse di tirare la corda, dopo 12
+           secondi la luce si accende lo stesso. Nessuno resta chiuso fuori. */
+        setTimeout(function () { if (!accesa) accendiSubito(); }, 12000);
+
+        window.WH_accendiLuce = accendi;
+    })();
+
+    /* la stanza si muove appena col mouse: da' profondita' senza dare fastidio */
+    (function () {
+        const strati = document.querySelectorAll('.strato');
+        if (!strati.length || window.matchMedia('(max-width: 860px)').matches) return;
+        window.addEventListener('mousemove', function (e) {
+            const dx = (e.clientX / window.innerWidth - 0.5), dy = (e.clientY / window.innerHeight - 0.5);
+            strati.forEach(function (s) {
+                const p = +(s.dataset.p || 6);
+                s.style.transform = 'translate3d(' + (-dx * p) + 'px,' + (-dy * p * 0.6) + 'px,0)';
+            });
+        });
+    })();
+
+    /* pulviscolo nell'aria: si vede nel cono di luce */
+    (function () {
+        const canvas = document.getElementById('particle-canvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        let larghezza, altezza, granelli = [];
+        const mouse = { x: null, y: null };
+        window.addEventListener('mousemove', function (e) { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener('mouseout',  function ()  { mouse.x = null; mouse.y = null; });
+
+        function Granello() {
+            this.x = Math.random() * larghezza; this.y = Math.random() * altezza;
+            this.r = Math.random() * 1.7 + 0.35;
+            this.vx = (Math.random() - 0.5) * 0.16; this.vy = (Math.random() - 0.5) * 0.16 - 0.05;
+        }
+        Granello.prototype.passo = function () {
+            this.x += this.vx; this.y += this.vy;
+            if (this.x < -10) this.x = larghezza + 10; if (this.x > larghezza + 10) this.x = -10;
+            if (this.y < -10) this.y = altezza + 10;   if (this.y > altezza + 10) this.y = -10;
+        };
+        function ridimensiona() {
+            larghezza = canvas.width = window.innerWidth;
+            altezza   = canvas.height = window.innerHeight;
+            // sul telefono la densita' e' quella storica dell'accesso; sul computer
+            // la polvere e' piu' rada perche' deve solo attraversare il cono di luce
+            const quanti = larghezza <= 860
+                ? Math.min(90, Math.floor(larghezza * altezza / 10000))
+                : Math.min(130, Math.floor(larghezza * altezza / 15000));
+            granelli = []; for (let i = 0; i < quanti; i++) granelli.push(new Granello());
+        }
+        // la posizione della lampadina sullo schermo: serve per far brillare la polvere
+        // solo dentro la luce invece che ovunque, anche negli angoli neri
+        let luceX = 0, luceY = 0, giri = 0;
+        function dovEluce() {
+            const l = document.querySelector('.lampada');
+            if (!l) return;
+            const r = l.getBoundingClientRect();
+            if (!r.width) return;
+            luceX = r.left + r.width / 2;
+            luceY = r.top + r.height * 0.42;
+        }
+
+        function disegna() {
+            ctx.clearRect(0, 0, larghezza, altezza);
+            const acceso = document.body.classList.contains('accesa');
+            // sul telefono il pulviscolo e' quello di sempre: puntini bianchi che
+            // brillano e si collegano fra loro. Sul computer e' polvere nella luce.
+            const costellazione = larghezza <= 860;
+            // dove sta la lampadina: la polvere si vede solo dove la luce arriva.
+            // La posizione la rileggo di rado, non serve a ogni fotogramma.
+            if (!costellazione && (giri++ % 45 === 0)) dovEluce();
+            for (let i = 0; i < granelli.length; i++) {
+                const g = granelli[i]; g.passo();
+                ctx.beginPath(); ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
+                if (costellazione) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
+                    ctx.fill(); ctx.shadowBlur = 0;
+                } else if (acceso) {
+                    const dx0 = g.x - luceX, dy0 = g.y - luceY;
+                    const lontano = Math.sqrt(dx0 * dx0 + dy0 * dy0) / (larghezza * 0.52);
+                    ctx.fillStyle = 'rgba(255, 216, 164, ' + (0.62 * Math.max(0.05, 1 - lontano)).toFixed(3) + ')';
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = 'rgba(150, 175, 230, 0.28)';
+                    ctx.fill();
+                }
+                if (costellazione) {
+                    for (let j = i + 1; j < granelli.length; j++) {
+                        const h = granelli[j];
+                        const ax = g.x - h.x, ay = g.y - h.y, dd = Math.sqrt(ax * ax + ay * ay);
+                        if (dd < 110) {
+                            ctx.beginPath();
+                            ctx.strokeStyle = 'rgba(255, 255, 255, ' + (1 - dd / 110) * 0.4 + ')';
+                            ctx.lineWidth = 0.8; ctx.moveTo(g.x, g.y); ctx.lineTo(h.x, h.y); ctx.stroke();
+                        }
+                    }
+                }
+                if (!costellazione && acceso && mouse.x !== null) {
+                    const dx = g.x - mouse.x, dy = g.y - mouse.y, d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < 130) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = 'rgba(255, 196, 130, ' + (1 - d / 130) * 0.26 + ')';
+                        ctx.lineWidth = 1; ctx.moveTo(g.x, g.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(disegna);
+        }
+        window.addEventListener('resize', ridimensiona); ridimensiona(); disegna();
+    })();
+</script>
+</body>
+</html>

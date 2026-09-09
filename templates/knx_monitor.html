@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Bus KNX - Wach0ss Enterprise</title>
+
+    <!-- Icone. Stessa CDN di tutte le altre pagine del progetto: senza rete
+         le icone spariscono, il resto della pagina funziona lo stesso. -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* === PALETTE SCADA / GRAFANA STYLE ===
+           Copiata alla lettera da templates/monitor.html: stessa famiglia di
+           pagine tecniche, stessi nomi di variabile. Non esiste un CSS
+           condiviso nel progetto, ogni pagina si porta dietro il suo. */
+        :root {
+            --bg-base: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-input: #0f172a;
+
+            --border: #334155;
+            --border-hover: #475569;
+
+            --text-main: #f8fafc;
+            --text-sec: #94a3b8;
+
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-glow: rgba(59, 130, 246, 0.2);
+
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.15);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.15);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.15);
+
+            --font-ui: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+            --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-base); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+        body {
+            font-family: var(--font-ui);
+            background: var(--bg-base);
+            color: var(--text-main);
+            padding: 24px;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;}
+
+        /* --- HEADER --- */
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--bg-panel); padding: 20px 24px; border-radius: 16px; border: 1px solid var(--border);
+            gap: 16px; flex-wrap: wrap;
+        }
+        .header-title { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .header-title h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; margin: 0; }
+        .live-badge { display: flex; align-items: center; gap: 8px; background: var(--success-bg); color: var(--success); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);}
+        .live-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* AGGIUNTE alle classi di monitor.html, costruite sulle stesse
+           variabili: un badge spento (grigio) e uno rosso per la
+           registrazione, che non e' un'informazione "buona" come il LIVE. */
+        .live-badge.spento { background: var(--bg-input); color: var(--text-sec); border-color: var(--border); }
+        .live-badge.spento .live-dot { background: var(--text-sec); box-shadow: none; animation: none; }
+        .live-badge.rec { background: var(--danger-bg); color: var(--danger); border-color: rgba(239, 68, 68, 0.35); }
+        .live-badge.rec .live-dot { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
+
+        .btn-back {
+            display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+            color: var(--text-main); background: var(--bg-input); padding: 10px 20px;
+            border-radius: 8px; font-weight: 600; font-size: 0.9rem; transition: 0.2s; border: 1px solid var(--border);
+        }
+        .btn-back:hover { background: var(--border); }
+
+        /* --- KPI GRID --- */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 24px; }
+        .kpi-card {
+            background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px;
+            padding: 24px; display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden;
+        }
+        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent); }
+        .kpi-title { color: var(--text-sec); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;}
+        .kpi-value { font-size: 2rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); }
+        .kpi-sub { font-size: 0.8rem; color: var(--text-sec); }
+
+        /* --- TOOLBAR --- */
+        .toolbar {
+            display: flex; gap: 16px; flex-wrap: wrap; background: var(--bg-panel);
+            padding: 20px; border-radius: 16px; border: 1px solid var(--border); align-items: flex-end;
+        }
+        .input-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 180px; }
+        .input-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; }
+        .input-control {
+            background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+            padding: 12px 16px; color: var(--text-main); font-size: 0.95rem; font-family: var(--font-ui);
+            transition: 0.2s; outline: none; width: 100%;
+        }
+        .input-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+        .btn-group { display: flex; gap: 12px; height: 44px; }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 0 20px; border-radius: 8px; border: none; font-size: 0.9rem; font-weight: 700;
+            cursor: pointer; transition: 0.2s; height: 100%;
+        }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+        .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); }
+        .btn-primary:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-secondary { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border); }
+        .btn-secondary:hover:not(:disabled) { background: var(--border); }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+        .btn-danger:hover:not(:disabled) { background: var(--danger-bg); }
+
+        /* --- TABELLA --- */
+        .table-wrapper {
+            background: var(--bg-panel); border-radius: 16px; border: 1px solid var(--border);
+            overflow-x: auto; max-height: 600px;
+        }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+        th {
+            background: rgba(30, 41, 59, 0.95); color: var(--text-sec); font-weight: 700;
+            font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; padding: 16px 24px;
+            position: sticky; top: 0; backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); z-index: 10;
+        }
+        td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        .time-col { color: var(--text-sec); font-family: var(--font-mono); font-size: 0.9rem; white-space: nowrap; }
+        .entity-col { display: flex; align-items: center; gap: 16px; }
+        .entity-icon { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: var(--bg-input); border-radius: 8px; border: 1px solid var(--border); color: var(--text-sec); flex-shrink: 0;}
+
+        .badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); }
+        .badge.on { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
+        .badge.off { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .badge.neutral { background: var(--bg-input); color: var(--text-sec); border: 1px solid var(--border); }
+        /* UNICA variante di badge aggiunta: serve a distinguere la Risposta
+           dalla Lettura, che con due badge grigi sarebbero indistinguibili.
+           Usa --warning, gia' dichiarata nella palette di monitor.html. */
+        .badge.warn { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+
+        .empty-state { text-align: center; padding: 60px; color: var(--text-sec); display: flex; flex-direction: column; align-items: center; gap: 16px; }
+
+        /* === DA QUI IN GIU': quello che monitor.html non ha, perche' li' la
+           tabella si carica una volta sola e qui invece scorre a centinaia di
+           righe al minuto. Sono aggiunte di DENSITA' e di LEGGIBILITA', non
+           una palette nuova. === */
+
+        /* I due comandi, in due riquadri distinti. Il LIVE e la
+           REGISTRAZIONE fanno due cose diverse e vanno lette come due cose
+           diverse: uno guarda, l'altro scrive su disco e continua anche a
+           pagina chiusa. */
+        .comandi { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+        .comando {
+            background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px;
+            padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden;
+        }
+        .comando::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--border); }
+        .comando.acceso::before { background: var(--success); }
+        .comando.rec-acceso::before { background: var(--danger); }
+        .comando h3 { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .comando p { font-size: 0.82rem; color: var(--text-sec); line-height: 1.5; }
+        .comando .riga { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .comando .riga .input-control { flex: 1; min-width: 160px; padding: 10px 14px; font-size: 0.9rem; }
+
+        /* Tabella fitta: la spaziatura di monitor.html (16px 24px) su 600
+           righe diventa un chilometro di scroll. */
+        .tab-fitta th { padding: 10px 12px; font-size: 0.7rem; letter-spacing: 0.5px; }
+        .tab-fitta td { padding: 5px 12px; font-size: 0.85rem; font-family: var(--font-mono); white-space: nowrap; border-bottom: 1px solid rgba(51, 65, 85, 0.4); }
+        /* Il bordino va sul primo TD e non sul TR: con border-collapse
+           separate (quello di monitor.html) i bordi dichiarati sulla riga
+           non vengono disegnati affatto. */
+        .tab-fitta tbody td:first-child { border-left: 3px solid transparent; }
+        /* Il nome ETS e' 'nome - percorso' ("Piano primo/Camera/Illuminazione"):
+           senza tetto la cella arriva a 400-500 px, la tabella sfonda in
+           larghezza e Valore, DPT e Byte grezzi finiscono fuori schermo. Si
+           taglia con i puntini, il testo intero resta nel title. */
+        .tab-fitta td.col-ent { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Riconoscere a colpo d'occhio: le entita' note hanno il bordino
+           acceso e il nome in chiaro, le sconosciute restano spente. E' la
+           differenza fra "questo indirizzo lo conosco" e "questo indirizzo
+           sul bus non e' nessuno di Wach0ss". */
+        tr.nota td:first-child { border-left-color: var(--accent); }
+        tr.nota .col-ent { color: var(--text-main); }
+        tr.ignota .col-ga, tr.ignota .col-ent { color: var(--text-sec); }
+        tr.uscente td { background: rgba(245, 158, 11, 0.045); }
+        tr.selezionata td { background: var(--accent-glow) !important; }
+
+        tr.servizio td { background: var(--warning-bg); color: var(--warning); font-weight: 700; white-space: normal; }
+        tr.servizio td:first-child { border-left-color: var(--warning); }
+
+        /* Delta: il tempo dal telegramma precedente, la colonna che in ETS si
+           guarda per riconoscere una ripetizione o un attuatore lento.
+           Allineata a destra perche' si legge a colonna, confrontando gli
+           ordini di grandezza, non riga per riga. NIENTE colore acceso sui
+           delta corti: su un bus in messa in servizio (40-50 tg/s) sarebbero
+           corti TUTTI e la tabella diventerebbe gialla da cima a fondo, cioe'
+           un avviso che non avvisa piu' di niente. Il numero parla da solo. */
+        .col-delta { color: var(--text-sec); text-align: right; font-size: 0.8rem; }
+        .col-delta .vuoto { opacity: 0.35; }
+        /* Cambio di giorno: compare SOLO sulla riga in cui la data cambia.
+           Una colonna Data ripeterebbe lo stesso valore per ore rubando
+           spazio a Entita' e Valore; qui si vede quando serve, cioe' quando
+           una registrazione notturna scavalca la mezzanotte. */
+        .giorno-marca {
+            display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 4px;
+            background: var(--accent-glow); color: var(--text-main);
+            border: 1px solid var(--accent); font-size: 0.7rem; font-weight: 800;
+        }
+
+        .col-ga { color: var(--text-main); font-weight: 700; cursor: pointer; }
+        .col-ga:hover { text-decoration: underline; }
+        .col-val { color: var(--success); font-family: var(--font-mono); }
+        /* Il valore ipotizzato NON deve somigliare a un valore letto davvero:
+           colore spento e parentesi, cosi' a colpo d'occhio si distingue. */
+        .col-val .ipotesi { color: var(--text-sec); font-style: italic; }
+        .lucchetto { color: var(--warning); font-size: 0.7rem; margin-left: 4px; }
+        .col-raw { color: var(--text-sec); }
+        .col-dpt { color: var(--text-sec); font-size: 0.75rem; }
+        .freccia-i { color: var(--accent); font-weight: 800; }
+        .freccia-o { color: var(--warning); font-weight: 800; }
+
+        /* Barra sopra la tabella: pausa, contatore in attesa, avvisi. */
+        .barra-tab {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            background: var(--bg-panel); border: 1px solid var(--border); border-bottom: none;
+            border-radius: 16px 16px 0 0; padding: 12px 20px;
+        }
+        .barra-tab + .table-wrapper { border-radius: 0 0 16px 16px; max-height: 62vh; }
+        .conta { font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-sec); }
+        .avviso { color: var(--warning); font-size: 0.85rem; font-weight: 700; display: none; align-items: center; gap: 6px; }
+        .avviso.visibile { display: inline-flex; }
+        .chip {
+            display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px;
+            background: var(--bg-input); border: 1px solid var(--border); color: var(--text-sec);
+            font-size: 0.75rem; font-weight: 700; cursor: pointer; user-select: none; transition: 0.15s;
+        }
+        .chip.attivo { background: var(--accent-glow); border-color: var(--accent); color: var(--text-main); }
+
+        .sezione-titolo { display: flex; align-items: center; gap: 10px; font-size: 1.05rem; font-weight: 700; margin-top: 8px; }
+        .nota-piede { color: var(--text-sec); font-size: 0.8rem; line-height: 1.6; padding: 0 4px 24px; }
+        .nota-piede b { color: var(--text-main); }
+
+        @media (max-width: 1024px) {
+            .toolbar { flex-direction: column; align-items: stretch; }
+            .btn-group { width: 100%; }
+            .btn-group .btn { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- ================= HEADER ================= -->
+    <div class="header">
+        <div class="header-title">
+            <div class="live-badge spento" id="badge-live"><div class="live-dot"></div> LIVE SPENTO</div>
+            <div class="live-badge spento" id="badge-rec"><div class="live-dot"></div> NON REGISTRA</div>
+            <h2>Monitor Bus KNX</h2>
+        </div>
+        <a href="/dashboard" class="btn-back"><i data-lucide="layout-grid" style="width:18px;"></i> Dashboard</a>
+    </div>
+
+    <!-- ================= KPI ================= -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-title"><i data-lucide="activity" style="width:16px;"></i> Telegrammi / s</div>
+            <div class="kpi-value" id="kpi-tps">0.0</div>
+            <div class="kpi-sub">media degli ultimi 5 secondi</div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-title"><i data-lucide="list" style="width:16px;"></i> Ricevuti</div>
+            <div class="kpi-value" id="kpi-tot">0</div>
+            <div class="kpi-sub" id="kpi-tot-sub">da quando hai aperto la pagina</div>
+        </div>
+        <div class="kpi-card" id="kpi-card-bus">
+            <div class="kpi-title"><i data-lucide="cpu" style="width:16px;"></i> Collegamento al bus</div>
+            <div class="kpi-value" id="kpi-bus" style="font-size:1.35rem;">-</div>
+            <div class="kpi-sub" id="kpi-bus-sub">&nbsp;</div>
+        </div>
+        <div class="kpi-card" id="kpi-card-rec">
+            <div class="kpi-title"><i data-lucide="hard-drive" style="width:16px;"></i> Registrazione</div>
+            <div class="kpi-value" id="kpi-rec" style="font-size:1.35rem;">Ferma</div>
+            <div class="kpi-sub" id="kpi-rec-sub">&nbsp;</div>
+        </div>
+    </div>
+
+    <!-- ================= I DUE COMANDI ================= -->
+    <div class="comandi">
+
+        <div class="comando" id="box-live">
+            <h3><i data-lucide="radio" style="width:18px;"></i> Modalita' LIVE</h3>
+            <p>Mostra i telegrammi mentre passano e tiene il ritmo veloce. <b>Non salva
+               niente</b> e si spegne da sola se chiudi la pagina. Con una registrazione
+               in corso la tabella si riempie anche a LIVE spento, solo piu' a rilento.</p>
+            <div class="riga">
+                <button class="btn btn-primary" id="bt-live" onclick="comandaLive()">
+                    <i data-lucide="play" style="width:16px;"></i> <span id="bt-live-testo">Avvia Live</span>
+                </button>
+                <span class="conta" id="msg-live"></span>
+            </div>
+        </div>
+
+        <div class="comando" id="box-rec">
+            <h3><i data-lucide="circle-dot" style="width:18px;"></i> Registrazione su file</h3>
+            <p>Scrive ogni telegramma su un file CSV scaricabile. <b>Continua anche se chiudi
+               la pagina o il browser</b>: si ferma solo da qui, o quando tocca uno dei
+               tetti (dimensione, numero di parti, durata). Non si riavvia da sola
+               dopo un riavvio del Raspberry.</p>
+            <!-- NIENTE campo "etichetta": il nucleo non ha dove metterla. Il
+                 file si chiama con data e ora e l'elenco non ha un campo nota.
+                 Una casella che non salva niente e' peggio di una casella che
+                 non c'e'. -->
+            <div class="riga">
+                <button class="btn btn-danger" id="bt-rec" onclick="comandaRec()">
+                    <i data-lucide="circle" style="width:16px;"></i> <span id="bt-rec-testo">Avvia registrazione</span>
+                </button>
+                <span class="conta" id="msg-rec"></span>
+            </div>
+            <span class="conta" id="rec-spazio"></span>
+        </div>
+
+    </div>
+
+    <!-- ================= FILTRI ================= -->
+    <div class="toolbar">
+        <div class="input-group" style="flex:1.2;">
+            <label for="f-ga">Indirizzo di gruppo</label>
+            <input type="text" class="input-control" id="f-ga" placeholder="es. 1/2/  oppure  1/*/3">
+        </div>
+        <div class="input-group">
+            <label for="f-testo">Cerca (sorgente, nome, valore)</label>
+            <input type="text" class="input-control" id="f-testo" placeholder="es. cucina, 1.1.9, 21.0">
+        </div>
+        <div class="input-group" style="flex:1.4;">
+            <label>Mostra</label>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; padding-bottom:4px;">
+                <span class="chip attivo" data-tipo="svc" data-val="W">Write</span>
+                <span class="chip attivo" data-tipo="svc" data-val="R">Read</span>
+                <span class="chip attivo" data-tipo="svc" data-val="A">Response</span>
+                <span class="chip attivo" data-tipo="dir" data-val="I">&#8595; dal bus</span>
+                <span class="chip attivo" data-tipo="dir" data-val="O">&#8593; da Wach0ss</span>
+                <span class="chip" data-tipo="solonote" data-val="1">solo entita' note</span>
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="azzeraFiltri()">
+                <i data-lucide="filter-x" style="width:16px;"></i> Azzera filtri
+            </button>
+        </div>
+    </div>
+
+    <!-- ================= TABELLA TELEGRAMMI ================= -->
+    <div>
+        <div class="barra-tab">
+            <button class="btn btn-secondary" id="bt-pausa" onclick="commutaPausa()" style="height:38px;">
+                <i data-lucide="pause" style="width:16px;"></i> <span id="bt-pausa-testo">Pausa</span>
+            </button>
+            <button class="btn btn-secondary" onclick="svuota()" style="height:38px;">
+                <i data-lucide="eraser" style="width:16px;"></i> Svuota
+            </button>
+            <!-- Salva quello che stai guardando. Serve nel momento preciso in
+                 cui hai visto passare la cosa e la registrazione NON era
+                 accesa. Il file lo scrive il browser, sul computer di chi
+                 guarda: il Raspberry non apre niente e sulla scheda SD non
+                 finisce un byte. -->
+            <button class="btn btn-secondary" id="bt-salva" onclick="salvaSchermo()" style="height:38px;"
+                    title="Scarica in CSV le righe che vedi adesso, filtri compresi. Il file lo scrive il browser sul tuo computer: non tocca la scheda del Raspberry e non e' una registrazione">
+                <i data-lucide="save" style="width:16px;"></i> Salva quello che vedi
+            </button>
+            <span class="conta" id="conta-righe">0 righe</span>
+            <span class="conta" id="giorno-tab" title="Giornata dell'ultimo telegramma ricevuto. La data completa di ogni riga si legge passandoci sopra, e ricompare in tabella quando il giorno cambia"></span>
+            <span class="conta" id="msg-salva"></span>
+            <span class="avviso" id="avviso-attesa"><i data-lucide="clock" style="width:14px;"></i> <span id="attesa-n">0</span> in attesa</span>
+            <span class="avviso" id="avviso-buco"><i data-lucide="alert-triangle" style="width:14px;"></i> <span id="buco-n">0</span> telegrammi persi: la pagina non teneva il passo</span>
+            <span class="avviso" id="avviso-fondo" style="margin-left:auto; cursor:pointer;" onclick="vaiInFondo()">
+                <i data-lucide="arrow-down-to-line" style="width:14px;"></i> scorrimento sganciato - torna in fondo
+            </span>
+        </div>
+
+        <div class="table-wrapper" id="scroll-tab">
+            <table class="tab-fitta">
+                <thead>
+                    <tr>
+                        <th style="width:96px;" title="Ora del Raspberry, la stessa scritta nel file CSV. Passa sopra una riga per leggere anche la data">Ora</th>
+                        <th style="width:72px; text-align:right;" title="Tempo trascorso dal telegramma precedente. E' la colonna con cui si riconosce una ripetizione, un attuatore che risponde lento o un loop di automazione">Delta</th>
+                        <th style="width:34px;"></th>
+                        <th style="width:70px;">Sorgente</th>
+                        <th style="width:80px;">Gruppo</th>
+                        <th style="width:200px;">Entita'</th>
+                        <th style="width:80px;">Servizio</th>
+                        <th style="width:150px;">Valore</th>
+                        <th style="width:70px;">DPT</th>
+                        <th>Byte grezzi</th>
+                    </tr>
+                </thead>
+                <tbody id="corpo">
+                    <tr id="riga-vuota">
+                        <td colspan="10" class="empty-state">
+                            <i data-lucide="radio-tower" style="width: 48px; height: 48px; opacity: 0.4;"></i>
+                            <span style="font-weight:600;">Il monitor e' fermo.</span>
+                            <span style="font-size:0.85rem;">Avvia la modalita' LIVE per vedere il bus, oppure una registrazione per salvarlo su file.</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ================= REGISTRAZIONI ================= -->
+    <div class="sezione-titolo"><i data-lucide="folder" style="width:18px;"></i> Registrazioni salvate
+        <span class="conta" id="rec-totale" style="font-weight:400;"></span>
+        <button class="btn btn-secondary" style="height:34px; margin-left:auto;" onclick="caricaRegistrazioni()">
+            <i data-lucide="refresh-cw" style="width:14px;"></i> Aggiorna
+        </button>
+    </div>
+    <div class="table-wrapper" style="max-height:340px;">
+        <table>
+            <thead>
+                <!-- Le colonne sono ESATTAMENTE i campi che il nucleo mette in
+                     ogni voce di /registrazioni (nome, byte, quando, in_corso).
+                     Non ce ne sono altri: niente etichetta, niente conteggio
+                     righe, niente durata. Una colonna in piu' qui sarebbe una
+                     colonna vuota per sempre. -->
+                <tr>
+                    <th>File</th>
+                    <th>Registrata il</th>
+                    <th>Dimensione</th>
+                    <th style="text-align:right;">Azioni</th>
+                </tr>
+            </thead>
+            <tbody id="corpo-rec">
+                <tr><td colspan="4" class="empty-state">
+                    <i data-lucide="folder-open" style="width:40px; height:40px; opacity:0.4;"></i>
+                    <span>Nessuna registrazione salvata.</span>
+                </td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="nota-piede">
+        <b>Cosa si vede qui.</b> Come il Group Monitor di ETS, questa pagina mostra la
+        <b>comunicazione di gruppo</b>: letture, scritture e risposte sugli indirizzi di gruppo.
+        Il traffico punto-punto (programmazione ETS, lettura descrittori) e i broadcast
+        <b>non passano</b> da qui e non vengono registrati.<br>
+        <b>Valore interpretato.</b> Sul bus il DPT non viaggia: gli stessi byte sono 21,0 &deg;C
+        o 3098 impulsi a seconda del datapoint. Il valore compare solo dove l'indirizzo di
+        gruppo e' fra quelli configurati in Wach0ss; per gli altri restano i byte grezzi,
+        esattamente come fa ETS senza progetto caricato.<br>
+        <b>Ora.</b> La colonna Ora e' l'ora del <b>Raspberry</b>, composta dal server: e'
+        la stessa identica stringa che finisce nel file CSV, cosi' quello che leggi qui e
+        quello che scarichi si possono confrontare riga per riga. Il Raspberry non ha un
+        orologio a batteria: al primo avvio, finche' NTP non sincronizza, l'ora puo' essere
+        sbagliata (e puo' fare un salto quando si sincronizza).<br>
+        <b>Valore ipotizzato.</b> Dove l'indirizzo non e' configurato in Wach0ss il valore
+        compare in grigio e fra parentesi: e' una <b>ipotesi</b> costruita sulla lunghezza
+        del payload, non una lettura col DPT giusto. Non usarla per una diagnosi seria.<br>
+        <b>Delta.</b> Il tempo trascorso dal <b>telegramma precedente</b>, come la colonna del
+        tempo relativo di ETS: e' quella con cui si riconosce una ripetizione, un attuatore
+        che rimanda lo stato in loop o un pulsante che fa doppio contatto. Il trattino vuol
+        dire che un precedente non c'e': prima riga della cattura, oppure riga di servizio.
+        Le righe di servizio non spezzano il conteggio, il delta e' sempre da telegramma a
+        telegramma. Nel CSV e' la colonna <b>DELTA_S</b>, in secondi con tre decimali.<br>
+        <b>Data.</b> In tabella la data non e' una colonna - ripeterebbe lo stesso valore per
+        ore - ma si legge passando sopra l'ora, sta in barra come <b>giornata</b> e ricompare
+        in chiaro sulla riga in cui il giorno cambia: e' quello che serve a una registrazione
+        lasciata girare la notte, che scavalca la mezzanotte. Nel CSV e' una colonna vera,
+        <b>DATA</b>, in formato 2026-09-04 (l'unico che Excel legge come data in tutte le
+        lingue).<br>
+        <b>Salva quello che vedi.</b> Scarica in CSV le righe che hai davanti in questo
+        momento, <b>filtri compresi</b>, con le stesse colonne di una registrazione. Il file
+        lo scrive il browser sul <b>tuo computer</b>: non tocca la scheda del Raspberry e non
+        e' una registrazione. Salva solo quello che la pagina ha ancora in memoria (le ultime
+        righe, non tutta la sessione) e in pausa non include le righe arretrate. Se devi
+        lasciare in ascolto e andartene, serve la registrazione, non questo pulsante.<br>
+        <b>Dato personale.</b> Un file di telegrammi e' il registro di chi c'era e di cosa ha
+        acceso, ora per ora. Vale per il CSV scaricato dal Raspberry come per quello salvato
+        da qui: e' un dato del cliente, non un log tecnico da girare in chat.
+    </div>
+
+</div>
+
+<script>
+/* =====================================================================
+   Monitor bus KNX - logica di pagina.
+
+   Tre attenzioni copiate dal modulo controllo (dashboard.html:2691-2731),
+   che qui contano molto di piu' perche' il bus fa centinaia di telegrammi
+   al minuto:
+     1. i timer stanno su window.*, mai su variabili di modulo, cosi' due
+        avvii non si sommano mai;
+     2. si salta l'interrogazione quando la scheda e' in secondo piano
+        (qui non del tutto: si rallenta, altrimenti il LIVE si spegnerebbe
+        da solo appena si cambia scheda);
+     3. flag "richiesta gia' in volo": mai due letture accavallate.
+   ===================================================================== */
+
+/* --- tetti. Sono il motivo per cui la pagina non si impianta dopo mezz'ora. --- */
+const MAX_MEM    = 3000;   /* righe tenute in memoria (per il ridisegno) */
+const MAX_DOM    = 600;    /* righe realmente attaccate al DOM           */
+const MAX_ATTESA = 3000;   /* righe accumulate mentre sei in pausa       */
+const TICK_MS    = 700;    /* giro veloce, mentre il LIVE e' acceso      */
+const TICK_STATO = 2800;   /* giro lento, a LIVE spento (4 tick)         */
+const PASSI_LENTI = Math.max(1, Math.round(TICK_STATO / TICK_MS));
+
+/* Il buffer del server (LIVE_MAX in knx_monitor.py) tiene 500 righe: se la
+   pagina resta indietro di piu' di cosi' le righe in mezzo sono uscite dal
+   buffer e non tornano. Il buco si vede confrontando i progressivi, ed e'
+   una cosa DIVERSA dai telegrammi persi dal server per coda piena. */
+const BUFFER_SERVER = 500;
+
+/* Colonne del CSV, usate dal pulsante "Salva quello che vedi". La verita' e'
+   INTESTAZIONE nel nucleo, che la manda a ogni giro in 'colonne_csv': cosi' il
+   file salvato dalla pagina e quello registrato dal Raspberry hanno le stesse
+   colonne nello stesso ordine e si possono incollare uno sotto l'altro nello
+   stesso foglio. Questa copia serve solo se il server e' piu' vecchio della
+   pagina e non manda il campo: meglio un file con le colonne di ieri che
+   nessun file, nel momento in cui uno sta cercando di salvare una prova. */
+const COLONNE_RISERVA = ['DATA', 'ORA', 'DELTA_S', 'TIMESTAMP', 'DIREZIONE',
+                         'SORGENTE', 'GRUPPO', 'NOME', 'SERVIZIO', 'GREZZO',
+                         'VALORE', 'DPT', 'SICURO', 'NOTA'];
+
+const S = {
+    live: false, rec: false, spento: false, pausa: false,
+    /* Progressivo dell'ultima riga gia' vista. 0 e non -1: il nucleo fa
+       int(request.args.get('da') or 0) e i suoi seq partono da 1, quindi
+       da=0 vuol dire "dammi tutto quello che hai in buffer". */
+    cursore: 0,
+    righe: [], attesa: [],
+    persePausa: 0,            /* arretrate buttate perche' la pausa e' durata troppo */
+    buchi: 0,                 /* righe uscite dal buffer prima che le leggessi */
+    scartate: 0,              /* telegrammi persi dal SERVER per coda piena    */
+    ricevuti: 0,
+    arrivi: [],               /* [ms del browser, quante righe] ultimi 5 s */
+    tpsServer: 0,
+    statoInVolo: false,
+    attaccato: true,          /* scorrimento agganciato al fondo */
+    tick: 0,
+    colonneCsv: null,         /* colonne del CSV, come le dichiara il nucleo */
+    dataDom: '',              /* data dell'ultima riga attaccata al DOM */
+    filtro: { ga: '', testo: '', svc: {W:true, R:true, A:true, '?':true}, dir: {I:true, O:true}, soloNote: false },
+    gaSelezionata: ''
+};
+
+/* =====================================================================
+   ADATTATORE  server -> pagina
+   Il nucleo (knx_monitor.py, _riga_da_record) produce chiavi lunghe e
+   valori per esteso; la pagina ragiona da sempre con chiavi corte. La
+   traduzione si fa in UN SOLO posto: se domani il nucleo cambia un nome,
+   si cambia qui e non in otto punti sparsi nel rendering.
+   ===================================================================== */
+const SERV_DA_SERVER = {
+    'GroupValueWrite':    'W',
+    'GroupValueResponse': 'A',
+    'GroupValueRead':     'R'
+};
+
+function norm(g) {
+    /* g = riga come arriva dal server. Tutto quello che non e' previsto
+       finisce in '?', che il filtro mostra sempre: le righe strane sono
+       esattamente quelle che uno sta cercando. */
+    return {
+        n:    Number(g.seq) || 0,
+        ts:   Number(g.ts) || 0,
+        ora:  g.ora || '',
+        /* Data del Raspberry, in ISO come la scrive il CSV. Un nucleo vecchio
+           non la manda: allora resta vuota e la tabella si comporta come
+           prima, senza marcatore di giorno e senza data nel title. */
+        data: g.data || '',
+        /* Secondi dal telegramma precedente. null (e NON 0) quando non c'e' un
+           precedente: la prima riga di una cattura non ha un delta, e uno zero
+           al suo posto direbbe "arrivati nello stesso istante", che e' falso.
+           Con un nucleo vecchio il campo non arriva: la colonna resta vuota. */
+        delta: (g.delta === null || g.delta === undefined) ? null : Number(g.delta),
+        dir:  g.dir === 'out' ? 'O' : (g.dir === 'in' ? 'I' : ''),
+        /* Le tre forme LUNGHE, come le scrive il nucleo nel CSV. Servono solo
+           al pulsante "Salva quello che vedi": senza, il file salvato dalla
+           pagina avrebbe 'I'/'W' dove quello registrato dal Raspberry ha
+           'in'/'GroupValueWrite', e i due file non si potrebbero confrontare. */
+        dirRaw: g.dir || '',
+        svcRaw: g.servizio || '',
+        sicuroRaw: g.sicuro === true ? 'si' : (g.sicuro === false ? 'no' : ''),
+        src:  g.sorgente || '',
+        ga:   g.gruppo || '',
+        ent:  g.nome || '',
+        svc:  SERV_DA_SERVER[g.servizio] || '?',
+        val:  g.valore || '',
+        ipo:  g.ipotesi || '',
+        dpt:  g.dpt || '',
+        /* Da dove viene il DPT: 'ETS' = letto dal progetto, 'ruolo' = DEDOTTO
+           dal nome della colonna in knx_entities. Un'ipotesi non deve avere
+           l'aria di un dato certo: la cella DPT lo dice (vedi html()). */
+        fonte: g.fonte_dpt || '',
+        raw:  g.grezzo || '',
+        sicuro: g.sicuro === true,
+        note: g.nota || ''
+    };
+}
+
+/* ---------------- utilita' ---------------- */
+function esc(t) {
+    /* I nomi delle entita' vengono dal database e i valori dal bus:
+       non finiscono nel DOM senza passare di qui. */
+    return String(t == null ? '' : t)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function due(n) { return String(n).padStart(2, '0'); }
+function oraDi(ts) {
+    const d = new Date(ts * 1000);
+    return due(d.getHours()) + ':' + due(d.getMinutes()) + ':' + due(d.getSeconds())
+         + '.' + String(d.getMilliseconds()).padStart(3, '0');
+}
+function byte(n) {
+    n = Number(n) || 0;
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+    /* il GB serve davvero: lo spazio libero di una SD si misura in GB e
+       "13749.1 MB" non lo legge nessuno */
+    if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+    return (n / 1073741824).toFixed(1) + ' GB';
+}
+function durata(s) {
+    s = Math.max(0, Math.round(Number(s) || 0));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+    if (h) return h + 'h ' + due(m) + 'm';
+    if (m) return m + 'm ' + due(s % 60) + 's';
+    return s + 's';
+}
+function icone() { try { lucide.createIcons(); } catch (e) {} }
+
+/* Data ISO del nucleo (2026-09-04) -> come la scrive un italiano (04/09/2026).
+   Il CSV tiene l'ISO, che Excel legge come data in tutte le lingue; qui
+   davanti c'e' una persona. Se il campo non arriva o e' scritto in un modo
+   che non si riconosce, si restituisce tale e quale: mai 'NaN/NaN/NaN'. */
+function dataIta(iso) {
+    const p = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+    return p ? (p[3] + '/' + p[2] + '/' + p[1]) : String(iso || '');
+}
+
+/* Delta in una forma che si legge a colpo d'occhio, con l'unita' attaccata:
+   sotto il secondo i millisecondi (e' li' che si riconosce una raffica o una
+   ripetizione), sopra i secondi con due decimali, e piu' su minuti e ore -
+   perche' fra due telegrammi di una casa ferma di notte passano davvero ore e
+   "9000.00 s" non lo legge nessuno. */
+function fmtDelta(d) {
+    if (d === null || d === undefined) return '';
+    d = Number(d);
+    if (!isFinite(d) || d < 0) return '';
+    if (d < 1)    return Math.round(d * 1000) + ' ms';
+    if (d < 60)   return d.toFixed(2) + ' s';
+    if (d < 3600) return Math.floor(d / 60) + 'm ' + due(Math.floor(d % 60)) + 's';
+    return Math.floor(d / 3600) + 'h ' + due(Math.floor((d % 3600) / 60)) + 'm';
+}
+
+/* ---------------- filtro ---------------- */
+function passa(r) {
+    if (r.note) return true;                        /* le righe di servizio si vedono sempre */
+    const f = S.filtro;
+    if (!f.dir[r.dir]) return false;
+    /* i servizi non previsti ('?') si vedono sempre: sono rari e sono
+       esattamente quelli che uno va a cercare quando qualcosa non torna. */
+    if (r.svc !== '?' && !f.svc[r.svc]) return false;
+    if (f.soloNote && !r.ent) return false;
+    if (f.ga) {
+        /* Ancorato in testa, non sottostringa: cercando '1/2/3' passavano
+           anche 11/2/3 e 21/2/3. Da prefisso, '1/2/' continua a filtrare
+           tutto il middle group. Il jolly vale UN livello solo ed e' chiuso
+           anche in fondo: col jolly in mezzo passavano anche 1/0/30 e 1/0/31
+           mentre si cercava 1/0/3.
+           Per cercare a pezzi c'e' la casella di ricerca libera accanto. */
+        if (f.ga.indexOf('*') >= 0) {
+            const re = new RegExp('^' + f.ga.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*') + '$');
+            if (!re.test(r.ga)) return false;
+        } else if (r.ga.indexOf(f.ga) !== 0) {
+            return false;
+        }
+    }
+    if (f.testo) {
+        const t = f.testo;
+        const dentro = (r.src || '').toLowerCase().indexOf(t) >= 0
+                    || (r.ga  || '').toLowerCase().indexOf(t) >= 0
+                    || (r.ent || '').toLowerCase().indexOf(t) >= 0
+                    || (r.val || '').toLowerCase().indexOf(t) >= 0
+                    || (r.ipo || '').toLowerCase().indexOf(t) >= 0
+                    || (r.raw || '').toLowerCase().indexOf(t) >= 0;
+        if (!dentro) return false;
+    }
+    return true;
+}
+
+/* ---------------- disegno di una riga ---------------- */
+const SERVIZI = {
+    'W': ['on',      'Write'],
+    'R': ['neutral', 'Read'],
+    'A': ['warn',    'Response'],
+    '?': ['off',     'Altro']
+};
+
+function ora(r) {
+    /* L'ora la compone il SERVER (campo 'ora'), non il browser: e' quella
+       scritta nel file CSV, e i due si devono poter confrontare. oraDi() e'
+       solo la rete di sicurezza se il campo arrivasse vuoto. */
+    return r.ora || oraDi(r.ts);
+}
+
+/* Cella dell'ora. La data non e' una colonna - ripeterebbe lo stesso valore
+   per ore rubando spazio a Entita' e Valore - ma non deve nemmeno mancare:
+   sta nel title di OGNI riga, e compare in chiaro sulla riga in cui il giorno
+   cambia. E' li' che serve davvero: una registrazione lasciata girare la notte
+   scavalca la mezzanotte, e senza quel marcatore le 00:00:04 in mezzo alla
+   tabella non si sa di quale giorno siano.
+   `dataPrec` e' la data della riga precedente GIA' DISEGNATA, non di quella
+   precedente in memoria: con un filtro acceso le due non coincidono, e a
+   contare e' quello che l'occhio vede una riga sopra l'altra. */
+function cellaOra(r, dataPrec) {
+    const cambia = !!(r.data && dataPrec && r.data !== dataPrec);
+    const marca = cambia
+        ? '<span class="giorno-marca" title="qui cambia il giorno">' + esc(dataIta(r.data)) + '</span>'
+        : '';
+    const titolo = r.data ? (dataIta(r.data) + ' ' + ora(r)) : ora(r);
+    return '<td class="time-col" title="' + esc(titolo) + '">' + marca + esc(ora(r)) + '</td>';
+}
+
+function html(r, dataPrec) {
+    if (r.note) {
+        return '<tr class="servizio">' + cellaOra(r, dataPrec)
+             + '<td colspan="9">' + esc(r.note) + '</td></tr>';
+    }
+    const s = SERVIZI[r.svc] || SERVIZI['?'];
+    const classi = [];
+    classi.push(r.ent ? 'nota' : 'ignota');
+    if (r.dir === 'O') classi.push('uscente');
+    if (S.gaSelezionata && r.ga === S.gaSelezionata) classi.push('selezionata');
+    const fre = r.dir === 'I'
+        ? '<span class="freccia-i" title="entrante dal bus">&#8595;</span>'
+        : '<span class="freccia-o" title="uscente, mandato da Wach0ss">&#8593;</span>';
+    /* Valore letto col DPT giusto oppure, se il DPT non si sa, l'ipotesi del
+       nucleo in grigio e fra parentesi. Le due cose non si devono confondere. */
+    const valore = r.val
+        ? esc(r.val)
+        : (r.ipo ? '<span class="ipotesi">(' + esc(r.ipo) + ')</span>' : '');
+    /* KNX Data Secure: il telegramma viaggiava cifrato. E' un dato che il
+       nucleo gia' calcola e scrive nel CSV, e in diagnosi conta. */
+    const lucchetto = r.sicuro ? '<span class="lucchetto" title="KNX Data Secure">&#128274;</span>' : '';
+    /* Il DPT dedotto dal ruolo della colonna e quello letto dall'export ETS
+       non sono la stessa cosa: '21.0 C' tirato a indovinare perche' la
+       colonna si chiamava ga_setpoint deve distinguersi da '21.0 C' letto dal
+       progetto. Corsivo, tilde e spiegazione al passaggio del mouse. */
+    const cellaDpt = '<td class="col-dpt"'
+        + (r.fonte === 'ruolo'
+            ? ' title="DPT dedotto dal ruolo della colonna in Wach0ss, non letto dal progetto ETS: il valore puo\' essere sbagliato" style="font-style:italic"'
+            : (r.fonte === 'ETS' ? ' title="DPT letto dall\'export ETS"' : ''))
+        + '>' + (r.dpt ? esc(r.dpt) + (r.fonte === 'ruolo' ? ' ~' : '') : '') + '</td>';
+    /* Delta: la colonna che in ETS si guarda per riconoscere una ripetizione,
+       un attuatore che risponde lento o un loop di automazione. Vuoto - un
+       trattino spento - dove il delta non esiste: prima riga della cattura e
+       righe di servizio. Il valore esatto in secondi resta nel title, perche'
+       "120 ms" arrotondato e "0,1204 s" servono a due momenti diversi. */
+    const cellaDelta = '<td class="col-delta"'
+        + (r.delta === null || r.delta === undefined
+            ? '>' + '<span class="vuoto" title="nessun telegramma prima di questo">&mdash;</span>'
+            : ' title="' + Number(r.delta).toFixed(3) + ' s dal telegramma precedente">'
+              + esc(fmtDelta(r.delta)))
+        + '</td>';
+    return '<tr class="' + classi.join(' ') + '">'
+         + cellaOra(r, dataPrec)
+         + cellaDelta
+         + '<td>' + fre + '</td>'
+         + '<td class="col-raw">' + esc(r.src) + '</td>'
+         /* niente onclick con il valore dentro: il testo arriva dal bus e
+            non deve mai diventare codice. Il clic lo raccoglie una delega
+            sul tbody, leggendo data-ga. */
+         + '<td class="col-ga" data-ga="' + esc(r.ga) + '" title="clic: filtra questo indirizzo">' + esc(r.ga) + lucchetto + '</td>'
+         /* title sulla cella: il nome ETS e' 'nome - percorso' e nella colonna
+            ci sta tagliato, ma passandoci sopra si legge per intero. */
+         + '<td class="col-ent" title="' + esc(r.ent) + '">' + (r.ent ? esc(r.ent) : '&mdash;') + '</td>'
+         + '<td><span class="badge ' + s[0] + '">' + s[1] + '</span></td>'
+         + '<td class="col-val">' + valore + '</td>'
+         + cellaDpt
+         + '<td class="col-raw">' + (r.raw ? esc(r.raw) : '') + '</td>'
+         + '</tr>';
+}
+
+/* ---------------- inserimento e ridisegno ---------------- */
+function togliVuota() {
+    const v = document.getElementById('riga-vuota');
+    if (v) v.remove();
+}
+
+function appendi(righe) {
+    if (!righe.length) return;
+    const corpo = document.getElementById('corpo');
+    togliVuota();
+    let blocco = '';
+    for (let i = 0; i < righe.length; i++) {
+        if (passa(righe[i])) {
+            blocco += html(righe[i], S.dataDom);
+            if (righe[i].data) S.dataDom = righe[i].data;
+        }
+    }
+    if (blocco) {
+        corpo.insertAdjacentHTML('beforeend', blocco);
+        /* il DOM si pota dall'alto: le righe vecchie restano in S.righe e
+           tornano se cambi filtro, ma non pesano piu' sul rendering.
+           Nota: se la potatura porta via proprio la riga che portava il
+           marcatore del giorno, il marcatore se ne va con lei. Non e' un buco
+           di informazione - la data completa resta nel title di ogni riga e
+           in barra c'e' sempre la giornata corrente - e ricomparirebbe con
+           ridisegna(), che ricostruisce dall'alto. */
+        while (corpo.children.length > MAX_DOM) corpo.removeChild(corpo.firstElementChild);
+        if (S.attaccato) vaiInFondo();
+    } else if (!corpo.children.length) {
+        /* tutte scartate dal filtro: la tabella non deve restare bianca
+           senza dire perche'. */
+        corpo.innerHTML = vuotaHtml();
+        icone();
+    }
+    aggiornaConta();
+}
+
+function ridisegna() {
+    const corpo = document.getElementById('corpo');
+    /* Prima SI SCEGLIE dalla coda (interessa sempre il traffico recente), poi
+       si disegna DALL'ALTO. In due passaggi e non piu' in uno solo perche' il
+       marcatore del cambio di giorno guarda la riga precedente: costruendo
+       all'indietro si confronterebbe ogni riga con quella che le sta SOTTO, e
+       il marcatore finirebbe sull'ultima riga del giorno vecchio invece che
+       sulla prima del giorno nuovo. */
+    const viste = [];
+    for (let i = S.righe.length - 1; i >= 0 && viste.length < MAX_DOM; i--) {
+        if (passa(S.righe[i])) viste.push(S.righe[i]);
+    }
+    viste.reverse();
+    let blocco = '';
+    /* Vuoto e non S.dataDom: qui si riparte da una tabella bianca, e la prima
+       riga disegnata non ha nessuna riga sopra da cui differire. */
+    let dataPrec = '';
+    for (let i = 0; i < viste.length; i++) {
+        blocco += html(viste[i], dataPrec);
+        if (viste[i].data) dataPrec = viste[i].data;
+    }
+    S.dataDom = dataPrec;
+    corpo.innerHTML = blocco || vuotaHtml();
+    if (S.attaccato) vaiInFondo();
+    aggiornaConta();
+    icone();
+}
+
+function vuotaHtml() {
+    /* "Fermo" solo se sono spenti TUTTI E DUE. Chi avvia la sola
+       registrazione - l'uso normale quando devi lasciar girare e andare al
+       quadro - vedrebbe altrimenti "Il monitor e' fermo" al centro dello
+       schermo e il badge rosso "REGISTRAZIONE IN CORSO" in testata: due
+       scritte che si contraddicono nella stessa schermata. */
+    const testo = S.righe.length
+        ? 'Nessun telegramma corrisponde ai filtri.'
+        : ((S.live || S.rec) ? 'In ascolto sul bus&hellip; nessun telegramma finora.'
+                             : 'Il monitor e\' fermo.');
+    return '<tr id="riga-vuota"><td colspan="10" class="empty-state">'
+         + '<i data-lucide="radio-tower" style="width:48px; height:48px; opacity:0.4;"></i>'
+         + '<span style="font-weight:600;">' + testo + '</span></td></tr>';
+}
+
+function aggiornaConta() {
+    const corpo = document.getElementById('corpo');
+    const mostrate = corpo.querySelectorAll('tr:not(#riga-vuota)').length;
+    document.getElementById('conta-righe').textContent =
+        mostrate + ' righe mostrate / ' + S.righe.length + ' in memoria';
+    document.getElementById('kpi-tot').textContent = S.ricevuti;
+    /* Due numeri diversi che NON vanno sommati:
+       - buchi   = righe uscite dal buffer del server prima che la pagina le
+                   leggesse (colpa della pagina o della rete);
+       - scartate = telegrammi che il server ha buttato perche' la coda fra
+                   il bus e lo scrittore era piena (colpa del bus troppo
+                   carico o della SD troppo lenta).
+       Metterli in un solo contatore darebbe un numero falso. */
+    const pezzi = [];
+    if (S.buchi)    pezzi.push(S.buchi + ' righe non arrivate qui');
+    if (S.scartate) pezzi.push(S.scartate + ' scartate dal server');
+    document.getElementById('kpi-tot-sub').textContent =
+        pezzi.length ? pezzi.join(' - ') : 'da quando hai aperto la pagina';
+
+    /* La giornata dell'ultimo telegramma. La colonna Ora e' hh:mm:ss.mmm e da
+       sola non dice di che giorno sia: qui la data si vede sempre, senza
+       occupare una colonna in tabella. Si legge l'ultima riga in memoria - o
+       l'ultima arretrata, se si e' in pausa - perche' e' quella piu' vicina
+       ad "adesso" fra quelle che la pagina ha davvero ricevuto. */
+    const coda = S.attesa.length ? S.attesa[S.attesa.length - 1]
+                                 : (S.righe.length ? S.righe[S.righe.length - 1] : null);
+    document.getElementById('giorno-tab').textContent =
+        (coda && coda.data) ? ('giornata ' + dataIta(coda.data)) : '';
+}
+
+/* ---------------- scorrimento e pausa ---------------- */
+function vaiInFondo() {
+    const w = document.getElementById('scroll-tab');
+    w.scrollTop = w.scrollHeight;
+    S.attaccato = true;
+    document.getElementById('avviso-fondo').classList.remove('visibile');
+}
+
+/* Clic su un indirizzo di gruppo = filtra quell'indirizzo. Delega sul
+   tbody: le righe nascono e muoiono a centinaia al minuto, attaccare un
+   listener a ognuna sarebbe uno spreco e una perdita di memoria. */
+document.getElementById('corpo').addEventListener('click', function (ev) {
+    const cella = ev.target.closest('td.col-ga');
+    if (cella && cella.dataset.ga) filtraGa(cella.dataset.ga);
+});
+
+document.getElementById('corpo-rec').addEventListener('click', function (ev) {
+    const bt = ev.target.closest('button[data-nome]');
+    if (bt && !bt.disabled) cancella(bt.dataset.nome);
+});
+
+document.getElementById('scroll-tab').addEventListener('scroll', function () {
+    const w = this;
+    /* se l'utente si e' allontanato dal fondo il monitor smette di
+       trascinargli via la riga che sta leggendo. */
+    S.attaccato = (w.scrollHeight - w.scrollTop - w.clientHeight) < 40;
+    document.getElementById('avviso-fondo').classList.toggle('visibile', !S.attaccato);
+});
+
+function commutaPausa() {
+    S.pausa = !S.pausa;
+    document.getElementById('bt-pausa-testo').textContent = S.pausa ? 'Riprendi' : 'Pausa';
+    document.getElementById('bt-pausa').className = 'btn ' + (S.pausa ? 'btn-primary' : 'btn-secondary');
+    if (!S.pausa) {
+        /* si riversa tutto quello che e' arrivato durante la pausa: PRIMA in
+           memoria (in pausa non ci era entrato niente, apposta), poi a video */
+        const arretrate = S.attesa;
+        S.attesa = [];
+        S.persePausa = 0;
+        S.righe = S.righe.concat(arretrate);
+        if (S.righe.length > MAX_MEM) S.righe.splice(0, S.righe.length - MAX_MEM);
+        appendi(arretrate);
+        aggiornaAttesa();
+    }
+    icone();
+}
+
+function aggiornaAttesa() {
+    const a = document.getElementById('avviso-attesa');
+    document.getElementById('attesa-n').textContent = S.attesa.length
+        + (S.persePausa ? ' (+' + S.persePausa + ' piu\' vecchie buttate)' : '');
+    a.classList.toggle('visibile', S.pausa && S.attesa.length > 0);
+}
+
+function svuota() {
+    /* Svuota SOLO quello che hai davanti. Non tocca il buffer del server
+       (c'e' /api/knx_monitor/azzera per quello) e soprattutto non tocca il
+       cursore: le righe gia' consumate non devono tornare indietro. */
+    S.righe = []; S.attesa = []; S.persePausa = 0;
+    S.buchi = 0; S.scartate = 0; S.ricevuti = 0;
+    /* senza questo, la prima riga che arriva dopo lo svuotamento si
+       confronterebbe con la data di una tabella che non c'e' piu' e si
+       prenderebbe un marcatore di cambio giorno che non e' cambiato */
+    S.dataDom = '';
+    document.getElementById('msg-salva').textContent = '';
+    document.getElementById('avviso-buco').classList.remove('visibile');
+    aggiornaAttesa();
+    ridisegna();
+}
+
+/* ==================================================================
+   SALVA QUELLO CHE VEDI
+   Il momento e' questo: hai visto passare la cosa interessante in LIVE, la
+   registrazione non era accesa, e se ricarichi la pagina l'hai persa.
+
+   Lo fa tutto il BROWSER, con le righe che ha gia' in memoria: nessuna
+   chiamata al Raspberry, nessun file aperto sul server, zero byte scritti
+   sulla scheda SD - che e' esattamente la ragione per cui la registrazione
+   vera ha tetti, rotazione e retention e questo pulsante no.
+
+   Quello che salva e' quello che hai davanti, FILTRI COMPRESI, e nient'altro:
+   al massimo le MAX_MEM righe che la pagina tiene in memoria. Non e' una
+   registrazione recuperata a posteriori e non va spacciata per tale.
+   ================================================================== */
+
+/* Cella CSV, con le due disinnescate del nucleo (knx_monitor.py, _campo_csv e
+   csv.writer con QUOTE_MINIMAL su ';'):
+     - Excel e LibreOffice eseguono come FORMULA una cella che comincia per
+       = + @ o per una tabulazione, e i nomi delle entita' arrivano dall'export
+       ETS del cliente: si antepone un apice, come fa Excel stesso. Il meno NON
+       e' in lista, di proposito: -3.5 e' una temperatura;
+     - punto e virgola, virgolette e a capo dentro un campo vanno fra
+       virgolette, con le virgolette raddoppiate. */
+function cellaCsv(t) {
+    let s = String(t === null || t === undefined ? '' : t);
+    if (s && '=+@\t\r'.indexOf(s.charAt(0)) >= 0) s = "'" + s;
+    if (/[;"\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+}
+
+/* Una riga della pagina -> i valori del CSV, per NOME di colonna. Per nome e
+   non per posizione: l'ordine lo decide il nucleo (colonne_csv), e cosi' se
+   un domani cambia, il file salvato dalla pagina lo segue da solo. Le forme
+   sono quelle lunghe del nucleo, non le abbreviazioni della tabella. */
+function valoriCsv(r) {
+    return {
+        DATA:      r.data,
+        ORA:       ora(r),
+        DELTA_S:   (r.delta === null || r.delta === undefined) ? '' : Number(r.delta).toFixed(3),
+        TIMESTAMP: Number(r.ts).toFixed(3),
+        DIREZIONE: r.dirRaw,
+        SORGENTE:  r.src,
+        GRUPPO:    r.ga,
+        NOME:      r.ent,
+        SERVIZIO:  r.svcRaw,
+        GREZZO:    r.raw,
+        /* stessa regola del nucleo: l'ipotesi si scrive col punto
+           interrogativo davanti, perche' non e' una lettura col DPT giusto */
+        VALORE:    r.val ? r.val : (r.ipo ? '? ' + r.ipo : ''),
+        DPT:       r.dpt,
+        SICURO:    r.sicuroRaw,
+        NOTA:      r.note
+    };
+}
+
+function salvaSchermo() {
+    const msg = document.getElementById('msg-salva');
+    try {
+        const cols = (Array.isArray(S.colonneCsv) && S.colonneCsv.length)
+            ? S.colonneCsv : COLONNE_RISERVA;
+        /* Le righe in PAUSA non entrano: in pausa quello che hai davanti sono
+           le righe di prima, e le arretrate non le hai ancora viste. Si salva
+           quello che si sta guardando, non quello che sta arrivando. */
+        const righe = S.righe.filter(passa);
+        if (!righe.length) {
+            msg.textContent = S.righe.length
+                ? 'Niente da salvare: i filtri escludono tutte le righe.'
+                : 'Niente da salvare: la tabella e\' vuota.';
+            return;
+        }
+        const pezzi = [cols.join(';')];
+        for (let i = 0; i < righe.length; i++) {
+            const v = valoriCsv(righe[i]);
+            const cel = [];
+            for (let j = 0; j < cols.length; j++) cel.push(cellaCsv(v[cols[j]]));
+            pezzi.push(cel.join(';'));
+        }
+        /* BOM: senza, Excel apre il file in ANSI e i gradi centigradi
+           diventano "21 Â°C". Stessa scelta di _apri_parte nel nucleo
+           (utf-8-sig), e stesso terminatore di riga. */
+        const blob = new Blob(['\ufeff' + pezzi.join('\n') + '\n'],
+                              {type: 'text/csv;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        /* PREFISSO DIVERSO da quello delle registrazioni (knx_...): questo file
+           non e' una registrazione del Raspberry, non compare nell'elenco e non
+           deve poter essere scambiato per una. L'ora e' quella del computer di
+           chi salva, la data dentro il file resta quella del Raspberry. */
+        const d = new Date();
+        a.download = 'knx_schermo_' + d.getFullYear() + '-' + due(d.getMonth() + 1)
+                   + '-' + due(d.getDate()) + '_' + due(d.getHours())
+                   + '-' + due(d.getMinutes()) + '-' + due(d.getSeconds()) + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        /* l'oggetto sta in memoria finche' non lo si libera: il download e'
+           gia' partito, qualche secondo di margine e via */
+        setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 4000);
+        const filtrate = S.righe.length - righe.length;
+        msg.textContent = (righe.length === 1 ? 'Salvata 1 riga' : ('Salvate ' + righe.length + ' righe'))
+            + ' sul tuo computer'
+            + (filtrate ? (' (' + filtrate + ' escluse dai filtri)') : '')
+            + (S.righe.length >= MAX_MEM
+                ? ' - la pagina ne tiene al massimo ' + MAX_MEM + ', le piu\' vecchie non ci sono piu\''
+                : '') + '.';
+    } catch (e) {
+        /* un browser che non lascia scaricare non deve lasciare l'utente a
+           chiedersi se il file e' partito o no */
+        msg.textContent = 'Salvataggio non riuscito: ' + e;
+    }
+}
+
+/* ---------------- filtri ---------------- */
+let tempoFiltro = null;
+function filtroCambiato() {
+    clearTimeout(tempoFiltro);
+    tempoFiltro = setTimeout(function () {
+        S.filtro.ga = document.getElementById('f-ga').value.trim();
+        S.filtro.testo = document.getElementById('f-testo').value.trim().toLowerCase();
+        ridisegna();
+    }, 220);   /* debounce: ridisegnare 600 righe a ogni tasto non serve a nessuno */
+}
+document.getElementById('f-ga').addEventListener('input', filtroCambiato);
+document.getElementById('f-testo').addEventListener('input', filtroCambiato);
+
+function filtraGa(ga) {
+    document.getElementById('f-ga').value = ga;
+    S.gaSelezionata = ga;
+    filtroCambiato();
+}
+
+function azzeraFiltri() {
+    document.getElementById('f-ga').value = '';
+    document.getElementById('f-testo').value = '';
+    S.gaSelezionata = '';
+    S.filtro.svc = {W:true, R:true, A:true, '?':true};
+    S.filtro.dir = {I:true, O:true};
+    S.filtro.soloNote = false;
+    document.querySelectorAll('.chip').forEach(function (c) {
+        c.classList.toggle('attivo', c.dataset.tipo !== 'solonote');
+    });
+    filtroCambiato();
+}
+
+document.querySelectorAll('.chip').forEach(function (chip) {
+    chip.addEventListener('click', function () {
+        const acceso = !chip.classList.contains('attivo');
+        chip.classList.toggle('attivo', acceso);
+        const t = chip.dataset.tipo, v = chip.dataset.val;
+        /* '?' non ha un suo interruttore e non si spegne mai (vedi passa()):
+           legarlo al chip Write darebbe l'illusione di poterlo nascondere. */
+        if (t === 'svc') S.filtro.svc[v] = acceso;
+        else if (t === 'dir') S.filtro.dir[v] = acceso;
+        else if (t === 'solonote') S.filtro.soloNote = acceso;
+        ridisegna();
+    });
+});
+
+/* ---------------- comandi LIVE / REC ---------------- */
+async function chiama(url, opzioni) {
+    const res = await fetch(url, opzioni);
+    /* Le route del monitor rispondono SEMPRE JSON, anche in errore e anche
+       con status 400/500: se qui arriva altro e' la sessione scaduta (Flask
+       rimanda al login con una pagina HTML), non un guasto del monitor. */
+    return await res.json();
+}
+
+async function comandaLive() {
+    const bt = document.getElementById('bt-live');
+    bt.disabled = true;
+    try {
+        /* Il nucleo vuole {'attivo': true|false}: una sola chiave booleana,
+           non una stringa di comando che si puo' scrivere sbagliata. */
+        const d = await chiama('/api/knx_monitor/live', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({attivo: !S.live})
+        });
+        document.getElementById('msg-live').textContent = d.messaggio || '';
+        /* Accendendo il LIVE si riparte da ADESSO. Il buffer del server puo'
+           gia' contenere le righe di una registrazione partita ore fa, e non
+           sono quelle che l'utente ha appena chiesto di vedere. */
+        if (d.ok && !S.live && typeof d.ultimo === 'number') S.cursore = d.ultimo;
+        applicaStato(d);
+    } catch (e) {
+        document.getElementById('msg-live').textContent = 'Server non raggiungibile.';
+    }
+    bt.disabled = false;
+}
+
+async function comandaRec() {
+    const bt = document.getElementById('bt-rec');
+    if (S.rec && !confirm('Fermare la registrazione in corso?\nIl file resta salvato e scaricabile.')) return;
+    bt.disabled = true;
+    try {
+        const d = await chiama('/api/knx_monitor/registrazione', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({azione: S.rec ? 'ferma' : 'avvia'})
+        });
+        /* Un avvio puo' essere RIFIUTATO (cartella oltre il tetto, scheda
+           quasi piena, xknx assente): il nucleo lo spiega in 'messaggio' e
+           qui si mostra, altrimenti l'utente vede solo un pulsante che non
+           fa niente. */
+        document.getElementById('msg-rec').textContent = d.messaggio || '';
+        applicaStato(d);
+        caricaRegistrazioni();
+    } catch (e) {
+        document.getElementById('msg-rec').textContent = 'Server non raggiungibile.';
+    }
+    bt.disabled = false;
+}
+
+/* ---------------- il giro: stato + righe nuove, UNA sola chiamata ----------
+   Il nucleo espone una route sola che porta stato e telegrammi insieme, ed e'
+   quella stessa chiamata (con live=1) a rinnovare la scadenza del LIVE lato
+   server. Due poller separati sullo stesso cursore si ruberebbero le righe a
+   vicenda: qui ce n'e' uno solo, che cambia passo. */
+async function leggiStato() {
+    if (S.statoInVolo) return;
+    S.statoInVolo = true;
+    try {
+        const d = await chiama('/api/knx_monitor/stato?da=' + S.cursore
+                             + (S.live ? '&live=1' : ''));
+        applicaStato(d);
+        applicaTelegrammi(d);
+    } catch (e) {
+        const kb = document.getElementById('kpi-bus');
+        kb.textContent = 'Server muto';
+        kb.style.color = 'var(--danger)';
+    }
+    S.statoInVolo = false;
+}
+
+function applicaStato(d) {
+    if (!d || typeof d !== 'object') return;
+    const reg  = d.registrazione || {};
+    const knx  = d.knx || {};
+    const cont = d.contatori || {};
+
+    const primaLive = S.live;
+    const primaRec  = S.rec;
+    S.live   = !!d.live;
+    S.rec    = !!reg.attiva;
+    S.spento = !!d.off;
+    /* al_minuto e' il ritmo del bus visto dal server, in telegrammi al
+       MINUTO: diviso 60 diventa la stessa unita' del riquadro. */
+    S.tpsServer = (Number(cont.al_minuto) || 0) / 60;
+    /* Telegrammi che il SERVER ha buttato perche' la coda fra il bus e lo
+       scrittore era piena. Non e' lo stesso numero dei buchi della pagina e
+       non va sommato a quello. */
+    S.scartate = Number(cont.persi) || 0;
+    /* Colonne del CSV, come le dichiara il nucleo. Si aggiorna solo se il
+       campo arriva davvero: con un server piu' vecchio resta null e
+       salvaSchermo() usa COLONNE_RISERVA, invece di ritrovarsi con una lista
+       vuota e scrivere un file senza colonne. */
+    if (Array.isArray(d.colonne_csv) && d.colonne_csv.length) S.colonneCsv = d.colonne_csv;
+
+    /* badge in testata */
+    const bl = document.getElementById('badge-live');
+    bl.className = 'live-badge' + (S.live ? '' : ' spento');
+    bl.lastChild.textContent = S.live ? ' LIVE ATTIVO' : ' LIVE SPENTO';
+    const br = document.getElementById('badge-rec');
+    br.className = 'live-badge' + (S.rec ? ' rec' : ' spento');
+    br.lastChild.textContent = S.rec ? ' REGISTRAZIONE IN CORSO' : ' NON REGISTRA';
+
+    /* riquadri comandi */
+    document.getElementById('box-live').className = 'comando' + (S.live ? ' acceso' : '');
+    document.getElementById('box-rec').className  = 'comando' + (S.rec ? ' rec-acceso' : '');
+    document.getElementById('bt-live-testo').textContent = S.live ? 'Ferma Live' : 'Avvia Live';
+    document.getElementById('bt-live').className = 'btn ' + (S.live ? 'btn-danger' : 'btn-primary');
+    document.getElementById('bt-rec-testo').textContent = S.rec ? 'Ferma registrazione' : 'Avvia registrazione';
+
+    /* KPI bus. 'agganciato' = il callback e' attaccato alla XKNX viva;
+       'connesso' = il tunnel verso l'impianto e' su. Sono due cose diverse e
+       vanno lette separate: agganciato senza connesso vuol dire bus muto, e
+       non e' colpa del monitor. */
+    const kb = document.getElementById('kpi-bus');
+    const ks = document.getElementById('kpi-bus-sub');
+    if (!knx.disponibile) {
+        kb.textContent = 'xknx assente'; kb.style.color = 'var(--danger)';
+        ks.textContent = 'la libreria KNX non e\' installata su questo impianto';
+    } else if (S.spento) {
+        kb.textContent = 'Monitor fermato'; kb.style.color = 'var(--warning)';
+        ks.textContent = 'file knx_monitor_off presente accanto ad app.py';
+    } else if (!S.live && !S.rec) {
+        /* A riposo NON e' un guasto: il callback e' staccato di proposito,
+           perche' questo monitor non cattura mai di fondo. */
+        kb.textContent = 'A riposo'; kb.style.color = 'var(--text-sec)';
+        ks.textContent = knx.connesso ? 'tunnel KNX su - nessuna cattura in corso'
+                                      : 'tunnel KNX giu\'';
+    } else if (d.agganciato && knx.connesso) {
+        kb.textContent = 'Agganciato'; kb.style.color = 'var(--success)';
+        ks.textContent = 'tunnel ' + (knx.indirizzo || '?')
+                       + ' - collegamento n. ' + (knx.generazione || 0);
+    } else if (d.agganciato) {
+        kb.textContent = 'Agganciato, tunnel giu\''; kb.style.color = 'var(--warning)';
+        ks.textContent = 'il bus non passa: niente da catturare';
+    } else {
+        kb.textContent = 'Non agganciato'; kb.style.color = 'var(--danger)';
+        ks.textContent = 'nessuna istanza KNX viva a cui attaccarsi';
+    }
+
+    /* KPI registrazione. A registrazione ferma si mostra il MOTIVO se c'e':
+       una registrazione che si e' fermata da sola per un tetto o per la SD
+       piena non deve sparire in silenzio. */
+    const kr = document.getElementById('kpi-rec');
+    kr.textContent = S.rec ? 'In corso' : 'Ferma';
+    kr.style.color = S.rec ? 'var(--danger)' : 'var(--text-main)';
+    document.getElementById('kpi-rec-sub').textContent = S.rec
+        ? ((reg.nome || '') + ' - ' + byte(reg.byte) + ' - ' + durata(reg.durata)
+           + (reg.parte > 1 ? (' - parte ' + reg.parte + '/' + (reg.max_parti || '?')) : ''))
+        : (reg.motivo || 'nessun file aperto');
+
+    /* Assegnazione INCONDIZIONATA: il nucleo riempie 'messaggio' solo in due
+       casi (xknx assente, file knx_monitor_off presente) e lo lascia vuoto
+       altrimenti. Scrivendo solo quando c'e', dopo un 'rm knx_monitor_off' il
+       vecchio avviso resterebbe li' per sempre a contraddire il KPI del bus.
+       In piu' si dichiara il comportamento del server, che consegna le righe
+       di _live a chi interroga anche a LIVE spento: senza questa frase il
+       pulsante 'Ferma Live' sembra rotto, perche' i telegrammi continuano a
+       scorrere (piu' a rilento) mentre la registrazione va. */
+    document.getElementById('msg-live').textContent = (!S.live && S.rec)
+        ? 'La registrazione in corso alimenta comunque questa tabella.'
+        : (d.messaggio || '');
+    aggiornaTps();
+    aggiornaConta();
+    /* Il LIVE puo' spegnersi DA SOLO lato server (scadenza): quando cambia,
+       il giro deve cambiare passo, altrimenti si continua a interrogare
+       ogni 700 ms per niente. */
+    if (S.live !== primaLive) armaStato();
+    /* Anche la REGISTRAZIONE puo' fermarsi da sola (tetto di durata, sesta
+       parte piena, spazio SD sotto soglia): l'elenco va riletto subito, se no
+       resta con il badge REC, la dimensione vecchia e il tasto Cancella
+       disabilitato finche' non si preme Aggiorna a mano. */
+    if (S.rec !== primaRec) caricaRegistrazioni();
+    /* Se la tabella e' ancora vuota il suo messaggio dice il contrario di
+       quello che dice la testata ("il monitor e' fermo" mentre un badge
+       lampeggia). Va riscritto qui, perche' senza righe in arrivo non lo
+       riscriverebbe piu' nessuno - e vale per il LIVE come per la
+       registrazione, non solo per il LIVE. */
+    if (S.live !== primaLive || S.rec !== primaRec) {
+        const corpo = document.getElementById('corpo');
+        if (!S.righe.length) { corpo.innerHTML = vuotaHtml(); icone(); }
+    }
+}
+
+function applicaTelegrammi(d) {
+    const grezze = d && d.telegrammi;
+    if (!Array.isArray(grezze) || !grezze.length) return;
+    const righe = grezze.map(norm);
+
+    /* BUCO: fra l'ultima riga vista e la piu' vecchia arrivata adesso manca
+       qualcosa, cioe' la pagina e' rimasta indietro di piu' delle 500 righe
+       che il server tiene in buffer. Va detto in faccia, non nascosto: chi
+       diagnostica un impianto deve sapere che sta guardando una sequenza
+       bucata. Al primo giro (cursore 0) non e' un buco, e' l'inizio. */
+    if (S.cursore > 0 && righe[0].n > S.cursore + 1) {
+        S.buchi += righe[0].n - S.cursore - 1;
+        document.getElementById('buco-n').textContent = S.buchi;
+        document.getElementById('avviso-buco').classList.add('visibile');
+    }
+    S.cursore = righe[righe.length - 1].n;
+    S.ricevuti += righe.length;
+    /* Ritmo misurato sull'orologio del BROWSER, non sui ts del server: il
+       Raspberry non ha orologio a batteria e puo' saltare quando NTP
+       sincronizza. Un salto non deve far impazzire il contatore. */
+    S.arrivi.push([Date.now(), righe.length]);
+
+    /* IN PAUSA LE RIGHE NUOVE NON ENTRANO IN S.righe. Se ci entrassero,
+       ridisegna() (che legge S.righe) le farebbe comparire al primo clic su
+       un filtro - cioe' alla cosa piu' naturale del mondo dopo aver messo in
+       pausa: "fermati, e ora fammi vedere solo questo" - annullando la pausa;
+       e alla ripresa appendi(arretrate) le riattaccherebbe in fondo una
+       seconda volta, con progressivi non piu' monotoni. Su una tabella di
+       diagnosi non e' un fastidio grafico, e' una prova falsificata.
+       Entrano in S.righe alla ripresa, in commutaPausa(). */
+    if (S.pausa) {
+        S.attesa = S.attesa.concat(righe);
+        /* Oltre il tetto si buttano le PIU' VECCHIE, cioe' proprio quelle
+           vicine al telegramma su cui uno si era fermato: va detto, non fatto
+           in silenzio. */
+        const troppe = S.attesa.length - MAX_ATTESA;
+        if (troppe > 0) { S.attesa.splice(0, troppe); S.persePausa += troppe; }
+        aggiornaAttesa();
+        aggiornaConta();
+    } else {
+        S.righe = S.righe.concat(righe);
+        if (S.righe.length > MAX_MEM) S.righe.splice(0, S.righe.length - MAX_MEM);
+        appendi(righe);
+    }
+    aggiornaTps();
+}
+
+function aggiornaTps() {
+    /* Contato su quello che la pagina ha davvero ricevuto negli ultimi 5 s:
+       e' il numero onesto da mostrare a chi guarda QUESTA tabella. A LIVE
+       spento si mostra il ritmo che vede il server, perche' li' la pagina
+       non riceve niente ma il bus continua a parlare lo stesso. */
+    const adesso = Date.now();
+    while (S.arrivi.length && (adesso - S.arrivi[0][0]) > 5000) S.arrivi.shift();
+    let tps = S.tpsServer;
+    if (S.live) {
+        let n = 0;
+        for (let i = 0; i < S.arrivi.length; i++) n += S.arrivi[i][1];
+        tps = n / 5;
+    }
+    document.getElementById('kpi-tps').textContent = (Number(tps) || 0).toFixed(1);
+}
+
+/* ---------------- registrazioni ---------------- */
+async function caricaRegistrazioni() {
+    try {
+        const d = await chiama('/api/knx_monitor/registrazioni');
+        const corpo = document.getElementById('corpo-rec');
+        const lista = d.file || [];
+        document.getElementById('rec-totale').textContent =
+            lista.length ? ('(' + lista.length + ', ' + byte(d.cartella_byte) + ' in totale)') : '';
+        /* Tetto della cartella e spazio libero sulla scheda sono i due motivi
+           per cui il nucleo rifiuta di avviare una registrazione: meglio
+           vederli PRIMA di premere il pulsante che dopo. */
+        document.getElementById('rec-spazio').textContent =
+            'cartella ' + byte(d.cartella_byte) + ' su ' + byte(d.tetto_cartella)
+            + ' - libero sulla scheda ' + byte(d.spazio_libero);
+        if (!lista.length) {
+            corpo.innerHTML = '<tr><td colspan="4" class="empty-state">'
+                + '<i data-lucide="folder-open" style="width:40px; height:40px; opacity:0.4;"></i>'
+                + '<span>' + (d.ok ? 'Nessuna registrazione salvata.' : esc(d.messaggio)) + '</span></td></tr>';
+            icone();
+            return;
+        }
+        let h = '';
+        lista.forEach(function (r) {
+            h += '<tr>'
+              + '<td class="time-col">' + esc(r.nome)
+              + (r.in_corso ? ' <span class="badge off" style="margin-left:8px;">REC</span>' : '') + '</td>'
+              + '<td class="time-col">' + (r.quando ? new Date(r.quando * 1000).toLocaleString(document.documentElement.lang === 'en' ? 'en-GB' : 'it-IT') : '-') + '</td>'
+              + '<td class="time-col">' + byte(r.byte) + '</td>'
+              + '<td style="text-align:right; white-space:nowrap;">'
+              /* target su scheda nuova: se la sessione e' scaduta (403 JSON) o
+                 il file e' stato ruotato nel frattempo (404 JSON) la risposta
+                 non e' un download, e senza target si perderebbe QUESTA
+                 pagina - filtri, pausa e righe in memoria comprese. */
+              + '<a class="btn btn-secondary" style="height:32px; text-decoration:none;" '
+              + 'href="/api/knx_monitor/scarica/' + encodeURIComponent(r.nome) + '" '
+              + 'target="_blank" rel="noopener">'
+              + '<i data-lucide="download" style="width:14px;"></i> Scarica</a> '
+              + '<button class="btn btn-danger" style="height:32px;" data-nome="' + esc(r.nome) + '" '
+              + (r.in_corso ? 'disabled title="Ferma prima la registrazione"' : 'title="Cancella"')
+              + '><i data-lucide="trash-2" style="width:14px;"></i></button>'
+              + '</td></tr>';
+        });
+        corpo.innerHTML = h;
+        icone();
+    } catch (e) { /* si riprova al prossimo giro */ }
+}
+
+async function cancella(nome) {
+    if (!confirm('Cancellare definitivamente la registrazione\n' + nome + ' ?')) return;
+    try {
+        const d = await chiama('/api/knx_monitor/cancella', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({nome: nome})
+        });
+        if (!d.ok) alert(d.messaggio || 'Cancellazione non riuscita.');
+        caricaRegistrazioni();
+    } catch (e) { alert('Server non raggiungibile.'); }
+}
+
+/* ---------------- timer ----------------
+   Su window.* di proposito: se questo file venisse caricato due volte (o la
+   funzione richiamata a mano) i timer non si sommerebbero comunque.
+
+   UN SOLO intervallo, non due: e' lo stesso giro che porta stato e righe.
+   Cambia solo ogni quanti tick lavora davvero. */
+function fermaStato() {
+    if (window.knxmonTimerStato) { clearInterval(window.knxmonTimerStato); window.knxmonTimerStato = null; }
+}
+function armaStato() {
+    fermaStato();
+    S.tick = 0;
+    window.knxmonTimerStato = setInterval(function () {
+        S.tick++;
+        if (S.live) {
+            /* Scheda in secondo piano: si RALLENTA a un giro ogni ~5,6 s, non
+               ci si ferma, cosi' un passaggio breve su un'altra scheda non
+               fa scadere il LIVE lato server (90 s senza letture).
+               ATTENZIONE, oltre i 5 minuti in secondo piano non regge: Chrome
+               applica l'intensive throttling e fa scattare i setInterval una
+               volta al minuto, quindi con questa guardia il giro vero parte
+               ogni 8 minuti e il LIVE si spegne comunque. Non e' aggirabile
+               dal browser. Al rientro se ne accorge il visibilitychange qui
+               sotto, e in tabella lo spiega la riga di SERVIZIO 'LIVE spento
+               da solo' scritta dal nucleo. */
+            if (document.hidden && (S.tick % 8) !== 0) return;
+        } else {
+            if ((S.tick % PASSI_LENTI) !== 0) return;
+            /* LIVE spento e nessuna registrazione in corso: in secondo piano
+               non c'e' niente da guardare. */
+            if (document.hidden && !S.rec) return;
+        }
+        leggiStato();
+    }, TICK_MS);
+}
+
+function fermaRec() {
+    if (window.knxmonTimerRec) { clearInterval(window.knxmonTimerRec); window.knxmonTimerRec = null; }
+}
+function armaRec() {
+    fermaRec();
+    window.knxmonTimerRec = setInterval(function () {
+        if (document.hidden) return;
+        if (S.rec) caricaRegistrazioni();   /* la dimensione del file cresce */
+    }, 15000);
+}
+
+/* ---------------- avvio ---------------- */
+document.addEventListener('DOMContentLoaded', function () {
+    icone();
+    leggiStato();
+    caricaRegistrazioni();
+    armaStato();
+    armaRec();
+    /* Rientro sulla scheda: si rilegge subito lo stato, senza aspettare il
+       tick. Dopo una sosta lunga in secondo piano il LIVE puo' essersi
+       spento da solo (vedi armaStato) e la pagina lo deve dire all'istante,
+       non fra qualche minuto. */
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) leggiStato();
+    });
+});
+
+/* Chiudendo la scheda NON si ferma la registrazione (e' stato del server) e
+   non si prova nemmeno a spegnere il LIVE con una fetch al volo: le
+   richieste in uscita durante unload vengono spesso buttate via, e il LIVE
+   si spegne comunque da solo quando nessuno legge piu'. */
+</script>
+</body>
+</html>

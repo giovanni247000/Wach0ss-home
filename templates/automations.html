@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme: dark)">
+    <meta name="color-scheme" content="light dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Wach0ss Home - Automazioni</title>
+    <link rel="stylesheet" href="/static/fonts/inter.css">
+    <script src="/static/vendor/lucide-1.41.0.min.js"></script>
+    <script>window.lucide||document.documentElement.classList.add('senza-icone');</script>
+    <script>(function(){var q=new URLSearchParams(location.search);if(q.get('tema')==='scuro')document.documentElement.classList.add('tema-scuro');if(q.get('tema')==='chiaro')document.documentElement.classList.add('tema-chiaro');})();</script>
+    <style>
+        /* =====================================================================
+           TOKENS - "Casa moderna": chiaro di giorno (dashboard), scuro di sera (app)
+           ===================================================================== */
+        :root {
+            --bg: #F2F2F7; --sup: #FFFFFF; --sup-2: #F6F6F9; --sup-3: #ECECF1; --sup-4: #E2E2E9;
+            --bordo: #E4E4EA; --bordo-2: #D2D2DA;
+            --testo: #1C1C1E; --testo-2: #5B5B66; --testo-3: #66666E;
+            --accento: #0A84FF; --accento-t: #0066CC; --accento-pieno: #0066CC; --accento-bg: #E8F1FF; --anello: #0A84FF; --anello-morbido: rgba(10,132,255,0.30);
+            --quando: #C2410C; --quando-bg: #FFEEDD; --quando-f: #F97316;
+            --solose: #6D28D9; --solose-bg: #EFE9FF; --solose-f: #8B5CF6; --solose-pieno: #6D28D9;
+            --allora: #166534; --allora-bg: #E3F7EA; --allora-f: #22C55E;
+            --ok: #1B7A33; --ok-bg: #E3F7EA; --err: #DC3545; --err-t: #B02A37; --err-pieno: #DC3545; --err-bg: #FDE8EA; --warn: #B45309; --warn-bg: #FFF4D6; --warn-f: #FF9F0A; --info: #0066CC; --info-bg: #E8F1FF;
+            --on: #34C759;
+            --r-s: 10px; --r: 14px; --r-l: 20px; --r-xl: 24px;
+            --om-1: 0 1px 2px rgba(20,20,30,0.05), 0 1px 1px rgba(20,20,30,0.03);
+            --om-2: 0 6px 20px -8px rgba(20,20,30,0.18), 0 2px 6px -2px rgba(20,20,30,0.06);
+            --om-3: 0 24px 60px -16px rgba(20,20,30,0.35), 0 6px 18px -6px rgba(20,20,30,0.12);
+            --om-su: 0 -10px 40px -10px rgba(20,20,30,0.25);
+            --velo: rgba(20,20,30,0.38);
+            --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            --tile-film: #4F46E5; --tile-sole: #B45309; --tile-porta: #DC2626; --tile-caldo: #EA580C; --tile-off: #475569; --tile-luce: #A16207; --tile-pianta: #16A34A; --tile-notte: #2563EB; --tile-cena: #DB2777;
+            --safe-b: env(safe-area-inset-bottom, 0px); --safe-t: env(safe-area-inset-top, 0px);
+            color-scheme: light;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not(.tema-chiaro) {
+                --bg: #000000; --sup: #1C1C1E; --sup-2: #242427; --sup-3: #2C2C2E; --sup-4: #3A3A3C;
+                --bordo: rgba(255,255,255,0.10); --bordo-2: rgba(255,255,255,0.18);
+                --testo: #F5F5F7; --testo-2: #B0B0B8; --testo-3: #9A9AA0;
+                --accento: #0A84FF; --accento-t: #5AA9FF; --accento-pieno: #0A66C2; --accento-bg: rgba(10,132,255,0.18); --anello: #5AA9FF; --anello-morbido: rgba(90,169,255,0.40);
+                --quando: #FFB340; --quando-bg: rgba(255,159,10,0.18); --quando-f: #FF9F0A;
+                --solose: #C69CFF; --solose-bg: rgba(191,90,242,0.20); --solose-f: #BF5AF2; --solose-pieno: #7C3AED;
+                --allora: #4ADE80; --allora-bg: rgba(48,209,88,0.18); --allora-f: #30D158;
+                --ok: #30D158; --ok-bg: rgba(48,209,88,0.18); --err: #FF453A; --err-t: #FF6961; --err-pieno: #D93A2F; --err-bg: rgba(255,69,58,0.18); --warn: #FFD60A; --warn-bg: rgba(255,214,10,0.16); --warn-f: #FF9F0A; --info: #5AA9FF; --info-bg: rgba(10,132,255,0.18);
+                --on: #30D158;
+                --om-1: 0 1px 2px rgba(0,0,0,0.4); --om-2: 0 8px 24px -8px rgba(0,0,0,0.6); --om-3: 0 24px 60px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.08); --om-su: 0 -10px 40px -10px rgba(0,0,0,0.7);
+                --velo: rgba(0,0,0,0.6);
+                color-scheme: dark;
+            }
+        }
+        :root.tema-scuro {
+            --bg: #000000; --sup: #1C1C1E; --sup-2: #242427; --sup-3: #2C2C2E; --sup-4: #3A3A3C;
+            --bordo: rgba(255,255,255,0.10); --bordo-2: rgba(255,255,255,0.18);
+            --testo: #F5F5F7; --testo-2: #B0B0B8; --testo-3: #9A9AA0;
+            --accento: #0A84FF; --accento-t: #5AA9FF; --accento-pieno: #0A66C2; --accento-bg: rgba(10,132,255,0.18); --anello: #5AA9FF; --anello-morbido: rgba(90,169,255,0.40);
+            --quando: #FFB340; --quando-bg: rgba(255,159,10,0.18); --quando-f: #FF9F0A;
+            --solose: #C69CFF; --solose-bg: rgba(191,90,242,0.20); --solose-f: #BF5AF2; --solose-pieno: #7C3AED;
+            --allora: #4ADE80; --allora-bg: rgba(48,209,88,0.18); --allora-f: #30D158;
+            --ok: #30D158; --ok-bg: rgba(48,209,88,0.18); --err: #FF453A; --err-t: #FF6961; --err-pieno: #D93A2F; --err-bg: rgba(255,69,58,0.18); --warn: #FFD60A; --warn-bg: rgba(255,214,10,0.16); --warn-f: #FF9F0A; --info: #5AA9FF; --info-bg: rgba(10,132,255,0.18);
+            --on: #30D158;
+            --om-1: 0 1px 2px rgba(0,0,0,0.4); --om-2: 0 8px 24px -8px rgba(0,0,0,0.6); --om-3: 0 24px 60px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.08); --om-su: 0 -10px 40px -10px rgba(0,0,0,0.7);
+            --velo: rgba(0,0,0,0.6);
+            color-scheme: dark;
+        }
+
+        /* ---------- base ---------- */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        /* Le fasce di sistema (sopra la testata e sotto la barra) vengono dipinte con lo sfondo di <html>:
+           mettendolo uguale al colore delle barre, la barra in basso sembra incollata al fondo del telefono. */
+        html { background-color: var(--sup); overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+        html, body { height: 100%; }
+        html { font-size: 100%; }
+        body { height: 100dvh; font-family: var(--font); background: var(--sup); color: var(--testo); font-size: 0.9375rem; line-height: 1.45; -webkit-font-smoothing: antialiased; overflow: hidden; }
+        button, input, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+        button { cursor: pointer; border: none; background: none; }
+        svg.lucide { width: 18px; height: 18px; stroke-width: 2; flex-shrink: 0; }
+        i[data-lucide] { display: inline-block; width: 18px; height: 18px; flex-shrink: 0; }
+        ::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-thumb { background: var(--bordo-2); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; } ::-webkit-scrollbar-track { background: transparent; }
+        kbd { display: inline-flex; align-items: center; height: 18px; padding: 0 5px; border-radius: 4px; background: var(--sup-2); border: 1px solid var(--bordo-2); border-bottom-width: 2px; font-family: var(--font); font-size: 11px; font-weight: 600; color: var(--testo-3); line-height: 1; }
+        .btn-primario kbd { background: rgba(0,0,0,0.24); border-color: rgba(255,255,255,0.35); color: #fff; }
+        mark { background: transparent; color: var(--accento-t); font-weight: 700; }
+        .muto { color: var(--testo-3); font-size: 0.84rem; }
+        .gira { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        :focus-visible { outline: 3px solid var(--anello); outline-offset: 2px; }
+        .campo:focus, .cerca input:focus, .nome:focus { outline: none; }
+        .sw input:focus-visible + span { box-shadow: 0 0 0 3px var(--anello); }
+        .voce-reg:focus-visible, .riassunto-riga:focus-visible { outline-offset: -3px; }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+
+        .vista { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s, visibility 0s; }
+        .vista.fuori-sx, .vista.fuori-dx { opacity: 0; transform: scale(0.985); pointer-events: none; visibility: hidden; transition: transform 0.25s, opacity 0.25s, visibility 0s 0.25s; }
+        .sp { flex: 1; }
+
+        /* ---------- barre ---------- */
+        .barra { background: var(--sup); border-bottom: 1px solid var(--bordo); flex-shrink: 0; padding: var(--safe-t) 24px 0; display: flex; align-items: center; }
+        .barra-int { max-width: 1200px; margin: 0 auto; width: 100%; display: flex; align-items: center; gap: 14px; min-width: 0; height: 64px; }
+        .ib { width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; color: var(--testo); background: var(--sup-3); flex-shrink: 0; text-decoration: none; transition: background 0.15s; }
+        .ib:hover { background: var(--sup-4); }
+        .ib.ghost { background: transparent; color: var(--testo-3); } .ib.ghost:hover { background: var(--sup-3); color: var(--testo); }
+        .ib.pericolo:hover { background: var(--err-bg); color: var(--err); }
+        .ib.s { width: 32px; height: 32px; border-radius: 9px; } .ib.s svg { width: 16px; height: 16px; }
+        .ib.nuova { display: none; }
+        .titolo-barra { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+        .titolo-barra b { font-size: 18px; font-weight: 700; letter-spacing: -0.015em; white-space: nowrap; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 12px; font-weight: 600; font-size: 14px; white-space: nowrap; transition: background 0.15s, transform 0.08s, filter 0.15s; flex-shrink: 0; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primario { background: var(--accento-pieno); color: #fff; box-shadow: 0 6px 16px -6px rgba(0,86,179,0.45); } .btn-primario:hover { filter: brightness(1.1); }
+        .btn-tono { background: var(--accento-bg); color: var(--accento-t); } .btn-tono:hover { filter: brightness(0.97); }
+        .btn-grigio { background: var(--sup-3); color: var(--testo); } .btn-grigio:hover { background: var(--sup-4); }
+        .btn.s { height: 36px; padding: 0 12px; font-size: 13px; border-radius: 10px; } .btn.s svg { width: 15px; height: 15px; }
+        .btn.l { height: 48px; font-size: 15px; border-radius: 14px; }
+
+        /* segmented control (schede, filtri, console) */
+        .seg { display: inline-flex; background: var(--sup-3); padding: 3px; border-radius: 11px; gap: 2px; flex-shrink: 0; }
+        .seg button { height: 32px; padding: 0 14px; border-radius: 8px; font-weight: 600; font-size: 0.84rem; color: var(--testo-2); display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; transition: background 0.15s; }
+        .seg button svg { width: 15px; height: 15px; }
+        .seg button.attiva { background: var(--sup); color: var(--testo); box-shadow: 0 1px 3px rgba(0,0,0,0.14), 0 0 0 0.5px rgba(0,0,0,0.04); }
+        .seg.pieno { display: flex; width: 100%; } .seg.pieno button { flex: 1; padding: 0 6px; }
+        .seg .n { background: var(--err-pieno); color: #fff; font-size: 11px; font-weight: 700; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; }
+        .seg .cnt { font-size: 0.75rem; font-weight: 700; color: var(--testo-3); margin-left: 2px; font-variant-numeric: tabular-nums; }
+        .seg button.attiva .cnt { color: var(--accento-t); }
+        .strumenti .seg button { height: 34px; }
+
+        /* interruttore iOS */
+        .sw { position: relative; display: inline-block; width: 51px; height: 31px; flex-shrink: 0; cursor: pointer; }
+        .sw input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .sw span { position: absolute; inset: 0; background: var(--sup-4); border-radius: 31px; transition: 0.2s; }
+        .sw span::before { content: ''; position: absolute; width: 27px; height: 27px; left: 2px; top: 2px; background: #fff; border-radius: 50%; box-shadow: 0 3px 8px rgba(0,0,0,0.18), 0 1px 1px rgba(0,0,0,0.08); transition: 0.2s; }
+        .sw input:checked + span { background: var(--on); } .sw input:checked + span::before { transform: translateX(20px); }
+
+        /* chip di stato e pallini */
+        .chip { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; background: var(--sup-3); color: var(--testo-2); }
+        .chip svg { width: 13px; height: 13px; }
+        .chip.ok { background: var(--ok-bg); color: var(--ok); } .chip.err { background: var(--err-bg); color: var(--err-t); } .chip.warn { background: var(--warn-bg); color: var(--warn); } .chip.info { background: var(--info-bg); color: var(--info); } .chip.mai { background: var(--sup-3); color: var(--testo-2); }
+        .chip.av { background: var(--solose-bg); color: var(--solose); } .chip.cl { background: var(--sup-3); color: var(--testo-2); }
+        .chip.mono { font-family: var(--mono); font-weight: 500; letter-spacing: 0; color: var(--testo-3); max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: inline-block; line-height: 24px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--testo-3); display: inline-block; flex-shrink: 0; }
+        .dot.ok { background: var(--ok); } .dot.err { background: var(--err); } .dot.warn { background: var(--warn-f); } .dot.off { background: var(--bordo-2); } .dot.info { background: var(--accento); }
+
+        /* parole chiave e frase in parole */
+        .k { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 6px; border-radius: 6px; vertical-align: 1px; margin-right: 2px; line-height: 1.3; }
+        .k.q { background: var(--quando-bg); color: var(--quando); } .k.s { background: var(--solose-bg); color: var(--solose); } .k.a { background: var(--allora-bg); color: var(--allora); }
+        .frase { color: var(--testo-2); font-size: 0.875rem; line-height: 1.65; overflow-wrap: anywhere; } .frase b { color: var(--testo); font-weight: 600; } .frase i { font-style: normal; color: var(--testo-3); }
+
+        /* campi */
+        .campo { height: 40px; padding: 0 12px; background: var(--sup); border: 1px solid var(--bordo-2); border-radius: var(--r-s); font-weight: 600; font-size: 14px; color: var(--testo); transition: border-color 0.15s, box-shadow 0.15s; max-width: 100%; }
+        .campo:focus { border-color: var(--accento); box-shadow: 0 0 0 3px var(--anello); }
+        .senza-icone i[data-lucide] { display: none; }
+        .campo::placeholder { color: var(--testo-3); font-weight: 500; }
+        .campo.n { width: 76px; text-align: center; } .campo.ora { width: 112px; font-variant-numeric: tabular-nums; }
+        .campo.testo { width: 100%; font-weight: 500; } .campo.colore { width: 150px; font-weight: 500; } .campo.titolo { width: 220px; font-weight: 500; }
+        textarea.campo { height: auto; min-height: 76px; padding: 9px 12px; width: 100%; resize: vertical; font-weight: 500; line-height: 1.5; }
+        .campo-err, .campo-err.scelta, .riga.err .scelta.nulla { border-color: var(--err) !important; box-shadow: 0 0 0 3px rgba(220,53,69,0.18); }
+        .unita { display: inline-flex; align-items: center; gap: 6px; } .unita span { color: var(--testo-3); font-weight: 600; font-size: 13px; }
+        .parola { color: var(--testo-2); font-weight: 500; font-size: 0.875rem; white-space: nowrap; }
+        .giorni { display: inline-flex; gap: 4px; } .giorni button { width: 40px; height: 40px; border-radius: 50%; background: var(--sup); border: 1px solid var(--bordo-2); font-weight: 700; font-size: 12.5px; color: var(--testo-2); } .giorni button.on { background: var(--accento-pieno); border-color: var(--accento-pieno); color: #fff; }
+        .nega { height: 40px; padding: 0 12px; border-radius: var(--r-s); border: 1px dashed var(--bordo-2); background: var(--sup); font-weight: 800; font-size: 12px; letter-spacing: 0.08em; color: var(--testo-3); } .nega.on { background: var(--solose-pieno); border: 1px solid var(--solose-pieno); color: #fff; }
+        .etichetta { display: block; font-size: 0.75rem; font-weight: 600; color: var(--testo-3); margin-bottom: 6px; }
+        .cerca { position: relative; display: flex; align-items: center; } .cerca > svg { position: absolute; left: 12px; width: 17px; height: 17px; color: var(--testo-3); pointer-events: none; }
+        .cerca input { width: 100%; height: 40px; padding: 0 12px 0 38px; border-radius: 12px; background: var(--sup-3); border: 1px solid transparent; font-weight: 500; font-size: 15px; -webkit-appearance: none; appearance: none; }
+        .cerca input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+        .cerca input:focus { background: var(--sup); border-color: var(--accento); box-shadow: 0 0 0 3px var(--anello); }
+        .strumenti .cerca input { height: 40px; }
+        .cerca .kbd-cerca { position: absolute; right: 10px; pointer-events: none; }
+        .cerca input:focus ~ .kbd-cerca { display: none; }
+
+        /* ---------- cruscotto ---------- */
+        .contenuto { flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
+        .int { max-width: 1200px; margin: 0 auto; padding: 24px 24px 60px; }
+        .intesta { margin-bottom: 4px; }
+        h1.grande { font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; }
+        .sotto { color: var(--testo-3); font-size: 0.875rem; font-weight: 500; margin-top: 4px; min-height: 20px; }
+        .strumenti { display: flex; align-items: center; gap: 12px; margin: 18px 0 16px; flex-wrap: wrap; }
+        .strumenti .cerca { flex: 0 1 360px; }
+        @media (min-width: 900px) { .strumenti .seg { width: auto; display: inline-flex; } .strumenti .seg button { padding: 0 14px; } }
+        .riassunto { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+        .dato { background: var(--sup); border-radius: var(--r); padding: 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: var(--om-1); min-width: 0; }
+        .dato > div { min-width: 0; }
+        .dato .di { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; background: var(--sup-3); color: var(--testo-2); flex-shrink: 0; }
+        .dato .di.ok { background: var(--ok-bg); color: var(--ok); } .dato .di.sole { background: var(--quando-bg); color: var(--quando); } .dato .di.blu { background: var(--accento-bg); color: var(--accento-t); }
+        .dato b { display: block; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dato span { font-size: 0.75rem; color: var(--testo-3); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+        .dato .lab-s { display: none; }
+        .griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+        .auto { background: var(--sup); border-radius: var(--r-l); padding: 16px 18px 12px; box-shadow: var(--om-1); display: flex; flex-direction: column; gap: 12px; transition: box-shadow 0.2s; min-width: 0; }
+        .auto:hover { box-shadow: var(--om-2); }
+        .auto.spenta .tile { filter: grayscale(1); opacity: 0.55; } .auto.spenta h3 { color: var(--testo-2); }
+        .auto-testa { display: flex; align-items: center; gap: 12px; }
+        .tile { width: 42px; height: 42px; border-radius: 13px; display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; background: var(--tile-off); } .tile svg { width: 21px; height: 21px; stroke-width: 2.2; }
+        .tile.film { background: var(--tile-film); } .tile.sole { background: var(--tile-sole); } .tile.porta { background: var(--tile-porta); } .tile.caldo { background: var(--tile-caldo); } .tile.off { background: var(--tile-off); } .tile.luce { background: var(--tile-luce); } .tile.pianta { background: var(--tile-pianta); } .tile.notte { background: var(--tile-notte); } .tile.cena { background: var(--tile-cena); }
+        .auto-nome { flex: 1; min-width: 0; } .auto-nome h3 { font-size: 1.03rem; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; overflow-wrap: anywhere; }
+        .auto-sotto { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--testo-3); font-weight: 500; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .auto-piede { display: flex; align-items: center; gap: 6px; padding-top: 10px; border-top: 1px solid var(--bordo); margin-top: auto; min-width: 0; }
+        .auto-piede .azioni { display: inline-flex; gap: 2px; margin-left: auto; flex-shrink: 0; }
+        .vuoto { grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--testo-3); font-size: 0.84rem; } .vuoto > svg { width: 44px; height: 44px; opacity: 0.35; margin-bottom: 12px; } .vuoto h3 { color: var(--testo); font-size: 16px; font-weight: 700; margin-bottom: 6px; } .vuoto .btn { margin-top: 16px; }
+
+        /* ---------- costruttore ---------- */
+        .testata { background: var(--sup); border-bottom: 1px solid var(--bordo); flex-shrink: 0; padding: var(--safe-t) 24px 0; }
+        .testata-int { max-width: 1400px; margin: 0 auto; height: 64px; display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .nome-box { display: contents; }
+        .nome { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.015em; border: none; background: transparent; flex: 1 1 260px; min-width: 180px; height: 44px; padding: 0 8px; border-radius: 10px; text-overflow: ellipsis; }
+        .nome::placeholder { color: var(--testo-3); font-weight: 600; }
+        .nome:hover { background: var(--sup-2); } .nome:focus { background: var(--sup-2); box-shadow: 0 0 0 2px var(--accento); }
+        .stato-salv { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--quando); font-weight: 600; white-space: nowrap; }
+        .stato-salv i { width: 8px; height: 8px; border-radius: 50%; background: var(--quando-f); display: inline-block; flex-shrink: 0; }
+        .stato-salv.ok { color: var(--testo-3); } .stato-salv.ok i { background: var(--ok); }
+        .attiva-box { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; color: var(--testo-2); padding: 0 8px; white-space: nowrap; cursor: pointer; }
+        .divisa { display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, 34vw, 400px); flex: 1; min-height: 0; }
+        .modulo { overflow-y: auto; overflow-x: hidden; padding: 22px 28px 80px; min-height: 0; }
+        .modulo-int { max-width: 820px; margin: 0 auto; }
+        .avviso { display: flex; gap: 10px; align-items: flex-start; background: var(--info-bg); color: var(--info); border-radius: var(--r); padding: 12px 14px; font-size: 13.5px; margin-bottom: 14px; line-height: 1.5; } .avviso svg { flex-shrink: 0; margin-top: 1px; }
+        .nodo { background: var(--sup); border-radius: var(--r-l); padding: 16px 18px; box-shadow: var(--om-1); }
+        .nodo-quando { --c: var(--quando); --c-bg: var(--quando-bg); --c-f: var(--quando-f); } .nodo-solose { --c: var(--solose); --c-bg: var(--solose-bg); --c-f: var(--solose-f); } .nodo-allora { --c: var(--allora); --c-bg: var(--allora-bg); --c-f: var(--allora-f); } .nodo-opzioni { --c: var(--testo-2); --c-bg: var(--sup-3); --c-f: var(--testo-3); margin-top: 14px; }
+        .nodo-testa { display: flex; align-items: center; gap: 12px; min-height: 36px; }
+        .targa { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 8px; background: var(--c-bg); color: var(--c); font-size: 11.5px; font-weight: 800; letter-spacing: 0.1em; white-space: nowrap; flex-shrink: 0; }
+        .nodo-testa h3 { font-size: 16px; font-weight: 700; flex: 1; min-width: 0; letter-spacing: -0.01em; line-height: 1.2; } .nodo-testa h3 small { display: block; font-weight: 500; color: var(--testo-3); font-size: 12.5px; margin-top: 2px; }
+        .passaggio { display: flex; align-items: center; gap: 12px; padding: 6px 18px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--testo-3); }
+        .passaggio::before, .passaggio::after { content: ''; flex: 1; border-top: 1px solid var(--bordo-2); } .passaggio::before { flex: 0 0 22px; }
+        .riga { background: var(--sup-2); border-radius: 14px; padding: 10px 10px 12px; margin-top: 10px; border: 1px solid transparent; transition: border-color 0.15s, box-shadow 0.15s; }
+        .riga.err { border-color: rgba(220,53,69,0.45); }
+        .riga.lampeggia { box-shadow: 0 0 0 3px var(--anello-morbido); }
+        .riga-testa { display: flex; align-items: center; gap: 8px; }
+        .num { width: 26px; height: 26px; border-radius: 50%; background: var(--c-bg); color: var(--c); font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .tipo-cont { flex: 1; min-width: 0; }
+        .strum { margin-left: auto; display: inline-flex; gap: 0; flex-shrink: 0; }
+        .frase-riga { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; padding-left: 34px; }
+        .frase-riga:empty { display: none; }
+        .ctrl { display: inline-flex; align-items: center; position: relative; max-width: 100%; min-width: 0; }
+        .ctrl.campo-largo { width: 100%; }
+        .ctrl.hint, .ctrl.nota { color: var(--testo-3); font-size: 0.78rem; font-weight: 500; line-height: 1.4; }
+        .ctrl.nota { display: flex; gap: 6px; }
+        .scelta { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 8px; max-width: 100%; min-width: 0; background: var(--sup); border: 1px solid var(--bordo-2); border-radius: var(--r-s); font-weight: 600; font-size: 14px; text-align: left; transition: border-color 0.15s, box-shadow 0.15s; user-select: none; }
+        .scelta:hover { border-color: var(--testo-3); } .scelta.aperta { border-color: var(--accento); box-shadow: 0 0 0 3px var(--anello-morbido); }
+        .scelta.nulla { border-style: dashed; } .scelta.nulla .st { color: var(--testo-3); font-weight: 500; }
+        .riga.err .scelta.nulla .st { color: var(--err); }
+        .scelta .si { width: 24px; height: 24px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; background: var(--sup-3); color: var(--testo-2); flex-shrink: 0; } .scelta .si svg { width: 14px; height: 14px; }
+        .scelta .st { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .scelta .sf { color: var(--testo-3); display: inline-flex; margin-left: auto; } .scelta .sf svg { width: 15px; height: 15px; }
+        .scelta.larga { width: 100%; height: 44px; } .scelta.piena { flex: 1; }
+        .scelta.tipo { background: transparent; border-color: transparent; font-weight: 700; padding-left: 4px; } .scelta.tipo:hover { background: var(--sup-3); }
+        .scelta.tipo .si { background: var(--c-bg); color: var(--c); } .scelta.tipo .sf { margin-left: 2px; }
+        .ico-light { background: #FFF1C2 !important; color: #A16207 !important; } .ico-switch, .ico-input_boolean { background: #DDEBFF !important; color: #1D4ED8 !important; } .ico-cover { background: #ECE6FF !important; color: #6D28D9 !important; } .ico-sensor { background: #DDF6E8 !important; color: #047857 !important; } .ico-binary_sensor { background: #FEE2E2 !important; color: #B91C1C !important; } .ico-media_player { background: #FCE7F3 !important; color: #BE185D !important; } .ico-climate, .ico-fan { background: #FFE4D5 !important; color: #C2410C !important; } .ico-scene, .ico-group { background: #E0E7FF !important; color: #4338CA !important; } .ico-camera { background: #E2E8F0 !important; color: #334155 !important; } .ico-tg { background: #DDF3FF !important; color: #0369A1 !important; }
+        .vuota { border: 1px dashed var(--bordo-2); border-radius: 14px; padding: 14px; text-align: center; color: var(--testo-3); font-size: 13.5px; margin-top: 10px; }
+        .opzioni { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; margin-top: 12px; } .opzioni > div { flex: 1 1 200px; min-width: 0; } .opzioni > div.note { flex: 3 1 320px; }
+        .check { display: flex; align-items: center; gap: 10px; margin-top: 10px; min-height: 44px; color: var(--testo-2); font-size: 0.84rem; font-weight: 500; cursor: pointer; line-height: 1.4; }
+        .check input { width: 20px; height: 20px; accent-color: var(--accento); flex-shrink: 0; margin: 0; }
+
+        /* ---------- menu a tendina (desktop) / foglio dal basso (telefono) ---------- */
+        .velo { display: none; position: fixed; inset: 0; background: var(--velo); z-index: 190; }
+        body.menu-aperto .velo { display: block; }
+        .menu { position: fixed; z-index: 1000; width: 380px; max-width: calc(100vw - 24px); max-height: 460px; background: var(--sup); border-radius: 16px; box-shadow: var(--om-3); border: 1px solid var(--bordo); display: flex; flex-direction: column; overflow: hidden; opacity: 0; transform: translateY(-6px) scale(0.99); transition: opacity 0.14s, transform 0.14s; }
+        .menu.visibile { opacity: 1; transform: none; }
+        .menu .maniglia { display: none; width: 36px; height: 5px; border-radius: 3px; background: var(--bordo-2); margin: 8px auto 4px; flex-shrink: 0; }
+        .menu-titolo { display: none; }
+        .menu-testa { padding: 10px 10px 8px; border-bottom: 1px solid var(--bordo); flex-shrink: 0; }
+        .menu-lista { overflow-y: auto; padding: 6px 8px 8px; flex: 1; min-height: 0; }
+        .gruppo { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--testo-3); padding: 12px 10px 4px; }
+        .voce { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 10px; cursor: pointer; }
+        .voce:hover, .voce.evid { background: var(--sup-3); }
+        .voce .si { width: 30px; height: 30px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; background: var(--sup-3); color: var(--testo-2); flex-shrink: 0; } .voce .si svg { width: 16px; height: 16px; }
+        .voce .vn { flex: 1; min-width: 0; font-weight: 600; font-size: 0.9rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .voce .vn small { display: block; font-family: var(--mono); font-size: 0.72rem; color: var(--testo-3); font-weight: 500; margin-top: 2px; }
+        .voce .vc { display: inline-flex; visibility: hidden; color: var(--accento-t); } .voce.scelto .vc { visibility: visible; } .voce.scelto .vn { color: var(--accento-t); }
+        .nessuno { padding: 18px; text-align: center; color: var(--testo-3); font-size: 13.5px; }
+        .menu-piede { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px; border-top: 1px solid var(--bordo); font-size: 0.72rem; color: var(--testo-3); font-weight: 500; flex-shrink: 0; background: var(--sup); }
+        .menu-piede span { display: inline-flex; align-items: center; gap: 4px; } .menu-piede .cnt { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+        /* ---------- console ---------- */
+        .console { border-left: 1px solid var(--bordo); display: flex; flex-direction: column; min-height: 0; background: var(--bg); }
+        .console .maniglia { display: none; }
+        .console-testa { padding: 14px 16px 12px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .console-testa .seg { flex: 1 1 auto; width: auto; min-width: 0; }
+        .chevron-drawer { display: none; }
+        .riassunto-riga { display: none; }
+        .console-corpo { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0 16px 24px; min-height: 0; }
+        .pannello { display: none; } .pannello.attivo { display: block; }
+        .blocco { background: var(--sup); border-radius: var(--r); padding: 14px 16px; margin-bottom: 12px; box-shadow: var(--om-1); overflow-wrap: anywhere; }
+        .blocco h4 { font-size: 12px; font-weight: 700; color: var(--testo-3); letter-spacing: 0.02em; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .blocco h4 .h4-strum { display: inline-flex; gap: 2px; }
+        .blocco.err { background: var(--err-bg); box-shadow: none; } .blocco.err h4 { color: var(--err-t); }
+        .blocco.nota { background: transparent; border: 1px dashed var(--bordo-2); box-shadow: none; }
+        .blocco .testo-aiuto { font-size: 0.81rem; color: var(--testo-2); line-height: 1.6; }
+        .frase-grande { font-size: 0.94rem; line-height: 1.75; color: var(--testo-2); } .frase-grande b { color: var(--testo); font-weight: 600; } .frase-grande i { font-style: normal; color: var(--testo-3); }
+        .esito-vuoto { font-size: 0.84rem; color: var(--testo-2); line-height: 1.6; }
+        .errore-r { display: flex; gap: 10px; align-items: flex-start; color: var(--testo); font-size: 0.84rem; line-height: 1.45; padding: 4px 0; } .errore-r svg { color: var(--err); flex-shrink: 0; margin-top: 2px; width: 16px; height: 16px; } .errore-r a { color: var(--accento-t); font-weight: 600; text-decoration: none; white-space: nowrap; margin-left: 4px; }
+        .esito-testa { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 12.5px; color: var(--testo-3); font-weight: 500; flex-wrap: wrap; }
+        .log { list-style: none; } .log li { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--bordo); font-size: 0.84rem; line-height: 1.45; align-items: flex-start; } .log li:first-child { border-top: none; padding-top: 0; }
+        .log .li { width: 22px; height: 22px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--sup-3); color: var(--testo-3); } .log .li svg { width: 13px; height: 13px; }
+        .log .az .li { background: var(--allora-bg); color: var(--allora); } .log .att .li { background: var(--warn-bg); color: var(--warn); } .log .er .li { background: var(--err-bg); color: var(--err); }
+        .log .lt { flex: 1; min-width: 0; overflow-wrap: anywhere; } .log .er .lt { color: var(--err); }
+        .valuta > div { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--bordo); font-size: 13.5px; line-height: 1.4; } .valuta > div:first-child { border-top: none; padding-top: 0; } .valuta > div > div { flex: 1; min-width: 0; }
+        .valuta .dot { margin-top: 5px; } .valuta small { display: block; color: var(--testo-3); font-size: 12px; margin-top: 2px; } .valuta .vero { color: var(--ok); font-weight: 600; } .valuta .falso { color: var(--testo-3); font-weight: 600; } .valuta .muto { padding: 4px 0; }
+        .voce-reg { display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--bordo); font-size: 0.84rem; text-align: left; color: inherit; background: none; min-height: 44px; } .voce-reg:first-child { border-top: none; }
+        .voce-reg .vr { flex: 1; min-width: 0; } .voce-reg .vr small { display: block; color: var(--testo-3); font-size: 0.75rem; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); }
+        .voce-reg.apri .vr small { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .voce-reg .durata { color: var(--testo-3); font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .voce-reg .vg { color: var(--testo-3); transition: transform 0.2s; } .voce-reg .vg svg { width: 16px; height: 16px; } .voce-reg.apri .vg { transform: rotate(180deg); }
+        .azioni-mobile { display: none; }
+
+        /* ---------- scenari ---------- */
+        .scenari-div { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 24px; align-items: start; }
+        .scene-griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+        .scena { background: var(--sup); border-radius: var(--r-l); padding: 16px 18px 12px; box-shadow: var(--om-1); display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+        .pill-list { display: flex; flex-wrap: wrap; gap: 6px; }
+        .pill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 6px; border-radius: 9px; background: var(--sup-3); font-size: 12.5px; font-weight: 600; color: var(--testo-2); white-space: nowrap; max-width: 100%; }
+        .pill .si { width: 18px; height: 18px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; } .pill .si svg { width: 11px; height: 11px; }
+        .tag { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 4px 0 10px; border-radius: 10px; background: var(--accento-bg); color: var(--accento-t); font-weight: 600; font-size: 14px; max-width: 100%; }
+        .tag > span:not(.si) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tag button { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; color: inherit; flex-shrink: 0; } .tag button:hover { background: rgba(10,132,255,0.15); } .tag button svg { width: 14px; height: 14px; }
+        .tag .si { width: 20px; height: 20px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; } .tag .si svg { width: 12px; height: 12px; }
+        .multi { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; min-height: 8px; }
+        .stato-riga { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--bordo); font-size: 14px; } .stato-riga:first-child { border-top: none; padding-top: 0; }
+        .stato-riga .si { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; } .stato-riga .si svg { width: 15px; height: 15px; }
+        .stato-riga b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .stato-riga span { color: var(--testo-3); font-size: 12px; white-space: nowrap; font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+        .scenari-div { grid-template-columns: minmax(0, 1fr) clamp(320px, 32vw, 400px); }
+        body:not(.scene) .scenari-div { grid-template-columns: minmax(0, 1fr); }
+        .form-scena { position: sticky; top: 0; }
+        .form-scena.fuori-dx { display: none; }
+        .piede-scena { position: sticky; bottom: 0; background: var(--sup); padding: 10px 0 2px; margin-top: 4px; }
+        .form-scena .card { background: var(--sup); border-radius: var(--r-l); padding: 20px; box-shadow: var(--om-1); }
+        .form-scena .maniglia { display: none; width: 36px; height: 5px; border-radius: 3px; background: var(--bordo-2); margin: 0 auto 10px; }
+        .form-testa { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .form-scena h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.015em; flex: 1; }
+        .form-scena p { color: var(--testo-3); font-size: 13.5px; line-height: 1.5; margin-bottom: 16px; }
+        .form-scena .chiudi { display: none; }
+        .form-scena #s-nome { height: 44px; margin-bottom: 16px; }
+        .form-scena .anteprima { margin-top: 16px; background: var(--sup-2); box-shadow: none; }
+        .form-scena .btn.l { width: 100%; }
+
+        /* ---------- tab bar (telefono) e toast ---------- */
+        .tabbar { display: none; }
+        .toast { position: fixed; bottom: calc(24px + var(--safe-b)); left: 16px; right: 16px; margin-inline: auto; width: fit-content; max-width: calc(100vw - 32px); transform: translateY(12px); background: var(--testo); color: var(--bg); padding: 11px 16px; border-radius: 14px; font-weight: 600; font-size: 0.875rem; box-shadow: var(--om-3); z-index: 300; display: flex; align-items: center; gap: 8px; opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; line-height: 1.35; }
+        .toast.mostra { opacity: 1; transform: none; }
+        .toast svg { color: var(--on); flex-shrink: 0; } .toast.err svg { color: var(--err); }
+        .no-mobile { }
+
+        /* =====================================================================
+           <= 899: console come cassetto in basso, modulo scenari come foglio
+           ===================================================================== */
+        @media (max-width: 899px) {
+            .divisa { display: flex; flex-direction: column; }
+            .modulo { padding-bottom: 24px; min-height: 0; }
+            .console { border-left: none; background: var(--sup); border-radius: 22px 22px 0 0; box-shadow: var(--om-su), 0 0 0 1px var(--bordo); flex-shrink: 0; max-height: 152px; transition: max-height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+            .console.aperto { height: 60dvh; max-height: 60dvh; }
+            .console .maniglia { display: block; width: 100%; height: 44px; min-height: 44px; flex-shrink: 0; padding: 0; background: transparent; border-radius: 22px 22px 0 0; }
+            .console .maniglia::after { content: ''; display: block; width: 36px; height: 5px; border-radius: 3px; background: var(--bordo-2); margin: 12px auto 0; }
+            .console-testa { padding: 2px 16px 8px; gap: 8px; flex-shrink: 0; }
+            .console-testa .seg button { height: 44px; }
+            .ib.s.chevron-drawer { display: inline-flex; width: 44px; height: 44px; border-radius: 12px; transition: transform 0.2s; } .ib.s.chevron-drawer svg { width: 20px; height: 20px; }
+            .console.aperto .chevron-drawer { transform: rotate(180deg); }
+            .riassunto-riga { display: flex; width: 100%; align-items: center; gap: 8px; padding: 0 16px 10px; font-size: 0.81rem; color: var(--testo-2); min-height: 44px; flex-shrink: 0; text-align: left; background: none; }
+            .riassunto-riga .txt { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .riassunto-riga .txt .k { font-size: 9.5px; padding: 1px 5px; }
+            .riassunto-riga .chip { flex-shrink: 0; }
+            .console.aperto .riassunto-riga { display: none; }
+            .console:not(.aperto) .console-corpo { display: none; }
+            .console-corpo { padding: 0 16px 20px; }
+            .scenari-div { display: block; }
+            .form-scena { position: fixed; inset: auto 0 0 0; z-index: 200; max-height: 88dvh; display: flex; flex-direction: column; }
+            .form-scena.fuori-dx { display: none; }
+            .form-scena .card { border-radius: 22px 22px 0 0; overflow-y: auto; padding: 8px 20px calc(20px + var(--safe-b)); box-shadow: var(--om-3); max-width: 640px; margin: 0 auto; width: 100%; }
+            .form-scena .maniglia { display: block; }
+            .form-scena .chiudi { display: inline-flex; width: 40px; height: 40px; }
+            body.scene .velo { display: block; }
+            body.cassetto-aperto .velo { display: block; z-index: 90; }
+        }
+        /* =====================================================================
+           <= 899: barra azioni fissa, testata senza bottoni, toast sotto la testata
+           ===================================================================== */
+        @media (max-width: 899px) {
+            .testata { padding-left: 16px; padding-right: 16px; }
+            .testata-int { height: auto; min-height: 56px; gap: 8px; padding: 8px 0; }
+            .testata .btn { display: none; }
+            .attiva-box { padding: 0; }
+            .azioni-mobile { display: flex; flex-shrink: 0; gap: 10px; padding: 10px 16px max(10px, calc(var(--safe-b) - 12px)); background: var(--sup); border-top: 1px solid var(--bordo); }
+            .azioni-mobile .btn { height: 48px; border-radius: 14px; font-size: 15px; flex: 1; min-width: 0; }
+            .console.aperto { max-height: 60dvh; }
+            .modulo { padding: 16px 16px 24px; min-height: 0; }
+            .modulo-int { max-width: none; }
+            .nodo { padding: 14px 14px 12px; border-radius: 18px; }
+            .passaggio { padding: 4px 14px; }
+            .toast { top: calc(84px + var(--safe-t)); bottom: auto; transform: translateY(-8px); }
+            .toast.mostra { transform: none; }
+            .int { padding: 20px 20px 60px; }
+            .dato { padding: 12px; gap: 10px; } .dato .di { width: 34px; height: 34px; border-radius: 10px; } .dato b { font-size: 1.06rem; } .dato span { font-size: 0.72rem; }
+            .riassunto { gap: 10px; grid-template-columns: 1fr 1fr 1fr 1.35fr; }
+            .dato .lab-l { display: none; } .dato .lab-s { display: block; }
+            .griglia { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+            .strumenti .seg button, #filtri button { height: 44px; }
+            .strumenti .cerca input { height: 44px; }
+            .strum .ib.s { width: 40px; height: 40px; }
+            kbd { display: none; }
+            .menu-piede { display: none; }
+        }
+        /* =====================================================================
+           <= 767 (telefono): elenco a gruppi stile iOS, foglio dal basso, tab bar
+           ===================================================================== */
+        @media (max-width: 767px) {
+            .barra { padding-left: 12px; padding-right: 12px; }
+            .barra-int { height: 52px; gap: 10px; }
+            .barra .seg, .barra .btn.desk { display: none !important; }
+            .titolo-barra b { font-size: 1.06rem; }
+            .barra .ib { width: 44px; height: 44px; }
+            .barra .ib.nuova { display: inline-flex; background: var(--accento); color: #fff; width: 44px; height: 44px; border-radius: 14px; }
+            .int { padding: 14px 16px 24px; }
+            h1.grande { font-size: 1.75rem; }
+            .riassunto { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+            .strumenti { margin: 14px 0 12px; gap: 10px; } .strumenti .cerca { flex: 1 1 100%; } .strumenti .seg { width: 100%; }
+            .strumenti .seg button, #filtri button { height: 44px; font-size: 0.81rem; }
+            .griglia { grid-template-columns: 1fr; gap: 12px; }
+            .auto { padding: 14px 16px 10px; }
+            .auto-piede .ib.s, .scena .ib.s { width: 44px; height: 44px; }
+            .sw::before { content: ''; position: absolute; inset: -7px 0; }
+            .scene-griglia { grid-template-columns: 1fr; }
+            .tabbar { display: flex; flex-shrink: 0; background: var(--sup); border-top: 1px solid var(--bordo); padding: 4px 8px max(4px, calc(var(--safe-b) - 12px)); }
+            .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 48px; font-size: 0.69rem; font-weight: 600; color: var(--testo-3); text-decoration: none; border-radius: 12px; }
+            .tabbar a.on { color: var(--accento-t); } .tabbar a svg { width: 24px; height: 24px; stroke-width: 2; }
+            .testata-int { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 72px; padding: 6px 0; }
+            .testata .ib { width: 44px; height: 44px; background: transparent; }
+            .no-mobile { display: none; }
+            .nome-box { display: flex; flex-direction: column; min-width: 0; align-items: stretch; gap: 2px; }
+            .nome { flex: none; font-size: 1.06rem; height: 44px; min-height: 44px; padding: 0 10px; text-align: center; background: var(--sup-2); border: 1px solid var(--bordo); }
+            .stato-salv { justify-content: center; font-size: 0.75rem; }
+            .attiva-box { flex-direction: column; gap: 2px; font-size: 0.72rem; color: var(--testo-2); line-height: 1.1; }
+            .nodo-testa .btn.s { height: 44px; padding: 0 12px; font-size: 13.5px; border-radius: 12px; }
+            .nodo-testa h3 small { display: none; }
+            .passaggio { display: none; }
+            .nodo-solose, .nodo-allora { margin-top: 12px; }
+            .strum .ib.s { width: 44px; height: 44px; }
+            .num { width: 24px; height: 24px; font-size: 11.5px; }
+            .riga { padding: 10px 8px 12px; }
+            .riga-testa { gap: 6px; }
+            .scelta.tipo { padding-left: 2px; height: auto; min-height: 44px; gap: 6px; }
+            .scelta.tipo .st { white-space: normal; line-height: 1.2; font-size: 0.875rem; overflow: visible; text-overflow: clip; }
+            .riga[data-genere="azione"] .scelta.tipo .st { font-size: 0.84rem; line-height: 1.18; }
+            .riga[data-genere="azione"] .scelta.tipo .si { display: none; }
+            .frase-riga { display: block; padding-left: 0; background: var(--sup); border-radius: 12px; overflow: hidden; border: 1px solid var(--bordo); }
+            .riga.err .frase-riga { border-color: rgba(220,53,69,0.45); }
+            .ctrl { display: flex; align-items: center; min-height: 52px; padding: 0 6px 0 14px; gap: 8px; position: static; max-width: none; }
+            .ctrl::before { content: attr(data-lab); color: var(--testo-2); font-size: 0.94rem; font-weight: 500; flex: 1; white-space: nowrap; }
+            .ctrl + .ctrl { border-top: 1px solid var(--bordo); }
+            .ctrl > [data-k] { margin-left: auto; min-width: 0; max-width: 72%; }
+            .ctrl > .scelta-cont { display: flex; justify-content: flex-end; }
+            .ctrl .scelta { border: none; background: transparent; height: auto; min-height: 52px; padding: 6px 6px 6px 0; max-width: 100%; box-shadow: none; }
+            .ctrl .scelta .st { font-size: 0.94rem; white-space: normal; line-height: 1.25; text-align: right; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+            .ctrl .scelta .si { align-self: flex-start; margin-top: 7px; }
+            .ctrl .scelta.nulla .st { font-size: 0.9rem; }
+            .ctrl .campo { border: 1px solid var(--bordo); background: var(--sup-2); text-align: right; height: 44px; font-size: 0.94rem; padding: 0 10px; border-radius: 9px; }
+            .ctrl .campo:focus { box-shadow: 0 0 0 3px var(--anello); background: var(--sup); border-color: var(--accento); }
+            .ctrl .campo.n { width: 72px; } .ctrl .campo.ora { width: 108px; }
+            .ctrl input[type="text"].campo { flex: 1; width: auto; min-width: 0; max-width: 60%; margin-left: auto; }
+            .ctrl .unita { padding-right: 8px; margin-left: auto; } .ctrl .unita span { font-size: 0.875rem; }
+            .ctrl.campo-largo { flex-direction: column; align-items: stretch; padding: 10px 14px; }
+            .ctrl.campo-largo > [data-k] { margin-left: 0; max-width: none; width: 100%; }
+            .ctrl.campo-largo::before { margin-bottom: 6px; flex: none; }
+            .ctrl.campo-largo textarea.campo { border: 1px solid var(--bordo); background: var(--sup-2); text-align: left; height: auto; border-radius: 10px; font-size: 0.94rem; padding: 9px 12px; }
+            .ctrl.hint, .ctrl.nota { min-height: 0; padding: 8px 14px 10px; font-size: 0.78rem; color: var(--testo-3); background: var(--sup-2); }
+            .ctrl.hint::before, .ctrl.nota::before { display: none; }
+            .ctrl.giorni-c { flex-direction: column; align-items: stretch; padding: 10px 4px 10px 4px; }
+            .ctrl.giorni-c::before { margin-bottom: 8px; flex: none; padding-left: 10px; }
+            .ctrl.giorni-c .giorni { margin-left: 0; max-width: none; display: flex; justify-content: space-between; gap: 2px; }
+            .ctrl.giorni-c { padding-left: 2px; padding-right: 2px; }
+            .ctrl.giorni-c .giorni { width: 100%; gap: 2px; }   /* sette giorni in fila: piu larghi possibile senza sbordare */
+            .ctrl.giorni-c .giorni button { flex: 1 1 0; min-width: 0; }
+            .giorni button { min-width: 44px; height: 44px; border-radius: 12px; font-size: 0.81rem; }
+            .ctrl .nega { height: 44px; min-width: 76px; margin-left: auto; margin-right: 8px; }
+            .parola { display: none; }
+            .opzioni { display: block; } .opzioni > div + div { margin-top: 12px; }
+            .check { font-size: 0.81rem; }
+            .menu.foglio { left: 0 !important; right: 0; top: auto !important; bottom: 0; width: auto; max-width: none; max-height: 80dvh; border-radius: 22px 22px 0 0; border: none; z-index: 200; opacity: 1; transform: translateY(100%); transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); }
+            .menu.foglio.visibile { transform: none; }
+            .menu.foglio .maniglia { display: block; }
+            .menu.foglio .menu-titolo { display: flex; align-items: center; justify-content: space-between; font-size: 17px; font-weight: 700; padding: 6px 6px 10px 16px; flex-shrink: 0; }
+            .menu.foglio .menu-titolo .ib { width: 44px; height: 44px; }
+            .menu.foglio .menu-testa { padding: 0 12px 10px; border-bottom: none; }
+            .menu.foglio .menu-testa .cerca input { height: 44px; }
+            .menu.foglio .menu-lista { padding: 4px 8px calc(12px + var(--safe-b)); }
+            .menu.foglio .menu-testa ~ .menu-lista { flex: none; height: 46dvh; }   /* con la ricerca il foglio resta fermo mentre si scrive */
+            .menu.foglio .voce { min-height: 52px; padding: 8px 10px; }
+            .menu.foglio .voce .si { width: 32px; height: 32px; align-self: flex-start; }
+            .menu.foglio .voce .vn { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+            .azioni-mobile .btn.ico { flex: 0 0 48px; padding: 0; }
+            /* il NON, sul telefono, si legge come un interruttore: l'etichetta della riga dice «Al contrario» */
+            .ctrl.nega-c .nega { width: 51px; min-width: 51px; height: 31px; min-height: 31px; padding: 0; border-radius: 31px; border: none; background: var(--bordo-2); font-size: 0; position: relative; transition: background 0.2s; }
+            .ctrl.nega-c .nega::after { content: ''; position: absolute; top: 3px; left: 3px; width: 25px; height: 25px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: transform 0.2s; }
+            .ctrl.nega-c .nega.on { background: var(--solose-pieno); }
+            .ctrl.nega-c .nega.on::after { transform: translateX(20px); }
+            .azioni-mobile .btn.ico .lab { display: none; }
+            .azioni-mobile .btn { font-size: 14.5px; padding: 0 12px; }
+            .console-testa .seg button { height: 44px; }
+            .form-scena .chiudi { width: 44px; height: 44px; }
+            .tag { height: 44px; } .tag button { width: 44px; height: 44px; }
+            .blocco h4 .ib.s { width: 40px; height: 40px; }
+        }
+        @media (max-width: 420px) {
+            .riassunto .dato span { font-size: 0.69rem; }
+            .seg.pieno button { font-size: 0.78rem; padding: 0 2px; }
+            .dato b { font-size: 1rem; }
+        }
+        /* =====================================================================
+           Schermi a dito (tablet compreso): tutti i comandi ad almeno 44 px
+           ===================================================================== */
+        @media (max-width: 1099px), (pointer: coarse) {
+            .ib { width: 44px; height: 44px; }
+            .btn, .btn.s { height: 44px; }
+            .scelta, .campo, .nega { height: 44px; }
+            .ctrl .scelta { min-height: 44px; }
+            .auto-piede .ib.s, .scena .ib.s, .strum .ib.s, .blocco h4 .ib.s, .form-scena .chiudi { width: 44px; height: 44px; }
+            .auto-piede .azioni, .scena .azioni { gap: 4px; }
+            .barra .seg button, .console-testa .seg button, .strumenti .seg button, #filtri button { height: 44px; }
+            .strumenti .seg { padding: 2px; } .strumenti .cerca input { height: 48px; }
+            .giorni button { min-width: 44px; height: 44px; }
+            .sw::before { content: ''; position: absolute; inset: -7px 0; }
+            .opzioni .campo { height: 44px; }
+            .tag { height: 44px; } .tag button { width: 44px; height: 44px; }
+            .menu-titolo .ib.s { width: 44px; height: 44px; }
+        }
+        /* fra 900 e 1200 px la testata tiene solo le icone: il nome ha la precedenza */
+        @media (min-width: 900px) and (max-width: 1199px) {
+            .testata .btn { padding: 0 12px; }
+            .testata .btn .lab { font-size: 13.5px; }
+            .nome { flex: 1 1 200px; min-width: 120px; font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ====================================================== CRUSCOTTO ====================================================== -->
+<div id="vista-cruscotto" class="vista">
+    <header class="barra"><div class="barra-int">
+        <a href="/dashboard" class="ib" title="Torna al pannello di controllo" aria-label="Torna al pannello di controllo"><i data-lucide="chevron-left"></i></a>
+        <div class="titolo-barra"><b>Wach0ss Home</b></div>
+        <div class="seg" role="tablist" aria-label="Sezione"><button class="attiva" id="scheda-auto" role="tab" aria-selected="true" onclick="mostraScheda('auto')"><i data-lucide="git-branch"></i>Automazioni</button><button id="scheda-scene" role="tab" aria-selected="false" onclick="mostraScheda('scene')"><i data-lucide="layers"></i>Scenari</button></div>
+        <div class="sp"></div>
+        <button class="btn btn-tono desk" id="btn-nuovo-scenario" style="display:none;" onclick="apriScenario()"><i data-lucide="camera"></i> Registra scenario</button>
+        <button class="btn btn-primario desk" id="btn-nuova" onclick="apriCostruttore()"><i data-lucide="plus"></i> Nuova automazione</button>
+        <button class="ib nuova" id="btn-nuova-mobile" title="Nuova" aria-label="Nuova" onclick="nuovoDaMobile()"><i data-lucide="plus"></i></button>
+    </div></header>
+    <div class="contenuto">
+        <div class="int" id="pagina-auto">
+            <div class="intesta"><h1 class="grande">Automazioni</h1><div class="sotto" id="sotto-auto"></div></div>
+            <div class="riassunto">
+                <div class="dato"><div class="di blu"><i data-lucide="git-branch"></i></div><div><b id="dato-totale">–</b><span>automazioni</span></div></div>
+                <div class="dato"><div class="di ok"><i data-lucide="check-circle-2"></i></div><div><b id="dato-attive">–</b><span>attive</span></div></div>
+                <div class="dato"><div class="di"><i data-lucide="history"></i></div><div><b id="dato-oggi">–</b><span class="lab-l">esecuzioni registrate</span><span class="lab-s">esecuzioni</span></div></div>
+                <div class="dato"><div class="di sole"><i data-lucide="sunrise"></i></div><div><b id="dato-sole">–</b><span class="lab-l">alba · tramonto, oggi</span><span class="lab-s">alba · tramonto</span></div></div>
+            </div>
+            <div class="strumenti">
+                <div class="cerca"><i data-lucide="search"></i><input type="search" id="cerca" placeholder="Cerca per nome o dispositivo" aria-label="Cerca per nome o dispositivo" autocomplete="off" oninput="disegnaLista()"><kbd class="kbd-cerca">/</kbd></div>
+                <div class="seg pieno" id="filtri" role="group" aria-label="Filtra le automazioni"><button class="attiva" data-f="tutte" aria-pressed="true" onclick="filtra(this)">Tutte<span class="cnt"></span></button><button data-f="attive" aria-pressed="false" onclick="filtra(this)">Attive<span class="cnt"></span></button><button data-f="spente" aria-pressed="false" onclick="filtra(this)">Spente<span class="cnt"></span></button><button data-f="classiche" aria-pressed="false" onclick="filtra(this)">Classiche<span class="cnt"></span></button></div>
+            </div>
+            <div class="griglia" id="lista-auto" aria-live="polite" aria-busy="true"><div class="vuoto"><i data-lucide="loader-2" class="gira"></i><div>Carico le automazioni…</div></div></div>
+        </div>
+        <div class="int" id="pagina-scene" style="display:none;">
+            <div class="intesta"><h1 class="grande">Scenari</h1><div class="sotto" id="sotto-scene"></div></div>
+            <div class="scenari-div">
+                <div class="scene-griglia" id="lista-scene"></div>
+                <aside class="form-scena fuori-dx" id="vista-scenario" aria-labelledby="titolo-scena">
+                    <div class="card">
+                        <div class="maniglia"></div>
+                        <div class="form-testa"><h2 id="titolo-scena">Registra scenario</h2><button class="ib s ghost chiudi" title="Chiudi" aria-label="Chiudi" onclick="chiudiScenario()"><i data-lucide="x"></i></button></div>
+                        <p>Sistema fisicamente luci e tapparelle come le vuoi, scegli i dispositivi da includere e premi «Registra»: lo scenario memorizza il loro stato attuale (con luminosità e posizione dove disponibili) e potrà essere richiamato da un'automazione o dall'app.</p>
+                        <label class="etichetta" for="s-nome">Nome</label>
+                        <input type="text" class="campo testo" id="s-nome" placeholder="Nome dello scenario" autocomplete="off">
+                        <span class="etichetta">Dispositivi da includere</span>
+                        <div class="multi" id="s-tag"></div>
+                        <div id="s-scelta"></div>
+                        <div class="blocco anteprima"><h4>Nello scenario</h4><div id="s-anteprima"></div></div>
+                        <div class="piede-scena"><button class="btn btn-primario l" id="btn-registra-scena" onclick="registraScenario()"><i data-lucide="camera"></i> <span class="lab">Registra lo stato attuale</span></button></div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+    <nav class="tabbar" aria-label="Sezioni"><a href="#" id="tab-auto" class="on" aria-current="page" onclick="mostraScheda('auto'); return false;"><i data-lucide="git-branch"></i>Automazioni</a><a href="#" id="tab-scene" onclick="mostraScheda('scene'); return false;"><i data-lucide="layers"></i>Scenari</a></nav>
+</div>
+
+<!-- ====================================================== COSTRUTTORE ====================================================== -->
+<div id="vista-costruttore" class="vista fuori-dx">
+    <header class="testata"><div class="testata-int">
+        <button class="ib" onclick="chiudiCostruttore()" title="Torna all'elenco (Esc)" aria-label="Torna all'elenco"><i data-lucide="chevron-left"></i></button>
+        <div class="nome-box">
+            <input type="text" class="nome" id="c-nome" placeholder="Nome dell'automazione" aria-label="Nome dell'automazione" autocomplete="off" oninput="segnaModifica()">
+            <span class="stato-salv ok" id="c-stato"><i></i><span>salvata</span></span>
+        </div>
+        <div class="sp no-mobile"></div>
+        <label class="attiva-box"><span class="lab">Attiva</span><span class="sw"><input type="checkbox" id="c-attiva" checked onchange="segnaModifica()" aria-label="Automazione attiva"><span></span></span></label>
+        <button class="btn btn-grigio" onclick="prova()" title="Prova a secco (Ctrl+Invio)" aria-label="Prova a secco"><i data-lucide="flask-conical"></i> <span class="lab">Prova a secco</span></button>
+        <button class="btn btn-grigio" onclick="esegui()" title="Esegui adesso sui dispositivi veri" aria-label="Esegui ora"><i data-lucide="play"></i> <span class="lab">Esegui ora</span></button>
+        <button class="btn btn-primario" onclick="salva()" title="Salva (Ctrl+S)" aria-label="Salva"><i data-lucide="check"></i> <span class="lab">Salva</span> <kbd>Ctrl S</kbd></button>
+    </div></header>
+    <div class="divisa">
+        <div class="modulo"><div class="modulo-int">
+            <div class="avviso" id="c-avviso-classica" style="display:none;"><i data-lucide="info"></i><div><b>Automazione classica.</b> La stai aprendo nel costruttore nuovo: al salvataggio passa al motore nuovo, con lo stesso comportamento e più possibilità.</div></div>
+            <section class="nodo nodo-quando" aria-label="Inneschi">
+                <div class="nodo-testa"><span class="targa">QUANDO</span><h3>Inneschi<small>basta che ne scatti uno</small></h3><button class="btn btn-tono s" onclick="aggiungiRiga('innesco')"><i data-lucide="plus"></i> Innesco</button></div>
+                <div id="c-inneschi"></div>
+                <label class="check"><input type="checkbox" id="c-solo-manuale" onchange="segnaModifica(); aggiornaRiepilogo()"><span>Solo manuale: nessun innesco automatico, parte da «Esegui ora» o da un'altra automazione</span></label>
+            </section>
+            <div class="passaggio"><span>poi verifica</span></div>
+            <section class="nodo nodo-solose" aria-label="Condizioni">
+                <div class="nodo-testa"><span class="targa">SOLO SE</span><h3>Condizioni<small>tutte da rispettare</small></h3><button class="btn btn-tono s" onclick="aggiungiRiga('condizione')"><i data-lucide="plus"></i> Condizione</button></div>
+                <div id="c-condizioni"></div>
+            </section>
+            <div class="passaggio"><span>allora esegui in ordine</span></div>
+            <section class="nodo nodo-allora" aria-label="Azioni">
+                <div class="nodo-testa"><span class="targa">ALLORA</span><h3>Azioni<small>in sequenza, nell'ordine</small></h3><button class="btn btn-tono s" onclick="aggiungiRiga('azione')"><i data-lucide="plus"></i> Azione</button></div>
+                <div id="c-azioni"></div>
+            </section>
+            <section class="nodo nodo-opzioni" aria-label="Opzioni">
+                <div class="nodo-testa"><span class="targa">OPZIONI</span><h3>Comportamento<small>pausa fra due scatti e appunti</small></h3></div>
+                <div class="opzioni">
+                    <div><label class="etichetta" for="c-pausa">Pausa minima fra due scatti</label><div class="unita"><input type="number" min="0" step="1" inputmode="numeric" class="campo n" id="c-pausa" placeholder="0" oninput="segnaModifica(); aggiornaRiepilogo()"><span>minuti</span></div></div>
+                    <div class="note"><label class="etichetta" for="c-note">Note</label><input type="text" class="campo testo" id="c-note" placeholder="Appunti per chi la ritrova fra un anno" autocomplete="off" oninput="segnaModifica()"></div>
+                </div>
+            </section>
+        </div></div>
+        <aside class="console" id="console" aria-label="Console">
+            <button type="button" class="maniglia" aria-label="Apri o chiudi la console" onclick="alternaCassetto()"></button>
+            <div class="console-testa">
+                <div class="seg pieno console-schede" role="tablist" aria-label="Pannelli della console">
+                    <button class="attiva" id="ctab-riepilogo" data-p="riepilogo" role="tab" aria-selected="true" aria-controls="pannello-riepilogo" onclick="mostraPannello('riepilogo', true)">Riepilogo <span class="n" id="conta-errori" style="display:none;">0</span></button>
+                    <button id="ctab-esito" data-p="esito" role="tab" aria-selected="false" aria-controls="pannello-esito" onclick="mostraPannello('esito', true)">Esito</button>
+                    <button id="ctab-registro" data-p="registro" role="tab" aria-selected="false" aria-controls="pannello-registro" onclick="mostraPannello('registro', true)">Registro</button>
+                </div>
+                <button class="ib s ghost chevron-drawer" id="drawer-toggle" title="Apri la console" aria-label="Apri la console" aria-expanded="false" aria-controls="console-corpo" onclick="alternaCassetto()"><i data-lucide="chevron-up"></i></button>
+            </div>
+            <button type="button" class="riassunto-riga" id="console-riassunto" onclick="apriCassetto()" aria-label="Apri la console"><span class="txt"></span><span class="chip err" id="riassunto-errori" style="display:none;"></span></button>
+            <div class="console-corpo" id="console-corpo">
+                <div class="pannello attivo" id="pannello-riepilogo" role="tabpanel" aria-labelledby="ctab-riepilogo">
+                    <div class="blocco"><h4>In parole</h4><div class="frase-grande" id="c-frase">…</div></div>
+                    <div class="blocco err" id="c-blocco-errori" style="display:none;"><h4>Da sistemare <span id="c-errori-n"></span></h4><div class="errori" id="c-errori"></div></div>
+                    <div class="blocco nota"><h4>Come funziona</h4><div class="testo-aiuto">Gli inneschi scattano <b>sul cambiamento</b>: «diventa acceso» parte nel momento in cui si accende, non finché resta acceso. Le condizioni si controllano in quell'istante. Le azioni partono in ordine; un'attesa mette in pausa la sequenza senza fermare il resto della casa.</div></div>
+                </div>
+                <div class="pannello" id="pannello-esito" role="tabpanel" aria-labelledby="ctab-esito"><div class="blocco" id="c-esito-blocco"><h4>Ultima prova / esecuzione</h4><div id="c-esito" class="esito-vuoto">Premi <b>Prova a secco</b>: vedrai quali inneschi e condizioni sarebbero veri adesso e cosa farebbero le azioni, senza toccare i dispositivi.</div></div></div>
+                <div class="pannello" id="pannello-registro" role="tabpanel" aria-labelledby="ctab-registro"><div class="blocco"><h4>Ultime esecuzioni <span class="h4-strum"><button class="ib s ghost" onclick="caricaRegistro()" title="Aggiorna" aria-label="Aggiorna il registro"><i data-lucide="refresh-cw"></i></button><button class="ib s ghost pericolo" onclick="svuotaRegistro()" title="Svuota" aria-label="Svuota il registro"><i data-lucide="trash-2"></i></button></span></h4><div id="c-registro" class="muto">Salva l'automazione per vedere qui le sue esecuzioni.</div></div></div>
+            </div>
+        </aside>
+    </div>
+    <div class="azioni-mobile">
+        <button class="btn btn-grigio" onclick="prova()" title="Prova a secco"><i data-lucide="flask-conical"></i> <span class="lab">Prova a secco</span></button>
+        <button class="btn btn-grigio ico" onclick="esegui()" title="Esegui ora" aria-label="Esegui ora"><i data-lucide="play"></i> <span class="lab">Esegui ora</span></button>
+        <button class="btn btn-primario" onclick="salva()" title="Salva"><i data-lucide="check"></i> <span class="lab">Salva</span></button>
+    </div>
+</div>
+
+<div class="velo" id="velo" onclick="clickVelo()"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+// =============================================================================
+//  DATI
+// =============================================================================
+let entita = [], contatti = [], automazioni = [], scenari = [], statoRegole = {}, soleOggi = null;
+let filtroAttivo = 'tutte', cId = null, cClassica = false, cModificata = false, scenaScelte = [];
+const DOMINI = { light: 'Luci', switch: 'Interruttori e prese', cover: 'Tapparelle', sensor: 'Sensori', binary_sensor: 'Sensori aperto/chiuso', media_player: 'Audio e video', climate: 'Clima', scene: 'Scenari', group: 'Gruppi', camera: 'Telecamere', fan: 'Ventole', input_boolean: 'Interruttori virtuali' };
+const ICONE = { light: 'lightbulb', switch: 'power', cover: 'blinds', sensor: 'activity', binary_sensor: 'door-open', media_player: 'speaker', climate: 'thermometer', scene: 'layers', group: 'layers', camera: 'camera', fan: 'fan', input_boolean: 'toggle-left' };
+const GIORNI = ['L', 'M', 'M', 'G', 'V', 'S', 'D'], GIORNI_LUNGHI = ['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
+const TIPI = {
+    innesco: [['stato', 'Un dispositivo cambia', 'zap'], ['durata', 'Un dispositivo resta così per un tempo', 'hourglass'], ['orario', 'A un orario', 'clock'], ['sole', 'Alba o tramonto', 'sun'], ['periodico', 'Ogni tot minuti', 'repeat']],
+    condizione: [['stato', 'Stato di un dispositivo', 'search'], ['fascia', 'Fascia oraria', 'clock'], ['giorni', 'Giorni della settimana', 'calendar'], ['sole', 'Giorno o notte', 'sun-moon']],
+    azione: [['dispositivo', 'Accendi, spegni, inverti', 'power'], ['tapparella', 'Tapparella', 'blinds'], ['luce', 'Luce: luminosità e colore', 'lightbulb'], ['scena', 'Attiva uno scenario', 'layers'], ['attesa', 'Aspetta', 'timer'], ['telegram', 'Messaggio Telegram', 'send'], ['popup', 'Avviso sull\'app', 'smartphone'], ['regola', 'Un\'altra automazione', 'git-branch']],
+};
+const CONFRONTI_ONOFF = [['diventa', 'diventa'], ['cambia', 'cambia (qualunque valore)'], ['!=', 'diventa diverso da']];
+const CONFRONTI_NUM = [['>', 'supera'], ['<', 'scende sotto'], ['>=', 'raggiunge almeno'], ['<=', 'scende a'], ['diventa', 'diventa esattamente'], ['!=', 'diventa diverso da'], ['cambia', 'cambia (qualunque valore)']];
+const COND_ONOFF = [['diventa', 'è'], ['!=', 'non è']];
+const COND_NUM = [['>', 'è maggiore di'], ['<', 'è minore di'], ['>=', 'è almeno'], ['<=', 'è al massimo'], ['diventa', 'è esattamente'], ['!=', 'è diverso da']];
+const nomeDi = id => (entita.find(e => e.entity_id === id) || {}).name || id || '…';
+const dominioDi = id => (id || '').split('.')[0];
+const numerico = id => ['sensor', 'input_number', 'number'].includes(dominioDi(id));
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+const icone = root => { try { lucide.createIcons({ root: root || document }); } catch (e) {} };
+const telefono = () => window.matchMedia('(max-width: 767px)').matches;
+const cassettoAttivo = () => window.matchMedia('(max-width: 899px)').matches;
+const puntatoreFine = () => window.matchMedia('(pointer: fine)').matches;
+function toast(testo, errore) { const t = document.getElementById('toast'); t.innerHTML = `<i data-lucide="${errore ? 'alert-circle' : 'check-circle-2'}"></i><span>${esc(testo)}</span>`; icone(t); t.setAttribute('role', errore ? 'alert' : 'status'); t.setAttribute('aria-live', errore ? 'assertive' : 'polite'); t.className = 'toast mostra' + (errore ? ' err' : ''); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('mostra'), errore ? 5000 : 2600); }
+function erroreRete(e) { const m = e && e.message ? String(e.message) : ''; toast(!m || /fetch|network|load failed|errore 5\d\d/i.test(m) ? 'Non riesco a raggiungere la centralina. Riprova.' : m, true); }
+async function api(url, metodo, corpo) { const r = await fetch(url, { method: metodo || 'GET', headers: { 'Content-Type': 'application/json' }, body: corpo ? JSON.stringify(corpo) : undefined }); let j = {}; try { j = await r.json(); } catch (e) {} if (!r.ok && !j.errori) throw new Error(j.errore || j.message || ('errore ' + r.status)); return j; }
+
+// =============================================================================
+//  COMPONENTE "SCELTA": menu a tendina ancorato (desktop) o foglio dal basso (telefono)
+//  scelta(contenitore, {valore, opzioni:[{v,t,icona,classeIco,gruppo,sub}], cerca, placeholder, onChange, larga, classe, titolo})
+// =============================================================================
+let pannelloAperto = null, _nVoce = 0;
+function chiudiScelta() { if (!pannelloAperto) return; const { pannello, bottone } = pannelloAperto; const dentro = pannello.contains(document.activeElement); pannello.classList.remove('visibile'); bottone.classList.remove('aperta'); bottone.setAttribute('aria-expanded', 'false'); document.body.classList.remove('menu-aperto'); setTimeout(() => pannello.remove(), 220); pannelloAperto = null; document.removeEventListener('mousedown', clickFuoriScelta); document.removeEventListener('keydown', tastiScelta); window.removeEventListener('resize', chiudiScelta); if (dentro) bottone.focus(); }
+function clickFuoriScelta(e) { if (pannelloAperto && !pannelloAperto.pannello.contains(e.target) && !pannelloAperto.bottone.contains(e.target)) chiudiScelta(); }
+function segnaEvid(pannello, voce) { const box = pannello.querySelector('.cerca input') || pannello.querySelector('[role="listbox"]') || pannello; if (!voce) { box.removeAttribute('aria-activedescendant'); return; } if (!voce.id) voce.id = 'voce-scelta-' + (++_nVoce); box.setAttribute('aria-activedescendant', voce.id); }
+function tastiScelta(e) {
+    if (!pannelloAperto) return; const { pannello, foglio } = pannelloAperto; const voci = [...pannello.querySelectorAll('.voce')]; let i = voci.findIndex(v => v.classList.contains('evid'));
+    if (e.key === 'Escape') { e.preventDefault(); const b = pannelloAperto.bottone; chiudiScelta(); b.focus(); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!voci.length) return; i = e.key === 'ArrowDown' ? Math.min(voci.length - 1, i + 1) : Math.max(0, i - 1); voci.forEach(v => v.classList.remove('evid')); voci[i].classList.add('evid'); voci[i].scrollIntoView({ block: 'nearest' }); segnaEvid(pannello, voci[i]); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (i >= 0) voci[i].click(); }
+    else if (e.key === 'Tab') {
+        if (!foglio) { chiudiScelta(); return; }
+        const f = [...pannello.querySelectorAll('button, input, textarea, a[href]')].filter(x => x.getClientRects().length);
+        if (!f.length) { e.preventDefault(); return; }
+        const primo = f[0], ultimo = f[f.length - 1], a = document.activeElement;
+        if (e.shiftKey && (a === primo || a === pannello || !pannello.contains(a))) { e.preventDefault(); ultimo.focus(); }
+        else if (!e.shiftKey && (a === ultimo || a === pannello || !pannello.contains(a))) { e.preventDefault(); primo.focus(); }
+    }
+}
+// In inglese il cliente legge le etichette tradotte: ricerca, ordinamento ed evidenziazione
+// devono lavorare su QUELLE. In italiano window.WH_T non esiste e tutto resta come prima.
+function aVideo(s) { s = String(s == null ? '' : s); return window.WH_T ? window.WH_T(s) : s; }
+// il mese abbreviato lo scrive il browser: senza questo restava «31 ago» anche in inglese.
+// en-GB e non en-US, per tenere giorno/mese e le 24 ore come le legge il cliente.
+function _lgLocale() { return (document.documentElement.getAttribute('lang') || 'it') === 'en' ? 'en-GB' : 'it-IT'; }
+// Dalla frase composta ricava come si legge a video, un nodo di testo alla volta.
+// In italiano non serve (WH_T non c'e') e restituisce stringa vuota: la ricerca resta identica.
+function testoAVideo(html) {
+    if (!window.WH_T) return '';
+    const d = document.createElement('div'); d.innerHTML = html;
+    const w = document.createTreeWalker(d, NodeFilter.SHOW_TEXT); let fuori = '', n;
+    while ((n = w.nextNode())) fuori += ' ' + window.WH_T(n.nodeValue.trim());
+    return fuori;
+}
+function evidenzia(testo, q) { const t = esc(aVideo(testo)); if (!q) return t; const qe = esc(q); const i = t.toLowerCase().indexOf(qe.toLowerCase()); if (i < 0) return t; return t.slice(0, i) + '<mark>' + t.slice(i, i + qe.length) + '</mark>' + t.slice(i + qe.length); }
+function scelta(cont, cfg) {
+    cont.innerHTML = ''; cont.classList.add('scelta-cont'); cont.dataset.v = cfg.valore == null ? '' : String(cfg.valore); cont._cfg = cfg;
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'scelta' + (cfg.larga ? ' larga' : '') + (cfg.piena ? ' piena' : '') + (cfg.classe ? ' ' + cfg.classe : ''); b.setAttribute('aria-haspopup', 'listbox'); b.setAttribute('aria-expanded', 'false'); cont.appendChild(b);
+    const disegna = () => { const o = cfg.opzioni.find(x => String(x.v) === cont.dataset.v); b.classList.toggle('nulla', !o); b.title = o ? o.t : (cfg.placeholder || 'Scegli…'); b.innerHTML = (o && o.icona ? `<span class="si ${o.classeIco || ''}"><i data-lucide="${o.icona}"></i></span>` : (cfg.icona ? `<span class="si"><i data-lucide="${cfg.icona}"></i></span>` : '')) + `<span class="st">${esc(o ? o.t : (cfg.placeholder || 'Scegli…'))}</span><span class="sf"><i data-lucide="chevron-down"></i></span>`; icone(b); };
+    disegna();
+    cont.addEventListener('click', e => { if (e.target === cont) b.click(); });
+    const rigaCtrl = cont.closest('.ctrl'); if (rigaCtrl && !rigaCtrl._inoltra) { rigaCtrl._inoltra = true; rigaCtrl.addEventListener('click', e => { if (e.target === rigaCtrl) { const bb = rigaCtrl.querySelector('.scelta'); if (bb) bb.click(); } }); }
+    cont.imposta = (val, silenzioso) => { cont.dataset.v = val == null ? '' : String(val); disegna(); if (!silenzioso && cfg.onChange) cfg.onChange(cont.dataset.v); };
+    b.addEventListener('click', () => {
+        if (pannelloAperto && pannelloAperto.bottone === b) { chiudiScelta(); return; } chiudiScelta();
+        const foglio = telefono();
+        const titolo = cfg.titolo || (cont.closest('.ctrl') && cont.closest('.ctrl').dataset.lab) || 'Scegli';
+        const p = document.createElement('div'); p.className = 'menu' + (foglio ? ' foglio' : ''); p.setAttribute('role', foglio ? 'dialog' : 'listbox'); p.setAttribute('aria-label', titolo); if (foglio) { p.setAttribute('aria-modal', 'true'); p.setAttribute('tabindex', '-1'); }
+        const conCerca = cfg.cerca || cfg.opzioni.length > 8;
+        p.innerHTML = `<div class="maniglia"></div><div class="menu-titolo"><span>${esc(titolo)}</span><button type="button" class="ib s ghost" title="Chiudi" aria-label="Chiudi"><i data-lucide="x"></i></button></div>` + (conCerca ? `<div class="menu-testa"><div class="cerca"><i data-lucide="search"></i><input type="search" placeholder="Cerca per nome o id" aria-label="Cerca" autocomplete="off"></div></div>` : '') + `<div class="menu-lista" role="${foglio ? 'listbox' : 'presentation'}"></div><div class="menu-piede"><span><kbd>↑</kbd><kbd>↓</kbd> scorri</span><span><kbd>↵</kbd> scegli</span><span><kbd>Esc</kbd> chiudi</span><span class="cnt"></span></div>`;
+        const lista = p.querySelector('.menu-lista'), cnt = p.querySelector('.cnt'); const unita = cfg.opzioni.some(o => o.sub) ? 'dispositivi' : 'voci';
+        const riempiLista = (q) => {
+            q = (q || '').toLowerCase().trim(); lista.innerHTML = ''; let gruppoCorr = null, n = 0;
+            cfg.opzioni.forEach(o => { if (q && !(o.t + ' ' + (o.sub || '') + ' ' + (o.gruppo || '') + ' ' + aVideo(o.t) + ' ' + aVideo(o.gruppo || '')).toLowerCase().includes(q)) return; if (o.gruppo && o.gruppo !== gruppoCorr) { gruppoCorr = o.gruppo; const g = document.createElement('div'); g.className = 'gruppo'; g.setAttribute('data-no-tr', ''); g.innerHTML = evidenzia(o.gruppo, q); lista.appendChild(g); }
+                const scelto = String(o.v) === cont.dataset.v; const v = document.createElement('div'); v.className = 'voce' + (scelto ? ' scelto evid' : ''); v.setAttribute('role', 'option'); v.setAttribute('aria-selected', scelto ? 'true' : 'false');
+                v.title = o.t + (o.sub ? ' · ' + o.sub : '');
+                v.innerHTML = (o.icona ? `<span class="si ${o.classeIco || ''}"><i data-lucide="${o.icona}"></i></span>` : '') + `<span class="vn" data-no-tr>${evidenzia(o.t, q)}${o.sub ? `<small>${evidenzia(o.sub, q)}</small>` : ''}</span><span class="vc"><i data-lucide="check"></i></span>`;
+                v.addEventListener('click', () => { cont.imposta(o.v); chiudiScelta(); b.focus(); }); v.addEventListener('mousemove', () => { lista.querySelectorAll('.evid').forEach(x => x.classList.remove('evid')); v.classList.add('evid'); segnaEvid(p, v); }); lista.appendChild(v); n++; });
+            if (!n) lista.innerHTML = '<div class="nessuno">Nessun risultato</div>'; if (!lista.querySelector('.evid')) { const primo = lista.querySelector('.voce'); if (primo) primo.classList.add('evid'); } cnt.textContent = n + ' ' + unita; icone(lista); segnaEvid(p, lista.querySelector('.evid'));
+        };
+        riempiLista(''); document.body.appendChild(p); icone(p);
+        p.querySelector('.menu-titolo button').addEventListener('click', () => { chiudiScelta(); b.focus(); });
+        if (foglio) { document.body.classList.add('menu-aperto'); }
+        else { const r = b.getBoundingClientRect(); const larg = Math.min(Math.max(r.width, cfg.cerca ? 380 : 300), window.innerWidth - 24); p.style.width = larg + 'px'; let x = r.left, y = r.bottom + 6; if (x + larg > window.innerWidth - 12) x = Math.max(12, window.innerWidth - larg - 12); const alt = Math.min(p.offsetHeight, 460); if (y + alt > window.innerHeight - 12) y = Math.max(12, r.top - alt - 6); p.style.left = x + 'px'; p.style.top = y + 'px'; }
+        const portaInVista = () => { const sel = lista.querySelector('.voce.scelto'); if (!sel || !lista.clientHeight) return; const r1 = sel.getBoundingClientRect(), r2 = lista.getBoundingClientRect(); lista.scrollTop += (r1.top - r2.top) - (r2.height / 2) + (r1.height / 2); };
+        portaInVista();
+        setTimeout(() => { p.classList.add('visibile'); portaInVista(); }, 10); b.classList.add('aperta'); b.setAttribute('aria-expanded', 'true');
+        pannelloAperto = { pannello: p, bottone: b, foglio: foglio };
+        if (conCerca) { const inp = p.querySelector('input'); inp.addEventListener('input', () => { riempiLista(inp.value); }); if (puntatoreFine()) setTimeout(() => inp.focus(), 30); }
+        if (foglio && !(conCerca && puntatoreFine())) setTimeout(() => p.focus({ preventScroll: true }), 30);
+        setTimeout(() => { document.addEventListener('mousedown', clickFuoriScelta); document.addEventListener('keydown', tastiScelta); if (!foglio) window.addEventListener('resize', chiudiScelta); }, 0);
+        if (!foglio) { const scroll = b.closest('.modulo, .console-corpo, .contenuto, .form-scena .card'); if (scroll) scroll.addEventListener('scroll', chiudiScelta, { once: true }); }
+    });
+    return cont;
+}
+function opzioniEntita(dominio) { const lista = dominio ? entita.filter(e => e.domain === dominio) : entita; return lista.map(e => ({ v: e.entity_id, t: e.name, sub: e.entity_id, icona: ICONE[e.domain] || 'cpu', classeIco: 'ico-' + e.domain, gruppo: DOMINI[e.domain] || e.domain.toUpperCase() })).sort((a, b) => aVideo(a.gruppo).localeCompare(aVideo(b.gruppo)) || a.t.localeCompare(b.t)); }
+const coppie = (c, icone_) => c.map(([v, t], i) => ({ v, t, icona: icone_ ? icone_[i] : undefined }));
+function clickVelo() { if (pannelloAperto) { chiudiScelta(); return; } if (document.body.classList.contains('cassetto-aperto')) { chiudiCassetto(); return; } if (document.body.classList.contains('scene')) chiudiScenario(); }
+
+// =============================================================================
+//  CRUSCOTTO
+// =============================================================================
+async function carica() {
+    try { entita = await api('/api/entities_for_automations'); try { contatti = await api('/api/telegram_chats'); } catch (e) { contatti = []; } } catch (e) { toast('Impossibile caricare i dispositivi', true); }
+    await caricaListe();
+}
+async function caricaListe() {
+    try { [automazioni, scenari] = await Promise.all([api('/api/automations'), api('/api/scenes').catch(() => [])]); try { const s = await api('/api/automazioni_avanzate/stato'); statoRegole = s.regole || {}; soleOggi = s.sole || null; } catch (e) { statoRegole = {}; } } catch (e) { toast('Impossibile leggere le automazioni', true); }
+    disegnaLista(); disegnaScenari();
+}
+function mostraScheda(q) {
+    document.getElementById('scheda-auto').classList.toggle('attiva', q === 'auto'); document.getElementById('scheda-scene').classList.toggle('attiva', q === 'scene');
+    document.getElementById('scheda-auto').setAttribute('aria-selected', q === 'auto' ? 'true' : 'false'); document.getElementById('scheda-scene').setAttribute('aria-selected', q === 'scene' ? 'true' : 'false');
+    document.getElementById('tab-auto').classList.toggle('on', q === 'auto'); document.getElementById('tab-scene').classList.toggle('on', q === 'scene');
+    document.getElementById('tab-auto').setAttribute('aria-current', q === 'auto' ? 'page' : 'false'); document.getElementById('tab-scene').setAttribute('aria-current', q === 'scene' ? 'page' : 'false');
+    document.getElementById('pagina-auto').style.display = q === 'auto' ? '' : 'none'; document.getElementById('pagina-scene').style.display = q === 'scene' ? '' : 'none';
+    document.getElementById('btn-nuova').style.display = q === 'auto' ? '' : 'none'; document.getElementById('btn-nuovo-scenario').style.display = q === 'scene' ? '' : 'none';
+    const piu = document.getElementById('btn-nuova-mobile'); piu.title = q === 'auto' ? 'Nuova automazione' : 'Registra scenario'; piu.setAttribute('aria-label', piu.title);
+    document.body.classList.toggle('pagina-scene', q === 'scene');
+    if (q !== 'scene') chiudiScenario();
+}
+function nuovoDaMobile() { if (document.body.classList.contains('pagina-scene')) apriScenario(); else apriCostruttore(); }
+function filtra(b) { document.querySelectorAll('#filtri button').forEach(x => { x.classList.remove('attiva'); x.setAttribute('aria-pressed', 'false'); }); b.classList.add('attiva'); b.setAttribute('aria-pressed', 'true'); filtroAttivo = b.dataset.f; disegnaLista(); }
+function eAvanzata(a) { return a.config && a.config.versione === 2; }
+function quandoRelativo(iso) { if (!iso) return null; const d = new Date(iso); const diff = (Date.now() - d.getTime()) / 1000; if (diff < 60) return 'adesso'; if (diff < 3600) return Math.round(diff / 60) + ' min fa'; const oggi = new Date(); const ieri = new Date(oggi); ieri.setDate(oggi.getDate() - 1); const hm = d.toLocaleTimeString(_lgLocale(), { hour: '2-digit', minute: '2-digit' }); if (d.toDateString() === oggi.toDateString()) return 'oggi ' + hm; if (d.toDateString() === ieri.toDateString()) return 'ieri ' + hm; return d.toLocaleDateString(_lgLocale(), { day: 'numeric', month: 'short' }) + ' ' + hm; }
+const CLASSE_ESITO = e => ({ ok: 'ok', errore: 'err', fermata: 'err', bloccata: 'warn', saltata: 'warn', prova: 'info' })[e] || 'mai';
+const ICONA_ESITO = e => ({ ok: 'check', errore: 'alert-circle', fermata: 'alert-circle', bloccata: 'pause', saltata: 'pause', prova: 'flask-conical' })[e] || 'minus';
+function chipEsito(e, testo) { return `<span class="chip chip-${esc(e)} ${CLASSE_ESITO(e)}"><i data-lucide="${ICONA_ESITO(e)}"></i>${esc(testo || e)}</span>`; }
+function tileDi(c) {
+    const inneschi = c.inneschi || [];
+    if (c.solo_manuale && !inneschi.length) return { icona: 'hand', classe: 'off' };
+    const i = inneschi[0]; if (!i) return { icona: 'git-branch', classe: 'off' };
+    if (i.tipo === 'orario') return { icona: 'clock', classe: 'notte' };
+    if (i.tipo === 'sole') return { icona: i.evento === 'alba' ? 'sunrise' : 'sunset', classe: 'sole' };
+    if (i.tipo === 'periodico') return { icona: 'repeat', classe: 'film' };
+    const d = dominioDi(i.entita), n = ((i.entita || '') + ' ' + nomeDi(i.entita)).toLowerCase(); let icona = 'zap', classe = 'caldo';
+    if (d === 'binary_sensor') { if (/moviment|presenz|motion|occup/.test(n)) { icona = 'radar'; classe = 'pianta'; } else { icona = 'door-open'; classe = 'porta'; } }
+    else if (d === 'light') { icona = 'lightbulb'; classe = 'luce'; }
+    else if (d === 'sensor') { icona = /temp|clima|termo/.test(n) ? 'thermometer' : 'activity'; classe = 'caldo'; }
+    else if (d === 'cover') { icona = 'blinds'; classe = 'film'; }
+    else if (d === 'media_player') { icona = 'speaker'; classe = 'cena'; }
+    else if (d === 'switch' || d === 'input_boolean') { icona = 'power'; classe = 'notte'; }
+    else if (d === 'climate') { icona = 'thermometer'; classe = 'caldo'; }
+    if (i.tipo === 'durata') icona = 'hourglass';
+    return { icona, classe };
+}
+function aggiornaConteggi() {
+    const n = { tutte: automazioni.length, attive: automazioni.filter(a => a.is_active).length, spente: automazioni.filter(a => !a.is_active).length, classiche: automazioni.filter(a => !eAvanzata(a)).length };
+    document.querySelectorAll('#filtri button').forEach(b => { const c = b.querySelector('.cnt'); if (c) c.textContent = n[b.dataset.f]; b.setAttribute('aria-label', b.firstChild.textContent + ': ' + n[b.dataset.f]); b.setAttribute('aria-pressed', b.dataset.f === filtroAttivo ? 'true' : 'false'); });
+    document.getElementById('dato-totale').textContent = automazioni.length; document.getElementById('dato-attive').textContent = n.attive;
+    const ultima = Object.values(statoRegole).map(x => x.quando).filter(Boolean).sort().pop();
+    document.getElementById('sotto-auto').textContent = automazioni.length ? `${n.attive} attive su ${automazioni.length}` + (ultima ? ` · ultima esecuzione ${quandoRelativo(ultima)}` : ' · nessuna esecuzione registrata') : 'Nessuna automazione ancora';
+    return n;
+}
+function disegnaLista() {
+    const q = (document.getElementById('cerca').value || '').toLowerCase().trim(); const conf = a => a.config || {};
+    const lista = automazioni.filter(a => { if (filtroAttivo === 'attive' && !a.is_active) return false; if (filtroAttivo === 'spente' && a.is_active) return false; if (filtroAttivo === 'classiche' && eAvanzata(a)) return false; if (!q) return true; const testo = a.name + ' ' + frase(eAvanzata(a) ? conf(a) : converti(conf(a)), true);
+            return (testo + ' ' + testoAVideo(testo)).toLowerCase().includes(q); });
+    aggiornaConteggi();
+    const _ese = Object.values(statoRegole).reduce((s, x) => s + (x.quante || 0), 0); document.getElementById('dato-oggi').textContent = _ese;
+    document.querySelector('#dato-oggi + .lab-l').textContent = _ese === 1 ? 'esecuzione registrata' : 'esecuzioni registrate'; document.querySelector('#dato-oggi ~ .lab-s').textContent = _ese === 1 ? 'esecuzione' : 'esecuzioni'; document.getElementById('dato-sole').textContent = soleOggi ? `${soleOggi.alba} · ${soleOggi.tramonto}` : '–';
+    const cont = document.getElementById('lista-auto');
+    cont.setAttribute('aria-busy', 'false');
+    if (!lista.length) { cont.innerHTML = `<div class="vuoto"><i data-lucide="${q ? 'search-x' : 'sparkles'}"></i><h3>${q ? 'Nessuna automazione corrisponde' : 'Nessuna automazione'}</h3><div>${q ? 'Prova con un altro nome.' : 'Crea la prima con «Nuova automazione».'}</div>${q ? '' : '<button class="btn btn-primario" onclick="apriCostruttore()"><i data-lucide="plus"></i> Nuova automazione</button>'}</div>`; icone(cont); return; }
+    cont.innerHTML = lista.map(a => { const av = eAvanzata(a); const c = av ? conf(a) : converti(conf(a)); const st = statoRegole[String(a.id)]; const t = tileDi(c);
+        let sotto, dot;
+        if (!av) { sotto = a.is_active ? 'Motore classico' : 'Spenta · motore classico'; dot = a.is_active ? '' : 'off'; }
+        else if (!st) { sotto = a.is_active ? 'Mai eseguita' : 'Spenta · mai eseguita'; dot = 'off'; }
+        else { const e = st.esito, quando = quandoRelativo(st.quando) || ''; sotto = a.is_active ? (({ ok: 'Eseguita', errore: 'Errore', fermata: 'Fermata', bloccata: 'Bloccata', saltata: 'Saltata', prova: 'Provata' })[e] || e) + ' ' + quando : 'Spenta · ultima ' + quando; dot = a.is_active ? CLASSE_ESITO(e) : 'off'; }
+        const piede = av && st ? chipEsito(st.esito) : '';
+        return `<article class="auto scheda ${a.is_active ? '' : 'spenta'}" id="scheda-${a.id}"><div class="auto-testa"><div class="tile ${t.classe}"><i data-lucide="${t.icona}"></i></div><div class="auto-nome"><h3 title="${esc(a.name)}">${esc(a.name)}</h3><div class="auto-sotto"><span class="dot ${dot}"></span><span>${esc(sotto)}</span></div></div><label class="sw" title="${a.is_active ? 'Attiva' : 'Spenta'}"><input type="checkbox" ${a.is_active ? 'checked' : ''} onchange="attivaRegola(${a.id}, this.checked)" aria-label="Attiva «${esc(a.name)}»"><span></span></label></div><p class="frase">${frase(c)}</p>
+            <div class="auto-piede"><span class="chip ${av ? 'av' : 'cl'}">${av ? 'Avanzata' : 'Classica'}</span>${piede}<div class="azioni">${av ? `<button class="ib s ghost" title="Esegui ora" aria-label="Esegui ora «${esc(a.name)}»" onclick="eseguiDaLista(${a.id})"><i data-lucide="play"></i></button>` : ''}<button class="ib s ghost" title="Modifica" aria-label="Modifica «${esc(a.name)}»" onclick="apriCostruttore(${a.id})"><i data-lucide="pencil"></i></button><button class="ib s ghost pericolo" title="Elimina" aria-label="Elimina «${esc(a.name)}»" onclick="elimina(${a.id}, '${esc(a.name).replace(/'/g, '&#39;')}')"><i data-lucide="trash-2"></i></button></div></div></article>`; }).join('');
+    icone(cont);
+}
+async function attivaRegola(id, on) {
+    const scheda = document.getElementById('scheda-' + id), inp = scheda && scheda.querySelector('.sw input'); const a = automazioni.find(x => x.id === id);
+    if (scheda) scheda.classList.toggle('spenta', !on); if (a) a.is_active = on; aggiornaConteggi();
+    try { await api('/api/automations', 'PUT', { id, is_active: on }); }
+    catch (e) { if (a) a.is_active = !on; if (inp) inp.checked = !on; if (scheda) scheda.classList.toggle('spenta', on); aggiornaConteggi(); erroreRete(e); }
+}
+async function elimina(id, nome) { if (!confirm(`Eliminare «${nome}»?`)) return; try { await api('/api/automations', 'DELETE', { id }); } catch (e) { erroreRete(e); return; } try { await api('/api/automazioni_avanzate/registro/' + id, 'DELETE'); } catch (e) {} toast('Automazione eliminata'); caricaListe(); }
+async function eseguiDaLista(id) { const a = automazioni.find(x => x.id === id); if (!a || !confirm(`Eseguo adesso «${a.name}», sui dispositivi veri?`)) return; try { const j = await api('/api/automazioni_avanzate/esegui', 'POST', { id, name: a.name, config: a.config }); toast(j.esito === 'ok' ? 'Eseguita' : 'Eseguita con problemi: guarda il registro', j.esito !== 'ok'); } catch (e) { erroreRete(e); return; } caricaListe(); }
+
+// =============================================================================
+//  CONVERSIONE delle regole classiche (solo in lettura: diventano avanzate al salvataggio)
+// =============================================================================
+function converti(c) {
+    if (!c || c.versione === 2) return c || {};
+    const t = c.trigger || {}, k = c.condition || {}; const inneschi = [], condizioni = [], azioni = [];
+    if (t.type === 'time') inneschi.push({ tipo: 'orario', ora: t.value || '08:00', giorni: [] });
+    else if (t.type === 'state') inneschi.push({ tipo: 'stato', entita: t.entity, confronto: (t.operator && t.operator !== '==') ? t.operator : 'diventa', valore: t.value });
+    if (k.type === 'state') condizioni.push({ tipo: 'stato', entita: k.entity, confronto: 'diventa', valore: k.value });
+    else if (k.type === 'time_range') condizioni.push({ tipo: 'fascia', dalle: k.start || '22:00', alle: k.end || '06:00' });
+    (c.actions || []).forEach(a => {
+        if (a.action_type === 'telegram' || a.entity_id === 'telegram') azioni.push({ tipo: 'telegram', messaggio: a.message || '', chat: a.chat_id || '' });
+        else if (a.action_type === 'ui_modal' || a.entity_id === 'ui_modal') azioni.push({ tipo: 'popup', titolo: a.title || 'Avviso', messaggio: a.message || '', entita: a.target_entity || '' });
+        else if ((a.entity_id || '').startsWith('scene.')) azioni.push({ tipo: 'scena', entita: a.entity_id });
+        else azioni.push({ tipo: 'dispositivo', entita: a.entity_id, comando: a.state === 'off' ? 'off' : 'on' });
+    });
+    return { versione: 2, inneschi, condizioni, azioni, pausa_minuti: 0, note: '' };
+}
+
+// =============================================================================
+//  LA FRASE ("in parole")
+// =============================================================================
+const valoreLeggibile = (id, v) => { if (numerico(id)) return `${v}`; const d = dominioDi(id); const on = d === 'cover' ? 'aperta' : (d === 'binary_sensor' ? 'attivo' : 'acceso'); const off = d === 'cover' ? 'chiusa' : (d === 'binary_sensor' ? 'inattivo' : 'spento'); return { on, off }[String(v).toLowerCase()] || v; };
+function fraseInnesco(i) {
+    const n = `<b>${esc(nomeDi(i.entita))}</b>`;
+    if (i.tipo === 'stato') return i.confronto === 'cambia' ? `${n} cambia` : `${n} ${({ diventa: 'diventa', '>': 'supera', '<': 'scende sotto', '>=': 'raggiunge', '<=': 'scende a', '!=': 'diventa diverso da' })[i.confronto] || '…'} <b>${esc(valoreLeggibile(i.entita, i.valore))}</b>`;
+    if (i.tipo === 'durata') return `${n} resta <b>${esc(valoreLeggibile(i.entita, i.valore))}</b> per <b>${i.minuti} min</b>`;
+    if (i.tipo === 'orario') return `sono le <b>${i.ora}</b>` + ((i.giorni || []).length ? ` (${i.giorni.map(g => GIORNI_LUNGHI[g].slice(0, 3)).join(', ')})` : '');
+    if (i.tipo === 'sole') { const s = Number(i.scostamento || 0), alba = i.evento === 'alba'; if (!s) return `è <b>${alba ? 'l\'alba' : 'il tramonto'}</b>`; return `<b>${Math.abs(s)} min ${s < 0 ? (alba ? 'prima dell\'alba' : 'prima del tramonto') : (alba ? 'dopo l\'alba' : 'dopo il tramonto')}</b>`; }
+    if (i.tipo === 'periodico') return `passano <b>${i.minuti} minuti</b>`;
+    return '…';
+}
+function fraseCondizione(c) {
+    const neg = c.nega; let t = '';
+    if (c.tipo === 'stato') t = `<b>${esc(nomeDi(c.entita))}</b> ${({ diventa: 'è', '>': 'è maggiore di', '<': 'è minore di', '>=': 'è almeno', '<=': 'è al massimo', '!=': 'è diverso da' })[c.confronto] || 'è'} <b>${esc(valoreLeggibile(c.entita, c.valore))}</b>`;
+    else if (c.tipo === 'fascia') t = `siamo fra le <b>${c.dalle}</b> e le <b>${c.alle}</b>`;
+    else if (c.tipo === 'giorni') t = `è <b>${(c.giorni || []).map(g => GIORNI_LUNGHI[g]).join(', ') || '…'}</b>`;
+    else if (c.tipo === 'sole') t = `è <b>${c.posizione === 'notte' ? 'notte' : 'giorno'}</b>`;
+    return neg ? `<i>non</i> ${t}` : t;
+}
+function fraseAzione(a) {
+    const n = `<b>${esc(nomeDi(a.entita))}</b>`;
+    if (a.tipo === 'dispositivo') return `${({ on: dominioDi(a.entita) === 'cover' ? 'apri' : 'accendi', off: dominioDi(a.entita) === 'cover' ? 'chiudi' : 'spegni', toggle: 'inverti' })[a.comando] || 'accendi'} ${n}`;
+    if (a.tipo === 'tapparella') return `${({ su: 'alza', giu: 'abbassa', ferma: 'ferma' })[a.comando] || 'porta'} ${n}` + (a.comando === 'posizione' ? ` al <b>${a.posizione}%</b>` : '');
+    if (a.tipo === 'luce') return `${n}` + (a.luminosita !== '' && a.luminosita != null ? ` al <b>${a.luminosita}%</b>` : ' accesa') + (a.colore ? ` colore <b>${esc(a.colore)}</b>` : '');
+    if (a.tipo === 'scena') return `attiva <b>${esc(nomeDi(a.entita))}</b>`;
+    if (a.tipo === 'attesa') return `aspetta <b>${a.secondi} s</b>`;
+    if (a.tipo === 'telegram') return `Telegram «<b>${esc((a.messaggio || '').slice(0, 40))}${(a.messaggio || '').length > 40 ? '…' : ''}</b>»`;
+    if (a.tipo === 'popup') return `avviso «<b>${esc(a.titolo || a.messaggio || '')}</b>»`;
+    if (a.tipo === 'regola') { const r = automazioni.find(x => x.id === Number(a.id)); return `${({ attiva: 'attiva', disattiva: 'disattiva', esegui: 'esegui' })[a.comando] || ''} l'automazione <b>${esc(r ? r.name : ('#' + a.id))}</b>`; }
+    return '…';
+}
+function frase(c, semplice) {
+    const k = (t, cl) => semplice ? '' : `<span class="k ${cl}">${t}</span> `;
+    const inn = (c.inneschi || []).map(fraseInnesco), con = (c.condizioni || []).map(fraseCondizione), az = (c.azioni || []).map(fraseAzione);
+    let s = c.solo_manuale && !inn.length ? `${k('QUANDO', 'q')}la avvii a mano` : (inn.length ? `${k('QUANDO', 'q')}${inn.join(' <i>oppure</i> ')}` : `${k('QUANDO', 'q')}<i>nessun innesco</i>`);
+    if (con.length) s += `, ${k('SOLO SE', 's')}${con.join(' <i>e</i> ')}`;
+    const coda = az.length ? az.join(', <i>poi</i> ') : '<i>nessuna azione</i>';
+    s += `, ${k('ALLORA', 'a')}${coda}` + (/…\s*$/.test(coda.replace(/<[^>]*>/g, '').trim()) ? '' : '.');
+    if (c.pausa_minuti && Number(c.pausa_minuti) > 0) s += ` Non più di una volta ogni <b>${c.pausa_minuti} min</b>.`;
+    return s;
+}
+
+// =============================================================================
+//  COSTRUTTORE: righe che si leggono come frasi (sul telefono: elenco a gruppi con etichetta)
+// =============================================================================
+const P = t => `<span class="parola">${t}</span>`;
+const C = (lab, html, cls) => `<div class="ctrl${cls ? ' ' + cls : ''}" data-lab="${esc(lab)}">${html}</div>`;
+const H = t => `<div class="ctrl hint">${t}</div>`;
+const N = k => `<div class="ctrl nota" data-nota="${k}" style="display:none;"></div>`;
+function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
+function slot(k, extra) { return `<div data-k="${k}" ${extra || ''}></div>`; }
+function numero(k, val, unita, min, max, step, lab) { return `<div class="unita"><input type="number" inputmode="decimal" class="campo n" data-k="${k}" value="${esc(val == null ? '' : val)}" ${min != null ? `min="${min}"` : ''} ${max != null ? `max="${max}"` : ''} step="${step || 1}" aria-label="${esc(lab || k)}">${unita ? `<span>${unita}</span>` : ''}</div>`; }
+function ora(k, val, lab) { return `<input type="time" class="campo ora" data-k="${k}" value="${esc(val || '08:00')}" aria-label="${esc(lab || k)}">`; }
+function giorniHTML(scelti) { scelti = (scelti || []).map(Number); return `<div class="giorni" data-k="giorni" role="group" aria-label="Giorni della settimana">${GIORNI.map((g, i) => `<button type="button" data-g="${i}" class="${scelti.includes(i) ? 'on' : ''}" title="${GIORNI_LUNGHI[i]}" aria-label="${GIORNI_LUNGHI[i]}" aria-pressed="${scelti.includes(i)}" onclick="this.classList.toggle('on'); this.setAttribute('aria-pressed', this.classList.contains('on')); cambiato(); aggiornaNote(this.closest('.riga'))">${(aVideo(GIORNI_LUNGHI[i]) || g)[0].toUpperCase()}</button>`).join('')}</div>`; }
+function negaHTML(on) { return `<button type="button" class="nega ${on ? 'on' : ''}" data-k="nega" aria-pressed="${!!on}" title="Al contrario (NON)" onclick="this.classList.toggle('on'); this.setAttribute('aria-pressed', this.classList.contains('on')); cambiato(); aggiornaNote(this.closest('.riga'))">NON</button>`; }
+function valoreOnOff(id, k, val) { const d = dominioDi(id); const on = d === 'cover' ? 'Aperta' : (d === 'binary_sensor' ? 'Attivo (aperto / rilevato)' : 'Acceso'); const off = d === 'cover' ? 'Chiusa' : (d === 'binary_sensor' ? 'Inattivo (chiuso / libero)' : 'Spento'); return { k, opzioni: [{ v: 'on', t: on, icona: 'circle-dot' }, { v: 'off', t: off, icona: 'circle' }], valore: (val || 'on') === 'off' ? 'off' : 'on' }; }
+
+function costruisciFrase(riga, genere, tipo, d) {
+    d = d || {}; const f = riga.querySelector('.frase-riga'); f.innerHTML = ''; const menu = [];   // menu: [{k, cfg}]
+    const agg = html => f.insertAdjacentHTML('beforeend', html);
+    const m = (k, cfg, lab) => { agg(C(lab || k, slot(k))); menu.push({ k, cfg }); };
+    const campo = (lab, html, cls) => agg(C(lab, html, cls));
+    const ent = d.entita || '';
+    if (genere === 'innesco') {
+        if (tipo === 'stato' || tipo === 'durata') {
+            m('entita', { valore: ent, opzioni: opzioniEntita(), cerca: true, placeholder: 'Scegli un dispositivo', icona: 'cpu', onChange: () => rifai(riga) }, 'Dispositivo');
+            { const num = numerico(ent); const cmp = tipo === 'durata' ? (num ? CONFRONTI_NUM : CONFRONTI_ONOFF).filter(x => x[0] !== 'cambia') : (num ? CONFRONTI_NUM : CONFRONTI_ONOFF);
+                const conf = cmp.some(x => x[0] === d.confronto) ? d.confronto : (num ? '>' : 'diventa');
+                m('confronto', { valore: conf, opzioni: coppie(cmp), onChange: () => rifai(riga) }, 'Confronto');
+                if (conf !== 'cambia') { if (num) campo('Valore', numero('valore', d.valore, '', null, null, 'any', 'Valore')); else m('valore', valoreOnOff(ent, 'valore', d.valore), 'Valore'); }
+                if (tipo === 'durata') { agg(P('per almeno')); campo('Per almeno', numero('minuti', d.minuti == null ? 5 : d.minuti, 'min', 1, null, 1, 'Per almeno, in minuti')); } }
+        } else if (tipo === 'orario') { agg(P('alle')); campo('Ora', ora('ora', d.ora, 'Ora')); agg(P('nei giorni')); campo('Giorni', giorniHTML(d.giorni), 'giorni-c'); agg(N('giorni')); }
+        else if (tipo === 'sole') { m('evento', { valore: d.evento || 'tramonto', opzioni: [{ v: 'alba', t: 'Alba', icona: 'sunrise' }, { v: 'tramonto', t: 'Tramonto', icona: 'sunset' }] }, 'Evento'); agg(P('con scostamento di')); campo('Scostamento', numero('scostamento', d.scostamento == null ? 0 : d.scostamento, 'min', null, null, 5, 'Scostamento in minuti')); agg(N('sole')); }
+        else if (tipo === 'periodico') { agg(P('ogni')); campo('Ogni', numero('minuti', d.minuti == null ? 30 : d.minuti, 'minuti', 1, null, 1, 'Ogni quanti minuti')); }
+    }
+    if (genere === 'condizione') {
+        campo('Al contrario', negaHTML(d.nega), 'nega-c');
+        if (tipo === 'stato') { m('entita', { valore: ent, opzioni: opzioniEntita(), cerca: true, placeholder: 'Scegli un dispositivo', icona: 'cpu', onChange: () => rifai(riga) }, 'Dispositivo');
+            { const num = numerico(ent); const cmp = num ? COND_NUM : COND_ONOFF; const conf = cmp.some(x => x[0] === d.confronto) ? d.confronto : (num ? '>' : 'diventa'); m('confronto', { valore: conf, opzioni: coppie(cmp) }, 'Confronto'); if (num) campo('Valore', numero('valore', d.valore, '', null, null, 'any', 'Valore')); else m('valore', valoreOnOff(ent, 'valore', d.valore), 'Valore'); } }
+        else if (tipo === 'fascia') { agg(P('siamo fra le')); campo('Dalle', ora('dalle', d.dalle || '22:00', 'Dalle')); agg(P('e le')); campo('Alle', ora('alle', d.alle || '06:00', 'Alle')); agg(N('fascia')); }
+        else if (tipo === 'giorni') { agg(P('è')); campo('Giorni', giorniHTML(d.giorni && d.giorni.length ? d.giorni : [0, 1, 2, 3, 4]), 'giorni-c'); }
+        else if (tipo === 'sole') { agg(P('è')); m('posizione', { valore: d.posizione || 'notte', opzioni: [{ v: 'giorno', t: 'giorno (fra alba e tramonto)', icona: 'sun' }, { v: 'notte', t: 'notte', icona: 'moon' }] }, 'Momento'); }
+    }
+    if (genere === 'azione') {
+        if (tipo === 'dispositivo') { m('comando', { valore: d.comando || 'on', opzioni: [{ v: 'on', t: 'Accendi / apri', icona: 'power' }, { v: 'off', t: 'Spegni / chiudi', icona: 'power-off' }, { v: 'toggle', t: 'Inverti', icona: 'repeat' }] }, 'Comando'); m('entita', { valore: ent, opzioni: opzioniEntita(), cerca: true, placeholder: 'Scegli un dispositivo', icona: 'cpu', onChange: () => cambiato() }, 'Dispositivo'); }
+        else if (tipo === 'tapparella') { m('comando', { valore: d.comando || 'su', opzioni: [{ v: 'su', t: 'Alza', icona: 'arrow-up' }, { v: 'giu', t: 'Abbassa', icona: 'arrow-down' }, { v: 'ferma', t: 'Ferma', icona: 'square' }, { v: 'posizione', t: 'Porta alla posizione', icona: 'move-vertical' }], onChange: () => rifai(riga) }, 'Comando'); m('entita', { valore: ent, opzioni: opzioniEntita('cover'), cerca: true, placeholder: 'Scegli la tapparella', icona: 'blinds', onChange: () => cambiato() }, 'Tapparella'); if (d.comando === 'posizione') { agg(P('al')); campo('Posizione', numero('posizione', d.posizione == null ? 50 : d.posizione, '%', 0, 100, 1, 'Posizione in percentuale')); agg(H('0 chiusa · 100 aperta')); } }
+        else if (tipo === 'luce') { m('entita', { valore: ent, opzioni: opzioniEntita('light'), cerca: true, placeholder: 'Scegli la luce', icona: 'lightbulb', onChange: () => cambiato() }, 'Luce'); agg(P('luminosità')); campo('Luminosità', numero('luminosita', d.luminosita, '%', 0, 100, 1, 'Luminosità in percentuale')); agg(P('colore')); campo('Colore', `<input type="text" class="campo colore" data-k="colore" placeholder="invariato" value="${esc(d.colore || '')}" title="#ff8800, caldo, freddo, rosso, blu…" aria-label="Colore" autocomplete="off">`); }
+        else if (tipo === 'scena') { agg(P('attiva')); m('entita', { valore: ent, opzioni: opzioniEntita('scene'), cerca: true, placeholder: 'Scegli lo scenario', icona: 'layers', onChange: () => cambiato() }, 'Scenario'); }
+        else if (tipo === 'attesa') { agg(P('aspetta')); campo('Durata', numero('secondi', d.secondi == null ? 5 : d.secondi, 'secondi', 0, null, 1, 'Attesa in secondi')); agg(P('poi continua')); }
+        else if (tipo === 'telegram') { agg(P('invia a')); m('chat', { valore: d.chat || '', opzioni: [{ v: '', t: 'Tutti i contatti', icona: 'users', classeIco: 'ico-tg' }].concat(contatti.map(c => ({ v: String(c.id), t: c.name, icona: 'user', classeIco: 'ico-tg' }))) }, 'Destinatario'); campo('Testo del messaggio', `<textarea class="campo" data-k="messaggio" placeholder="Testo del messaggio" aria-label="Testo del messaggio" rows="2">${esc(d.messaggio || '')}</textarea>`, 'campo-largo'); }
+        else if (tipo === 'popup') { agg(P('titolo')); campo('Titolo', `<input type="text" class="campo titolo" data-k="titolo" value="${esc(d.titolo || 'Avviso')}" aria-label="Titolo" autocomplete="off">`); agg(P('con la card di')); m('entita', { valore: ent, opzioni: [{ v: '', t: 'nessun dispositivo', icona: 'minus' }].concat(opzioniEntita()), cerca: true, placeholder: 'nessun dispositivo', icona: 'smartphone', onChange: () => cambiato() }, 'Dispositivo'); campo('Testo dell\'avviso', `<textarea class="campo" data-k="messaggio" placeholder="Testo dell'avviso" aria-label="Testo dell'avviso" rows="2">${esc(d.messaggio || '')}</textarea>`, 'campo-largo'); }
+        else if (tipo === 'regola') { m('comando', { valore: d.comando || 'esegui', opzioni: [{ v: 'esegui', t: 'Esegui adesso', icona: 'play' }, { v: 'attiva', t: 'Attiva', icona: 'toggle-right' }, { v: 'disattiva', t: 'Disattiva', icona: 'toggle-left' }] }, 'Comando'); m('id', { valore: d.id == null ? '' : String(d.id), opzioni: automazioni.filter(a => a.id !== cId).map(a => ({ v: String(a.id), t: a.name, icona: 'git-branch' })), cerca: true, placeholder: 'Scegli l\'automazione', icona: 'git-branch' }, 'Automazione'); }
+    }
+    menu.forEach(({ k, cfg }) => { const s = f.querySelector(`[data-k="${k}"]`); const onChange = cfg.onChange; cfg.onChange = v => { riga.classList.add('toccata'); cambiato(); aggiornaNote(riga); if (onChange) onChange(v); }; scelta(s, cfg); });
+    f.querySelectorAll('input, textarea').forEach(i => { i.addEventListener('input', () => { riga.classList.add('toccata'); cambiato(); aggiornaNote(riga); }); i.addEventListener('change', cambiato); });
+    f.querySelectorAll('.giorni button, .nega').forEach(i => i.addEventListener('click', () => riga.classList.add('toccata')));
+    aggiornaNote(riga);
+}
+function sommaMinuti(hhmm, min) { const p = String(hhmm || '').split(':').map(Number); if (p.length < 2 || isNaN(p[0]) || isNaN(p[1])) return null; const t = (((p[0] * 60 + p[1] + Math.round(Number(min) || 0)) % 1440) + 1440) % 1440; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); }
+function aggiornaNote(riga) {
+    if (!riga) return; const note = riga.querySelectorAll('.ctrl.nota'); if (!note.length) return; const d = leggiRiga(riga);
+    note.forEach(n => { let t = '';
+        if (n.dataset.nota === 'sole') { const alba = d.evento === 'alba'; const base = soleOggi ? (alba ? soleOggi.alba : soleOggi.tramonto) : null; const s = Number(d.scostamento || 0); if (!base) t = 'negativo = prima, positivo = dopo'; else { const q = sommaMinuti(base, s); t = `oggi ${alba ? 'alba' : 'tramonto'} alle ${esc(base)}` + (s && q ? ` → scatta alle ${q}` : ' → scatta a quell\'ora'); } }
+        else if (n.dataset.nota === 'giorni') { const g = (d.giorni || []).map(Number).sort((a, b) => a - b); t = !g.length ? 'nessun giorno scelto: vale tutti i giorni' : (g.length === 7 ? 'tutti i giorni' : 'solo ' + g.map(x => GIORNI_LUNGHI[x].slice(0, 3)).join(', ')); }
+        else if (n.dataset.nota === 'fascia') { if (d.nega) t = `cioè fuori da questa fascia: dalle ${esc(d.alle || '…')} alle ${esc(d.dalle || '…')}`; else if (d.dalle && d.alle && d.alle < d.dalle) t = 'la fascia scavalca la mezzanotte'; }
+        n.innerHTML = t; n.style.display = t ? '' : 'none'; });
+}
+function leggiRiga(riga) {
+    const out = { tipo: riga.dataset.tipo };
+    riga.querySelectorAll('.frase-riga [data-k]').forEach(e => { const k = e.dataset.k; if (e.classList.contains('giorni')) out[k] = [...e.querySelectorAll('button.on')].map(b => Number(b.dataset.g)); else if (e.classList.contains('nega')) out[k] = e.classList.contains('on'); else if (e.classList.contains('scelta-cont')) out[k] = e.dataset.v; else out[k] = e.value; });
+    return out;
+}
+function rifai(riga) { const d = leggiRiga(riga); costruisciFrase(riga, riga.dataset.genere, riga.dataset.tipo, d); cambiato(); }
+function aggiungiRiga(genere, dati) {
+    const lista = document.getElementById('c-' + { innesco: 'inneschi', condizione: 'condizioni', azione: 'azioni' }[genere]); const ph = lista.querySelector('.vuota'); if (ph) ph.remove();
+    const tipo = (dati && dati.tipo) || TIPI[genere][0][0];
+    const riga = el(`<div class="riga" data-genere="${genere}" data-tipo="${tipo}"><div class="riga-testa"><span class="num"></span><div data-k="tipo" class="tipo-cont"></div><div class="strum">${genere === 'azione' ? '<button type="button" class="ib s ghost" title="Sposta su" aria-label="Sposta su" onclick="sposta(this,-1)"><i data-lucide="chevron-up"></i></button><button type="button" class="ib s ghost" title="Sposta giù" aria-label="Sposta giù" onclick="sposta(this,1)"><i data-lucide="chevron-down"></i></button>' : ''}<button type="button" class="ib s ghost pericolo" title="Rimuovi" aria-label="Rimuovi" onclick="rimuoviRiga(this)"><i data-lucide="x"></i></button></div></div><div class="frase-riga"></div></div>`);
+    lista.appendChild(riga);
+    scelta(riga.querySelector('.tipo-cont'), { valore: tipo, classe: 'tipo', titolo: { innesco: 'Tipo di innesco', condizione: 'Tipo di condizione', azione: 'Tipo di azione' }[genere], opzioni: TIPI[genere].map(t => ({ v: t[0], t: t[1], icona: t[2] })), onChange: v => { riga.dataset.tipo = v; costruisciFrase(riga, genere, v, null); cambiato(); } });
+    costruisciFrase(riga, genere, tipo, dati); numera(lista); icone(riga); cambiato();
+}
+function numera(lista) { [...lista.querySelectorAll('.riga')].forEach((r, i) => r.querySelector('.num').textContent = i + 1); }
+function rimuoviRiga(btn) { const riga = btn.closest('.riga'); const lista = riga.parentElement; riga.remove(); if (!lista.querySelector('.riga')) segnaposto(lista); numera(lista); cambiato(); }
+function sposta(btn, dir) { const riga = btn.closest('.riga'); const f = dir < 0 ? riga.previousElementSibling : riga.nextElementSibling; if (!f || !f.classList.contains('riga')) return; dir < 0 ? riga.parentElement.insertBefore(riga, f) : riga.parentElement.insertBefore(f, riga); numera(riga.parentElement); cambiato(); }
+const TESTI_VUOTI = { 'c-inneschi': 'Nessun innesco: aggiungine uno, oppure segna «solo manuale».', 'c-condizioni': 'Nessuna condizione: l\'automazione procede sempre.', 'c-azioni': 'Nessuna azione: aggiungine almeno una.' };
+function segnaposto(lista) { lista.innerHTML = `<div class="vuota">${TESTI_VUOTI[lista.id]}</div>`; }
+function leggiConfig() { return { versione: 2, solo_manuale: document.getElementById('c-solo-manuale').checked, inneschi: [...document.querySelectorAll('#c-inneschi .riga')].map(leggiRiga), condizioni: [...document.querySelectorAll('#c-condizioni .riga')].map(leggiRiga), azioni: [...document.querySelectorAll('#c-azioni .riga')].map(leggiRiga), pausa_minuti: Number(document.getElementById('c-pausa').value || 0), note: document.getElementById('c-note').value, trigger: {}, condition: {}, actions: [] }; }
+function segnaModifica() { cModificata = true; const s = document.getElementById('c-stato'); s.classList.remove('ok'); s.querySelector('span').textContent = 'modifiche non salvate'; }
+function cambiato() { segnaModifica(); aggiornaRiepilogo(); }
+let _tRiep = null, _nControlla = 0;
+function aggiornaRiepilogo() { const html = frase(leggiConfig()); document.getElementById('c-frase').innerHTML = html; const r = document.querySelector('#console-riassunto .txt'); if (r) r.innerHTML = html; clearTimeout(_tRiep); _tRiep = setTimeout(controlla, 350); }
+async function controlla() { const mio = ++_nControlla; try { const j = await api('/api/automazioni_avanzate/controlla', 'POST', { id: cId, name: document.getElementById('c-nome').value, config: leggiConfig() }); if (mio !== _nControlla) return j.errori || []; mostraErrori(j.errori || []); return j.errori || []; } catch (e) { return []; } }
+function rigaDiErrore(e) { const m = /^(innesco|condizione|azione)\s+(\d+)/i.exec(e || ''); return m ? { genere: m[1].toLowerCase(), n: Number(m[2]) } : null; }
+function rigaN(genere, n) { const lista = document.getElementById('c-' + ({ innesco: 'inneschi', condizione: 'condizioni', azione: 'azioni' })[genere]); return lista ? lista.querySelectorAll('.riga')[n - 1] : null; }
+function campoDiErrore(riga, e) { e = (e || '').toLowerCase(); const k = /automazion/.test(e) && riga.dataset.tipo === 'regola' ? 'id' : /dispositiv|tapparell|luce|scenario|entit/.test(e) ? 'entita' : /messaggio|testo|avviso/.test(e) ? 'messaggio' : /posizion/.test(e) ? 'posizione' : /minut/.test(e) ? 'minuti' : /second/.test(e) ? 'secondi' : /valore/.test(e) ? 'valore' : /giorn/.test(e) ? 'giorni' : /orari|\bora\b/.test(e) ? 'ora' : /titolo/.test(e) ? 'titolo' : null; if (!k) return null; const s = riga.querySelector(`.frase-riga [data-k="${k}"]`); return s ? (s.querySelector('.scelta') || s) : null; }
+let mostraErroriInline = false;
+function mostraErrori(errori) {
+    const b = document.getElementById('c-blocco-errori'); b.style.display = errori.length ? '' : 'none';
+    document.querySelectorAll('#vista-costruttore .riga.err').forEach(r => r.classList.remove('err')); document.querySelectorAll('#vista-costruttore .campo-err').forEach(x => x.classList.remove('campo-err'));
+    document.getElementById('c-errori').innerHTML = errori.map(e => { const r = rigaDiErrore(e); return `<div class="errore-r"><i data-lucide="alert-circle"></i><span>${esc(e)}${r ? ` <a href="#" onclick="vaiAllaRiga('${r.genere}', ${r.n}); return false;">Vai alla riga</a>` : ''}</span></div>`; }).join('');
+    errori.forEach(e => { const r = rigaDiErrore(e); const riga = r && rigaN(r.genere, r.n); if (!riga) return; if (!mostraErroriInline && !riga.classList.contains('toccata')) return; riga.classList.add('err'); const c = campoDiErrore(riga, e); if (c) c.classList.add('campo-err'); });
+    icone(b); const c = document.getElementById('conta-errori'); c.style.display = errori.length ? '' : 'none'; c.textContent = errori.length;
+    document.getElementById('c-errori-n').textContent = errori.length ? (errori.length === 1 ? '1 problema' : errori.length + ' problemi') : '';
+    const chip = document.getElementById('riassunto-errori'); chip.style.display = errori.length ? '' : 'none'; chip.textContent = errori.length + ' da sistemare';
+}
+function vaiAllaRiga(genere, n) { const riga = rigaN(genere, n); if (!riga) return; if (cassettoAttivo()) chiudiCassetto(); riga.scrollIntoView({ block: 'center', behavior: 'smooth' }); riga.classList.add('lampeggia'); setTimeout(() => riga.classList.remove('lampeggia'), 1600); const c = riga.querySelector('.campo-err, .frase-riga .scelta, .frase-riga input, .frase-riga textarea'); if (c) setTimeout(() => c.focus({ preventScroll: true }), 300); }
+function mostraPannello(p, apri) { document.querySelectorAll('.console-schede button').forEach(b => { const on = b.dataset.p === p; b.classList.toggle('attiva', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }); document.querySelectorAll('.pannello').forEach(x => x.classList.toggle('attivo', x.id === 'pannello-' + p)); if (apri) apriCassetto(); }
+function apriCassetto() { document.getElementById('console').classList.add('aperto'); document.body.classList.toggle('cassetto-aperto', cassettoAttivo()); const t = document.getElementById('drawer-toggle'); t.setAttribute('aria-expanded', 'true'); t.title = 'Chiudi la console'; t.setAttribute('aria-label', 'Chiudi la console'); }
+function chiudiCassetto() { document.getElementById('console').classList.remove('aperto'); document.body.classList.remove('cassetto-aperto'); const t = document.getElementById('drawer-toggle'); t.setAttribute('aria-expanded', 'false'); t.title = 'Apri la console'; t.setAttribute('aria-label', 'Apri la console'); }
+function alternaCassetto() { if (document.getElementById('console').classList.contains('aperto')) chiudiCassetto(); else apriCassetto(); }
+function apriCostruttore(id) {
+    chiudiScelta(); chiudiCassetto(); chiudiScenario(); document.getElementById('vista-cruscotto').classList.add('fuori-sx'); document.getElementById('vista-costruttore').classList.remove('fuori-dx');
+    ['c-inneschi', 'c-condizioni', 'c-azioni'].forEach(i => { document.getElementById(i).innerHTML = ''; });
+    cId = null; cClassica = false; document.getElementById('c-nome').value = ''; document.getElementById('c-attiva').checked = true; document.getElementById('c-pausa').value = ''; document.getElementById('c-note').value = ''; document.getElementById('c-solo-manuale').checked = false; document.getElementById('c-avviso-classica').style.display = 'none';
+    let cfg = null;
+    if (id) { const a = automazioni.find(x => x.id === id); if (a) { cId = a.id; cClassica = !eAvanzata(a); cfg = eAvanzata(a) ? a.config : converti(a.config); document.getElementById('c-nome').value = a.name; document.getElementById('c-attiva').checked = !!a.is_active; document.getElementById('c-avviso-classica').style.display = cClassica ? '' : 'none'; } }
+    if (cfg) { (cfg.inneschi || []).forEach(d => aggiungiRiga('innesco', d)); (cfg.condizioni || []).forEach(d => aggiungiRiga('condizione', d)); (cfg.azioni || []).forEach(d => aggiungiRiga('azione', d)); document.getElementById('c-pausa').value = cfg.pausa_minuti || ''; document.getElementById('c-note').value = cfg.note || ''; document.getElementById('c-solo-manuale').checked = !!cfg.solo_manuale; }
+    else { aggiungiRiga('innesco'); aggiungiRiga('azione'); }
+    ['c-inneschi', 'c-condizioni', 'c-azioni'].forEach(i => { const l = document.getElementById(i); if (!l.querySelector('.riga')) segnaposto(l); });
+    cModificata = false; const s = document.getElementById('c-stato'); s.classList.add('ok'); s.querySelector('span').textContent = id ? 'salvata' : 'nuova';
+    const ce = document.getElementById('c-esito'); ce.className = 'esito-vuoto'; ce.innerHTML = 'Premi <b>Prova a secco</b>: vedrai quali inneschi e condizioni sarebbero veri adesso e cosa farebbero le azioni, senza toccare i dispositivi.'; document.querySelectorAll('#pannello-esito .blocco:not(#c-esito-blocco)').forEach(b => b.remove());
+    mostraErroriInline = false; mostraErrori([]); mostraPannello('riepilogo'); aggiornaRiepilogo(); caricaRegistro(); icone(document.getElementById('vista-costruttore')); document.querySelector('#vista-costruttore .modulo').scrollTop = 0;
+    const cn = document.getElementById('c-nome'); if (puntatoreFine() && !cn.value) setTimeout(() => { cn.focus(); try { cn.setSelectionRange(0, 0); } catch (e) {} }, 300);
+}
+function chiudiCostruttore() { if (cModificata && !confirm('Ci sono modifiche non salvate. Esco comunque?')) return; chiudiScelta(); chiudiCassetto(); document.getElementById('vista-cruscotto').classList.remove('fuori-sx'); document.getElementById('vista-costruttore').classList.add('fuori-dx'); chiudiScenario(); }
+function mostraEsito(v) {
+    const classe = r => /^(errore|fermata|azione \d+: errore)/.test(r) ? 'er' : (/^attendo/.test(r) ? 'att' : (/^(accendo|spengo|tapparella|luce|attivo|telegram|popup|eseguo|disattivo)/.test(r) ? 'az' : 'info'));
+    const iconaDi = (r, cl) => cl === 'er' ? 'alert-circle' : cl === 'att' ? 'timer' : cl === 'az' ? (/^(accendo|spengo)/.test(r) ? 'power' : /^tapparella/.test(r) ? 'blinds' : /^luce/.test(r) ? 'lightbulb' : /^attivo/.test(r) ? 'layers' : /^telegram/.test(r) ? 'send' : /^popup/.test(r) ? 'smartphone' : 'git-branch') : (/^innesco/.test(r) ? 'zap' : 'info');
+    const righe = (v.righe || []).map(r => { const cl = classe(r); return `<li class="${cl}"><span class="li"><i data-lucide="${iconaDi(r, cl)}"></i></span><span class="lt">${esc(r)}</span></li>`; }).join('');
+    document.querySelectorAll('#pannello-esito .blocco:not(#c-esito-blocco)').forEach(b => b.remove());
+    let val = '';
+    if (v.valutazione) { const i = v.valutazione.inneschi || [], c = v.valutazione.condizioni || [];
+        val = `<div class="blocco"><h4>Adesso, inneschi</h4><div class="valuta">${i.map(x => `<div><span class="dot ${x.vero_adesso === true ? 'ok' : 'off'}"></span><div>${esc(x.descrizione)}<small>${x.vero_adesso === true ? '<span class="vero">vero in questo momento</span>' : (x.vero_adesso === false ? '<span class="falso">falso in questo momento</span>' : '')}${x.nota ? (x.vero_adesso == null ? '' : ' · ') + esc(x.nota) : ''}</small></div></div>`).join('') || '<div class="muto">nessun innesco</div>'}</div></div><div class="blocco"><h4>Adesso, condizioni</h4><div class="valuta">${c.map(x => `<div><span class="dot ${x.vera ? 'ok' : 'err'}"></span><div>${esc(x.descrizione)}<small>${x.vera ? '<span class="vero">rispettata</span>' : '<span class="falso">non rispettata: bloccherebbe</span>'}${x.nota ? ' · ' + esc(x.nota) : ''}</small></div></div>`).join('') || '<div class="muto">nessuna condizione: procede sempre</div>'}</div></div>`; }
+    const ce = document.getElementById('c-esito'); ce.className = ''; ce.innerHTML = `<div class="esito-testa">${chipEsito(v.prova ? 'prova' : v.esito, v.prova ? 'prova a secco' : v.esito)}<span>${esc(quandoRelativo(v.quando) || (v.quando || '').replace('T', ' '))} · ${esc(String(v.durata == null ? 0 : v.durata).replace('.', ','))} s</span></div><ul class="log">${righe}</ul>`;
+    document.getElementById('c-esito-blocco').insertAdjacentHTML('afterend', val); icone(document.getElementById('pannello-esito')); mostraPannello('esito', true);
+}
+function attesaEsito(testo) { const ce = document.getElementById('c-esito'); ce.className = 'esito-vuoto'; ce.textContent = testo; document.querySelectorAll('#pannello-esito .blocco:not(#c-esito-blocco)').forEach(b => b.remove()); mostraPannello('esito', true); }
+async function prova() { mostraErroriInline = true; const errori = await controlla(); if (errori.length) { mostraPannello('riepilogo', true); toast('Sistema prima gli errori segnalati', true); return; } attesaEsito('Prova in corso…'); let j; try { j = await api('/api/automazioni_avanzate/prova', 'POST', { id: cId, name: document.getElementById('c-nome').value, config: leggiConfig() }); } catch (e) { attesaEsito('Prova non riuscita: la centralina non risponde.'); erroreRete(e); return; } if (j.errori) { mostraErrori(j.errori); mostraPannello('riepilogo', true); return; } mostraEsito(j); }
+async function esegui() { mostraErroriInline = true; const errori = await controlla(); if (errori.length) { mostraPannello('riepilogo', true); toast('Sistema prima gli errori segnalati', true); return; } if (!confirm('Eseguo le azioni adesso, sui dispositivi veri?')) return; attesaEsito('Esecuzione in corso…'); let j; try { j = await api('/api/automazioni_avanzate/esegui', 'POST', { id: cId, name: document.getElementById('c-nome').value, config: leggiConfig() }); } catch (e) { attesaEsito('Esecuzione non riuscita: la centralina non risponde.'); erroreRete(e); return; } if (j.errori) { mostraErrori(j.errori); mostraPannello('riepilogo', true); return; } mostraEsito(j); caricaRegistro(); }
+async function salva() { const nome = document.getElementById('c-nome').value.trim(); if (!nome) { document.getElementById('c-nome').focus(); toast('Dai un nome all\'automazione', true); return; } mostraErroriInline = true; const errori = await controlla(); if (errori.length) { mostraPannello('riepilogo', true); toast('Sistema prima gli errori segnalati', true); return; }
+    try { await api('/api/automations', 'POST', { id: cId, name: nome, config: leggiConfig() }); if (cId) await api('/api/automations', 'PUT', { id: cId, is_active: document.getElementById('c-attiva').checked }); } catch (e) { erroreRete(e); return; }
+    cModificata = false; toast('Automazione salvata'); chiudiCostruttore(); caricaListe(); }
+function alternaVoceReg(b) { const apri = !b.classList.contains('apri'); b.classList.toggle('apri', apri); b.setAttribute('aria-expanded', apri ? 'true' : 'false'); }
+async function caricaRegistro() { const b = document.getElementById('c-registro'); if (!cId || cClassica) { b.innerHTML = '<div class="muto">Salva l\'automazione per vedere qui le sue esecuzioni.</div>'; return; } try { const j = await api('/api/automazioni_avanzate/registro/' + cId); const reg = j.registro || []; b.innerHTML = reg.length ? reg.map(x => `<button type="button" class="voce-reg" aria-expanded="false" onclick="alternaVoceReg(this)" title="Mostra o nascondi le righe">${chipEsito(x.prova ? 'prova' : x.esito, x.prova ? 'prova' : x.esito)}<div class="vr">${esc(quandoRelativo(x.quando) || (x.quando || '').replace('T', ' '))}<small>${esc((x.righe || []).join('\n'))}</small></div><span class="durata">${x.durata != null ? esc(String(x.durata).replace('.', ',')) + ' s' : ''}</span><span class="vg"><i data-lucide="chevron-down"></i></span></button>`).join('') : '<div class="muto">Nessuna esecuzione registrata finora.</div>'; icone(b); } catch (e) { b.innerHTML = '<div class="muto">Registro non disponibile.</div>'; } }
+async function svuotaRegistro() { if (!cId || !confirm('Svuoto il registro di questa automazione?')) return; try { await api('/api/automazioni_avanzate/registro/' + cId, 'DELETE'); } catch (e) { erroreRete(e); return; } caricaRegistro(); }
+
+// =============================================================================
+//  SCENARI
+// =============================================================================
+const TILE_SCENA = ['film', 'sole', 'notte', 'cena', 'pianta', 'luce', 'caldo'];
+function tileScena(s) { let h = 0; for (const ch of String(s.id || s.name || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return TILE_SCENA[h % TILE_SCENA.length]; }
+function disegnaScenari() {
+    const c = document.getElementById('lista-scene'); document.getElementById('sotto-scene').textContent = scenari.length ? `${scenari.length} ${scenari.length === 1 ? 'scenario' : 'scenari'} · fotografie dello stato dei dispositivi` : 'Nessuno scenario ancora';
+    if (!scenari.length) { c.innerHTML = '<div class="vuoto"><i data-lucide="camera"></i><h3>Nessuno scenario</h3><div>Registra lo stato attuale di un gruppo di dispositivi con «Registra scenario».</div></div>'; icone(c); return; }
+    c.innerHTML = scenari.map(s => { const l = s.entities_list || []; return `<article class="scena scheda"><div class="auto-testa"><div class="tile ${tileScena(s)}"><i data-lucide="layers"></i></div><div class="auto-nome"><h3>${esc(s.name)}</h3><div class="auto-sotto">${s.entities_count} ${s.entities_count === 1 ? 'dispositivo' : 'dispositivi'}</div></div></div><div class="pill-list">${l.slice(0, 6).map(e => `<span class="pill"><span class="si ico-${esc(dominioDi(e))}"><i data-lucide="${ICONE[dominioDi(e)] || 'cpu'}"></i></span>${esc(nomeDi(e))}</span>`).join('')}${l.length > 6 ? `<span class="pill">+${l.length - 6}</span>` : ''}</div><div class="auto-piede"><span class="chip mono">${esc(s.id)}</span><div class="azioni"><button class="ib s ghost" title="Apri" aria-label="Apri ${esc(s.name)}" onclick="apriScenario('${esc(s.id)}')"><i data-lucide="eye"></i></button><button class="ib s ghost pericolo" title="Elimina" aria-label="Elimina ${esc(s.name)}" onclick="eliminaScenario('${esc(s.id)}')"><i data-lucide="trash-2"></i></button></div></div></article>`; }).join(''); icone(c);
+}
+function apriScenario(id) {
+    chiudiScelta(); if (!document.body.classList.contains('pagina-scene')) mostraScheda('scene');
+    const v = document.getElementById('vista-scenario'); v.classList.remove('fuori-dx'); document.body.classList.add('scene');
+    if (cassettoAttivo()) { v.setAttribute('role', 'dialog'); v.setAttribute('aria-modal', 'true'); } else { v.removeAttribute('role'); v.removeAttribute('aria-modal'); }
+    const s = id ? scenari.find(x => x.id === id) : null; v.dataset.id = s ? s.id : '';
+    document.getElementById('titolo-scena').textContent = s ? 'Scenario · ' + s.name : 'Registra scenario';
+    document.querySelector('#btn-registra-scena .lab').textContent = s ? 'Aggiorna lo stato registrato' : 'Registra lo stato attuale';
+    document.getElementById('s-nome').value = s ? s.name : ''; scenaScelte = s ? [...(s.entities_list || [])] : []; disegnaScena();
+    if (puntatoreFine()) setTimeout(() => document.getElementById('s-nome').focus(), 100);
+    else if (cassettoAttivo()) setTimeout(() => { const c = v.querySelector('.chiudi') || v; c.focus && c.focus(); }, 120);   // foglio modale: il fuoco entra dentro
+}
+function chiudiScenario() { const v = document.getElementById('vista-scenario'); v.classList.add('fuori-dx'); v.dataset.id = ''; document.body.classList.remove('scene'); }
+function disegnaScena() { document.getElementById('s-tag').innerHTML = scenaScelte.map(e => `<span class="tag"><span class="si ico-${esc(dominioDi(e))}"><i data-lucide="${ICONE[dominioDi(e)] || 'cpu'}"></i></span><span>${esc(nomeDi(e))}</span><button type="button" title="Togli" aria-label="Togli ${esc(nomeDi(e))}" onclick="togliDaScena('${esc(e)}')"><i data-lucide="x"></i></button></span>`).join(''); scelta(document.getElementById('s-scelta'), { valore: '', opzioni: opzioniEntita().filter(o => !scenaScelte.includes(o.v)), cerca: true, placeholder: 'Aggiungi un dispositivo…', icona: 'plus', larga: true, titolo: 'Aggiungi un dispositivo', onChange: v => { if (v && !scenaScelte.includes(v)) { scenaScelte.push(v); } disegnaScena(); } }); document.getElementById('s-anteprima').innerHTML = scenaScelte.length ? scenaScelte.map(e => `<div class="stato-riga"><span class="si ico-${esc(dominioDi(e))}"><i data-lucide="${ICONE[dominioDi(e)] || 'cpu'}"></i></span><b>${esc(nomeDi(e))}</b><span>${esc(e)}</span></div>`).join('') : '<div class="muto">Nessun dispositivo scelto.</div>'; icone(document.getElementById('vista-scenario')); }
+function togliDaScena(e) { scenaScelte = scenaScelte.filter(x => x !== e); disegnaScena(); }
+async function registraScenario() {
+    const nome = document.getElementById('s-nome').value.trim(); if (!nome) return toast('Dai un nome allo scenario', true); if (!scenaScelte.length) return toast('Scegli almeno un dispositivo', true);
+    const vecchio = document.getElementById('vista-scenario').dataset.id;
+    if (vecchio && !confirm(`Registro di nuovo «${nome}» con lo stato attuale dei dispositivi: la fotografia precedente viene sostituita. Procedo?`)) return;
+    try { await api('/api/scenes', 'POST', { name: nome, entities: scenaScelte }); } catch (e) { erroreRete(e); return; }
+    toast(vecchio ? 'Scenario aggiornato' : 'Scenario registrato'); cModificata = false; chiudiCostruttore(); caricaListe();
+}
+async function eliminaScenario(id) { if (!confirm('Eliminare questo scenario?')) return; try { await api('/api/scenes', 'DELETE', { id }); } catch (e) { erroreRete(e); return; } caricaListe(); }
+
+// =============================================================================
+//  TASTIERA e avvio
+// =============================================================================
+document.addEventListener('keydown', e => {
+    const inCampo = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') || !!(e.target && e.target.isContentEditable);
+    if (document.getElementById('vista-costruttore').classList.contains('fuori-dx')) {
+        if (e.key === '/' && !inCampo && !pannelloAperto) { e.preventDefault(); const c = document.getElementById('cerca'); if (c && document.body.classList.contains('pagina-scene') === false) { c.focus(); c.select(); } }
+        else if (e.key === 'Escape' && !pannelloAperto && document.body.classList.contains('scene')) { chiudiScenario(); }
+        return;
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); salva(); }
+    else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); prova(); }
+    else if (e.key === 'Escape' && !pannelloAperto) { if (cassettoAttivo() && document.getElementById('console').classList.contains('aperto')) chiudiCassetto(); else chiudiCostruttore(); }
+});
+document.addEventListener('DOMContentLoaded', () => { icone(); carica(); });
+</script>
+</body>
+</html>

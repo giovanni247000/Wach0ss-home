@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Configurazione Allarme - Wach0ss Home</title>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* === PALETTE ENTERPRISE PROFESSIONALE === */
+        :root {
+            --bg-base: #f1f5f9; 
+            --bg-view: #ffffff; 
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0; 
+            --section-bg: #f8fafc; 
+            
+            --text-main: #0f172a; 
+            --text-sec: #64748b; 
+            
+            --primary: #0f172a; 
+            --primary-hover: #1e293b;
+            --accent: #2563eb; 
+            --accent-hover: #1d4ed8;
+            --accent-glow: rgba(37, 99, 235, 0.15);
+            
+            --node-pin: #64748b; /* Slate */
+            --node-if: #f59e0b; /* Ambra - Trigger */
+            --node-then: #ef4444; /* Rosso - Allarme/Azioni */
+            
+            --danger: #ef4444; 
+            --danger-glow: rgba(239, 68, 68, 0.2);
+            --success: #10b981; 
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            
+            --radius-md: 10px;
+            --radius-lg: 16px;
+        }
+
+        /* === RESET & BASE === */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; margin: 0; padding: 0; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg-view); color: var(--text-main); 
+            height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased;
+            display: flex; flex-direction: column;
+        }
+
+        /* === HEADER / NAVBAR === */
+        .builder-header {
+            display: flex; align-items: center; justify-content: space-between; padding: 20px 40px;
+            border-bottom: 1px solid var(--card-border); background: var(--bg-view); z-index: 100;
+        }
+        .header-title-group { display: flex; align-items: center; gap: 16px; flex: 1; }
+        .page-title { font-size: 1.5rem; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; margin: 0; }
+        
+        .btn-back-view {
+            background: transparent; border: 1px solid var(--card-border); border-radius: 8px; width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center; color: var(--text-main); cursor: pointer; transition: 0.2s; text-decoration: none;
+        }
+        .btn-back-view:hover { background: var(--section-bg); }
+
+        .btn { 
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px; 
+            font-weight: 700; font-size: 0.9rem; border-radius: 8px; cursor: pointer; 
+            transition: all 0.2s; border: 1px solid transparent; padding: 10px 20px; 
+        }
+        .btn-accent { background: var(--accent); color: white; box-shadow: 0 4px 12px var(--accent-glow); }
+        .btn-accent:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-danger-outline { background: transparent; color: var(--danger); border-color: #fca5a5; }
+        .btn-danger-outline:hover { background: #fef2f2; border-color: var(--danger); }
+
+        /* === LAYOUT SPLIT (FORM + SIMULATORE) === */
+        .builder-split { display: grid; grid-template-columns: 1fr 500px; flex-grow: 1; height: calc(100vh - 85px); }
+        
+        /* PARTE SINISTRA: FORM */
+        .builder-form-area { padding: 40px 60px 100px 60px; overflow-y: auto; background: var(--bg-view); }
+        
+        .logic-flow { position: relative; padding-left: 28px; }
+        .logic-flow::before { content: ''; position: absolute; left: 0; top: 30px; bottom: 40px; width: 3px; background: #e2e8f0; border-radius: 3px; z-index: 1; }
+
+        .logic-node {
+            position: relative; background: white; border: 1px solid var(--card-border); 
+            border-radius: var(--radius-lg); padding: 24px; margin-bottom: 32px;
+            box-shadow: var(--shadow-sm); z-index: 2; transition: border-color 0.2s;
+        }
+        .logic-node:focus-within { border-color: var(--accent); box-shadow: var(--shadow-md); }
+        .logic-node::before { content: ''; position: absolute; left: -36px; top: 32px; width: 18px; height: 18px; border-radius: 50%; background: white; border: 4px solid var(--card-border); z-index: 3; box-shadow: 0 0 0 4px var(--bg-view); }
+        
+        .node-pin { border-top: 4px solid var(--node-pin); }
+        .node-pin::before { border-color: var(--node-pin); }
+        .node-if { border-top: 4px solid var(--node-if); }
+        .node-if::before { border-color: var(--node-if); }
+        .node-then { border-top: 4px solid var(--node-then); }
+        .node-then::before { border-color: var(--node-then); }
+
+        .node-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .node-badge { display: inline-flex; align-items: center; justify-content: center; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 0.75rem; letter-spacing: 0.5px; }
+        .badge-pin { background: #f1f5f9; color: #475569; }
+        .badge-if { background: #fef3c7; color: #b45309; }
+        .badge-then { background: #fef2f2; color: #b91c1c; }
+        .node-title { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin: 0; }
+        .node-desc { font-size: 0.85rem; color: var(--text-sec); margin: -12px 0 16px 0; line-height: 1.5; }
+
+        /* === INPUTS & LISTE (Sostituiscono i vecchi select) === */
+        .form-control {
+            width: 100%; height: 46px; padding: 0 16px; background: var(--section-bg); color: var(--text-main);
+            border: 1px solid var(--card-border); border-radius: 8px; font-size: 0.95rem; transition: all 0.2s; font-weight: 500; outline: none;
+        }
+        .form-control:focus { background: white; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        
+        .search-wrapper { position: relative; margin-bottom: 12px; }
+        .search-wrapper i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-sec); width: 18px; height: 18px; }
+        .search-wrapper input { padding-left: 42px; }
+
+        .entity-list-box { 
+            border: 1px solid var(--card-border); border-radius: 8px; max-height: 240px; overflow-y: auto; 
+            background: white; margin-bottom: 8px;
+        }
+        .entity-item { 
+            display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; 
+            border-bottom: 1px solid var(--section-bg); cursor: pointer; transition: background 0.2s;
+        }
+        .entity-item:last-child { border-bottom: none; }
+        .entity-item:hover { background: var(--section-bg); }
+        .entity-info { display: flex; flex-direction: column; flex-grow: 1; padding-right: 15px;}
+        .entity-name { font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin-bottom: 2px;}
+        .entity-id { font-size: 0.75rem; color: var(--text-sec); font-family: monospace; }
+        .entity-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; margin-left: 8px; vertical-align: middle; font-weight: 700;}
+
+        /* Switch Toggle */
+        .switch { position: relative; display: inline-block; width: 44px; height: 26px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 26px; }
+        .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 2px; bottom: 2px; background-color: white; transition: .3s cubic-bezier(0.25, 0.8, 0.25, 1); border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.15);}
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(18px); }
+        /* Toggles per il THEN (Allarme rosso) */
+        .switch.switch-danger input:checked + .slider { background-color: var(--danger); }
+
+        /* ALERT BOX */
+        .alert-box { padding: 12px 16px; border-radius: 8px; margin-bottom: 24px; font-size: 0.85rem; font-weight: 600; display: none; align-items: center; gap: 10px; z-index: 10; position: relative;}
+        .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .alert-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+
+        /* === DESTRA: SIMULATORE INTERATTIVO === */
+        .builder-simulator-area {
+            background: var(--bg-base); border-left: 1px solid var(--card-border);
+            padding: 40px; overflow-y: auto; display: flex; flex-direction: column; position: relative;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px;
+            transition: background-color 0.5s;
+        }
+        /* Effetto quando l'allarme suona nel simulatore */
+        .builder-simulator-area.alarm-active {
+            background-color: #fff1f2; background-image: radial-gradient(#fecaca 1px, transparent 1px);
+        }
+
+        .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; background: white; padding: 16px 20px; border-radius: 12px; border: 1px solid var(--card-border); box-shadow: var(--shadow-sm); transition: 0.3s;}
+        .alarm-active .preview-header { border-color: var(--danger); box-shadow: 0 4px 15px var(--danger-glow); }
+        .preview-title { font-size: 1.1rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        
+        .play-btn {
+            background: var(--primary); color: white; border: none; padding: 10px 20px;
+            border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;
+            cursor: pointer; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2); transition: 0.2s; font-size: 0.9rem;
+        }
+        .play-btn.btn-sim-danger { background: var(--danger); box-shadow: 0 4px 12px var(--danger-glow); }
+        .play-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+
+        .sim-container { display: flex; flex-direction: column; position: relative; padding-bottom: 60px; margin-left: 20px;}
+        
+        .sim-path { position: absolute; top: 30px; bottom: 0; left: -14px; width: 4px; background: #e2e8f0; z-index: 1; border-radius: 4px; transition: 0.3s;}
+        .sim-path-fill { position: absolute; top: 0; left: 0; width: 100%; height: 0%; background: var(--primary); transition: height 0.5s ease; border-radius: 4px; }
+        .alarm-active .sim-path-fill { background: var(--danger); }
+
+        .sim-node {
+            position: relative; z-index: 2; margin-bottom: 32px;
+            display: flex; gap: 24px; opacity: 0.7; filter: grayscale(1);
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .sim-node.active { opacity: 1; filter: grayscale(0); }
+        
+        .sim-dot {
+            width: 20px; height: 20px; border-radius: 50%; background: white;
+            border: 4px solid #cbd5e1; flex-shrink: 0; margin-top: 24px; margin-left: -22px;
+            box-shadow: 0 0 0 6px var(--bg-base); transition: 0.3s;
+        }
+        .sim-node.active .sim-dot { border-color: var(--primary); box-shadow: 0 0 0 6px rgba(15, 23, 42, 0.1); }
+        .alarm-active .sim-node.active .sim-dot { border-color: var(--danger); box-shadow: 0 0 0 6px var(--danger-glow); }
+
+        .sim-card {
+            background: white; padding: 20px; border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm); flex: 1; border: 1px solid var(--card-border);
+            display: flex; flex-direction: column; gap: 12px; transition: 0.3s;
+        }
+        .sim-node.active .sim-card { box-shadow: var(--shadow-md); border-color: #cbd5e1; }
+        .alarm-active .sim-node.active .sim-card { border-color: var(--danger); box-shadow: 0 10px 25px var(--danger-glow); }
+
+        .sim-badge { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items:center; gap:6px;}
+        .sim-content { font-size: 0.95rem; font-weight: 600; display: flex; flex-direction: column; gap: 10px; color: var(--text-main); }
+        
+        .device-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 4px; }
+        .device-card {
+            background: var(--section-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 12px 16px;
+            display: flex; align-items: center; gap: 12px; transition: all 0.4s; font-size: 0.9rem; font-weight: 600;
+        }
+        
+        /* Animazione Sirena/Luci */
+        @keyframes strobe { 0% { background: #fef2f2; border-color: #ef4444; color: #991b1b; } 50% { background: #fee2e2; border-color: #f87171; color: #7f1d1d; } 100% { background: #fef2f2; border-color: #ef4444; color: #991b1b; } }
+        .device-card.sim-alarm-on { animation: strobe 0.5s infinite; box-shadow: 0 0 15px var(--danger-glow); }
+        .device-card.sim-alarm-on .lucide { color: var(--danger); }
+        
+        .device-card.sim-tg-on { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
+        .device-card.sim-tg-on .lucide { color: #2563eb; }
+
+        @media (max-width: 1024px) {
+            .builder-split { grid-template-columns: 1fr; grid-template-rows: auto; height: auto; }
+            .builder-simulator-area { border-left: none; border-top: 1px solid var(--card-border); padding: 32px 20px;}
+            .builder-form-area { padding: 32px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="builder-header">
+        <div class="header-title-group">
+            <a href="/mobile" class="btn-back-view" title="Torna alla Dashboard"><i data-lucide="arrow-left" style="width: 20px;"></i></a>
+            <h1 class="page-title">Configurazione Sistema d'Allarme</h1>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <button type="button" class="btn btn-danger-outline" onclick="resetConfig()"><i data-lucide="shield-off" style="width: 16px;"></i> Disattiva</button>
+            <button type="button" class="btn btn-accent" onclick="saveConfig()"><i data-lucide="save" style="width: 16px;"></i> Applica Policy</button>
+        </div>
+    </div>
+
+    <div class="builder-split">
+        
+        <!-- PARTE SINISTRA: FORM PROFESSIONALE -->
+        <div class="builder-form-area">
+            <div id="alertNotice" class="alert-box"></div>
+
+            <div class="logic-flow">
+                
+                <!-- NODO 1: IMPOSTAZIONI (PIN) -->
+                <div class="logic-node node-pin">
+                    <div class="node-header">
+                        <span class="node-badge badge-pin">SET</span>
+                        <h3 class="node-title">Sicurezza Accesso</h3>
+                    </div>
+                    <p class="node-desc">Codice PIN per disarmare l'allarme dalla dashboard.</p>
+                    
+                    <div class="form-group" style="margin-bottom:0;">
+                        <input type="text" id="alarmPin" class="form-control" maxlength="4" placeholder="Es. 1234" required pattern="[0-9]{4}" inputmode="numeric" style="font-size: 1.25rem; letter-spacing: 6px; font-weight: 800; text-align: center; width: 140px;">
+                    </div>
+                </div>
+
+                <!-- NODO 2: TRIGGER (IF) -->
+                <div class="logic-node node-if">
+                    <div class="node-header">
+                        <span class="node-badge badge-if">IF</span>
+                        <h3 class="node-title">Sensori Rilevamento (Input)</h3>
+                    </div>
+                    <p class="node-desc">Se l'allarme è inserito, l'attivazione di questi sensori farà scattare la sirena.</p>
+                    
+                    <div class="search-wrapper">
+                        <i data-lucide="search"></i>
+                        <input type="search" id="searchSensors" class="form-control" placeholder="Cerca porte, finestre, movimento..." oninput="filterList('searchSensors', 'sensorsListBox')">
+                    </div>
+                    
+                    <div id="sensorsListBox" class="entity-list-box">
+                        <div style="padding: 20px; text-align:center; color:var(--text-sec);"><i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i></div>
+                    </div>
+                </div>
+
+                <!-- NODO 3: AZIONI (THEN) -->
+                <div class="logic-node node-then" style="margin-bottom: 0;">
+                    <div class="node-header">
+                        <span class="node-badge badge-then">THEN</span>
+                        <h3 class="node-title">Azioni di Emergenza (Output)</h3>
+                    </div>
+                    <p class="node-desc">Dispositivi hardware e contatti che verranno attivati istantaneamente all'intrusione.</p>
+                    
+                    <div style="margin-bottom: 24px;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; display: block;">Sirene, Luci e Speaker</label>
+                        <div class="search-wrapper">
+                            <i data-lucide="search"></i>
+                            <input type="search" id="searchActions" class="form-control" placeholder="Cerca sirena o luci..." oninput="filterList('searchActions', 'actionsListBox')">
+                        </div>
+                        <div id="actionsListBox" class="entity-list-box">
+                            <div style="padding: 20px; text-align:center; color:var(--text-sec);"><i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; display: block;">Notifiche Telegram API</label>
+                        <div id="telegramListBox" class="entity-list-box">
+                            <div style="padding: 20px; text-align:center; color:var(--text-sec);"><i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        
+        <!-- PARTE DESTRA: SIMULATORE INTERATTIVO -->
+        <div class="builder-simulator-area" id="sim-area">
+            <div class="preview-header">
+                <div class="preview-title"><i data-lucide="shield-alert" style="color:var(--text-sec);"></i> Monitor Sistema</div>
+                <button class="play-btn btn-sim-danger" onclick="runSimulation()" id="btn-simula"><i data-lucide="siren" style="width:16px;"></i> Simula Intrusione</button>
+            </div>
+            
+            <div class="sim-container" id="sim-graph">
+                <!-- Generato via JS in base alle spunte -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let allEntities = [];
+        let telegramChats = [];
+        let currentConfig = {};
+
+        // === INIZIALIZZAZIONE DATI ===
+        window.onload = function() {
+            Promise.all([
+                fetch('/api/entities_for_automations').then(res => res.json()),
+                fetch('/api/telegram_chats').then(res => res.json()),
+                fetch('/api/alarm/config').then(res => res.json())
+            ])
+            .then(([entities, chats, config]) => {
+                allEntities = entities;
+                telegramChats = chats;
+                currentConfig = config;
+                
+                document.getElementById('alarmPin').value = config.pin || '1234';
+                
+                renderSensorsList(); 
+                renderActionsList();
+                renderTelegramList();
+                
+                buildSimulationGraph(); // Costruisce il simulatore iniziale
+            })
+            .catch(err => { showNotice("Errore di connessione al broker.", "alert-error", "wifi-off"); });
+        };
+
+        // === LOGICA FORM & LISTE ===
+        function filterList(inputId, listId) {
+            const term = document.getElementById(inputId).value.toLowerCase();
+            const items = document.querySelectorAll(`#${listId} .entity-item`);
+            items.forEach(item => {
+                const text = item.querySelector('.entity-info').innerText.toLowerCase();
+                item.style.display = text.includes(term) ? 'flex' : 'none';
+            });
+        }
+
+        function createListHTML(container, entities, checkedArray, switchClass = '') {
+            container.innerHTML = "";
+            if (entities.length === 0) {
+                container.innerHTML = '<div style="padding:20px; color:var(--text-sec); text-align:center; font-size: 0.85rem;">Nessun hardware rilevato.</div>'; 
+                return;
+            }
+
+            entities.forEach(e => {
+                const isChecked = checkedArray && checkedArray.includes(e.entity_id);
+                const div = document.createElement('div');
+                div.className = "entity-item";
+                
+                // Click sull'intera riga per attivare il toggle
+                div.onclick = (event) => {
+                    if (event.target.tagName !== 'INPUT' && !event.target.classList.contains('slider')) {
+                        const cb = div.querySelector('input[type="checkbox"]');
+                        cb.checked = !cb.checked;
+                        // Dispaccia l'evento change per aggiornare il simulatore
+                        cb.dispatchEvent(new Event('change'));
+                    }
+                };
+
+                let badge = '';
+                if (e.entity_id.includes('sonos_')) {
+                    badge = '<span class="entity-badge" style="background:#fff7ed; color:#c2410c; border: 1px solid #ffedd5;">🎵 Media</span>';
+                } else if (e.entity_id.startsWith('telegram.')) {
+                    badge = '<span class="entity-badge" style="background:#eff6ff; color:#1d4ed8; border: 1px solid #dbeafe;">💬 Chat</span>';
+                }
+
+                div.innerHTML = `
+                    <div class="entity-info">
+                        <span class="entity-name">${e.name} ${badge}</span>
+                        <span class="entity-id" style="${e.entity_id.startsWith('telegram.') ? 'display:none;' : ''}">${e.entity_id}</span>
+                    </div>
+                    <label class="switch ${switchClass}">
+                        <input type="checkbox" value="${e.entity_id}" data-name="${e.name}" ${isChecked ? 'checked' : ''} onchange="buildSimulationGraph()">
+                        <span class="slider"></span>
+                    </label>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderSensorsList() {
+            const inputDomains = ['binary_sensor', 'sensor', 'switch', 'input_boolean', 'knx'];
+            const filtered = allEntities.filter(e => inputDomains.includes(e.domain) || e.entity_id.includes('.shelly_') || e.entity_id.includes('.knx_'));
+            createListHTML(document.getElementById('sensorsListBox'), filtered, currentConfig.trigger_entities);
+        }
+
+        function renderActionsList() {
+            const actionDomains = ['light', 'switch', 'media_player', 'scene'];
+            const filtered = allEntities.filter(e => actionDomains.includes(e.domain) || e.entity_id.includes('shelly_') || e.entity_id.includes('knx_'));
+            createListHTML(document.getElementById('actionsListBox'), filtered, currentConfig.action_entities, 'switch-danger');
+        }
+
+        function renderTelegramList() {
+            const formattedChats = telegramChats.map(c => ({ entity_id: `telegram.${c.id}`, name: c.name }));
+            createListHTML(document.getElementById('telegramListBox'), formattedChats, currentConfig.action_entities, 'switch-danger');
+        }
+
+        // === API SALVATAGGIO ===
+        function saveConfig() {
+            const pinEl = document.getElementById('alarmPin');
+            if (!pinEl.checkValidity()) { showNotice("Inserisci un PIN valido di 4 cifre.", "alert-error", "alert-circle"); return; }
+
+            const trigger_entities = Array.from(document.querySelectorAll('#sensorsListBox input[type="checkbox"]:checked')).map(cb => cb.value);
+            
+            const action_entities = [
+                ...Array.from(document.querySelectorAll('#actionsListBox input[type="checkbox"]:checked')).map(cb => cb.value),
+                ...Array.from(document.querySelectorAll('#telegramListBox input[type="checkbox"]:checked')).map(cb => cb.value)
+            ];
+
+            if (trigger_entities.length === 0) {
+                if (!confirm("Avviso: Nessun sensore selezionato. Il sistema d'allarme rimarrà silente. Continuare?")) return;
+            }
+
+            const payload = { pin: pinEl.value, trigger_entities: trigger_entities, action_entities: action_entities };
+            sendPayload(payload, "Policy di sicurezza salvata e applicata.", "check-circle");
+        }
+
+        function resetConfig() {
+            if (!confirm("PERICOLO: Stai per disattivare l'intero sistema di allarme rimuovendo tutti i trigger. Procedere?")) return;
+            document.getElementById('alarmPin').value = "1234";
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            buildSimulationGraph();
+            sendPayload({ pin: "1234", trigger_entities: [], action_entities: [] }, "Rete di allarme disattivata.", "shield-off");
+        }
+
+        function sendPayload(payload, successMsg, iconName) {
+            fetch('/api/alarm/config', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') { showNotice(successMsg, "alert-success", iconName); currentConfig = payload; } 
+                else { showNotice("Errore Gateway: " + data.message, "alert-error", "alert-circle"); }
+            })
+            .catch(err => { showNotice("Errore di rete.", "alert-error", "wifi-off"); });
+        }
+
+        function showNotice(msg, typeClass, iconName) {
+            const notice = document.getElementById('alertNotice');
+            notice.innerHTML = `<i data-lucide="${iconName}"></i> <span>${msg}</span>`;
+            notice.className = "alert-box " + typeClass;
+            notice.style.display = 'flex'; 
+            lucide.createIcons({ root: notice });
+            if (typeClass === 'alert-success') setTimeout(() => { notice.style.display = 'none'; }, 4000);
+            
+            // Scrolla in cima per mostrare la notifica
+            document.querySelector('.builder-form-area').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // =========================================================================
+        // === MOTORE DI SIMULAZIONE (ALLARME INTERATTIVO) ===
+        // =========================================================================
+
+        function getIconForEntity(entityId) {
+            if(!entityId) return 'cpu';
+            if(entityId.startsWith('light.')) return 'lightbulb';
+            if(entityId.startsWith('cover.')) return 'layout-template';
+            if(entityId.startsWith('media_player.') || entityId.includes('sonos')) return 'speaker';
+            if(entityId.startsWith('telegram.')) return 'send';
+            return 'radio';
+        }
+
+        function buildSimulationGraph() {
+            const sim = document.getElementById('sim-graph');
+            let html = '<div class="sim-path"><div class="sim-path-fill" id="sim-fill"></div></div>';
+            
+            // Estrai i dati correnti dai checkbox
+            const triggers = Array.from(document.querySelectorAll('#sensorsListBox input:checked')).map(cb => ({ id: cb.value, name: cb.dataset.name }));
+            const actionsHW = Array.from(document.querySelectorAll('#actionsListBox input:checked')).map(cb => ({ id: cb.value, name: cb.dataset.name }));
+            const actionsTG = Array.from(document.querySelectorAll('#telegramListBox input:checked')).map(cb => ({ id: cb.value, name: cb.dataset.name }));
+            
+            let stepCount = 0;
+
+            // NODO 1: STATO SISTEMA
+            html += `<div class="sim-node active" id="sim-node-${stepCount++}">
+                        <div class="sim-dot" style="border-color:var(--primary); box-shadow:0 0 0 6px rgba(15,23,42,0.1);"></div>
+                        <div class="sim-card" style="border-top: 4px solid var(--primary);">
+                            <div class="sim-badge" style="color:var(--primary)"><i data-lucide="shield-check" style="width:14px;"></i> Stato Monitor</div>
+                            <div class="sim-content">Sistema Armato. In attesa di eventi.</div>
+                        </div>
+                     </div>`;
+
+            // NODO 2: TRIGGER (IF)
+            let tText = triggers.length > 0 ? `Rilevata intrusione da: <b>${triggers[0].name}</b>` : 'Nessun sensore configurato.';
+            if (triggers.length > 1) tText += ` <span style="color:var(--text-sec); font-size:0.8rem;">(+ altri ${triggers.length - 1})</span>`;
+            
+            html += `<div class="sim-node" id="sim-node-${stepCount++}">
+                        <div class="sim-dot"></div>
+                        <div class="sim-card" style="border-top: 4px solid var(--node-if);">
+                            <div class="sim-badge" style="color:var(--node-if)"><i data-lucide="activity" style="width:14px;"></i> Innesco (IF)</div>
+                            <div class="sim-content">${tText}</div>
+                        </div>
+                     </div>`;
+
+            // NODO 3: AZIONI (THEN)
+            let devicesHTML = '';
+            
+            if (actionsHW.length === 0 && actionsTG.length === 0) {
+                devicesHTML = '<div style="color:var(--text-sec); font-size:0.9rem;">Nessuna azione di uscita configurata.</div>';
+            } else {
+                actionsHW.forEach((act, idx) => {
+                    const icon = getIconForEntity(act.id);
+                    devicesHTML += `<div class="device-card sim-hw-card">
+                                        <i data-lucide="${icon}"></i> <span>${act.name}</span>
+                                    </div>`;
+                });
+                actionsTG.forEach((act, idx) => {
+                    devicesHTML += `<div class="device-card sim-tg-card">
+                                        <i data-lucide="send"></i> <span>Notifica a: ${act.name}</span>
+                                    </div>`;
+                });
+            }
+
+            html += `<div class="sim-node" id="sim-node-${stepCount++}">
+                        <div class="sim-dot"></div>
+                        <div class="sim-card" style="border-top: 4px solid var(--node-then);">
+                            <div class="sim-badge" style="color:var(--node-then)"><i data-lucide="siren" style="width:14px;"></i> Allarme Generale (THEN)</div>
+                            <div class="device-grid">${devicesHTML}</div>
+                        </div>
+                     </div>`;
+
+            sim.innerHTML = html;
+            lucide.createIcons({ root: sim });
+        }
+
+        async function runSimulation() {
+            const btn = document.getElementById('btn-simula');
+            const simArea = document.getElementById('sim-area');
+            const triggers = document.querySelectorAll('#sensorsListBox input:checked');
+            
+            if(triggers.length === 0) {
+                alert("Seleziona almeno un sensore di rilevamento per poter simulare un'intrusione.");
+                return;
+            }
+
+            // Preparazione UI
+            btn.innerHTML = '<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i> Attivazione in corso...';
+            btn.style.pointerEvents = 'none';
+            lucide.createIcons();
+
+            // Reset stato simulatore
+            document.querySelectorAll('.sim-node').forEach((n, idx) => { if(idx > 0) n.classList.remove('active'); });
+            document.querySelectorAll('.device-card').forEach(d => { d.classList.remove('sim-alarm-on'); d.classList.remove('sim-tg-on'); });
+            simArea.classList.remove('alarm-active');
+            
+            const pathFill = document.getElementById('sim-fill');
+            pathFill.style.height = '0%';
+            pathFill.style.transition = 'none';
+            
+            // Pausa forzata per resettare CSS
+            await new Promise(r => setTimeout(r, 100));
+            pathFill.style.transition = 'height 1s cubic-bezier(0.2, 0.8, 0.2, 1)';
+            
+            const nodes = document.querySelectorAll('.sim-node');
+            
+            // Inizia la simulazione: il raggio viaggia verso il basso
+            pathFill.style.height = '100%';
+
+            for(let i = 1; i < nodes.length; i++) {
+                await new Promise(r => setTimeout(r, 400)); 
+                nodes[i].classList.add('active');
+                
+                // Se arriva all'ultimo nodo (Azioni Allarme)
+                if(i === nodes.length - 1) {
+                    simArea.classList.add('alarm-active'); // Diventa tutto rosso
+                    
+                    const hwCards = nodes[i].querySelectorAll('.sim-hw-card');
+                    const tgCards = nodes[i].querySelectorAll('.sim-tg-card');
+                    
+                    // Accende sirene e luci con effetto strobo rosso
+                    for(let d of hwCards) {
+                        await new Promise(r => setTimeout(r, 150)); 
+                        d.classList.add('sim-alarm-on'); 
+                    }
+                    // Invia i messaggi Telegram (Blu)
+                    for(let d of tgCards) {
+                        await new Promise(r => setTimeout(r, 150)); 
+                        d.classList.add('sim-tg-on'); 
+                    }
+                }
+            }
+
+            // Mantiene l'allarme attivo per 3 secondi
+            await new Promise(r => setTimeout(r, 3000));
+            
+            // Ripristina l'interfaccia
+            simArea.classList.remove('alarm-active');
+            document.querySelectorAll('.device-card').forEach(d => { d.classList.remove('sim-alarm-on'); d.classList.remove('sim-tg-on'); });
+            
+            btn.innerHTML = '<i data-lucide="check"></i> Test Completato';
+            lucide.createIcons();
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i data-lucide="siren" style="width:16px;"></i> Simula Intrusione';
+                btn.style.pointerEvents = 'auto';
+                lucide.createIcons();
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
