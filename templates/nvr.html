@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0B0B0F">
+    <meta name="color-scheme" content="dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Wach0ss Home | Registrazioni</title>
+    <!-- Pagina a se' (come /map): l'app resta leggera e qui il player e la linea del tempo
+         hanno tutto lo schermo. Tutto servito dal server, niente CDN. -->
+    <script src="/static/vendor/lucide-1.41.0.min.js"></script>
+    <script>window.lucide||document.write('<scr'+'ipt src="https://unpkg.com/lucide@1.41.0/dist/umd/lucide.min.js"><\/scr'+'ipt>');</script>
+    <script src="/static/popup.js"></script>
+<style>
+@import url('/static/fonts/inter.css');
+
+html, body { margin: 0; padding: 0; background: #0B0B0F; color: #FFF; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+button { -webkit-appearance: none; appearance: none; }
+.nvr-pagina { position: fixed; inset: 0; display: flex; flex-direction: column; background: #0B0B0F; color: #FFF; }
+.imp-back { display: inline-flex; align-items: center; gap: 2px; background: transparent; border: none; color: #0A84FF; font-family: inherit; font-size: 0.95rem; font-weight: 500; padding: 6px 8px 6px 4px; cursor: pointer; border-radius: 10px; flex-shrink: 0; }
+.imp-back i { width: 22px; height: 22px; }
+.imp-back:active { background: rgba(255,255,255,0.07); }
+.nvr-live { font-size: 0.7rem; color: rgba(255,255,255,0.5); text-align: center; margin-top: -6px; min-height: 1em; }
+.nvr-testa { display: flex; align-items: center; gap: 6px; padding: calc(12px + env(safe-area-inset-top)) 14px 10px 6px; border-bottom: 1px solid rgba(255,255,255,0.08); background: linear-gradient(180deg, rgba(28,28,34,0.98), rgba(16,16,20,0.98)); flex-shrink: 0; }
+.nvr-testa h2 { margin: 0; font-size: 1.06rem; font-weight: 700; letter-spacing: -0.02em; flex: 1; }
+.nvr-rec { display: none; align-items: center; gap: 6px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; color: #FF453A; background: rgba(255,69,58,0.14); border: 1px solid rgba(255,69,58,0.35); padding: 4px 9px; border-radius: 20px; }
+.nvr-rec.on { display: inline-flex; }
+.nvr-rec i { width: 8px; height: 8px; border-radius: 50%; background: #FF453A; display: block; animation: nvrPulsa 1.2s infinite; }
+@keyframes nvrPulsa { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.nvr-corpo { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 0 calc(30px + env(safe-area-inset-bottom)); }
+.nvr-int { max-width: 960px; margin: 0 auto; padding: 0 14px; display: flex; flex-direction: column; gap: 12px; }
+.nvr-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; }
+.nvr-chips::-webkit-scrollbar { display: none; }
+.nvr-chip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 22px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.75); font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.nvr-chip i { width: 15px; height: 15px; }
+.nvr-chip.attiva { background: #FFF; color: #000; border-color: #FFF; }
+.nvr-video-box { position: relative; background: #000; border-radius: 20px; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 15px 40px rgba(0,0,0,0.6); }
+.nvr-video-box video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+.nvr-video-ora { position: absolute; left: 12px; top: 12px; background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 5px 10px; border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9rem; font-weight: 600; letter-spacing: 0.02em; }
+.nvr-video-msg { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: rgba(255,255,255,0.6); font-size: 0.85rem; text-align: center; padding: 20px 30px; pointer-events: none; background: rgba(0,0,0,0.35); }
+.nvr-video-msg.on { display: flex; }
+.nvr-video-msg i { width: 34px; height: 34px; opacity: 0.5; }
+.nvr-video-btn { position: absolute; bottom: 10px; right: 10px; display: flex; gap: 6px; }
+.nvr-video-btn button, .nvr-video-btn a { width: 38px; height: 38px; border-radius: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #FFF; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.nvr-video-btn i { width: 18px; height: 18px; }
+.nvr-giorno { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.nvr-giorno-nav { display: flex; align-items: center; gap: 4px; }
+.nvr-ib { width: 36px; height: 36px; border-radius: 12px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: #FFF; display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: inherit; padding: 0; }
+.nvr-ib:disabled { opacity: 0.3; cursor: default; }
+.nvr-ib i { width: 18px; height: 18px; }
+.nvr-giorno-t { font-weight: 700; font-size: 0.95rem; padding: 0 4px; text-transform: capitalize; min-width: 92px; text-align: center; }
+.nvr-zoom { display: flex; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 3px; }
+.nvr-zoom button { border: none; background: transparent; color: rgba(255,255,255,0.6); font-family: inherit; font-size: 0.74rem; font-weight: 700; padding: 6px 8px; border-radius: 9px; cursor: pointer; }
+.nvr-zoom button.attivo { background: #FFF; color: #000; }
+.nvr-tl { position: relative; background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: pan-x; }
+.nvr-tl-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; }
+.nvr-tl-scroll::-webkit-scrollbar { display: none; }
+.nvr-tl-scroll canvas { display: block; }
+.nvr-tl-cursore { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: #FF453A; transform: translateX(-1px); pointer-events: none; box-shadow: 0 0 8px rgba(255,69,58,0.8); }
+.nvr-tl-cursore::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border: 7px solid transparent; border-top: 9px solid #FF453A; }
+.nvr-tl-ora { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); background: #FF453A; color: #FFF; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 8px; pointer-events: none; white-space: nowrap; }
+.nvr-tl-legenda { display: flex; gap: 14px; font-size: 0.7rem; color: rgba(255,255,255,0.5); padding: 0 4px; margin-top: -4px; }
+.nvr-tl-legenda span { display: inline-flex; align-items: center; gap: 5px; }
+.nvr-tl-legenda i { width: 10px; height: 10px; border-radius: 3px; display: block; }
+.nvr-trasporto { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.nvr-trasporto .nvr-ib { width: 44px; height: 44px; }
+.nvr-trasporto .nvr-play { width: 58px; height: 58px; border-radius: 50%; background: #FFF; color: #000; border: none; }
+.nvr-trasporto .nvr-play i { width: 26px; height: 26px; }
+.nvr-trasporto .nvr-vel { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.02em; }
+.nvr-trasporto .nvr-vel.veloce { background: #FFF; color: #000; }
+.nvr-elenco-t { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); margin: 6px 0 -4px 6px; }
+.nvr-elenco { background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.045)); border: 1px solid rgba(255,255,255,0.09); border-radius: 18px; overflow: hidden; }
+.nvr-riga { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; }
+.nvr-riga:last-child { border-bottom: none; }
+.nvr-riga.attiva { background: rgba(255,69,58,0.12); }
+.nvr-riga-ico { width: 36px; height: 36px; border-radius: 11px; background: rgba(10,132,255,0.16); color: #4DA3FF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nvr-riga-ico i { width: 17px; height: 17px; }
+.nvr-riga.evento .nvr-riga-ico { background: rgba(255,214,10,0.15); color: #FFD60A; }
+.nvr-riga-n { font-weight: 700; font-size: 0.9rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.nvr-riga-s { font-size: 0.74rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
+.nvr-riga .nvr-ib { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; text-decoration: none; }
+.nvr-riga .nvr-ib i { width: 15px; height: 15px; }
+.nvr-vuoto { padding: 26px 16px; text-align: center; color: rgba(255,255,255,0.45); font-size: 0.85rem; }
+@media (min-width: 1024px) { .nvr-int { padding: 0 24px; } .nvr-video-box { aspect-ratio: auto; height: 52vh; } }
+</style>
+</head>
+<body>
+<div class="nvr-pagina" id="nvr-pagina">
+    <div class="nvr-testa">
+        <button class="imp-back" onclick="nvrChiudi()" title="Torna all'app"><i data-lucide="chevron-left"></i><span>App</span></button>
+        <h2>Registrazioni</h2>
+        <span class="nvr-rec" id="nvr-rec"><i></i>REC</span>
+    </div>
+    <div class="nvr-corpo">
+      <div class="nvr-int">
+        <div class="nvr-chips" id="nvr-chips"></div>
+        <div class="nvr-video-box" id="nvr-video-box">
+            <video id="nvr-video" playsinline webkit-playsinline muted preload="metadata"></video>
+            <div class="nvr-video-ora" id="nvr-video-ora">--:--:--</div>
+            <div class="nvr-video-msg on" id="nvr-video-msg"><i data-lucide="film"></i><span>Scegli un momento sulla linea del tempo</span></div>
+            <div class="nvr-video-btn">
+                <a id="nvr-scarica" href="#" download title="Scarica" style="display:none;"><i data-lucide="download"></i></a>
+                <button type="button" onclick="nvrSchermoIntero()" title="Schermo intero"><i data-lucide="maximize"></i></button>
+            </div>
+        </div>
+        <div class="nvr-giorno">
+            <div class="nvr-giorno-nav">
+                <button class="nvr-ib" id="nvr-g-prev" onclick="nvrCambiaGiorno(-1)" title="Giorno precedente"><i data-lucide="chevron-left"></i></button>
+                <div class="nvr-giorno-t" id="nvr-giorno-t">Oggi</div>
+                <button class="nvr-ib" id="nvr-g-next" onclick="nvrCambiaGiorno(1)" title="Giorno successivo"><i data-lucide="chevron-right"></i></button>
+            </div>
+            <div class="nvr-zoom" id="nvr-zoom">
+                <button type="button" data-z="86400" class="attivo" onclick="nvrZoom(86400)">24h</button>
+                <button type="button" data-z="21600" onclick="nvrZoom(21600)">6h</button>
+                <button type="button" data-z="3600" onclick="nvrZoom(3600)">1h</button>
+                <button type="button" data-z="600" onclick="nvrZoom(600)">10m</button>
+            </div>
+        </div>
+        <div class="nvr-tl" id="nvr-tl">
+            <div class="nvr-tl-scroll" id="nvr-tl-scroll"><div id="nvr-tl-pista" style="position:relative; height:96px;"><canvas id="nvr-tl-canvas" height="96" style="position:absolute; left:0; top:0;"></canvas></div></div>
+            <div class="nvr-tl-cursore"></div>
+            <div class="nvr-tl-ora" id="nvr-tl-ora">00:00:00</div>
+        </div>
+        <div class="nvr-live" id="nvr-live"></div>
+        <div class="nvr-tl-legenda"><span><i style="background:#0A84FF"></i>Registrazione</span><span><i style="background:#FF453A"></i>In corso</span><span><i style="background:#FFD60A"></i>Evento</span></div>
+        <div class="nvr-trasporto">
+            <button class="nvr-ib" onclick="nvrSalta(-1)" title="Spezzone precedente"><i data-lucide="skip-back"></i></button>
+            <button class="nvr-ib" onclick="nvrAvanza(-10)" title="-10 s"><i data-lucide="rotate-ccw"></i></button>
+            <button class="nvr-ib nvr-play" id="nvr-play" onclick="nvrPlayPausa()" title="Riproduci"><i data-lucide="play"></i></button>
+            <button class="nvr-ib" onclick="nvrAvanza(10)" title="+10 s"><i data-lucide="rotate-cw"></i></button>
+            <button class="nvr-ib" onclick="nvrSalta(1)" title="Spezzone successivo"><i data-lucide="skip-forward"></i></button>
+            <button class="nvr-ib nvr-vel" id="nvr-vel" onclick="nvrVelocita()" title="Velocit&agrave;" data-no-tr>1&times;</button>
+        </div>
+        <div class="nvr-elenco-t">Registrazioni del giorno</div>
+        <div class="nvr-elenco" id="nvr-elenco"><div class="nvr-vuoto">Caricamento...</div></div>
+      </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const P = document.getElementById('nvr-pagina');
+    const video = document.getElementById('nvr-video');
+    const scroll = document.getElementById('nvr-tl-scroll');
+    const canvas = document.getElementById('nvr-tl-canvas');
+    const pista = document.getElementById('nvr-tl-pista');
+    const ADMIN = {{ 'true' if session.get('role') == 'admin' else 'false' }};
+    const ALT = 96;
+    const MOTIVI = { sempre: 'Continua', orari: 'Fascia oraria', eventi: 'Evento', manuale: 'Manuale' };
+
+    let cams = [], camId = null, giorni = [], giorno = null, t0 = 0;
+    let recs = [], eventi = [], inCorso = null, segmentoSec = 300, DUR = 86400;   // DUR: secondi del giorno mostrato (23 o 25 h con l'ora legale)
+    let velocita = 1, offsetAtteso = 0;
+    let finestra = 86400, pxs = 0, W = 0;   // secondi visibili nella larghezza, pixel al secondo, larghezza
+    let larg = 0, cw = 0, disegnatoDa = 0;  // pista intera, tela (al massimo 3 schermate), dove parte la tela
+    let corrente = null;                   // spezzone caricato nel player
+    let voleva = false;                    // l'utente vuole vedere (play premuto)
+    let ultimoT = 0;                       // istante (epoch) sotto il cursore
+    let scrubbing = false, tScrub = null, tAggiorna = null, dragX = null, dragMosso = 0, dragScroll = 0;
+
+    const pad2 = n => String(n).padStart(2, '0');
+    const hms = T => { const d = new Date(T * 1000); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()); };
+    const hm = T => hms(T).slice(0, 5);
+    const ymd = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    const oggi = () => ymd(new Date());
+    const daYmd = g => { const p = g.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+    const icone = el => { if (window.lucide) lucide.createIcons({ root: el }); };
+    const $ = id => document.getElementById(id);
+
+    function etichettaGiorno(g) {
+        if (g === oggi()) return 'Oggi';
+        const ieri = new Date(); ieri.setDate(ieri.getDate() - 1);
+        if (g === ymd(ieri)) return 'Ieri';
+        return daYmd(g).toLocaleDateString(document.documentElement.lang || 'it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+
+    function messaggio(testo, icona) {
+        const m = $('nvr-video-msg');
+        m.classList.toggle('on', !!testo);
+        if (testo) { m.innerHTML = '<i data-lucide="' + (icona || 'film') + '"></i><span></span>'; m.querySelector('span').textContent = testo; icone(m); }
+    }
+
+    function mostraOra(T) {
+        ultimoT = T;
+        $('nvr-tl-ora').textContent = hms(T);
+        $('nvr-video-ora').textContent = hms(T);
+    }
+
+    /* ---------- avvio / ritorno all'app ---------- */
+    async function avvia() {
+        try {
+            const d = await (await fetch('/api/nvr/riassunto', { cache: 'no-store' })).json();
+            cams = d.telecamere || [];
+        } catch (e) { cams = []; }
+        if (!cams.length) { $('nvr-chips').innerHTML = ''; $('nvr-elenco').innerHTML = '<div class="nvr-vuoto">Nessuna telecamera configurata.</div>'; return; }
+        let salvata = null;
+        try { salvata = parseInt(localStorage.getItem('nvr_cam') || '0', 10); } catch (e) {}
+        if (!camId || !cams.some(c => c.id === camId)) camId = cams.some(c => c.id === salvata) ? salvata : cams[0].id;
+        disegnaChips();
+        misura();
+        await caricaGiorni(true);
+        // il giorno di oggi si aggiorna da solo: uno spezzone appena chiuso compare entro pochi secondi
+        if (tAggiorna) clearInterval(tAggiorna);
+        tAggiorna = setInterval(() => {
+            if (document.hidden) return;
+            if (!giorni.includes(oggi())) { caricaGiorni(false); return; }     // e' passata la mezzanotte
+            if (giorno === oggi()) caricaGiorno(giorno, true);
+        }, 10000);
+    }
+
+    window.nvrChiudi = function () {
+        voleva = false;
+        try { video.pause(); } catch (e) {}
+        window.location.href = '/mobile';
+    };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && giorno === oggi()) caricaGiorno(giorno, true); });
+
+    /* ---------- telecamere e giorni ---------- */
+    function disegnaChips() {
+        const box = $('nvr-chips');
+        box.innerHTML = '';
+        cams.forEach(c => {
+            const b = document.createElement('button');
+            b.type = 'button'; b.className = 'nvr-chip' + (c.id === camId ? ' attiva' : '');
+            b.innerHTML = '<i data-lucide="cctv"></i><span data-no-tr></span>';
+            b.querySelector('span').textContent = c.nome;
+            b.onclick = () => scegliCam(c.id);
+            box.appendChild(b);
+        });
+        icone(box);
+    }
+
+    async function scegliCam(id) {
+        if (id === camId) return;
+        camId = id;
+        try { localStorage.setItem('nvr_cam', String(id)); } catch (e) {}
+        disegnaChips();
+        fermaVideo();
+        await caricaGiorni(true);
+    }
+
+    async function caricaGiorni(vaiUltimo) {
+        try {
+            const d = await (await fetch('/api/nvr/giorni?cam=' + camId, { cache: 'no-store' })).json();
+            giorni = d.giorni || [];
+        } catch (e) { giorni = []; }
+        if (!giorni.includes(oggi())) giorni.push(oggi());
+        giorni.sort();
+        const g = (vaiUltimo || !giorno || !giorni.includes(giorno)) ? giorni[giorni.length - 1] : giorno;
+        await caricaGiorno(g);
+    }
+
+    window.nvrCambiaGiorno = function (dir) {
+        const i = giorni.indexOf(giorno) + dir;
+        if (i < 0 || i >= giorni.length) return;
+        fermaVideo();
+        caricaGiorno(giorni[i]);
+    };
+
+    async function caricaGiorno(g, silenzioso) {
+        const nuovo = g !== giorno;
+        try {
+            const d = await (await fetch('/api/nvr/registrazioni?cam=' + camId + '&giorno=' + g, { cache: 'no-store' })).json();
+            if (d.status === 'error') throw new Error(d.message);
+            giorno = g; t0 = d.inizio_giorno; recs = d.registrazioni || []; eventi = d.eventi || []; inCorso = d.in_corso || null;
+            if (d.segmento_sec) segmentoSec = d.segmento_sec;
+            DUR = (d.fine_giorno && d.fine_giorno > t0) ? d.fine_giorno - t0 : 86400;
+        } catch (e) {
+            if (!silenzioso) { $('nvr-elenco').innerHTML = '<div class="nvr-vuoto">Errore nel caricamento delle registrazioni.</div>'; }
+            return;
+        }
+        const i = giorni.indexOf(giorno);
+        $('nvr-giorno-t').textContent = etichettaGiorno(giorno);
+        $('nvr-g-prev').disabled = i <= 0;
+        $('nvr-g-next').disabled = i >= giorni.length - 1;
+        $('nvr-rec').classList.toggle('on', !!inCorso && giorno === oggi());
+        prossimoSpezzone();
+        disegna();
+        elenco();
+        if (nuovo) {
+            // cursore all'ultimo spezzone del giorno (o adesso, se e' oggi e non c'e' niente)
+            const T = recs.length ? recs[recs.length - 1].inizio : (giorno === oggi() ? Date.now() / 1000 : t0 + DUR / 2);
+            mostraOra(T);
+            scrollA(T, false);
+            messaggio(recs.length ? 'Premi play o tocca la linea del tempo' : (inCorso ? 'Registrazione in corso: il primo spezzone arriva tra pochi minuti' : 'Nessuna registrazione in questo giorno'), recs.length ? 'film' : 'video-off');
+        }
+    }
+
+    // "prossimo spezzone tra N min": ffmpeg chiude un file ogni segmentoSec secondi dall'avvio
+    function prossimoSpezzone() {
+        const el = $('nvr-live');
+        if (!inCorso || giorno !== oggi()) { el.innerHTML = ''; return; }
+        const passati = Math.max(0, Date.now() / 1000 - inCorso.da);
+        const manca = segmentoSec - (passati % segmentoSec);
+        const min = Math.ceil(manca / 60);
+        // due pezzi separati: cosi' la frase fissa si traduce e il tempo resta com'e'
+        if (!el.children.length) el.innerHTML = '<span>In registrazione \u00b7 il prossimo spezzone arriva tra</span> <span></span>';
+        el.children[1].textContent = manca < 60 ? 'meno di un minuto' : (min + ' min');
+    }
+
+    /* ---------- linea del tempo (canvas) ---------- */
+    // La pista e' lunga 24 ore piu' mezza schermata per lato (cosi' il cursore arriva a 00:00 e 24:00).
+    // La tela disegnata copre al massimo 3 schermate e viene spostata/ridisegnata scorrendo:
+    // a zoom stretto la pista intera sarebbe troppo larga per una tela sola.
+    function misura() {
+        W = scroll.clientWidth || P.clientWidth - 28;
+        pxs = W / finestra;
+        larg = Math.round(W + DUR * pxs);
+        cw = Math.min(larg, 3 * W);
+        pista.style.width = larg + 'px';
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = cw * dpr; canvas.height = ALT * dpr;
+        canvas.style.width = cw + 'px'; canvas.style.height = ALT + 'px';
+        canvas.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0);
+        disegnatoDa = -1;
+        posiziona(true);
+    }
+    const x2T = x => t0 + (x - W / 2) / pxs;
+    const T2x = T => W / 2 + (T - t0) * pxs;
+
+    function posiziona(forza) {
+        const sl = scroll.scrollLeft;
+        if (!forza && sl >= disegnatoDa + W * 0.5 && sl + W <= disegnatoDa + cw - W * 0.5) return;
+        if (!forza && cw >= larg && disegnatoDa === 0) return;
+        disegnatoDa = Math.max(0, Math.min(larg - cw, Math.round(sl - W)));
+        canvas.style.left = disegnatoDa + 'px';
+        disegna();
+    }
+
+    function passi() {
+        const etic = [60, 300, 600, 900, 1800, 3600, 7200, 10800, 21600].find(s => s * pxs >= 58) || 21600;
+        const minore = [5, 10, 30, 60, 300, 600, 900, 1800, 3600].find(s => s * pxs >= 7 && etic % s === 0) || etic;
+        return [etic, minore];
+    }
+
+    function disegna() {
+        if (!W) { misura(); return; }
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        ctx.setTransform(dpr, 0, 0, dpr, -disegnatoDa * dpr, 0);   // coordinate della pista intera
+        const [etic, minore] = passi();
+        const adesso = Date.now() / 1000;
+        const da = disegnatoDa, a = disegnatoDa + cw;               // parte visibile della pista
+        // ore future (solo oggi) piu' scure
+        if (giorno === oggi() && adesso < t0 + DUR) {
+            ctx.fillStyle = 'rgba(0,0,0,0.35)';
+            ctx.fillRect(T2x(adesso), 0, larg, ALT);
+        }
+        // righello
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.font = '600 10px -apple-system, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.beginPath();
+        for (let s = 0; s <= DUR; s += minore) {
+            const x = Math.round(T2x(t0 + s)) + 0.5;
+            if (x < da - 40 || x > a + 40) continue;
+            const grande = s % etic === 0;
+            ctx.moveTo(x, grande ? 19 : 23); ctx.lineTo(x, 27);
+            if (grande && s < DUR) ctx.fillText(hm(t0 + s), x, 5);
+        }
+        ctx.moveTo(da, 27.5); ctx.lineTo(a, 27.5);
+        ctx.stroke();
+        // spezzoni registrati
+        const blocco = (a, b, colore) => {
+            const x1 = T2x(a), x2 = Math.max(T2x(b), x1 + 1.5);
+            ctx.fillStyle = colore;
+            if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x1, 34, x2 - x1, 36, 3); ctx.fill(); } else ctx.fillRect(x1, 34, x2 - x1, 36);
+        };
+        // spezzoni uno dietro l'altro (stessa registrazione spezzata in file) = un blocco solo
+        let b0 = null;
+        recs.forEach(r => {
+            if (b0 && r.inizio - b0.fine < 2 && r.motivo === b0.motivo) { b0.fine = Math.max(b0.fine, r.fine); return; }
+            if (b0) blocco(b0.inizio, b0.fine, b0.motivo === 'eventi' ? '#3DA0FF' : '#0A84FF');
+            b0 = { inizio: r.inizio, fine: r.fine, motivo: r.motivo };
+        });
+        if (b0) blocco(b0.inizio, b0.fine, b0.motivo === 'eventi' ? '#3DA0FF' : '#0A84FF');
+        if (inCorso && giorno === oggi()) blocco(Math.max(inCorso.da, t0, recs.length ? recs[recs.length - 1].fine : 0), adesso, '#FF453A');
+        // eventi (sensori)
+        ctx.fillStyle = '#FFD60A';
+        eventi.forEach(e => {
+            const x = T2x(e.ts);
+            ctx.beginPath(); ctx.moveTo(x, 74); ctx.lineTo(x + 5, 80); ctx.lineTo(x, 86); ctx.lineTo(x - 5, 80); ctx.closePath(); ctx.fill();
+        });
+        // "adesso"
+        if (giorno === oggi() && adesso < t0 + DUR) {
+            const x = Math.round(T2x(adesso)) + 0.5;
+            ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.setLineDash([3, 3]);
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ALT); ctx.stroke(); ctx.setLineDash([]);
+        }
+    }
+
+    function scrollA(T, morbido) {
+        const x = Math.max(0, (T - t0) * pxs);
+        if (morbido && scroll.scrollTo) scroll.scrollTo({ left: x, behavior: 'smooth' }); else scroll.scrollLeft = x;
+    }
+
+    window.nvrZoom = function (sec) {
+        finestra = sec;
+        document.querySelectorAll('#nvr-zoom button').forEach(b => b.classList.toggle('attivo', +b.dataset.z === sec));
+        misura(); disegna();
+        scrollA(ultimoT, false);
+    };
+
+    // scorrere la linea = cercare nel tempo; fermandosi si salta a quell'istante
+    scroll.addEventListener('scroll', () => {
+        posiziona();
+        if (!scrubbing) return;            // scorrimento comandato dal codice: l'ora esatta e' gia' scritta
+        const T = x2T(scroll.scrollLeft + W / 2);
+        mostraOra(T);
+        clearTimeout(tScrub);
+        tScrub = setTimeout(() => { scrubbing = false; cerca(T); }, 260);
+    }, { passive: true });
+    const iniziaScrub = () => { scrubbing = true; clearTimeout(tScrub); if (!video.paused) video.pause(); };
+    // se dopo il tocco/rotella non arriva ne' uno scorrimento ne' un click, lo scrub deve finire lo stesso
+    const chiudiScrub = () => { clearTimeout(tScrub); tScrub = setTimeout(() => { if (!scrubbing) return; scrubbing = false; cerca(ultimoT); }, 400); };
+    scroll.addEventListener('touchstart', () => { iniziaScrub(); dragMosso = 0; }, { passive: true });
+    scroll.addEventListener('touchmove', () => { dragMosso = 10; }, { passive: true });
+    scroll.addEventListener('touchend', chiudiScrub, { passive: true });
+    scroll.addEventListener('touchcancel', chiudiScrub, { passive: true });
+    scroll.addEventListener('wheel', e => { if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { iniziaScrub(); chiudiScrub(); } }, { passive: true });
+    // col mouse: trascina per scorrere
+    scroll.addEventListener('mousedown', e => { dragX = e.clientX; dragScroll = scroll.scrollLeft; dragMosso = 0; });
+    window.addEventListener('mousemove', e => {
+        if (dragX === null) return;
+        if (!(e.buttons & 1)) { dragX = null; return; }   // tasto lasciato fuori dalla finestra
+        const dx = e.clientX - dragX;
+        if (Math.abs(dx) > 4 && !dragMosso) { dragMosso = 1; iniziaScrub(); }
+        if (dragMosso) scroll.scrollLeft = dragScroll - dx;
+    });
+    window.addEventListener('mouseup', () => { dragX = null; });
+    pista.addEventListener('click', e => {
+        if (dragMosso) { dragMosso = 0; return; }
+        const r = pista.getBoundingClientRect();
+        vaiA(x2T(e.clientX - r.left));
+    });
+    // se il dito si ferma senza scorrere (tocco secco) il click qui sopra fa il salto
+
+    /* ---------- riproduzione ---------- */
+    function fermaVideo() {
+        corrente = null; voleva = false;
+        try { video.pause(); video.removeAttribute('src'); video.load(); } catch (e) {}
+        $('nvr-scarica').style.display = 'none';
+        aggiornaPlay();
+        document.querySelectorAll('#nvr-elenco .nvr-riga.attiva').forEach(r => r.classList.remove('attiva'));
+    }
+
+    function vaiA(T) {
+        scrubbing = false; clearTimeout(tScrub);
+        mostraOra(T);
+        scrollA(T, true);
+        cerca(T);
+    }
+
+    function cerca(T) {
+        let r = recs.find(x => x.inizio <= T && T < x.fine);
+        if (!r) {
+            r = recs.find(x => x.inizio > T);
+            if (r) { T = r.inizio; mostraOra(T); scrollA(T, true); }
+        }
+        if (!r) {
+            corrente = null;
+            try { video.pause(); } catch (e) {}
+            aggiornaPlay();
+            messaggio(inCorso && giorno === oggi() && T >= inCorso.da ? 'Registrazione in corso: lo spezzone arriva tra pochi minuti' : 'Nessuna registrazione dopo quest\'ora', 'video-off');
+            return;
+        }
+        carica(r, T - r.inizio);
+    }
+
+    function carica(r, offset) {
+        messaggio('');
+        offset = Math.max(0, offset || 0);
+        offsetAtteso = offset;
+        if (corrente && corrente.id === r.id) {
+            if (video.readyState >= 1) { video.currentTime = Math.min(offset, Math.max(0, (video.duration || offset) - 0.2)); video.playbackRate = velocita; }
+            if (voleva) video.play().catch(() => {});
+            return;                    // file non ancora pronto: alPronto usera' offsetAtteso
+        }
+        corrente = r;
+        $('nvr-scarica').href = r.url + '?scarica=1';
+        $('nvr-scarica').style.display = 'flex';
+        document.querySelectorAll('#nvr-elenco .nvr-riga').forEach(x => x.classList.toggle('attiva', x.dataset.id === String(r.id)));
+        video.src = r.url;
+        video.load();
+        const alPronto = () => {
+            video.removeEventListener('loadedmetadata', alPronto);
+            if (corrente !== r) return;
+            const off = offsetAtteso;
+            video.playbackRate = velocita;          // load() riporta la velocita' a 1: si rimette quella scelta
+            // il file e' piu' corto di quanto dice l'indice (spezzone interrotto): si passa al successivo
+            if (video.duration && off >= video.duration - 0.5) { alFine(); return; }
+            try { video.currentTime = Math.min(off, Math.max(0, (video.duration || off) - 0.2)); } catch (e) {}
+            if (voleva) video.play().catch(() => {});
+        };
+        video.addEventListener('loadedmetadata', alPronto);
+    }
+
+    // fine dello spezzone: si continua col successivo, senza interruzioni
+    function alFine() {
+        const i = corrente ? recs.findIndex(x => x.id === corrente.id) : -1;
+        const r = recs[i + 1];
+        if (r) { carica(r, 0); scrollA(r.inizio, false); mostraOra(r.inizio); return; }
+        voleva = false; aggiornaPlay();
+        messaggio(inCorso && giorno === oggi() ? 'Sei arrivato alla registrazione in corso' : 'Fine delle registrazioni del giorno', 'check-circle-2');
+    }
+
+    function aggiornaPlay() {
+        const b = $('nvr-play');
+        b.innerHTML = '<i data-lucide="' + (voleva && corrente && !video.paused ? 'pause' : 'play') + '"></i>';
+        icone(b);
+    }
+
+    window.nvrPlayPausa = function () {
+        if (navigator.vibrate) navigator.vibrate(30);
+        if (corrente && !video.paused) { voleva = false; video.pause(); return; }
+        voleva = true;
+        if (corrente && video.ended) { alFine(); return; }
+        if (corrente) video.play().catch(() => {}); else cerca(ultimoT);
+    };
+    window.nvrAvanza = function (s) { vaiA(ultimoT + s); };
+    window.nvrSalta = function (dir) {
+        if (!recs.length) return;
+        let i = corrente ? recs.findIndex(x => x.id === corrente.id) : -1;
+        if (i < 0) i = dir > 0 ? recs.findIndex(x => x.inizio > ultimoT) - 1 : recs.findIndex(x => x.inizio > ultimoT);
+        if (i < 0 && dir < 0) i = recs.length;
+        const r = recs[i + dir];
+        if (!r) return;
+        if (dir < 0 && corrente && video.currentTime > 3) { vaiA(corrente.inizio); return; }
+        vaiA(r.inizio);
+    };
+    // un solo tasto che gira: 1x -> 2x -> 4x -> 8x -> 1x
+    window.nvrVelocita = function () {
+        const v = velocita >= 8 ? 1 : velocita * 2;
+        velocita = v;
+        video.playbackRate = v; video.defaultPlaybackRate = v;
+        const b = $('nvr-vel');
+        b.textContent = v + '\u00d7';
+        b.classList.toggle('veloce', v !== 1);
+    };
+    window.nvrSchermoIntero = function () {
+        if (video.webkitEnterFullscreen && !document.fullscreenEnabled) { try { video.webkitEnterFullscreen(); } catch (e) {} return; }
+        const box = $('nvr-video-box');
+        if (document.fullscreenElement) document.exitFullscreen(); else if (box.requestFullscreen) box.requestFullscreen(); else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+    };
+
+    video.addEventListener('timeupdate', () => {
+        if (!corrente) return;
+        const T = corrente.inizio + video.currentTime;
+        mostraOra(T);
+        if (!scrubbing && !video.paused) scroll.scrollLeft = (T - t0) * pxs;
+    });
+    ['play', 'pause', 'playing', 'waiting', 'seeked'].forEach(ev => video.addEventListener(ev, aggiornaPlay));
+    video.addEventListener('ended', alFine);
+    video.addEventListener('pause', () => {
+        // certi browser si fermano in fondo al file senza mandare "ended"
+        if (voleva && corrente && !video.ended && video.duration && video.currentTime >= video.duration - 0.15) alFine();
+    });
+    video.addEventListener('error', () => {
+        if (!corrente) return;
+        messaggio('Spezzone non leggibile', 'alert-circle');
+    });
+    window.addEventListener('resize', () => { misura(); disegna(); scrollA(ultimoT, false); });
+
+    /* ---------- elenco del giorno ---------- */
+    function elenco() {
+        const box = $('nvr-elenco');
+        const voci = recs.map(r => ({ t: r.inizio, rec: r })).concat(eventi.map(e => ({ t: e.ts, ev: e }))).sort((a, b) => a.t - b.t);
+        box.innerHTML = '';
+        if (!voci.length) { box.innerHTML = '<div class="nvr-vuoto">Nessuna registrazione in questo giorno</div>'; return; }
+        voci.forEach(v => {
+            const riga = document.createElement('div');
+            if (v.rec) {
+                const r = v.rec;
+                riga.className = 'nvr-riga' + (corrente && corrente.id === r.id ? ' attiva' : '');
+                riga.dataset.id = r.id;
+                const min = Math.round(r.durata / 60);
+                riga.innerHTML = '<div class="nvr-riga-ico"><i data-lucide="film"></i></div><div style="flex:1; min-width:0;"><div class="nvr-riga-n"></div><div class="nvr-riga-s"></div></div>'
+                    + '<a class="nvr-ib" title="Scarica" download><i data-lucide="download"></i></a>'
+                    + (ADMIN ? '<button type="button" class="nvr-ib nvr-del" title="Elimina"><i data-lucide="trash-2"></i></button>' : '');
+                riga.querySelector('.nvr-riga-n').textContent = hm(r.inizio) + ' \u2013 ' + hm(r.fine);
+                riga.querySelector('.nvr-riga-s').textContent = (min >= 1 ? min + ' min' : r.durata + ' s') + ' \u00b7 ' + r.mb + ' MB \u00b7 ' + (MOTIVI[r.motivo] || r.motivo || '');
+                const a = riga.querySelector('a'); a.href = r.url + '?scarica=1'; a.onclick = e => e.stopPropagation();
+                riga.onclick = () => { voleva = true; vaiA(r.inizio); };
+                const del = riga.querySelector('.nvr-del');
+                if (del) del.onclick = async e => {
+                    e.stopPropagation();
+                    const ok = await chiedi(hm(r.inizio) + ' \u2013 ' + hm(r.fine) + '\nIl file viene cancellato dall\'archivio.', { titolo: 'Eliminare lo spezzone?', si: 'Elimina', pericolo: true, icona: 'trash-2' });
+                    if (!ok) return;
+                    try { await fetch('/api/nvr/registrazione/' + r.id, { method: 'DELETE' }); } catch (x) {}
+                    if (corrente && corrente.id === r.id) fermaVideo();
+                    caricaGiorno(giorno, true);
+                };
+            } else {
+                const e = v.ev;
+                riga.className = 'nvr-riga evento';
+                riga.innerHTML = '<div class="nvr-riga-ico"><i data-lucide="zap"></i></div><div style="flex:1; min-width:0;"><div class="nvr-riga-n"></div><div class="nvr-riga-s"></div></div>';
+                riga.querySelector('.nvr-riga-n').textContent = hms(e.ts);
+                riga.querySelector('.nvr-riga-s').textContent = (e.entita || '') + (e.stato ? ' \u2192 ' + e.stato : '');
+                riga.onclick = () => { voleva = true; vaiA(e.ts - 3); };
+            }
+            box.appendChild(riga);
+        });
+        icone(box);
+    }
+
+    if (window.lucide) lucide.createIcons();
+    avvia();
+})();
+</script>
+</body>
+</html>
