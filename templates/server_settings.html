@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Impostazioni</title>
+    <style>
+        :root {
+            --primary: #0A84FF;
+            --primary-hover: #0071E3;
+            --primary-soft: rgba(10, 132, 255, 0.10);
+            --bg-body: #F2F2F7;
+            --surface: #FFFFFF;
+            --surface-2: #F9F9FB;
+            --text-main: #1C1C1E;
+            --text-2: #48484A;
+            --text-muted: #8E8E93;
+            --border: #D1D1D6;
+            --border-light: #E5E5EA;
+            --radius-lg: 18px;
+            --radius-md: 12px;
+            --radius-sm: 9px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 2px 10px rgba(0,0,0,0.04);
+            --shadow-md: 0 10px 30px rgba(0,0,0,0.10);
+            --danger: #FF3B30;
+            --danger-bg: #FFECEB;
+            --success: #34C759;
+            --success-bg: #E9F9EE;
+            --warn: #FF9F0A;
+            --warn-bg: #FFF4E0;
+            --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+        * { box-sizing: border-box; }
+        html { -webkit-text-size-adjust: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-body); color: var(--text-main); margin: 0; -webkit-font-smoothing: antialiased;
+        }
+        button, input, select { font: inherit; color: inherit; }
+        a { color: var(--primary); }
+        .hidden { display: none !important; }
+
+        /* ---------- barra in alto ---------- */
+        .top {
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(242, 242, 247, 0.86);
+            backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--border-light);
+            padding: 10px 24px; padding-top: calc(10px + env(safe-area-inset-top, 0px));
+            display: flex; align-items: center; gap: 12px;
+        }
+        .top .indietro {
+            display: inline-flex; align-items: center; gap: 4px; color: var(--primary); text-decoration: none;
+            padding: 8px 12px 8px 6px; border-radius: var(--radius-sm); font-weight: 500; transition: background .15s;
+        }
+        .top .indietro:hover { background: var(--primary-soft); }
+        .top .indietro svg { width: 22px; height: 22px; }
+        .top .titolo { display: flex; flex-direction: column; min-width: 0; }
+        .top .titolo h1 { font-size: 1.15rem; font-weight: 700; margin: 0; letter-spacing: -0.01em; line-height: 1.2; }
+        .top .titolo .sotto { font-size: 0.78rem; color: var(--text-muted); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .top .destra { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+        .pill {
+            display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 30px;
+            font-size: 0.8rem; font-weight: 600; background: var(--surface); border: 1px solid var(--border-light);
+            white-space: nowrap;
+        }
+        .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+        .pill.ok .dot { background: var(--success); box-shadow: 0 0 0 3px rgba(52,199,89,0.2); }
+        .pill.ko .dot { background: var(--danger); box-shadow: 0 0 0 3px rgba(255,59,48,0.18); }
+        .pill.boh .dot { background: var(--warn); }
+
+        /* ---------- struttura: menu laterale + contenuto ---------- */
+        .shell { max-width: 1180px; margin: 0 auto; padding: 24px 24px 120px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; }
+        .side { position: sticky; top: 84px; align-self: start; display: flex; flex-direction: column; gap: 4px; }
+        .side button {
+            display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 0; background: transparent;
+            padding: 11px 14px; border-radius: var(--radius-md); cursor: pointer; color: var(--text-2); font-weight: 500;
+            transition: background .15s, color .15s;
+        }
+        .side button svg { width: 20px; height: 20px; flex-shrink: 0; opacity: 0.85; }
+        .side button:hover { background: rgba(0,0,0,0.04); color: var(--text-main); }
+        .side button.on { background: var(--surface); color: var(--primary); box-shadow: var(--shadow-sm); font-weight: 600; }
+        .side button.on svg { opacity: 1; }
+        .side .spazio { height: 10px; }
+        .side .utente { padding: 12px 14px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; border-top: 1px solid var(--border-light); margin-top: 8px; }
+        .side .utente b { color: var(--text-2); font-weight: 600; }
+
+        .sez { display: none; animation: entra .18s ease; }
+        .sez.on { display: block; }
+        @keyframes entra { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        .sez-testa { margin: 4px 0 18px; }
+        .sez-testa h2 { font-size: 1.6rem; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.02em; }
+        .sez-testa p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+
+        /* ---------- schede ---------- */
+        .card {
+            background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light); margin-bottom: 20px; overflow: hidden;
+        }
+        .card-testa { display: flex; align-items: center; gap: 12px; padding: 18px 24px; border-bottom: 1px solid var(--border-light); }
+        .card-testa .ico { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--primary-soft); color: var(--primary); flex-shrink: 0; }
+        .card-testa .ico svg { width: 20px; height: 20px; }
+        .card-testa h3 { margin: 0; font-size: 1.05rem; font-weight: 650; }
+        .card-testa p { margin: 2px 0 0; font-size: 0.85rem; color: var(--text-muted); }
+        .card-testa .azioni { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+        .card-corpo { padding: 22px 24px; }
+        .card-pie { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 24px; background: var(--surface-2); border-top: 1px solid var(--border-light); flex-wrap: wrap; }
+        .card-pie .nota { margin-right: auto; font-size: 0.85rem; color: var(--text-muted); }
+
+        .griglia { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px 22px; }
+        .campo label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-2); margin-bottom: 7px; }
+        .campo input, .campo select {
+            width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+            background: var(--surface); font-size: 0.98rem; outline: none; transition: border-color .15s, box-shadow .15s;
+        }
+        .campo input:focus, .campo select:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); }
+        .campo input[readonly] { background: var(--surface-2); color: var(--text-2); }
+        .campo input.mono { font-family: var(--mono); }
+        .campo input.errato { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(255,59,48,0.12); }
+        .campo .aiuto { display: block; margin-top: 6px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+        .campo .aiuto.errore { color: var(--danger); }
+        .campo .con-tasto { position: relative; }
+        .campo .con-tasto input { padding-right: 46px; }
+        .campo .con-tasto button {
+            position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: transparent;
+            color: var(--text-muted); width: 34px; height: 34px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .campo .con-tasto button:hover { background: rgba(0,0,0,0.05); color: var(--text-main); }
+        .campo .con-tasto button svg { width: 18px; height: 18px; }
+        .riga { display: flex; gap: 10px; align-items: stretch; }
+        .riga input { flex: 1; min-width: 0; }
+
+        /* ---------- tasti ---------- */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent;
+            padding: 10px 18px; border-radius: var(--radius-sm); font-weight: 600; font-size: 0.92rem; cursor: pointer;
+            transition: background .15s, transform .05s, box-shadow .15s; white-space: nowrap;
+        }
+        .btn svg { width: 17px; height: 17px; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+        .btn-blu { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(10,132,255,0.25); }
+        .btn-blu:hover:not(:disabled) { background: var(--primary-hover); }
+        .btn-grigio { background: var(--surface); color: var(--text-main); border-color: var(--border); }
+        .btn-grigio:hover:not(:disabled) { background: var(--surface-2); }
+        .btn-rosso { background: var(--danger); color: #fff; }
+        .btn-rosso:hover:not(:disabled) { background: #E0322A; }
+        .btn-rosso-chiaro { background: var(--danger-bg); color: var(--danger); }
+        .btn-rosso-chiaro:hover:not(:disabled) { background: #FFD9D6; }
+        .btn-verde { background: var(--success); color: #fff; }
+        .btn-verde:hover:not(:disabled) { background: #2DB24E; }
+        .btn-piccolo { padding: 7px 12px; font-size: 0.84rem; }
+        .btn .gira { animation: gira 0.9s linear infinite; }
+        @keyframes gira { to { transform: rotate(360deg); } }
+
+        .segmenti { display: inline-flex; background: #E9E9EE; padding: 3px; border-radius: 11px; gap: 2px; max-width: 100%; }
+        .segmenti button {
+            border: 0; background: transparent; padding: 8px 16px; border-radius: 9px; cursor: pointer; font-weight: 600;
+            font-size: 0.88rem; color: var(--text-2); display: inline-flex; align-items: center; gap: 8px; transition: background .15s, color .15s;
+        }
+        .segmenti button svg { width: 16px; height: 16px; }
+        .segmenti button.on { background: var(--surface); color: var(--text-main); box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+        .segmenti button .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); }
+        .segmenti button .dot.ok { background: var(--success); }
+
+        /* ---------- avvisi ---------- */
+        .avviso { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: var(--radius-md); font-size: 0.9rem; line-height: 1.45; margin-bottom: 18px; }
+        .avviso svg { width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; }
+        .avviso b { display: block; margin-bottom: 2px; }
+        .avviso.attenzione { background: var(--warn-bg); color: #7A4B00; }
+        .avviso.attenzione svg { color: var(--warn); }
+        .avviso.pericolo { background: var(--danger-bg); color: #8A1F18; }
+        .avviso.pericolo svg { color: var(--danger); }
+        .avviso.info { background: var(--primary-soft); color: #0B4F91; }
+        .avviso.info svg { color: var(--primary); }
+        .avviso.bene { background: var(--success-bg); color: #1B6B33; }
+        .avviso.bene svg { color: var(--success); }
+
+        /* ---------- panoramica ---------- */
+        .stat-griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 14px; }
+        .stat {
+            background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 16px 18px;
+            box-shadow: var(--shadow-sm); min-height: 96px; display: flex; flex-direction: column; gap: 6px; min-width: 0;
+        }
+        .stat .eti { font-size: 0.76rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+        .stat .eti svg { width: 14px; height: 14px; }
+        .stat .val { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stat .val.mono { font-family: var(--mono); font-size: 1.1rem; }
+        .stat .sotto { font-size: 0.8rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .stat .barra { height: 6px; border-radius: 4px; background: #E9E9EE; overflow: hidden; margin-top: 4px; }
+        .stat .barra i { display: block; height: 100%; background: var(--primary); border-radius: 4px; transition: width .4s; }
+        .stat .barra i.caldo { background: var(--warn); }
+        .stat .barra i.rosso { background: var(--danger); }
+        .stat.ok .val { color: #1B6B33; }
+        .stat.ko .val { color: var(--danger); }
+        .aggiornato { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; font-size: 0.82rem; color: var(--text-muted); }
+        .aggiornato button { margin-left: auto; }
+
+        .info-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 32px; }
+        .info-lista .voce { display: flex; justify-content: space-between; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--border-light); font-size: 0.92rem; }
+        .info-lista .voce span:first-child { color: var(--text-muted); flex-shrink: 0; }
+        .info-lista .voce span:last-child { font-weight: 600; text-align: right; overflow: hidden; text-overflow: ellipsis; }
+
+        /* ---------- reti wi-fi ---------- */
+        .wifi-lista { display: flex; flex-direction: column; gap: 8px; }
+        .wifi-riga {
+            display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border-light);
+            border-radius: var(--radius-md); background: var(--surface-2); cursor: pointer; transition: border-color .15s, background .15s;
+        }
+        .wifi-riga:hover { border-color: var(--border); }
+        .wifi-riga.scelta { border-color: var(--primary); background: var(--primary-soft); }
+        .wifi-riga .nome { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .wifi-riga .tag { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; background: var(--success); color: #fff; padding: 3px 8px; border-radius: 20px; }
+        .wifi-riga .lucchetto { color: var(--text-muted); display: flex; }
+        .wifi-riga .lucchetto svg { width: 15px; height: 15px; }
+        .wifi-riga .pct { font-size: 0.8rem; color: var(--text-muted); font-family: var(--mono); width: 40px; text-align: right; }
+        .barre { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
+        .barre i { width: 4px; background: #D1D1D6; border-radius: 2px; }
+        .barre i:nth-child(1) { height: 5px; } .barre i:nth-child(2) { height: 8px; } .barre i:nth-child(3) { height: 12px; } .barre i:nth-child(4) { height: 16px; }
+        .barre i.on { background: var(--primary); }
+        .vuoto { text-align: center; padding: 28px 16px; color: var(--text-muted); font-size: 0.9rem; background: var(--surface-2); border: 1px dashed var(--border); border-radius: var(--radius-md); }
+
+        /* ---------- posizione ---------- */
+        .luoghi { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+        .luogo { padding: 10px 14px; border: 1px solid var(--border-light); border-radius: var(--radius-sm); background: var(--surface-2); cursor: pointer; font-size: 0.9rem; line-height: 1.35; }
+        .luogo:hover { border-color: var(--primary); background: var(--primary-soft); }
+        .luogo small { display: block; color: var(--text-muted); font-family: var(--mono); font-size: 0.75rem; margin-top: 2px; }
+        .orologio { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+        .orologio .ora { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+        .orologio .data { color: var(--text-muted); font-size: 0.95rem; }
+
+        /* ---------- accessi bloccati ---------- */
+        .ipl-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--border-light); border-radius: var(--radius-md); background: var(--surface-2); margin-bottom: 10px; }
+        .ipl-row.blocked { background: var(--danger-bg); border-color: rgba(255,59,48,0.25); }
+        .ipl-row.self { border-color: var(--primary); background: var(--primary-soft); }
+        .ipl-badge { width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #E5E5EA; color: var(--warn); }
+        .ipl-badge svg { width: 20px; height: 20px; }
+        .ipl-row.blocked .ipl-badge { background: rgba(255,59,48,0.15); color: var(--danger); }
+        .ipl-info { flex: 1; min-width: 0; }
+        .ipl-ip { font-family: var(--mono); font-weight: 600; font-size: 1rem; }
+        .ipl-meta { font-size: 0.82rem; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+        .ipl-meta b { color: var(--danger); font-weight: 600; }
+        .ipl-tag { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; background: var(--primary); color: #FFF; padding: 3px 8px; border-radius: 20px; margin-left: 8px; vertical-align: middle; }
+
+        /* ---------- sistema ---------- */
+        .azioni-sistema { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+        .azione { border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 18px; background: var(--surface-2); display: flex; flex-direction: column; gap: 10px; }
+        .azione .ico { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .azione .ico svg { width: 20px; height: 20px; }
+        .azione h4 { margin: 0; font-size: 0.98rem; }
+        .azione p { margin: 0; font-size: 0.84rem; color: var(--text-muted); line-height: 1.4; flex: 1; }
+        .azione.blu .ico { background: var(--primary-soft); color: var(--primary); }
+        .azione.arancio .ico { background: var(--warn-bg); color: var(--warn); }
+        .azione.rosso .ico { background: var(--danger-bg); color: var(--danger); }
+
+        /* ---------- modale password / attesa ---------- */
+        .velo { position: fixed; inset: 0; background: rgba(28,28,30,0.45); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; visibility: hidden; transition: opacity .2s, visibility .2s; }
+        .velo.on { opacity: 1; visibility: visible; }
+        .velo .finestra { background: var(--surface); border-radius: 20px; padding: 28px; width: 100%; max-width: 420px; box-shadow: var(--shadow-md); transform: translateY(8px); transition: transform .2s; text-align: center; }
+        .velo.on .finestra { transform: none; }
+        .finestra .ico { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; background: var(--primary-soft); color: var(--primary); }
+        .finestra .ico svg { width: 26px; height: 26px; }
+        .finestra h3 { margin: 0 0 6px; font-size: 1.2rem; }
+        .finestra p { margin: 0 0 18px; color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; }
+        .finestra input { width: 100%; padding: 13px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 1rem; background: var(--surface-2); outline: none; text-align: center; letter-spacing: 0.1em; }
+        .finestra input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-soft); }
+        .finestra .tasti { display: flex; gap: 10px; margin-top: 16px; }
+        .finestra .tasti .btn { flex: 1; }
+        .finestra .spinner { width: 44px; height: 44px; border: 4px solid var(--border-light); border-top-color: var(--primary); border-radius: 50%; margin: 6px auto 18px; animation: gira 0.9s linear infinite; }
+        .finestra .indirizzo { display: inline-block; font-family: var(--mono); font-size: 1.05rem; font-weight: 600; background: var(--surface-2); padding: 10px 16px; border-radius: var(--radius-sm); margin-bottom: 8px; text-decoration: none; }
+
+        .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); background: #1C1C1E; color: #fff; padding: 12px 20px; border-radius: 30px; font-size: 0.9rem; font-weight: 500; box-shadow: var(--shadow-md); opacity: 0; visibility: hidden; transition: opacity .2s, transform .2s, visibility .2s; z-index: 300; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 32px); }
+        .toast svg { width: 18px; height: 18px; color: var(--success); flex-shrink: 0; }
+        .toast.on { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+
+        /* ---------- lingua ---------- */
+        .wh-lingua { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(127,127,127,0.16);
+                     font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; vertical-align: middle; }
+        .wh-lingua button { border: 0; background: transparent; color: inherit; opacity: 0.6; padding: 7px 11px; border-radius: 8px;
+                            cursor: pointer; font: inherit; letter-spacing: 0.05em; min-width: 38px; min-height: 30px; }
+        .wh-lingua button:hover { opacity: 0.85; }
+        .wh-lingua button.on { background: #0A84FF; color: #fff; opacity: 1; }
+        .wh-lingua button:focus-visible { outline: 2px solid #0A84FF; outline-offset: 2px; }
+
+        /* ---------- telefono e tablet ---------- */
+        @media (max-width: 900px) {
+            .shell { grid-template-columns: 1fr; padding: 14px 14px 100px; gap: 14px; }
+            .side { position: sticky; top: calc(58px + env(safe-area-inset-top, 0px)); z-index: 40; flex-direction: row; overflow-x: auto; gap: 6px; padding: 8px 0; margin: 0 -14px; padding-left: 14px; padding-right: 14px; background: var(--bg-body); scrollbar-width: none; }
+            .side::-webkit-scrollbar { display: none; }
+            .side button { width: auto; padding: 9px 14px; white-space: nowrap; background: var(--surface); border: 1px solid var(--border-light); flex-shrink: 0; }
+            .side button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+            .side .spazio, .side .utente { display: none; }
+            .top { padding: 8px 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
+            .top .pill { display: none; }
+            .top .indietro span { display: none; }
+            .card-testa, .card-corpo, .card-pie { padding-left: 16px; padding-right: 16px; }
+            .sez-testa h2 { font-size: 1.35rem; }
+            .segmenti { display: flex; }
+            .segmenti button { flex: 1; justify-content: center; padding: 9px 8px; }
+            .orologio .ora { font-size: 2rem; }
+        }
+    </style>
+    <script src="/static/popup.js"></script>
+</head>
+<body>
+
+<header class="top">
+    <a href="/dashboard" class="indietro" title="Torna alla dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        <span>Dashboard</span>
+    </a>
+    <div class="titolo">
+        <h1>Impostazioni</h1>
+        <div class="sotto" id="top-sotto" data-no-tr>{{ current_hostname }}</div>
+    </div>
+    <div class="destra">
+        <span class="pill boh" id="pill-stato"><span class="dot"></span><span id="pill-testo">Lettura stato…</span></span>
+        <!-- ===== LINGUA: INIZIO ===== -->
+        <div class="wh-lingua" role="group" aria-label="Lingua / Language">
+            <button type="button" data-l="it" title="Italiano" lang="it">IT</button>
+            <button type="button" data-l="en" title="English" lang="en">EN</button>
+        </div>
+        <script>
+        (function () {
+            // la lingua vera e' quella con cui il server ha servito la pagina (<html lang>), non il
+            // cookie: se l'impianto e' in inglese e il telefono non ha ancora il cookie, il cookie mente
+            var attuale = (document.documentElement.getAttribute('lang') || 'it').slice(0, 2).toLowerCase();
+            document.querySelectorAll('.wh-lingua').forEach(function (box) {
+                box.querySelectorAll('button').forEach(function (b) {
+                    if (b.dataset.l === attuale) b.classList.add('on');
+                    b.addEventListener('click', function () {
+                        if (b.dataset.l === attuale) return;
+                        var fine = function () { location.reload(); };
+                        fetch('/api/lingua', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                               body: JSON.stringify({ lingua: b.dataset.l }) }).then(function (r) {
+                            // se il server non ha potuto salvarla (per esempio quando le API sono chiuse)
+                            // la lingua si segna lo stesso su questo dispositivo
+                            if (!r || !r.ok) document.cookie = 'wh_lang=' + b.dataset.l + ';path=/;max-age=157680000';
+                            fine();
+                        }).catch(function () {
+                            document.cookie = 'wh_lang=' + b.dataset.l + ';path=/;max-age=157680000'; fine();
+                        });
+                    });
+                });
+            });
+        })();
+        </script>
+        <!-- ===== LINGUA: FINE ===== -->
+    </div>
+</header>
+
+<div class="shell">
+    <!-- ===== MENU DELLE SEZIONI ===== -->
+    <nav class="side" id="menu">
+        <button type="button" data-sez="panoramica" class="on">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+            Panoramica
+        </button>
+        <button type="button" data-sez="rete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 18h.01M10 18h.01"/><path d="M12 14V6a2 2 0 0 1 2-2h6"/></svg>
+            Rete
+        </button>
+        <button type="button" data-sez="wifi">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+            Wi-Fi
+        </button>
+        <button type="button" data-sez="posizione">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Posizione e ora
+        </button>
+        <button type="button" data-sez="sicurezza">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Sicurezza
+        </button>
+        <button type="button" data-sez="sistema">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg>
+            Sistema
+        </button>
+        <div class="spazio"></div>
+        <div class="utente">Collegato come <b data-no-tr>{{ session.username }}</b><br>amministratore</div>
+    </nav>
+
+    <main>
+        <!-- ===================== PANORAMICA ===================== -->
+        <section class="sez on" id="sez-panoramica">
+            <div class="sez-testa">
+                <h2>Panoramica</h2>
+                <p>Come sta il server in questo momento: rete, internet, risorse e ora di casa.</p>
+            </div>
+            <div class="stat-griglia" id="stat-griglia"></div>
+            <div class="aggiornato">
+                <span id="stat-quando">Si aggiorna da solo ogni 15 secondi.</span>
+                <button type="button" class="btn btn-grigio btn-piccolo" onclick="caricaStato(true)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                    Aggiorna
+                </button>
+            </div>
+        </section>
+
+        <!-- ===================== RETE ===================== -->
+        <section class="sez" id="sez-rete">
+            <div class="sez-testa">
+                <h2>Rete</h2>
+                <p>Nome del server e indirizzo IP con cui lo raggiungi dalla rete di casa.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-testa">
+                    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></svg></div>
+                    <div><h3>Nome del server</h3><p>Il nome con cui il server si presenta sulla rete (hostname).</p></div>
+                </div>
+                <div class="card-corpo">
+                    <div class="griglia">
+                        <div class="campo">
+                            <label for="hostname">Nome (hostname)</label>
+                            <input type="text" id="hostname" name="hostname" class="mono" value="{{ current_hostname }}" placeholder="es. wach-home" autocomplete="off" spellcheck="false" oninput="segnaModifica('rete'); validaRete()">
+                            <span class="aiuto" id="hostname-aiuto">Solo lettere, numeri e trattini, senza spazi. Cambiandolo, l'indirizzo <span data-no-tr id="hostname-local"></span> cambia di conseguenza.</span>
+                        </div>
+                        <div class="campo">
+                            <label>Indirizzo attuale della pagina</label>
+                            <input type="text" class="mono" id="indirizzo-pagina" readonly value="" data-no-tr>
+                            <span class="aiuto">Quello che stai usando adesso nel browser.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-testa">
+                    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 18h.01M10 18h.01"/><path d="M12 14V6a2 2 0 0 1 2-2h6"/></svg></div>
+                    <div><h3>Indirizzo IP</h3><p>Automatico dal router (DHCP) oppure fisso, scelto da te.</p></div>
+                </div>
+                <div class="card-corpo">
+                    <div class="griglia" style="margin-bottom: 20px;">
+                        <div class="campo">
+                            <label>Scheda di rete</label>
+                            <div class="segmenti" id="schede-seg"></div>
+                            <span class="aiuto" id="scheda-aiuto"></span>
+                        </div>
+                        <div class="campo">
+                            <label>Assegnazione dell'indirizzo</label>
+                            <div class="segmenti" id="modo-seg">
+                                <button type="button" data-modo="auto" onclick="sceltaModo('auto')">Automatico (DHCP)</button>
+                                <button type="button" data-modo="manual" onclick="sceltaModo('manual')">Manuale (fisso)</button>
+                            </div>
+                            <span class="aiuto" id="modo-aiuto"></span>
+                        </div>
+                    </div>
+
+                    <div id="ip-manuale">
+                        <div class="griglia">
+                            <div class="campo">
+                                <label for="ip_address">Indirizzo IP</label>
+                                <input type="text" id="ip_address" class="mono" inputmode="decimal" placeholder="es. 192.168.1.50" autocomplete="off" oninput="segnaModifica('rete'); validaRete()">
+                                <span class="aiuto" id="ip-aiuto">Scegli un indirizzo fuori dall'intervallo che il router assegna da solo.</span>
+                            </div>
+                            <div class="campo">
+                                <label for="ip_prefix">Maschera di rete</label>
+                                <select id="ip_prefix" onchange="segnaModifica('rete')">
+                                    <option value="24">255.255.255.0 (/24)</option>
+                                    <option value="16">255.255.0.0 (/16)</option>
+                                    <option value="8">255.0.0.0 (/8)</option>
+                                    <option value="25">255.255.255.128 (/25)</option>
+                                    <option value="26">255.255.255.192 (/26)</option>
+                                    <option value="27">255.255.255.224 (/27)</option>
+                                    <option value="28">255.255.255.240 (/28)</option>
+                                    <option value="23">255.255.254.0 (/23)</option>
+                                    <option value="22">255.255.252.0 (/22)</option>
+                                    <option value="20">255.255.240.0 (/20)</option>
+                                </select>
+                            </div>
+                            <div class="campo">
+                                <label for="gateway">Gateway (router)</label>
+                                <input type="text" id="gateway" class="mono" inputmode="decimal" placeholder="es. 192.168.1.1" autocomplete="off" oninput="segnaModifica('rete'); validaRete()">
+                                <span class="aiuto" id="gw-aiuto">Di solito l'indirizzo del router.</span>
+                            </div>
+                            <div class="campo">
+                                <label for="dns">Server DNS</label>
+                                <input type="text" id="dns" class="mono" placeholder="es. 192.168.1.1, 8.8.8.8" autocomplete="off" oninput="segnaModifica('rete'); validaRete()">
+                                <span class="aiuto" id="dns-aiuto">Uno o più indirizzi separati da virgola. Vuoto: 8.8.8.8.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="ip-auto" class="hidden">
+                        <div class="avviso info" style="margin: 0;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                            <div><b>Indirizzo assegnato dal router</b>Il router sceglie l'indirizzo e potrebbe cambiarlo nel tempo. Se vuoi che l'app risponda sempre allo stesso IP, riserva l'indirizzo nel router (prenotazione DHCP) oppure scegli “Manuale”.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-pie">
+                    <span class="nota" id="rete-nota"></span>
+                    <button type="button" class="btn btn-grigio" onclick="annullaRete()">Annulla</button>
+                    <button type="button" class="btn btn-blu" id="btn-salva-rete" onclick="salvaRete()" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Applica
+                    </button>
+                </div>
+            </div>
+
+            <div class="avviso attenzione">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+                <div><b>Cambiare l'indirizzo scollega il server</b>Quando applichi un nuovo IP o un'altra rete, la connessione con questa pagina cade: la pagina prova da sola a raggiungere il nuovo indirizzo e ti ci porta appena risponde.</div>
+            </div>
+        </section>
+
+        <!-- ===================== WI-FI ===================== -->
+        <section class="sez" id="sez-wifi">
+            <div class="sez-testa">
+                <h2>Wi-Fi</h2>
+                <p>Collega il server a una rete senza fili, oppure controlla a quale è collegato.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-testa">
+                    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg></div>
+                    <div><h3>Stato del Wi-Fi</h3><p id="wifi-sotto">Lettura in corso…</p></div>
+                    <div class="azioni">
+                        <button type="button" class="btn btn-verde btn-piccolo hidden" id="btn-wifi-accendi" onclick="wifiAccendi()">Accendi il Wi-Fi</button>
+                        <button type="button" class="btn btn-grigio btn-piccolo" id="btn-wifi-scan" onclick="wifiScansiona()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                            Cerca reti
+                        </button>
+                    </div>
+                </div>
+                <div class="card-corpo">
+                    <div id="wifi-assente" class="avviso info hidden" style="margin-bottom: 0;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                        <div><b>Nessuna scheda Wi-Fi rilevata</b>Il server è collegato solo via cavo. Se colleghi un'antenna USB, torna qui e premi “Cerca reti”.</div>
+                    </div>
+                    <div id="wifi-spento" class="avviso attenzione hidden" style="margin-bottom: 16px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                        <div><b>Antenna spenta</b>Il modulo Wi-Fi è disattivato a livello di sistema. Accendilo per cercare le reti.</div>
+                    </div>
+                    <div class="wifi-lista" id="wifi-lista">
+                        <div class="vuoto">Premi “Cerca reti” per vedere le reti Wi-Fi intorno al server.</div>
+                    </div>
+
+                    <div id="wifi-connetti" class="hidden" style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--border-light);">
+                        <div class="griglia">
+                            <div class="campo">
+                                <label>Rete scelta</label>
+                                <input type="text" id="wifi-ssid" class="mono" readonly data-no-tr>
+                            </div>
+                            <div class="campo">
+                                <label for="wifi-password">Password della rete</label>
+                                <div class="con-tasto">
+                                    <input type="password" id="wifi-password" placeholder="Lascia vuoto se la rete è aperta" autocomplete="off">
+                                    <button type="button" onclick="mostraPassword('wifi-password', this)" title="Mostra o nascondi">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-pie" id="wifi-pie">
+                    <span class="nota">Collegandoti a un'altra rete il server cambia indirizzo: la pagina si ricollega da sola.</span>
+                    <button type="button" class="btn btn-blu" id="btn-wifi-connetti" onclick="wifiConnetti()" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+                        Connetti
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== POSIZIONE E ORA ===================== -->
+        <section class="sez" id="sez-posizione">
+            <div class="sez-testa">
+                <h2>Posizione e ora</h2>
+                <p>Dove si trova la casa: da qui arrivano il meteo, l'alba e il tramonto, e il fuso orario usato in tutta l'app.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-testa">
+                    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+                    <div><h3>Luogo</h3><p>Cerca la città o l'indirizzo, poi scegli il risultato giusto.</p></div>
+                </div>
+                <div class="card-corpo">
+                    <div class="campo" style="margin-bottom: 18px;">
+                        <label for="cerca-luogo">Cerca un luogo</label>
+                        <div class="riga">
+                            <input type="text" id="cerca-luogo" placeholder="es. Lugano, Svizzera" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();cercaLuogo();}">
+                            <button type="button" class="btn btn-grigio" id="btn-cerca-luogo" onclick="cercaLuogo()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                Cerca
+                            </button>
+                        </div>
+                        <span class="aiuto" id="luogo-esito"></span>
+                        <div class="luoghi" id="luoghi"></div>
+                    </div>
+                    <div class="griglia">
+                        <div class="campo">
+                            <label for="location_name">Nome mostrato nell'app</label>
+                            <input type="text" id="location_name" value="{{ current_loc_name }}" placeholder="es. Casa" oninput="segnaModifica('posizione')">
+                        </div>
+                        <div class="campo">
+                            <label for="lat">Latitudine</label>
+                            <input type="number" step="any" id="lat" class="mono" value="{{ current_lat }}" placeholder="46.0037" oninput="segnaModifica('posizione'); validaPosizione()">
+                        </div>
+                        <div class="campo">
+                            <label for="lon">Longitudine</label>
+                            <input type="number" step="any" id="lon" class="mono" value="{{ current_lon }}" placeholder="8.9511" oninput="segnaModifica('posizione'); validaPosizione()">
+                            <span class="aiuto" id="coord-aiuto">Le coordinate le compila la ricerca; puoi anche scriverle a mano.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-pie">
+                    <span class="nota">Il fuso orario si ricava dalle coordinate al salvataggio.</span>
+                    <button type="button" class="btn btn-grigio" onclick="annullaPosizione()">Annulla</button>
+                    <button type="button" class="btn btn-blu" id="btn-salva-posizione" onclick="salvaPosizione()" disabled>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        Salva
+                    </button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-testa">
+                    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+                    <div><h3>Ora di casa</h3><p>L'ora che usano automazioni, registrazioni, registro e orologio dell'app.</p></div>
+                </div>
+                <div class="card-corpo">
+                    <div class="orologio">
+                        <span class="ora" id="ora-casa" data-no-tr>--:--:--</span>
+                        <span class="data" id="data-casa"></span>
+                    </div>
+                    <div class="info-lista" style="margin-top: 14px;">
+                        <div class="voce"><span>Fuso orario dal luogo</span><span id="fuso-casa" data-no-tr>{{ current_fuso or '—' }}</span></div>
+                        <div class="voce"><span>Fuso orario del sistema</span><span id="fuso-sistema" data-no-tr>—</span></div>
+                    </div>
+                    <div class="avviso info hidden" id="fuso-manca" style="margin: 16px 0 0;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                        <div><b>Fuso orario non ancora ricavato</b>Serve internet per ricavarlo dalle coordinate: il server ci riprova da solo. Nel frattempo vale l'ora del sistema.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== SICUREZZA ===================== -->
+        <section class="sez" id="sez-sicurezza">
+            <div class="sez-testa">
+                <h2>Sicurezza</h2>
+                <p>Protezione dagli accessi ripetuti con password sbagliata.</p>
+            </div>
+
+            <div class="card" id="ipl-card">
+                <div class="card-testa">
+                    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+                    <div><h3>Accessi bloccati</h3><p>Dopo quattro password sbagliate l'indirizzo viene bloccato: 5, poi 10, 15 e infine 60 minuti.</p></div>
+                    <div class="azioni">
+                        <button type="button" class="btn btn-grigio btn-piccolo" onclick="iplRefresh()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                            Aggiorna
+                        </button>
+                    </div>
+                </div>
+                <div class="card-corpo">
+                    <div id="ipl-list"><div class="vuoto">Lettura in corso…</div></div>
+                </div>
+                <div class="card-pie">
+                    <span class="nota" id="ipl-note"></span>
+                    <button type="button" class="btn btn-rosso-chiaro" onclick="iplUnlock(null, true)">Sblocca tutti</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-testa">
+                    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+                    <div><h3>Modifiche protette</h3><p>Ogni modifica in questa pagina chiede la password dell'amministratore di Wach0ss.</p></div>
+                </div>
+                <div class="card-corpo">
+                    <div class="info-lista">
+                        <div class="voce"><span>Utente collegato</span><span data-no-tr>{{ session.username }}</span></div>
+                        <div class="voce"><span>Il tuo indirizzo</span><span id="tuo-ip" data-no-tr>—</span></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== SISTEMA ===================== -->
+        <section class="sez" id="sez-sistema">
+            <div class="sez-testa">
+                <h2>Sistema</h2>
+                <p>Informazioni sul server e comandi di riavvio e spegnimento.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-testa">
+                    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></div>
+                    <div><h3>Informazioni</h3><p>Hardware e software del server.</p></div>
+                </div>
+                <div class="card-corpo">
+                    <div class="info-lista" id="info-lista"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-testa">
+                    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><path d="M12 2v10"/></svg></div>
+                    <div><h3>Riavvio e spegnimento</h3><p>Ogni comando chiede conferma.</p></div>
+                </div>
+                <div class="card-corpo">
+                    <div class="azioni-sistema">
+                        <div class="azione blu">
+                            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></div>
+                            <h4>Riavvia Wach0ss</h4>
+                            <p>Riavvia solo l'app: il server resta acceso. Ci vuole qualche secondo.</p>
+                            <button type="button" class="btn btn-grigio" onclick="azioneSistema('service')">Riavvia l'app</button>
+                        </div>
+                        <div class="azione arancio">
+                            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><path d="M12 2v10"/></svg></div>
+                            <h4>Riavvia il server</h4>
+                            <p>Riavvio completo del Raspberry. L'app torna disponibile in circa un minuto.</p>
+                            <button type="button" class="btn btn-grigio" onclick="azioneSistema('reboot')">Riavvia il server</button>
+                        </div>
+                        <div class="azione rosso">
+                            <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><path d="M12 2v10"/></svg></div>
+                            <h4>Spegni il server</h4>
+                            <p>Spegnimento sicuro. Per riaccenderlo dovrai togliere e ridare corrente.</p>
+                            <button type="button" class="btn btn-rosso-chiaro" onclick="azioneSistema('poweroff')">Spegni</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- ===== MODALE PASSWORD AMMINISTRATORE ===== -->
+<div class="velo" id="velo-password">
+    <div class="finestra">
+        <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <h3>Conferma con la password</h3>
+        <p id="velo-password-testo">Inserisci la password dell'amministratore di Wach0ss (quella con cui accedi) per applicare la modifica.</p>
+        <input type="password" id="password-admin" placeholder="Password amministratore" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();passwordOk();}">
+        <div class="tasti">
+            <button type="button" class="btn btn-grigio" onclick="passwordAnnulla()">Annulla</button>
+            <button type="button" class="btn btn-blu" onclick="passwordOk()">Conferma</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== ATTESA: RETE CHE CAMBIA / SERVER CHE RIPARTE ===== -->
+<div class="velo" id="velo-attesa">
+    <div class="finestra">
+        <div class="spinner"></div>
+        <h3 id="attesa-titolo">Applicazione in corso…</h3>
+        <p id="attesa-testo"></p>
+        <a class="indirizzo hidden" id="attesa-link" href="#" data-no-tr></a>
+        <p id="attesa-sotto" style="margin: 0; font-size: 0.85rem;"></p>
+    </div>
+</div>
+
+<div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <span id="toast-testo"></span>
+</div>
+
+<script>
+/* =====================================================================
+   IMPOSTAZIONI — logica della pagina
+   - lo stato (rete, wifi, sistema, ora) arriva da /api/impostazioni/stato
+   - ogni modifica passa da POST /server_settings con la password admin
+   ===================================================================== */
+var S = {{ stato_json|safe }};          // fotografia iniziale (senza la prova internet: la fa la prima lettura)
+var FUSO_CASA = {{ (current_fuso or '')|tojson }};
+var pwAdmin = '';                       // password confermata una volta per pagina; se il server la rifiuta si richiede
+var sporco = { rete: false, posizione: false };
+var origRete = null;                    // valori della sezione Rete come mostrati (per "Annulla")
+var schedaScelta = '';                  // nome della scheda di rete scelta (eth0/wlan0)
+var modoScelto = 'auto';
+var wifiScelto = null;                  // { ssid, secured }
+var scartoOra = 0;                      // ora di casa del server - ora del browser (ms)
+var iplTimer = null, statoTimer = null;
+
+function $(id) { return document.getElementById(id); }
+function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function ipOk(v) { return /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(String(v || '').trim()); }
+function hostOk(v) { return /^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/.test(String(v || '').trim()); }
+
+function toast(testo) {
+    $('toast-testo').textContent = testo;
+    $('toast').classList.add('on');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () { $('toast').classList.remove('on'); }, 2800);
+}
+
+/* ---------------- sezioni ---------------- */
+function vaiA(sez, senzaHash) {
+    document.querySelectorAll('#menu button').forEach(function (b) { b.classList.toggle('on', b.dataset.sez === sez); });
+    document.querySelectorAll('.sez').forEach(function (s) { s.classList.toggle('on', s.id === 'sez-' + sez); });
+    if (!senzaHash) { try { history.replaceState(null, '', '#' + sez); } catch (e) {} }
+    if (sez === 'sicurezza') iplAvvia(); else iplFerma();
+    if (sez === 'wifi') wifiAggiorna();
+    window.scrollTo({ top: 0 });
+}
+document.querySelectorAll('#menu button').forEach(function (b) { b.addEventListener('click', function () { vaiA(b.dataset.sez); }); });
+
+/* ---------------- stato del server ---------------- */
+function mostraStato() {
+    if (!S) return;
+    var p = principale();
+    $('top-sotto').textContent = S.hostname + (p && p.ip ? ' · ' + p.ip : '');
+    $('hostname-local').textContent = 'http://' + nomeLocale(S.hostname);
+    $('indirizzo-pagina').value = location.protocol + '//' + (S.indirizzo_pagina || location.host);
+    var pill = $('pill-stato');
+    pill.className = 'pill ' + (S.internet === true ? 'ok' : S.internet === false ? 'ko' : 'boh');
+    $('pill-testo').textContent = S.internet === true ? 'Internet raggiungibile' : S.internet === false ? 'Senza internet' : 'Lettura stato…';
+    mostraPanoramica();
+    mostraInfo();
+    if (!sporco.rete) riempiRete();
+    wifiAggiorna();
+    $('fuso-casa').textContent = S.fuso || '—';
+    $('fuso-sistema').textContent = S.fuso_sistema || '—';
+    $('fuso-manca').classList.toggle('hidden', !!S.fuso);
+    if (S.ora_casa) {
+        // l'ora di casa la tiene il server: qui si fa solo scorrere
+        var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/.exec(S.ora_casa);
+        if (m) scartoOra = new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime() - Date.now();
+    }
+    if (S.ora_casa) orologio();
+}
+function nomeLocale(h) { h = h || 'server'; return h.indexOf('.') >= 0 ? h : h + '.local'; }   // sul Mac l'hostname ha gia' il .local
+function principale() {
+    if (!S || !S.schede) return null;
+    for (var i = 0; i < S.schede.length; i++) if (S.schede[i].nome === S.principale) return S.schede[i];
+    return S.schede[0] || null;
+}
+async function caricaStato(aMano) {
+    try {
+        var r = await fetch('/api/impostazioni/stato', { cache: 'no-store' });
+        if (!r.ok) throw new Error(r.status);
+        S = await r.json();
+        mostraStato();
+        $('stat-quando').textContent = 'Aggiornato alle ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' · si aggiorna da solo ogni 15 secondi.';
+    } catch (e) {
+        if (aMano) toast('Stato non letto: il server non ha risposto.');
+    }
+}
+
+/* ---------------- panoramica ---------------- */
+function durata(sec) {
+    if (sec == null) return '—';
+    var g = Math.floor(sec / 86400), h = Math.floor(sec % 86400 / 3600), m = Math.floor(sec % 3600 / 60);
+    if (g > 0) return g + ' g ' + h + ' h';
+    if (h > 0) return h + ' h ' + m + ' min';
+    return m + ' min';
+}
+function byte(n) {
+    if (n == null) return '—';
+    var u = ['B', 'KB', 'MB', 'GB', 'TB'], i = 0;
+    while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return (i >= 3 ? n.toFixed(1) : Math.round(n)) + ' ' + u[i];
+}
+function barre(pct) {
+    var n = pct == null ? 0 : pct >= 75 ? 4 : pct >= 50 ? 3 : pct >= 25 ? 2 : 1;
+    var h = '<span class="barre">';
+    for (var i = 1; i <= 4; i++) h += '<i class="' + (i <= n ? 'on' : '') + '"></i>';
+    return h + '</span>';
+}
+function stat(eti, val, sotto, extra, classe) {
+    return '<div class="stat ' + (classe || '') + '"><div class="eti">' + eti + '</div><div class="val' + (extra && extra.mono ? ' mono' : '') + '" title="' + esc(val) + '">' + esc(val) + '</div>'
+        + (sotto ? '<div class="sotto" title="' + esc(sotto) + '">' + esc(sotto) + '</div>' : '')
+        + (extra && extra.pct != null ? '<div class="barra"><i class="' + (extra.pct >= 90 ? 'rosso' : extra.pct >= 70 ? 'caldo' : '') + '" style="width:' + Math.min(100, extra.pct) + '%"></i></div>' : '')
+        + '</div>';
+}
+function mostraPanoramica() {
+    var p = principale(), sis = S.sistema || {}, w = S.wifi || {};
+    var h = '';
+    var tipo = p ? (p.tipo === 'wifi' ? 'Wi-Fi' : 'Ethernet') : '';
+    var modo = p ? (p.metodo === 'manual' ? 'IP fisso' : p.metodo === 'auto' ? 'DHCP' : '') : '';
+    h += stat('Connessione', p && p.collegata ? (p.nome ? p.nome + ' · ' : '') + tipo : 'Non collegato', p && p.ip ? p.ip + (modo ? ' · ' + modo : '') : 'Nessun indirizzo', { mono: false }, p && p.collegata ? 'ok' : 'ko');
+    h += stat('Internet', S.internet === true ? 'Raggiungibile' : S.internet === false ? 'Non raggiungibile' : '…', S.internet === false ? 'Meteo, fuso orario e aggiornamenti non funzionano' : 'Meteo, fuso orario e aggiornamenti', null, S.internet === true ? 'ok' : S.internet === false ? 'ko' : '');
+    h += stat('Gateway', p && p.gateway ? p.gateway : '—', p && p.dns && p.dns.length ? 'DNS ' + p.dns.join(', ') : 'DNS —', { mono: true });
+    if (w.presente || (p && p.tipo === 'wifi')) {
+        var ws = w.radio === false ? 'Spento' : w.ssid ? w.ssid : 'Non collegato';
+        h += stat('Wi-Fi', ws, w.ssid && w.segnale != null ? 'Segnale ' + w.segnale + '%' : (w.radio === false ? 'Antenna disattivata' : ''), null, w.ssid ? 'ok' : '');
+    } else {
+        h += stat('Wi-Fi', 'Assente', 'Solo cavo di rete');
+    }
+    h += stat('Nome del server', S.hostname || '—', 'http://' + nomeLocale(S.hostname), { mono: true });
+    h += stat('Acceso da', durata(sis.uptime), sis.carico != null ? 'Carico ' + sis.carico : '');
+    if (sis.temperatura != null) h += stat('Temperatura', sis.temperatura.toFixed(0) + ' °C', sis.temperatura >= 80 ? 'Troppo caldo: controlla la ventilazione' : sis.temperatura >= 65 ? 'Calda ma nella norma' : 'Nella norma', { pct: Math.round(sis.temperatura / 85 * 100) });
+    if (sis.memoria) { var mp = Math.round(sis.memoria.usata / sis.memoria.totale * 100); h += stat('Memoria', mp + '%', byte(sis.memoria.usata) + ' su ' + byte(sis.memoria.totale), { pct: mp }); }
+    if (sis.disco) { var dp = Math.round(sis.disco.usato / sis.disco.totale * 100); h += stat('Spazio su disco', dp + '%', byte(sis.disco.libero) + ' liberi su ' + byte(sis.disco.totale), { pct: dp }); }
+    $('stat-griglia').innerHTML = h;
+}
+function mostraInfo() {
+    var sis = S.sistema || {};
+    var righe = [
+        ['Modello', sis.modello], ['Sistema operativo', sis.so], ['Kernel', sis.kernel], ['Python', sis.python],
+        ['Versione Wach0ss', sis.versione || '—'], ['Acceso da', durata(sis.uptime)], ['Nome del server', S.hostname]
+    ];
+    var p = principale();
+    if (p && p.mac) righe.push(['Indirizzo fisico (MAC)', p.mac]);
+    $('info-lista').innerHTML = righe.map(function (r) { return '<div class="voce"><span>' + r[0] + '</span><span data-no-tr title="' + esc(r[1] || '') + '">' + esc(r[1] || '—') + '</span></div>'; }).join('');
+}
+
+/* ---------------- orologio dell'ora di casa ---------------- */
+function orologio() {
+    var d = new Date(Date.now() + scartoOra);
+    var z = function (n) { return (n < 10 ? '0' : '') + n; };
+    $('ora-casa').textContent = z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds());
+    try { $('data-casa').textContent = d.toLocaleDateString(document.documentElement.lang || 'it', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) {}
+}
+setInterval(function () { if (S && S.ora_casa) orologio(); }, 1000);
+
+/* ---------------- rete ---------------- */
+function schedeDisponibili() {
+    var l = (S && S.schede) ? S.schede.slice() : [];
+    // sul Raspberry ci sono sempre eth0 e wlan0: se non si leggono, si offrono lo stesso
+    if (!l.length || !S.nmcli) {
+        if (!l.some(function (s) { return s.nome === 'eth0'; })) l.push({ nome: 'eth0', tipo: 'ethernet', collegata: false, ip: '', prefisso: 24, gateway: '', dns: [], metodo: '' });
+        if (!l.some(function (s) { return s.nome === 'wlan0'; })) l.push({ nome: 'wlan0', tipo: 'wifi', collegata: false, ip: '', prefisso: 24, gateway: '', dns: [], metodo: '' });
+    }
+    return l;
+}
+function scheda(nome) { return schedeDisponibili().filter(function (s) { return s.nome === nome; })[0] || null; }
+function riempiRete() {
+    var l = schedeDisponibili();
+    if (!schedaScelta || !scheda(schedaScelta)) schedaScelta = (S && S.principale && scheda(S.principale)) ? S.principale : (l[0] ? l[0].nome : 'eth0');
+    $('schede-seg').innerHTML = l.map(function (s) {
+        var ico = s.tipo === 'wifi'
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 18h.01M10 18h.01"/><path d="M12 14V6a2 2 0 0 1 2-2h6"/></svg>';
+        return '<button type="button" class="' + (s.nome === schedaScelta ? 'on' : '') + '" onclick="sceltaScheda(\'' + esc(s.nome) + '\')">' + ico + '<span data-no-tr>' + esc(s.nome || '?') + '</span><span class="dot ' + (s.collegata ? 'ok' : '') + '"></span></button>';
+    }).join('');
+    var s = scheda(schedaScelta) || {};
+    $('scheda-aiuto').textContent = s.collegata ? ((s.tipo === 'wifi' ? 'Wi-Fi' : 'Cavo') + ' collegato · ' + (s.ip || '') + (s.ssid ? ' · ' + s.ssid : '')) : 'Scheda non collegata';
+    modoScelto = s.metodo === 'manual' ? 'manual' : 'auto';
+    $('ip_address').value = s.ip || '';
+    $('gateway').value = s.gateway || '';
+    $('dns').value = (s.dns || []).join(', ');
+    var pref = String(s.prefisso || 24);
+    if (![].some.call($('ip_prefix').options, function (o) { return o.value === pref; })) { var o = document.createElement('option'); o.value = pref; o.textContent = '/' + pref; $('ip_prefix').appendChild(o); }
+    $('ip_prefix').value = pref;
+    aggiornaModo();
+    origRete = leggiRete();
+    sporco.rete = false; $('btn-salva-rete').disabled = true; $('rete-nota').textContent = '';
+    validaRete();
+}
+function leggiRete() {
+    return { hostname: $('hostname').value.trim(), scheda: schedaScelta, modo: modoScelto, ip: $('ip_address').value.trim(), prefisso: $('ip_prefix').value, gw: $('gateway').value.trim(), dns: $('dns').value.trim() };
+}
+function sceltaScheda(nome) {
+    if (nome === schedaScelta) return;
+    var h = $('hostname').value;
+    schedaScelta = nome; sporco.rete = false; riempiRete();
+    $('hostname').value = h;
+    if (h.trim() !== (S && S.hostname || '')) segnaModifica('rete');
+}
+function sceltaModo(m) { modoScelto = m; aggiornaModo(); segnaModifica('rete'); validaRete(); }
+function aggiornaModo() {
+    document.querySelectorAll('#modo-seg button').forEach(function (b) { b.classList.toggle('on', b.dataset.modo === modoScelto); });
+    $('ip-manuale').classList.toggle('hidden', modoScelto !== 'manual');
+    $('ip-auto').classList.toggle('hidden', modoScelto !== 'auto');
+    var s = scheda(schedaScelta) || {};
+    $('modo-aiuto').textContent = s.metodo === 'manual' ? 'Adesso: indirizzo fisso.' : s.metodo === 'auto' ? 'Adesso: assegnato dal router.' : '';
+}
+function segnaModifica(sez) {
+    sporco[sez] = true;
+    if (sez === 'rete') { $('btn-salva-rete').disabled = false; $('rete-nota').textContent = 'Modifiche non ancora applicate'; }
+    if (sez === 'posizione') { $('btn-salva-posizione').disabled = false; }
+}
+function campoErrore(id, aiutoId, errore, testoBase) {
+    $(id).classList.toggle('errato', !!errore);
+    var a = $(aiutoId);
+    a.classList.toggle('errore', !!errore);
+    if (errore) a.textContent = errore; else if (testoBase != null) a.textContent = testoBase;
+}
+function validaRete() {
+    var ok = true;
+    var hn = $('hostname').value.trim();
+    var eh = hn && !hostOk(hn) ? 'Nome non valido: solo lettere, numeri e trattini.' : '';
+    $('hostname').classList.toggle('errato', !!eh);
+    if (eh) ok = false;
+    if (modoScelto === 'manual') {
+        var ip = $('ip_address').value.trim(), gw = $('gateway').value.trim(), dns = $('dns').value.trim();
+        var e1 = !ip ? '' : ipOk(ip) ? '' : 'Indirizzo non valido (es. 192.168.1.50).';
+        var e2 = !gw ? '' : ipOk(gw) ? '' : 'Gateway non valido (es. 192.168.1.1).';
+        var e3 = '';
+        dns.split(/[,;\s]+/).forEach(function (d) { if (d && !ipOk(d)) e3 = 'DNS non valido: ' + d; });
+        campoErrore('ip_address', 'ip-aiuto', e1, 'Scegli un indirizzo fuori dall\'intervallo che il router assegna da solo.');
+        campoErrore('gateway', 'gw-aiuto', e2, 'Di solito l\'indirizzo del router.');
+        campoErrore('dns', 'dns-aiuto', e3, 'Uno o più indirizzi separati da virgola. Vuoto: 8.8.8.8.');
+        if (e1 || e2 || e3 || !ip || !gw) ok = false;
+    }
+    if (sporco.rete) $('btn-salva-rete').disabled = !ok;
+    return ok;
+}
+function annullaRete() {
+    if (origRete) { $('hostname').value = origRete.hostname; }
+    sporco.rete = false; riempiRete();
+}
+async function salvaRete() {
+    if (!validaRete()) { toast('Controlla i campi evidenziati.'); return; }
+    var v = leggiRete();
+    var s = scheda(schedaScelta) || {};
+    var cambiaHost = v.hostname && v.hostname !== (S && S.hostname);
+    var cambiaIp = v.modo === 'manual' ? (s.metodo !== 'manual' || v.ip !== (s.ip || '') || v.gw !== (s.gateway || '') || v.prefisso !== String(s.prefisso || 24) || v.dns.replace(/\s/g, '') !== (s.dns || []).join(','))
+                                       : (s.metodo !== 'auto');
+    if (!cambiaHost && !cambiaIp) { toast('Niente da applicare: i valori sono già quelli attuali.'); sporco.rete = false; $('btn-salva-rete').disabled = true; $('rete-nota').textContent = ''; return; }
+    if (cambiaIp) {
+        var testo = v.modo === 'manual'
+            ? 'Il server passerà all\'indirizzo fisso ' + v.ip + ' sulla scheda ' + v.scheda + '. La connessione con questa pagina cadrà: la pagina proverà da sola a raggiungere il nuovo indirizzo.'
+            : 'Il server chiederà un indirizzo al router (DHCP) sulla scheda ' + v.scheda + '. L\'indirizzo attuale potrebbe cambiare e la connessione con questa pagina cadrà.';
+        if (!await chiedi(testo, { titolo: 'Cambiare l\'indirizzo di rete?', si: 'Applica', icona: 'alert-triangle', pericolo: true })) return;
+    }
+    var campi = { interface: v.scheda };
+    if (cambiaHost) campi.hostname = v.hostname;
+    if (cambiaIp) {
+        campi.ip_mode = v.modo;
+        if (v.modo === 'manual') { campi.ip_address = v.ip; campi.ip_prefix = v.prefisso; campi.gateway = v.gw; campi.dns = v.dns; }
+    }
+    var r = await invia(campi, $('btn-salva-rete'));
+    if (!r) return;
+    if (r.riavvio_rete) {
+        attesaRete(r.nuovo_indirizzo ? location.protocol + '//' + r.nuovo_indirizzo + (location.port ? ':' + location.port : '') : '', r.hostname);
+    } else {
+        toast('Nome del server aggiornato.');
+        sporco.rete = false; $('btn-salva-rete').disabled = true; $('rete-nota').textContent = '';
+        if (S) S.hostname = r.hostname || v.hostname;
+        caricaStato();
+    }
+}
+
+/* ---------------- wi-fi ---------------- */
+function wifiAggiorna() {
+    var w = (S && S.wifi) || {};
+    var presente = w.presente || schedeDisponibili().some(function (s) { return s.tipo === 'wifi' && s.collegata; });
+    $('wifi-assente').classList.toggle('hidden', presente || !S || !S.nmcli);
+    $('wifi-spento').classList.toggle('hidden', w.radio !== false);
+    $('btn-wifi-accendi').classList.toggle('hidden', w.radio !== false);
+    $('btn-wifi-scan').disabled = w.radio === false;
+    $('wifi-sotto').textContent = w.radio === false ? 'Antenna spenta' : w.ssid ? 'Collegato a ' + w.ssid + (w.segnale != null ? ' · segnale ' + w.segnale + '%' : '') : presente ? 'Non collegato a nessuna rete' : 'Nessuna scheda Wi-Fi';
+}
+function iconaCerca() { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>'; }
+async function wifiScansiona() {
+    var btn = $('btn-wifi-scan');
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="gira" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg><span>Ricerca…</span>';
+    $('wifi-lista').innerHTML = '<div class="vuoto">Ricerca delle reti in corso…</div>';
+    try {
+        var r = await fetch('/api/wifi_scan', { cache: 'no-store' });
+        var d = await r.json();
+        if (d.status === 'success') {
+            $('wifi-spento').classList.add('hidden'); $('btn-wifi-accendi').classList.add('hidden');
+            if (!d.networks.length) { $('wifi-lista').innerHTML = '<div class="vuoto">Nessuna rete trovata.</div>'; }
+            else {
+                $('wifi-lista').innerHTML = d.networks.map(function (n) {
+                    return '<div class="wifi-riga' + (wifiScelto && wifiScelto.ssid === n.ssid ? ' scelta' : '') + '" data-ssid="' + esc(n.ssid) + '" data-secured="' + (n.secured ? 1 : 0) + '" onclick="wifiScegli(this)">'
+                        + barre(n.signal) + '<span class="nome" data-no-tr>' + esc(n.ssid) + '</span>'
+                        + (n.active ? '<span class="tag">Collegato</span>' : '')
+                        + (n.secured ? '<span class="lucchetto" title="Rete protetta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>' : '')
+                        + '<span class="pct">' + n.signal + '%</span></div>';
+                }).join('');
+            }
+        } else if ((d.message || '').toLowerCase().indexOf('disabled') >= 0) {
+            $('wifi-spento').classList.remove('hidden'); $('btn-wifi-accendi').classList.remove('hidden');
+            $('wifi-lista').innerHTML = '<div class="vuoto">Accendi il Wi-Fi per cercare le reti.</div>';
+        } else {
+            $('wifi-lista').innerHTML = '<div class="vuoto">' + esc(d.message || 'Ricerca non riuscita.') + '</div>';
+        }
+    } catch (e) {
+        $('wifi-lista').innerHTML = '<div class="vuoto">Il server non ha risposto.</div>';
+    }
+    btn.disabled = false;
+    btn.innerHTML = iconaCerca() + '<span>Cerca reti</span>';
+}
+function wifiScegli(el) {
+    wifiScelto = { ssid: el.dataset.ssid, secured: el.dataset.secured === '1' };
+    document.querySelectorAll('.wifi-riga').forEach(function (r) { r.classList.toggle('scelta', r === el); });
+    $('wifi-connetti').classList.remove('hidden');
+    $('wifi-ssid').value = wifiScelto.ssid;
+    $('wifi-password').value = '';
+    $('wifi-password').placeholder = wifiScelto.secured ? 'Password della rete' : 'Rete aperta: nessuna password';
+    $('btn-wifi-connetti').disabled = false;
+    if (wifiScelto.secured) setTimeout(function () { $('wifi-password').focus(); }, 50);
+}
+async function wifiConnetti() {
+    if (!wifiScelto) return;
+    var pw = $('wifi-password').value;
+    if (wifiScelto.secured && !pw) { toast('Inserisci la password della rete.'); $('wifi-password').focus(); return; }
+    if (!await chiedi('Il server si collegherà alla rete «' + wifiScelto.ssid + '». Se oggi lo raggiungi via cavo non cambia nulla; se lo raggiungi via Wi-Fi la connessione con questa pagina cadrà.', { titolo: 'Collegarsi a questa rete?', si: 'Connetti', icona: 'info' })) return;
+    var r = await invia({ interface: 'wlan0', wifi_ssid: wifiScelto.ssid, wifi_password: pw }, $('btn-wifi-connetti'));
+    if (!r) return;
+    attesaRete('', r.hostname, true);
+}
+async function wifiAccendi() {
+    var pw = await chiediPassword('Per accendere l\'antenna Wi-Fi serve la password dell\'amministratore.');
+    if (pw == null) return;
+    var btn = $('btn-wifi-accendi'); btn.disabled = true;
+    try {
+        var r = await fetch('/api/wifi_enable', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ os_password: pw }) });
+        var d = await r.json();
+        if (d.status === 'success') { toast('Wi-Fi acceso.'); $('wifi-spento').classList.add('hidden'); btn.classList.add('hidden'); $('btn-wifi-scan').disabled = false; caricaStato(); wifiScansiona(); }
+        else { if (r.status === 403) pwAdmin = ''; avvisa(d.message || 'Errore', { titolo: 'Errore', icona: 'alert-circle' }); }
+    } catch (e) { avvisa('Il server non ha risposto.', { titolo: 'Errore', icona: 'alert-circle' }); }
+    btn.disabled = false;
+}
+function mostraPassword(id, btn) {
+    var i = $(id); i.type = i.type === 'password' ? 'text' : 'password';
+    btn.style.color = i.type === 'text' ? 'var(--primary)' : '';
+}
+
+/* ---------------- posizione ---------------- */
+async function cercaLuogo() {
+    var q = $('cerca-luogo').value.trim(), esito = $('luogo-esito'), lista = $('luoghi');
+    if (!q) { esito.textContent = 'Scrivi il nome di una città o un indirizzo.'; return; }
+    var btn = $('btn-cerca-luogo'); btn.disabled = true; esito.textContent = 'Ricerca in corso…'; lista.innerHTML = '';
+    try {
+        var r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(q), { headers: { 'Accept': 'application/json' } });
+        var d = await r.json();
+        if (!d || !d.length) { esito.textContent = 'Nessun risultato: prova con un nome più generico.'; }
+        else {
+            esito.textContent = 'Scegli il risultato giusto:';
+            lista.innerHTML = d.map(function (p, i) {
+                return '<div class="luogo" onclick="scegliLuogo(' + i + ')" data-no-tr>' + esc(p.display_name) + '<small>' + (+p.lat).toFixed(4) + ', ' + (+p.lon).toFixed(4) + '</small></div>';
+            }).join('');
+            cercaLuogo._ris = d;
+        }
+    } catch (e) { esito.textContent = 'Ricerca non riuscita: serve internet per cercare i luoghi.'; }
+    btn.disabled = false;
+}
+function scegliLuogo(i) {
+    var p = (cercaLuogo._ris || [])[i]; if (!p) return;
+    $('lat').value = (+p.lat).toFixed(5); $('lon').value = (+p.lon).toFixed(5);
+    if (!$('location_name').value.trim()) $('location_name').value = p.display_name.split(',')[0];
+    $('luogo-esito').textContent = 'Scelto: ' + p.display_name;
+    $('luoghi').innerHTML = '';
+    segnaModifica('posizione'); validaPosizione();
+}
+function validaPosizione() {
+    var la = parseFloat($('lat').value), lo = parseFloat($('lon').value);
+    var e = (isNaN(la) || la < -90 || la > 90 || isNaN(lo) || lo < -180 || lo > 180) ? 'Coordinate non valide: latitudine fra -90 e 90, longitudine fra -180 e 180.' : '';
+    $('lat').classList.toggle('errato', !!e); $('lon').classList.toggle('errato', !!e);
+    campoErrore('lon', 'coord-aiuto', e, 'Le coordinate le compila la ricerca; puoi anche scriverle a mano.');
+    if (sporco.posizione) $('btn-salva-posizione').disabled = !!e;
+    return !e;
+}
+function annullaPosizione() {
+    $('location_name').value = {{ (current_loc_name or '')|tojson }};
+    $('lat').value = {{ current_lat|tojson }};
+    $('lon').value = {{ current_lon|tojson }};
+    $('luoghi').innerHTML = ''; $('luogo-esito').textContent = '';
+    sporco.posizione = false; $('btn-salva-posizione').disabled = true; validaPosizione();
+}
+async function salvaPosizione() {
+    if (!validaPosizione()) return;
+    var r = await invia({ location_name: $('location_name').value.trim(), lat: $('lat').value, lon: $('lon').value }, $('btn-salva-posizione'));
+    if (!r) return;
+    toast('Posizione salvata: meteo e ora seguono il nuovo luogo.');
+    sporco.posizione = false; $('btn-salva-posizione').disabled = true;
+    setTimeout(caricaStato, 1500);    // il fuso arriva subito se c'e' internet
+}
+
+/* ---------------- accessi bloccati ---------------- */
+function iplTime(sec) {
+    var m = Math.floor(sec / 60), s = sec % 60;
+    if (m > 0) return m + ' min ' + (s < 10 ? '0' : '') + s + ' s';
+    return s + ' secondi';
+}
+function iplAvvia() { iplFerma(); iplRefresh(); iplTimer = setInterval(iplRefresh, 10000); }
+function iplFerma() { if (iplTimer) { clearInterval(iplTimer); iplTimer = null; } }
+async function iplRefresh() {
+    var list = $('ipl-list');
+    try {
+        var res = await fetch('/api/ip_lockouts', { cache: 'no-store' });
+        var d = await res.json();
+        $('ipl-note').textContent = 'Il tuo indirizzo: ' + d.your_ip;
+        $('tuo-ip').textContent = d.your_ip || '—';
+        if (!d.entries.length) {
+            list.innerHTML = '<div class="vuoto">Nessun blocco attivo: tutti gli indirizzi possono accedere normalmente.</div>';
+            return;
+        }
+        list.innerHTML = d.entries.map(function (e) {
+            var isSelf = e.ip === d.your_ip;
+            var stato = e.blocked ? '<b>Bloccato ancora per ' + iplTime(e.seconds_left) + '</b>' : e.attempts + ' tentativi falliti — al prossimo scatta il blocco';
+            var chi = e.last_username ? ' · username provato: "' + esc(e.last_username) + '"' : '';
+            var quando = e.last_attempt ? ' · ' + e.last_attempt : '';
+            var icona = e.blocked
+                ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>';
+            return '<div class="ipl-row' + (e.blocked ? ' blocked' : '') + (isSelf ? ' self' : '') + '">'
+                 + '<div class="ipl-badge">' + icona + '</div>'
+                 + '<div class="ipl-info"><div class="ipl-ip" data-no-tr>' + esc(e.ip) + (isSelf ? '<span class="ipl-tag">Tu</span>' : '') + '</div>'
+                 + '<div class="ipl-meta">' + stato + chi + quando + '</div></div>'
+                 + '<button type="button" class="btn btn-grigio btn-piccolo" onclick="iplUnlock(\'' + esc(e.ip) + '\')">Sblocca</button>'
+                 + '</div>';
+        }).join('');
+    } catch (err) {
+        list.innerHTML = '<div class="vuoto">Impossibile leggere lo stato dei blocchi.</div>';
+    }
+}
+async function iplUnlock(ip, all) {
+    if (all && !await chiedi('Rimuovere TUTTI i blocchi e azzerare i tentativi falliti?', { titolo: 'Rimuovi blocchi', si: 'Rimuovi', pericolo: true })) return;
+    try {
+        var res = await fetch('/api/ip_lockouts', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(all ? { all: true } : { ip: ip }) });
+        var d = await res.json();
+        if (!res.ok) avvisa(d.message || 'Errore', { titolo: 'Errore', icona: 'alert-circle' }); else toast(d.message || 'Fatto.');
+        iplRefresh();
+    } catch (e) { avvisa('Errore di rete', { titolo: 'Errore', icona: 'alert-circle' }); }
+}
+
+/* ---------------- sistema ---------------- */
+async function azioneSistema(az) {
+    var testi = {
+        service: ['Riavviare l\'app Wach0ss?', 'L\'app si ferma e riparte in pochi secondi. Le automazioni e le registrazioni riprendono da sole.', 'Riavvia', false],
+        reboot: ['Riavviare il server?', 'Il Raspberry si riavvia per intero: l\'app torna raggiungibile in circa un minuto.', 'Riavvia', true],
+        poweroff: ['Spegnere il server?', 'Il server si spegne in modo sicuro. Per riaccenderlo dovrai togliere e ridare corrente.', 'Spegni', true]
+    }[az];
+    if (!testi) return;
+    if (!await chiedi(testi[1], { titolo: testi[0], si: testi[2], icona: 'power', pericolo: testi[3] })) return;
+    try {
+        var r = await fetch('/api/system_action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: az }) });
+        var d = await r.json();
+        if (!r.ok || d.status !== 'success') { avvisa(d.message || 'Comando non eseguito.', { titolo: 'Errore', icona: 'alert-circle' }); return; }
+        if (az === 'poweroff') {
+            $('attesa-titolo').textContent = 'Spegnimento in corso';
+            $('attesa-testo').textContent = 'Il server si sta spegnendo. Puoi chiudere questa pagina.';
+            $('attesa-sotto').textContent = '';
+            $('velo-attesa').classList.add('on');
+            return;
+        }
+        attesaRitorno(az === 'reboot' ? 'Riavvio del server in corso' : 'Riavvio dell\'app in corso', az === 'reboot' ? 'Ci vuole circa un minuto. La pagina si ricarica da sola appena il server risponde.' : 'Pochi secondi. La pagina si ricarica da sola appena l\'app risponde.');
+    } catch (e) { avvisa('Il server non ha risposto.', { titolo: 'Errore', icona: 'alert-circle' }); }
+}
+function attesaRitorno(titolo, testo) {
+    $('attesa-titolo').textContent = titolo; $('attesa-testo').textContent = testo; $('attesa-sotto').textContent = '';
+    $('attesa-link').classList.add('hidden');
+    $('velo-attesa').classList.add('on');
+    clearInterval(statoTimer);
+    var da = Date.now();
+    setTimeout(function prova() {
+        fetch('/api/impostazioni/stato', { cache: 'no-store' }).then(function (r) { if (r.ok) location.reload(); else setTimeout(prova, 3000); }).catch(function () { setTimeout(prova, 3000); });
+        $('attesa-sotto').textContent = 'In attesa da ' + Math.round((Date.now() - da) / 1000) + ' s…';
+    }, 5000);
+}
+
+/* ---------------- rete che cambia: attesa e salto al nuovo indirizzo ---------------- */
+function attesaRete(nuovoUrl, hostname, wifi) {
+    clearInterval(statoTimer);
+    $('attesa-titolo').textContent = wifi ? 'Connessione alla rete Wi-Fi…' : 'Applicazione delle impostazioni di rete…';
+    $('attesa-testo').textContent = nuovoUrl
+        ? 'Il server sta passando al nuovo indirizzo. Appena risponde, la pagina ti ci porta da sola.'
+        : 'Il server sta ottenendo l\'indirizzo dal router. Se questa pagina non si ricollega da sola, cercalo nell\'elenco dei dispositivi del router' + (hostname ? ' con il nome «' + hostname + '»' : '') + '.';
+    var link = $('attesa-link');
+    if (nuovoUrl) { link.href = nuovoUrl; link.textContent = nuovoUrl; link.classList.remove('hidden'); } else link.classList.add('hidden');
+    $('attesa-sotto').textContent = '';
+    $('velo-attesa').classList.add('on');
+    var da = Date.now();
+    var candidati = [];
+    if (nuovoUrl) candidati.push(nuovoUrl);
+    candidati.push(location.protocol + '//' + location.host);
+    if (hostname) candidati.push(location.protocol + '//' + hostname + '.local' + (location.port ? ':' + location.port : ''));
+    function prova() {
+        var trovato = false;
+        Promise.all(candidati.map(function (u) {
+            return fetch(u + '/login', { mode: 'no-cors', cache: 'no-store' }).then(function () { if (!trovato) { trovato = true; location.href = u + '/server_settings#rete'; } }).catch(function () {});
+        })).then(function () { if (!trovato) setTimeout(prova, 3000); });
+        $('attesa-sotto').textContent = 'In attesa da ' + Math.round((Date.now() - da) / 1000) + ' s… Se passa più di un minuto, prova ad aprire l\'indirizzo a mano.';
+    }
+    setTimeout(prova, 6000);
+}
+
+/* ---------------- password amministratore e invio ---------------- */
+var passwordRisolvi = null;
+function chiediPassword(testo) {
+    if (pwAdmin) return Promise.resolve(pwAdmin);
+    $('velo-password-testo').textContent = testo || 'Inserisci la password dell\'amministratore di Wach0ss (quella con cui accedi) per applicare la modifica.';
+    $('password-admin').value = '';
+    $('velo-password').classList.add('on');
+    setTimeout(function () { $('password-admin').focus(); }, 120);
+    return new Promise(function (ris) { passwordRisolvi = ris; });
+}
+function passwordOk() {
+    var v = $('password-admin').value;
+    if (!v) { $('password-admin').focus(); return; }
+    $('velo-password').classList.remove('on');
+    var r = passwordRisolvi; passwordRisolvi = null; if (r) r(v);
+}
+function passwordAnnulla() {
+    $('velo-password').classList.remove('on');
+    var r = passwordRisolvi; passwordRisolvi = null; if (r) r(null);
+}
+async function invia(campi, btn) {
+    // manda i campi a /server_settings con la password admin; riprova a chiederla se il server la rifiuta
+    for (var tent = 0; tent < 2; tent++) {
+        var pw = await chiediPassword();
+        if (pw == null) return null;
+        var fd = new FormData();
+        fd.append('os_password', pw);
+        Object.keys(campi).forEach(function (k) { fd.append(k, campi[k]); });
+        var vecchio = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<svg class="gira" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg><span>Applico…</span>'; }
+        try {
+            var r = await fetch('/server_settings', { method: 'POST', body: fd });
+            var d = await r.json();
+            if (btn) { btn.disabled = false; btn.innerHTML = vecchio; }
+            if (r.status === 403 && /password/i.test(d.message || '')) {
+                pwAdmin = '';
+                await avvisa('Password amministratore errata.', { titolo: 'Password', icona: 'alert-circle' });
+                continue;
+            }
+            if (d.status !== 'success') { avvisa(d.message || 'Errore', { titolo: 'Errore', icona: 'alert-circle' }); return null; }
+            pwAdmin = pw;
+            return d;
+        } catch (e) {
+            if (btn) { btn.disabled = false; btn.innerHTML = vecchio; }
+            // se il server ha cambiato rete la risposta non arriva: si passa all'attesa
+            if (campi.ip_mode || campi.wifi_ssid) return { status: 'success', riavvio_rete: true, nuovo_indirizzo: campi.ip_address || '', hostname: campi.hostname || (S && S.hostname) || '' };
+            avvisa('La connessione con il server si è interrotta.', { titolo: 'Connessione interrotta', icona: 'alert-triangle' });
+            return null;
+        }
+    }
+    return null;
+}
+
+/* ---------------- avvio ---------------- */
+mostraStato();
+riempiRete();
+validaPosizione();
+caricaStato();
+statoTimer = setInterval(caricaStato, 15000);
+(function () {
+    var h = (location.hash || '').replace('#', '');
+    if (h && $('sez-' + h)) vaiA(h, true);
+})();
+window.addEventListener('beforeunload', function (e) {
+    if ((sporco.rete && !$('btn-salva-rete').disabled) || (sporco.posizione && !$('btn-salva-posizione').disabled)) { e.preventDefault(); e.returnValue = ''; }
+});
+</script>
+</body>
+</html>
