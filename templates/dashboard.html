@@ -122,7 +122,7 @@
             .header-setup { margin-bottom: 14px; }
             .header-nav { gap: 6px; }
             .header-nav .btn-launch { padding: 6px 9px; font-size: 0.77rem; }
-            .header-nav .btn-launch svg { width: 15px; height: 15px; margin-right: 5px !important; }
+            .header-nav .btn-launch svg { margin-right: 5px !important; }   /* !important: lucide copia lo style inline dell'<i> sull'svg */
         }
         @media (max-width: 800px) {   /* iPad da 9,7"/10,2" in verticale (768px): la barra sta ancora su una riga */
             .header-nav { gap: 5px; }
@@ -548,14 +548,15 @@
             #upload-3d-zone > div { grid-template-columns: 1fr !important; gap: 14px !important; }
         }
         @media (max-width: 900px) {
-            .panel-left { flex: 0 0 258px; }
+            .panel-left { flex: 0 0 270px; }
             .panel-header h3 { font-size: 0.88rem; }
             .hk-card-source { padding: 9px 12px; gap: 10px; }
-            .hk-card-source .entity-badge { display: none; }   /* la sigla della sorgente (HA, KNX...) ruba spazio al nome */
+            .panel-left .hk-tapp button { width: 24px; }        /* i tre tasti della tapparella lasciano spazio al nome (selettore piu' forte: la regola base sta piu' in basso) */
             .grid-hk-target { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 10px; }
             .dashboard-droptarget .hk-card-source { padding: 12px; }
             .btn-launch.btn-3d-feature { padding: 7px 9px; font-size: 0.78rem; }
-            #amb-righe .tab { font-size: 0.8rem; }
+            #room-tabs .tab { font-size: 0.8rem; }
+            .v3d-hint { max-width: calc(100% - 240px); }        /* non finisce sotto i tasti Vista/Modifica del visore 3D */
         }
 
         /* --- Prova dalla libreria: accende/spegne senza assegnare nulla (stessa API /api/toggle dell'app) --- */
@@ -1070,9 +1071,9 @@
             position: fixed; inset: 0; z-index: 3000000;
             background: rgba(20,22,28,0.34);
             backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
-            opacity: 0; pointer-events: none; transition: opacity 0.28s ease;
+            opacity: 0; pointer-events: none; visibility: hidden; transition: opacity 0.28s ease, visibility 0s linear 0.28s;   /* come .modal-overlay (iPad) */
         }
-        .ut-velo.aperto { opacity: 1; pointer-events: all; }
+        .ut-velo.aperto { opacity: 1; pointer-events: all; visibility: inherit; transition: opacity 0.28s ease, visibility 0s; }
         .ut-pannello {
             position: fixed; top: 0; right: 0; bottom: 0; z-index: 3000001;
             width: 420px; max-width: 100vw; background: var(--bg-page);
@@ -1481,7 +1482,7 @@
             </div>
             {% endif %}
             <div class="header-primari">
-            <a href="{{ url_for('mobile') }}" class="btn-launch btn-primary" target="_blank">
+            <a href="{{ url_for('mobile') }}" id="btn-app-mobile" class="btn-launch btn-primary" target="_blank" onclick="apriAppMobile(this)">
                 <i data-lucide="smartphone" style="width:16px; height:16px; margin-right:6px;"></i> App Mobile
             </a>
             <a href="{{ url_for('logout') }}" class="btn-launch btn-danger btn-icon-only" title="Logout">
@@ -2857,9 +2858,10 @@
         #editor-modal {
             background: radial-gradient(1200px 700px at 70% -10%, rgba(10,132,255,0.08), transparent 60%), #0B0B0F !important;
             transform: translateY(36px) scale(0.96);
-            transition: opacity 0.45s cubic-bezier(0.32, 0.72, 0, 1), transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+            /* la visibility segue la dissolvenza come in .page-takeover (questa regola per id la sovrascrive) */
+            transition: opacity 0.45s cubic-bezier(0.32, 0.72, 0, 1), transform 0.45s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear 0.45s;
         }
-        #editor-modal.active { transform: translateY(0) scale(1); }
+        #editor-modal.active { transform: translateY(0) scale(1); transition: opacity 0.45s cubic-bezier(0.32, 0.72, 0, 1), transform 0.45s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s; }
         #editor-iframe { opacity: 0; transform: scale(0.985); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.32, 0.72, 0, 1); }
         #editor-iframe.ready { opacity: 1 !important; transform: scale(1); }
     </style>
@@ -4807,6 +4809,21 @@ function animate() {
                 }
             }, 1000);
         }
+
+        // Tasto "App Mobile": sul computer apre l'app in una scheda nuova (come sempre); su iPad e tablet
+        // (schermo piccolo o tocco) la apre nella stessa scheda, come si aspetta chi usa il dito.
+        // L'attributo target viene sistemato gia' al caricamento e a ogni ridimensionamento (non solo
+        // al click): cosi' e' giusto qualunque sia l'ordine degli eventi del tocco.
+        function apriAppMobile(a) {
+            const tablet = window.matchMedia('(max-width: 1100px), (pointer: coarse)').matches;
+            if (tablet) a.removeAttribute('target'); else a.setAttribute('target', '_blank');
+        }
+        (function () {
+            const a = document.getElementById('btn-app-mobile');
+            if (!a) return;
+            apriAppMobile(a);
+            window.addEventListener('resize', () => apriAppMobile(a));
+        })();
 
         document.addEventListener('click', (e) => {
             const card = e.target.closest('.hk-card-source');

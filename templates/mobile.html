@@ -7421,8 +7421,8 @@ window.addEventListener('load', syncAlarmStatus);
 // --- CONTROLLO ACCESSO CONFIGURAZIONE DA MOBILE ---
 function checkDesktopConfig(event) {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    // Usa 1024px perché è il breakpoint del tuo layout desktop nel CSS
-    const isSmallScreen = window.innerWidth < 1024; 
+    // Sotto 700 px la dashboard rimanda comunque a /mobile; da 700 in su (iPad anche in verticale) funziona
+    const isSmallScreen = window.innerWidth < 700;
 
     if (isMobile || isSmallScreen) {
         event.preventDefault(); // Blocca l'apertura del link
@@ -7832,8 +7832,12 @@ function initSwipeAndExplode() {
             if (rafId) cancelAnimationFrame(rafId);
             
             if (currentY > 130) {
-                // SOGLIA SUPERATA: chiude la card
-                closeAllModals(); 
+                // SOGLIA SUPERATA: chiude la card. Poi si tolgono da QUESTO modale la posizione e la
+                // "transition: none" lasciate dal dito: cosi' scende con la sua animazione fino in fondo.
+                // (closeAllModals lo faceva sul primo .bottom-modal.active della pagina: con una card
+                // allargata quello e' il pannello ospitato nella card, e il modale trascinato restava a meta')
+                closeAllModals();
+                modal.style.transition = ''; modal.style.transform = ''; modal.style.willChange = ''; modal.style.opacity = '';
             } else {
                 // RIMBALZO FLUIDO AL POSTO ORIGINALE
                 modal.style.transition = 'transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)';
@@ -7859,15 +7863,15 @@ function initSwipeAndExplode() {
 // animazione. La card ora scende con la transizione che .bottom-modal ha gia' nel CSS.
 const _originalCloseModals = window.closeAllModals || function(){};
 window.closeAllModals = function() {
-    const activeModal = document.querySelector('.bottom-modal.active');
-    if (activeModal) {
-        // annulla cio' che lo scorrimento col dito ha lasciato sulla card,
-        // altrimenti resterebbe ferma dove l'ha lasciata il dito
+    // annulla cio' che lo scorrimento col dito ha lasciato sul modale, altrimenti resterebbe fermo dove
+    // l'ha lasciato il dito. TUTTI quelli aperti: con una card allargata il primo .bottom-modal.active
+    // e' il pannello ospitato nella card, e il modale vero trascinato restava a meta' schermo
+    document.querySelectorAll('.bottom-modal.active').forEach(activeModal => {
         activeModal.style.transition = '';
         activeModal.style.transform = '';
         activeModal.style.willChange = '';
         activeModal.style.opacity = '';
-    }
+    });
     _originalCloseModals();
 };
 
