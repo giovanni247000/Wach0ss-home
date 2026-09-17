@@ -505,7 +505,9 @@
         .amb-btn-danger:disabled { opacity: 0.6; cursor: wait; }
         /* --- Trascinamento su Safari e touch (iPad): niente selezione/menu a pressione lunga --- */
         .hk-card-source, #amb-righe .tab { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+        .touch-hint { display: none; font-size: 0.72rem; color: var(--text-muted); margin-top: 8px; line-height: 1.35; }
         @media (hover: none), (pointer: coarse) {
+            .touch-hint { display: block; }
             /* sui touch non c'è il passaggio del mouse: i tasti ✕ e ✎ delle card della stanza restano visibili */
             .dashboard-droptarget .hk-card-source .remove-btn, .dashboard-droptarget .hk-card-source .edit-icon-btn { opacity: 1; transform: scale(1); }
         }
@@ -1467,8 +1469,9 @@
                     <i data-lucide="search"></i>
                     <input type="text" id="entity-search" class="search-box" placeholder="Cerca dispositivo..." oninput="filterEntities()">
                 </div>
+                <div class="touch-hint">Col dito: trascina dall'icona del dispositivo, scorri toccando il resto</div>
             </div>
-            
+
             <div class="scroll-area">
                 <div class="entity-list-source" id="source-list">
                     <div class="hk-card-source" data-id="virtual_timer" data-domain="timer" data-original-name="Timer">
@@ -1869,7 +1872,7 @@
     </aside>
 
     
-    <div class="integration-card" data-key="backup" style="border-style: dashed; border-color: var(--accent);">
+    <div class="integration-card bk-card" data-key="backup">
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); bkAggiorna();">
             <div class="integration-title"><i data-lucide="database"></i> Backup & Ripristino Sistema</div>
             <div style="display:flex; align-items:center; gap:12px;">
@@ -1879,58 +1882,93 @@
         </div>
         <div class="integration-content">
             <style>
-                .bk-testa { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 10px 0 16px; }
-                .bk-testa p { margin: 0; font-size: 0.88rem; color: var(--text-muted); line-height: 1.45; flex: 1 1 260px; }
+                .bk-card { border-style: solid !important; }
+                /* --- riquadro in alto: stato dell'ultimo backup + azioni --- */
+                .bk-hero { display: flex; align-items: center; gap: 18px; padding: 18px 20px; border-radius: 16px; margin: 6px 0 18px;
+                           background: linear-gradient(135deg, #F3F8FF 0%, #FFFFFF 60%); border: 1px solid #DCE7F5; flex-wrap: wrap; }
+                .bk-hero-ico { width: 52px; height: 52px; border-radius: 15px; background: var(--accent-gradient); color: #FFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 8px 20px rgba(0,102,204,0.28); }
+                .bk-hero-ico svg { width: 25px; height: 25px; }
+                .bk-hero-testo { flex: 1 1 220px; min-width: 0; }
+                .bk-hero-testo .t { font-size: 1rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.2px; }
+                .bk-hero-testo .s { font-size: 0.82rem; color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+                .bk-hero-testo .s b { color: var(--text-main); font-weight: 700; }
                 .bk-azioni { display: flex; gap: 10px; flex-wrap: wrap; }
-                .bk-azioni .btn-launch { white-space: nowrap; }
-                .bk-prog { display: none; background: linear-gradient(180deg, #F7FAFF 0%, #F9F9FB 100%); border: 1px solid #DCE7F5; border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; }
-                .bk-prog.on { display: block; }
-                .bk-prog-testa { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; font-size: 0.88rem; font-weight: 700; color: var(--text-main); }
-                .bk-prog-testa .pct { font-variant-numeric: tabular-nums; color: var(--accent); }
-                .bk-barra { height: 9px; border-radius: 6px; background: #E5E5EA; overflow: hidden; }
-                .bk-barra i { display: block; height: 100%; width: 0; border-radius: 6px; background: var(--accent-gradient, var(--accent)); transition: width 0.4s ease; }
+                .bk-azioni .btn-launch { white-space: nowrap; padding: 10px 16px; font-weight: 700; }
+                .bk-azioni .btn-primary { box-shadow: 0 6px 16px rgba(0,102,204,0.28); }
+                /* --- avanzamento --- */
+                .bk-prog { display: none; border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; background: #F5F9FF; border: 1px solid #D6E4F7; }
+                .bk-prog.on { display: block; animation: bkEntra 0.25s ease; }
+                @keyframes bkEntra { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+                .bk-prog-testa { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; font-size: 0.88rem; font-weight: 700; color: var(--text-main); }
+                .bk-prog-testa .spin { width: 16px; height: 16px; border: 2px solid #C7DAF3; border-top-color: var(--accent); border-radius: 50%; animation: bkGira 0.8s linear infinite; flex-shrink: 0; }
+                @keyframes bkGira { to { transform: rotate(360deg); } }
+                .bk-prog-testa .pct { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--accent); font-size: 0.95rem; }
+                .bk-barra { height: 8px; border-radius: 6px; background: #E1E8F2; overflow: hidden; }
+                .bk-barra i { display: block; height: 100%; width: 0; border-radius: 6px; background: var(--accent-gradient); transition: width 0.35s ease; }
                 .bk-barra.indet i { width: 35%; animation: bkScorre 1.1s ease-in-out infinite; }
                 @keyframes bkScorre { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
-                .bk-prog-det { margin-top: 7px; font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                .bk-prog.ok { border-color: #C3E6CB; background: #F1FAF3; } .bk-prog.ok .bk-barra i { background: #28A745; }
-                .bk-prog.ko { border-color: #F5C6CB; background: #FFF3F3; } .bk-prog.ko .bk-barra i { background: var(--danger); }
+                .bk-prog-det { margin-top: 7px; font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .bk-prog.ok { background: #F1FAF3; border-color: #C3E6CB; } .bk-prog.ok .bk-barra i { background: var(--success); } .bk-prog.ok .spin { display: none; } .bk-prog.ok .pct { color: var(--success); }
+                .bk-prog.ko { background: #FFF3F3; border-color: #F5C6CB; } .bk-prog.ko .bk-barra i { background: var(--danger); } .bk-prog.ko .spin { display: none; } .bk-prog.ko .pct { color: var(--danger); }
+                /* --- elenco --- */
+                .bk-sez { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; }
+                .bk-sez h4 { margin: 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+                .bk-sez span { font-size: 0.76rem; color: var(--text-muted); }
                 .bk-lista { display: flex; flex-direction: column; gap: 8px; }
-                .bk-riga { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid #E5E5EA; border-radius: 14px; background: #FAFAFC; }
-                .bk-riga.ultimo { border-color: #BFD8F7; background: #F4F9FF; }
-                .bk-ico { width: 40px; height: 40px; border-radius: 11px; background: #E5F1FF; color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+                .bk-riga { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid #E5E5EA; border-radius: 14px; background: #FFFFFF; transition: border-color 0.15s, box-shadow 0.15s; }
+                .bk-riga:hover { border-color: #C7D6EA; box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
+                .bk-riga.ultimo { border-color: #BFD8F7; background: linear-gradient(90deg, #F4F9FF 0%, #FFFFFF 40%); }
+                .bk-ico { width: 42px; height: 42px; border-radius: 12px; background: #E5F1FF; color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
                 .bk-ico svg { width: 20px; height: 20px; }
                 .bk-riga.caricato .bk-ico { background: #FFF4E0; color: #B26A00; }
+                .bk-riga.rotto .bk-ico { background: #FFECEC; color: var(--danger); }
                 .bk-info { flex: 1; min-width: 0; }
                 .bk-nome { font-weight: 700; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-                .bk-tag { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; background: var(--accent); color: #FFF; }
-                .bk-tag.giallo { background: #FFE8B8; color: #8A6100; }
-                .bk-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                .bk-nome .data { font-variant-numeric: tabular-nums; }
+                .bk-tag { font-size: 0.6rem; font-weight: 800; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 8px; border-radius: 20px; background: var(--accent); color: #FFF; }
+                .bk-tag.grigio { background: #ECECF1; color: #5A5A60; } .bk-tag.giallo { background: #FFE8B8; color: #8A6100; } .bk-tag.rosso { background: #FFDCDC; color: var(--danger); }
+                .bk-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+                .bk-meta span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+                .bk-meta svg { width: 13px; height: 13px; opacity: 0.7; }
                 .bk-tasti { display: flex; gap: 6px; flex-shrink: 0; }
-                .bk-tasti button, .bk-tasti a { width: 36px; height: 36px; border-radius: 10px; border: 1px solid #E5E5EA; background: #FFFFFF; color: var(--text-main); display: flex; align-items: center; justify-content: center; cursor: pointer; text-decoration: none; transition: all 0.15s; }
-                .bk-tasti button svg, .bk-tasti a svg { width: 16px; height: 16px; }
-                .bk-tasti button:hover, .bk-tasti a:hover { border-color: var(--accent); color: var(--accent); }
+                .bk-tasti button, .bk-tasti a { height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid #E5E5EA; background: #FFFFFF; color: var(--text-main); display: inline-flex; align-items: center; gap: 7px; font-size: 0.8rem; font-weight: 700; cursor: pointer; text-decoration: none; transition: all 0.15s; font-family: inherit; }
+                .bk-tasti svg { width: 15px; height: 15px; }
+                .bk-tasti button:hover, .bk-tasti a:hover { border-color: var(--accent); color: var(--accent); background: #F5F9FF; }
                 .bk-tasti .rip { background: var(--accent); color: #FFF; border-color: var(--accent); }
                 .bk-tasti .rip:hover { background: #0052A3; color: #FFF; }
+                .bk-tasti .del { width: 36px; padding: 0; justify-content: center; }
                 .bk-tasti .del:hover { border-color: var(--danger); color: var(--danger); background: #FFF0F0; }
-                .bk-vuoto { text-align: center; padding: 26px 16px; color: var(--text-muted); font-size: 0.88rem; border: 1px dashed #D1D1D6; border-radius: 14px; }
-                .bk-pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; font-size: 0.78rem; color: var(--text-muted); flex-wrap: wrap; }
-                @media (max-width: 600px) { .bk-riga { flex-wrap: wrap; } .bk-tasti { width: 100%; justify-content: flex-end; } }
+                .bk-tasti button:disabled { opacity: 0.45; cursor: not-allowed; }
+                .bk-vuoto { text-align: center; padding: 30px 16px; color: var(--text-muted); font-size: 0.88rem; border: 1px dashed #D1D1D6; border-radius: 14px; background: #FAFAFC; }
+                .bk-vuoto svg { width: 30px; height: 30px; color: #C7C7CC; margin-bottom: 8px; }
+                .bk-pie { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 14px; font-size: 0.76rem; color: var(--text-muted); flex-wrap: wrap; }
+                .bk-pie .nota { display: inline-flex; align-items: center; gap: 6px; }
+                .bk-pie .nota svg { width: 13px; height: 13px; }
+                @media (max-width: 640px) { .bk-riga { flex-wrap: wrap; } .bk-tasti { width: 100%; justify-content: flex-end; } .bk-tasti button span, .bk-tasti a span { display: none; } .bk-tasti button, .bk-tasti a { width: 36px; padding: 0; justify-content: center; } }
             </style>
-            <div class="bk-testa">
-                <p>I backup si creano e restano <b>sul server</b>: da qui li scarichi sul computer, ne carichi uno e lo ripristini. Comprendono tutta la configurazione (stanze, dispositivi, automazioni, utenti, integrazioni, ordine delle card), le planimetrie e gli oggetti 3D, le immagini e i suoni.</p>
+            <div class="bk-hero">
+                <div class="bk-hero-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+                <div class="bk-hero-testo">
+                    <div class="t" id="bk-hero-titolo">Backup del sistema</div>
+                    <div class="s" id="bk-hero-sotto">Configurazione, planimetrie 3D, immagini e suoni: tutto in un archivio che resta sul server.</div>
+                </div>
                 <div class="bk-azioni">
-                    <button type="button" class="btn-launch btn-primary" id="bk-btn-crea" onclick="bkCrea()"><i data-lucide="database-backup" style="width:16px; margin-right:8px;"></i> Crea backup ora</button>
                     <input type="file" id="backup-file-input" accept=".zip,.json" style="display: none;" onchange="handleBackupImport(event)">
                     <button type="button" class="btn-launch btn-outline" id="bk-btn-carica" onclick="document.getElementById('backup-file-input').click()"><i data-lucide="upload" style="width:16px; margin-right:8px;"></i> Carica dal computer</button>
+                    <button type="button" class="btn-launch btn-primary" id="bk-btn-crea" onclick="bkCrea()"><i data-lucide="database-backup" style="width:16px; margin-right:8px;"></i> Crea backup ora</button>
                 </div>
             </div>
             <div class="bk-prog" id="bk-prog">
-                <div class="bk-prog-testa"><span id="bk-prog-fase">Preparazione…</span><span class="pct" id="bk-prog-pct">0%</span></div>
+                <div class="bk-prog-testa"><span class="spin"></span><span id="bk-prog-fase">Preparazione…</span><span class="pct" id="bk-prog-pct">0%</span></div>
                 <div class="bk-barra" id="bk-barra"><i id="bk-barra-fill"></i></div>
                 <div class="bk-prog-det" id="bk-prog-det"></div>
             </div>
+            <div class="bk-sez"><h4>Archivi sul server</h4><span id="bk-pie-info"></span></div>
             <div class="bk-lista" id="bk-lista"><div class="bk-vuoto">Lettura dei backup…</div></div>
-            <div class="bk-pie"><span id="bk-pie-info"></span><span id="bk-pie-spazio"></span></div>
+            <div class="bk-pie">
+                <span class="nota"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> Il ripristino sostituisce la configurazione attuale. Licenza e codice della console non entrano nel backup.</span>
+                <span id="bk-pie-spazio"></span>
+            </div>
         </div>
     </div>
 
@@ -5147,6 +5185,10 @@ async function deleteGroupEntity(groupId) {
             const touch = (navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
             const o = { forceFallback: true, delay: 150, delayOnTouchOnly: true, touchStartThreshold: 4, fallbackTolerance: touch ? 0 : 4 };
             if (tastiEsclusi) { o.filter = 'button'; o.preventOnFilter = false; }   // i tasti dentro le card restano cliccabili
+            // Col dito Sortable, mentre aspetta la pressione lunga, annulla ogni touchmove a livello di documento: il
+            // browser non puo' piu' far partire lo scorrimento e l'elenco resta fermo. Sui touch si trascina quindi
+            // SOLO dall'icona della card (l'attesa scatta solo li'); toccando il resto della card si scorre come sempre.
+            if (touch && tastiEsclusi) o.handle = '.hk-icon';
             return o;
         }
 
@@ -5391,33 +5433,52 @@ function bkTasti(bloccati) {
     document.querySelectorAll('#bk-lista .bk-tasti button').forEach(b => { b.disabled = !!bloccati; });
 }
 
+const BK_ICO = {
+    peso: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/></svg>',
+    db: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>',
+    file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+    ver: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/></svg>',
+    down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+    rip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+    del: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+    box: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>'
+};
+function bkHero(v) {
+    const t = document.getElementById('bk-hero-titolo'), s = document.getElementById('bk-hero-sotto'); if (!t || !s) return;
+    const ult = v.find(b => !b.caricato && b.valido);
+    if (!ult) { t.textContent = 'Nessun backup del sistema'; s.textContent = 'Crea il primo: configurazione, planimetrie 3D, immagini e suoni in un archivio che resta sul server.'; return; }
+    t.textContent = 'Ultimo backup: ' + ult.data;
+    s.innerHTML = '<b data-no-tr>' + bkEsc(ult.dimensione) + '</b>' + (ult.tabelle ? ' · <span>' + bkEsc(ult.tabelle + ' tabelle') + '</span>' : '') + (ult.file ? ' · <span>' + bkEsc(ult.file + ' file') + '</span>' : '') + ' · <span>si conservano gli ultimi 10 creati dal server</span>';
+}
 function bkRendi(d) {
     const lista = document.getElementById('bk-lista'); if (!lista) return;
     const v = d.backups || [];
+    bkHero(v);
     if (!v.length) {
-        lista.innerHTML = '<div class="bk-vuoto">Nessun backup sul server. Premi <b>Crea backup ora</b>: l\'archivio resta qui e potrai scaricarlo quando vuoi.</div>';
+        lista.innerHTML = '<div class="bk-vuoto">' + BK_ICO.box + '<div>Nessun backup sul server. Premi <b>Crea backup ora</b>: l\'archivio resta qui e potrai scaricarlo quando vuoi.</div></div>';
     } else {
         lista.innerHTML = v.map((b, i) => {
-            const cosa = [];
-            if (b.tabelle) cosa.push(b.tabelle + ' tabelle');
-            if (b.file) cosa.push(b.file + ' file (' + bkUmano(b.file_bytes) + ')');   // in inglese: modello '^(\d+) file \((.+)\)$'
-            if (b.versione === 1) cosa.push('vecchio formato: solo database');
-            if (b.app) cosa.push('v' + b.app);
-            const tag = (i === 0 && !b.caricato && b.valido) ? '<span class="bk-tag">Ultimo</span>' : '';
-            const tagOk = b.valido ? '' : '<span class="bk-tag giallo">Archivio non riconosciuto</span>';
-            return '<div class="bk-riga' + (i === 0 ? ' ultimo' : '') + (b.caricato ? ' caricato' : '') + '">'
-                + '<div class="bk-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg></div>'
-                + '<div class="bk-info"><div class="bk-nome"><span data-no-tr>' + bkEsc(b.nome) + '</span>' + tag + tagOk + '</div>'
-                + '<div class="bk-meta"><span data-no-tr>' + bkEsc(b.data) + ' · ' + bkEsc(b.dimensione) + '</span>' + cosa.map(c => ' · <span>' + bkEsc(c) + '</span>').join('') + (b.note ? ' · <span data-no-tr>' + bkEsc(b.note) + '</span>' : '') + '</div></div>'
+            const primo = (i === 0 && !b.caricato && b.valido);
+            const tag = primo ? '<span class="bk-tag">Ultimo</span>' : (b.caricato ? '<span class="bk-tag giallo">Dal computer</span>' : '');
+            const tagOk = b.valido ? (b.versione === 1 ? '<span class="bk-tag grigio">Solo database</span>' : '') : '<span class="bk-tag rosso">Archivio non riconosciuto</span>';
+            const meta = ['<span>' + BK_ICO.peso + '<b data-no-tr>' + bkEsc(b.dimensione) + '</b></span>'];
+            if (b.tabelle) meta.push('<span>' + BK_ICO.db + bkEsc(b.tabelle + ' tabelle') + '</span>');
+            if (b.file) meta.push('<span>' + BK_ICO.file + bkEsc(b.file + ' file') + '</span>');
+            if (b.app) meta.push('<span>' + BK_ICO.ver + '<span data-no-tr>v' + bkEsc(b.app) + '</span></span>');
+            if (b.note) meta.push('<span data-no-tr>' + bkEsc(b.note) + '</span>');
+            return '<div class="bk-riga' + (primo ? ' ultimo' : '') + (b.caricato ? ' caricato' : '') + (b.valido ? '' : ' rotto') + '">'
+                + '<div class="bk-ico">' + BK_ICO.db + '</div>'
+                + '<div class="bk-info"><div class="bk-nome"><span class="data" data-no-tr>' + bkEsc(b.data) + '</span>' + tag + tagOk + '</div>'
+                + '<div class="bk-meta">' + meta.join('') + '<span data-no-tr title="' + bkEsc(b.nome) + '">' + BK_ICO.box + bkEsc(b.nome) + '</span></div></div>'
                 + '<div class="bk-tasti">'
-                + '<a href="/api/backup/scarica/' + encodeURIComponent(b.nome) + '" title="Scarica sul computer" download><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>'
-                + (b.valido ? '<button type="button" class="rip" title="Ripristina questo backup" onclick="bkRipristina(\'' + bkEsc(b.nome) + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>' : '')
-                + '<button type="button" class="del" title="Elimina dal server" onclick="bkElimina(\'' + bkEsc(b.nome) + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>'
+                + '<a href="/api/backup/scarica/' + encodeURIComponent(b.nome) + '" title="Scarica sul computer" download>' + BK_ICO.down + '<span>Scarica</span></a>'
+                + (b.valido ? '<button type="button" class="rip" title="Ripristina questo backup" onclick="bkRipristina(\'' + bkEsc(b.nome) + '\')">' + BK_ICO.rip + '<span>Ripristina</span></button>' : '')
+                + '<button type="button" class="del" title="Elimina dal server" onclick="bkElimina(\'' + bkEsc(b.nome) + '\')">' + BK_ICO.del + '</button>'
                 + '</div></div>';
         }).join('');
     }
     const tot = v.reduce((s, b) => s + (b.bytes || 0), 0);
-    document.getElementById('bk-pie-info').textContent = v.length ? (v.length + (v.length === 1 ? ' backup' : ' backup') + ' · ' + bkUmano(tot) + ' sul server') : '';
+    document.getElementById('bk-pie-info').textContent = v.length ? (v.length + ' backup · ' + bkUmano(tot)) : '';
     document.getElementById('bk-pie-spazio').textContent = (d.spazio && d.spazio.libero_umano) ? 'Spazio libero sul server: ' + d.spazio.libero_umano : '';
 }
 

@@ -2562,7 +2562,12 @@
   "File, modelli 3D e riavvio dei servizi": "Files, 3D models and service restart",
   "la configurazione attuale. Crea un backup prima, per sicurezza. Non entrano nel backup: la licenza (legata a questo Raspberry), il codice della console di assistenza e il registro degli eventi.": "the current configuration. Create a backup first, to be safe. Not included in the backup: the licence (tied to this Raspberry), the support console code and the event log.",
   "Il server conserva gli ultimi": "The server keeps the latest",
-  "backup creati da lui (i piu' vecchi vengono tolti da soli); quelli caricati dal computer restano finche' non li elimini. Gli oggetti 3D di serie non vengono archiviati: li rimette l'aggiornamento.": "backups it created (the oldest are removed by themselves); those uploaded from the computer stay until you delete them. The stock 3D objects are not archived: the update puts them back."
+  "backup creati da lui (i piu' vecchi vengono tolti da soli); quelli caricati dal computer restano finche' non li elimini. Gli oggetti 3D di serie non vengono archiviati: li rimette l'aggiornamento.": "backups it created (the oldest are removed by themselves); those uploaded from the computer stay until you delete them. The stock 3D objects are not archived: the update puts them back.",
+  "Backup del sistema": "System backup",
+  "Configurazione, planimetrie 3D, immagini e suoni: tutto in un archivio che resta sul server.": "Configuration, 3D floor plans, images and sounds: all in one archive that stays on the server.",
+  "Archivi sul server": "Archives on the server",
+  "Il ripristino sostituisce la configurazione attuale. Licenza e codice della console non entrano nel backup.": "A restore replaces the current configuration. The licence and the console code are not part of the backup.",
+  "Col dito: trascina dall'icona del dispositivo, scorri toccando il resto": "With a finger: drag from the device icon, scroll by touching the rest"
  },
  "sempre": {
   " non ": " not ",
@@ -3133,7 +3138,14 @@
    "Il server e' stato riavviato durante il lavoro: controlla lo stato del backup.": "The server restarted during the job: check the backup status.",
    "Ripristino interrotto": "Restore interrupted",
    "Backup interrotto": "Backup interrupted",
-   "L'archivio supera il limite di invio del dominio (di solito 100 MB): caricalo dalla rete di casa, aprendo l'app dall'indirizzo IP del server": "The archive exceeds the domain's upload limit (usually 100 MB): upload it from the home network, opening the app from the server's IP address"
+   "L'archivio supera il limite di invio del dominio (di solito 100 MB): caricalo dalla rete di casa, aprendo l'app dall'indirizzo IP del server": "The archive exceeds the domain's upload limit (usually 100 MB): upload it from the home network, opening the app from the server's IP address",
+   "Nessun backup del sistema": "No system backup",
+   "Crea il primo: configurazione, planimetrie 3D, immagini e suoni in un archivio che resta sul server.": "Create the first one: configuration, 3D floor plans, images and sounds in an archive that stays on the server.",
+   "si conservano gli ultimi 10 creati dal server": "the latest 10 created by the server are kept",
+   "Dal computer": "From computer",
+   "Solo database": "Database only",
+   "Scarica": "Download",
+   "Ripristina": "Restore"
   },
   "/editor": {
    "Camera": "Bedroom",
@@ -3371,6 +3383,18 @@
   }
  },
  "modelli": [
+  [
+   "^(\\d+) backup · (.+)$",
+   "$1 backups · $2"
+  ],
+  [
+   "^(\\d+) file$",
+   "$1 files"
+  ],
+  [
+   "^Ultimo backup: (.+)$",
+   "Latest backup: $1"
+  ],
   [
    "^(Verifica archivio|Database|File|Riavvio dei servizi|Copia del database|Chiusura archivio|Avvio) · (.+)$",
    "$*1 · $2"
