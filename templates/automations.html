@@ -696,8 +696,16 @@
 let entita = [], contatti = [], automazioni = [], scenari = [], statoRegole = {}, soleOggi = null;
 let zone = [], persone = [];   // zone sulla mappa (/api/zone): inneschi e condizioni "una persona entra/esce"
 const nomeZona = k => (zone.find(z => z.chiave === k) || {}).nome || k || '…';
-const opzioniPersone = () => persone.map(p => ({ v: p, t: p, icona: 'user' }));
+// attuale = nome gia' salvato nella regola: si puo' ancora scegliere anche se il telefono non manda piu' posizioni
+const opzioniPersone = (attuale) => (attuale && !persone.includes(attuale) ? [attuale, ...persone] : persone).map(p => ({ v: p, t: p, icona: 'user' }));
 const opzioniZone = () => zone.map(z => ({ v: z.chiave, t: z.nome, sub: (z.raggio >= 1000 ? (z.raggio / 1000) + ' km' : z.raggio + ' m'), icona: z.casa ? 'home' : 'map-pin' }));
+let telefoni = [];   // telefoni con l'app iOS registrati sul server (/api/app/dispositivi): azione "notifica_app"
+// nome del telefono per la frase "in parole": i nomi veri non si traducono (data-no-tr), le due diciture si'
+const nomeTelefono = id => { if (!id) return '<b>tutti i telefoni</b>'; const t = telefoni.find(x => x.device_id === id); return t ? `<b data-no-tr>${esc(t.nome)}</b>` : '<b>telefono non registrato</b>'; };
+// attuale = telefono gia' salvato nella regola ma non piu' in elenco: resta visibile (il server segnala l'errore)
+const opzioniTelefoni = (attuale) => [{ v: '', t: 'Tutti i telefoni', icona: 'smartphone' }].concat(
+    telefoni.map(t => ({ v: t.device_id, t: t.nome, sub: [t.utente && t.utente !== t.nome ? t.utente : '', t.modello, t.sistema].filter(Boolean).join(' · '), icona: t.in_linea ? 'smartphone' : 'smartphone-nfc' })),
+    attuale && !telefoni.some(t => t.device_id === attuale) ? [{ v: attuale, t: 'telefono non registrato', icona: 'smartphone' }] : []);
 let filtroAttivo = 'tutte', cId = null, cClassica = false, cModificata = false, scenaScelte = [];
 const DOMINI = { light: 'Luci', switch: 'Interruttori e prese', cover: 'Tapparelle', sensor: 'Sensori', binary_sensor: 'Sensori aperto/chiuso', media_player: 'Audio e video', climate: 'Clima', scene: 'Scenari', group: 'Gruppi', camera: 'Telecamere', fan: 'Ventole', input_boolean: 'Interruttori virtuali' };
 const ICONE = { light: 'lightbulb', switch: 'power', cover: 'blinds', sensor: 'activity', binary_sensor: 'door-open', media_player: 'speaker', climate: 'thermometer', scene: 'layers', group: 'layers', camera: 'camera', fan: 'fan', input_boolean: 'toggle-left' };
@@ -705,7 +713,7 @@ const GIORNI = ['L', 'M', 'M', 'G', 'V', 'S', 'D'], GIORNI_LUNGHI = ['lunedì', 
 const TIPI = {
     innesco: [['stato', 'Un dispositivo cambia', 'zap'], ['durata', 'Un dispositivo resta così per un tempo', 'hourglass'], ['orario', 'A un orario', 'clock'], ['sole', 'Alba o tramonto', 'sun'], ['periodico', 'Ogni tot minuti', 'repeat'], ['zona', 'Una persona entra o esce da una zona', 'map-pin']],
     condizione: [['stato', 'Stato di un dispositivo', 'search'], ['fascia', 'Fascia oraria', 'clock'], ['giorni', 'Giorni della settimana', 'calendar'], ['sole', 'Giorno o notte', 'sun-moon'], ['zona', 'Dove si trova una persona', 'map-pin']],
-    azione: [['dispositivo', 'Accendi, spegni, inverti', 'power'], ['tapparella', 'Tapparella', 'blinds'], ['luce', 'Luce: luminosità e colore', 'lightbulb'], ['scena', 'Attiva uno scenario', 'layers'], ['attesa', 'Aspetta', 'timer'], ['telegram', 'Messaggio Telegram', 'send'], ['popup', 'Avviso sull\'app', 'smartphone'], ['regola', 'Un\'altra automazione', 'git-branch']],
+    azione: [['dispositivo', 'Accendi, spegni, inverti', 'power'], ['tapparella', 'Tapparella', 'blinds'], ['luce', 'Luce: luminosità e colore', 'lightbulb'], ['scena', 'Attiva uno scenario', 'layers'], ['attesa', 'Aspetta', 'timer'], ['telegram', 'Messaggio Telegram', 'send'], ['popup', 'Avviso sull\'app', 'smartphone'], ['notifica_app', 'Notifica sull\'app iOS', 'bell'], ['regola', 'Un\'altra automazione', 'git-branch']],
 };
 const CONFRONTI_ONOFF = [['diventa', 'diventa'], ['cambia', 'cambia (qualunque valore)'], ['!=', 'diventa diverso da']];
 const CONFRONTI_NUM = [['>', 'supera'], ['<', 'scende sotto'], ['>=', 'raggiunge almeno'], ['<=', 'scende a'], ['diventa', 'diventa esattamente'], ['!=', 'diventa diverso da'], ['cambia', 'cambia (qualunque valore)']];
@@ -758,6 +766,15 @@ function chiedi(testo, o) {
         d.hidden = false; d.classList.add('aperta');
         setTimeout(() => (o.pericolo ? no : si).focus(), 30);
     });
+}
+// "Invia una prova" dell'azione notifica: manda subito al telefono scelto quello che c'e' nei campi della riga
+async function provaNotifica(b) {
+    const riga = b.closest('.riga'); if (!riga) return; const d = leggiRiga(riga);
+    if (!(d.testo || '').trim()) { toast('Scrivi il testo della notifica', true); return; }
+    b.disabled = true;
+    try { const j = await api('/api/app/notifica', 'POST', { dispositivo: d.dispositivo || '', titolo: d.titolo || '', testo: d.testo || '' }); toast(j.inviate ? 'Notifica di prova in arrivo su ' + j.inviate + (j.inviate === 1 ? ' telefono' : ' telefoni') : 'Nessun telefono con le notifiche attive', !j.inviate); }
+    catch (e) { erroreRete(e); }
+    finally { b.disabled = false; }
 }
 function erroreRete(e) { const m = e && e.message ? String(e.message) : ''; toast(!m || /fetch|network|load failed|errore 5\d\d/i.test(m) ? 'Non riesco a raggiungere la centralina. Riprova.' : m, true); }
 async function api(url, metodo, corpo) { const r = await fetch(url, { method: metodo || 'GET', headers: { 'Content-Type': 'application/json' }, body: corpo ? JSON.stringify(corpo) : undefined }); let j = {}; try { j = await r.json(); } catch (e) {} if (!r.ok && !j.errori) throw new Error(j.errore || j.message || ('errore ' + r.status)); return j; }
@@ -850,6 +867,7 @@ function clickVelo() { if (pannelloAperto) { chiudiScelta(); return; } if (docum
 async function carica() {
     try { entita = await api('/api/entities_for_automations'); try { contatti = await api('/api/telegram_chats'); } catch (e) { contatti = []; } } catch (e) { toast('Impossibile caricare i dispositivi', true); }
     try { const z = await api('/api/zone'); zone = z.zone || []; persone = z.persone || []; } catch (e) { zone = []; persone = []; }
+    try { const t = await api('/api/app/dispositivi'); telefoni = t.dispositivi || []; } catch (e) { telefoni = []; }
     await caricaListe();
 }
 async function caricaListe() {
@@ -981,6 +999,7 @@ function fraseAzione(a) {
     if (a.tipo === 'attesa') return `aspetta <b>${a.secondi} s</b>`;
     if (a.tipo === 'telegram') return `Telegram «<b>${esc((a.messaggio || '').slice(0, 40))}${(a.messaggio || '').length > 40 ? '…' : ''}</b>»`;
     if (a.tipo === 'popup') return `avviso «<b>${esc(a.titolo || a.messaggio || '')}</b>»`;
+    if (a.tipo === 'notifica_app') return `notifica a ${nomeTelefono(a.dispositivo)}: «<b>${esc((a.testo || a.titolo || '').slice(0, 40))}${(a.testo || '').length > 40 ? '…' : ''}</b>»`;
     if (a.tipo === 'regola') { const r = automazioni.find(x => x.id === Number(a.id)); return `${({ attiva: 'attiva', disattiva: 'disattiva', esegui: 'esegui' })[a.comando] || ''} l'automazione <b>${esc(r ? r.name : ('#' + a.id))}</b>`; }
     return '…';
 }
@@ -1027,7 +1046,7 @@ function costruisciFrase(riga, genere, tipo, d) {
         } else if (tipo === 'orario') { agg(P('alle')); campo('Ora', ora('ora', d.ora, 'Ora')); agg(P('nei giorni')); campo('Giorni', giorniHTML(d.giorni), 'giorni-c'); agg(N('giorni')); }
         else if (tipo === 'sole') { m('evento', { valore: d.evento || 'tramonto', opzioni: [{ v: 'alba', t: 'Alba', icona: 'sunrise' }, { v: 'tramonto', t: 'Tramonto', icona: 'sunset' }] }, 'Evento'); agg(P('con scostamento di')); campo('Scostamento', numero('scostamento', d.scostamento == null ? 0 : d.scostamento, 'min', null, null, 5, 'Scostamento in minuti')); agg(N('sole')); }
         else if (tipo === 'periodico') { agg(P('ogni')); campo('Ogni', numero('minuti', d.minuti == null ? 30 : d.minuti, 'minuti', 1, null, 1, 'Ogni quanti minuti')); }
-        else if (tipo === 'zona') { m('persona', { valore: d.persona || '', opzioni: opzioniPersone(), cerca: true, placeholder: 'Scegli la persona', icona: 'user' }, 'Persona'); m('evento', { valore: d.evento || 'entra', opzioni: [{ v: 'entra', t: 'entra in', icona: 'log-in' }, { v: 'esce', t: 'esce da', icona: 'log-out' }] }, 'Evento'); m('zona', { valore: d.zona || (zone[0] ? zone[0].chiave : ''), opzioni: opzioniZone(), placeholder: 'Scegli la zona', icona: 'map-pin', unita: 'zone' }, 'Zona'); agg(H(zone.length ? 'Le zone si disegnano nella pagina Mappa' : 'Nessuna zona: disegnale nella pagina Mappa')); }
+        else if (tipo === 'zona') { m('persona', { valore: d.persona || '', opzioni: opzioniPersone(d.persona), cerca: true, placeholder: 'Scegli la persona', icona: 'user' }, 'Persona'); m('evento', { valore: d.evento || 'entra', opzioni: [{ v: 'entra', t: 'entra in', icona: 'log-in' }, { v: 'esce', t: 'esce da', icona: 'log-out' }] }, 'Evento'); m('zona', { valore: d.zona || (zone[0] ? zone[0].chiave : ''), opzioni: opzioniZone(), placeholder: 'Scegli la zona', icona: 'map-pin', unita: 'zone' }, 'Zona'); agg(H(zone.length ? 'Le zone si disegnano nella pagina Mappa' : 'Nessuna zona: disegnale nella pagina Mappa')); }
     }
     if (genere === 'condizione') {
         campo('Al contrario', negaHTML(d.nega), 'nega-c');
@@ -1036,7 +1055,7 @@ function costruisciFrase(riga, genere, tipo, d) {
         else if (tipo === 'fascia') { agg(P('siamo fra le')); campo('Dalle', ora('dalle', d.dalle || '22:00', 'Dalle')); agg(P('e le')); campo('Alle', ora('alle', d.alle || '06:00', 'Alle')); agg(N('fascia')); }
         else if (tipo === 'giorni') { agg(P('è')); campo('Giorni', giorniHTML(d.giorni && d.giorni.length ? d.giorni : [0, 1, 2, 3, 4]), 'giorni-c'); }
         else if (tipo === 'sole') { agg(P('è')); m('posizione', { valore: d.posizione || 'notte', opzioni: [{ v: 'giorno', t: 'giorno (fra alba e tramonto)', icona: 'sun' }, { v: 'notte', t: 'notte', icona: 'moon' }] }, 'Momento'); }
-        else if (tipo === 'zona') { m('persona', { valore: d.persona || '', opzioni: opzioniPersone(), cerca: true, placeholder: 'Scegli la persona', icona: 'user' }, 'Persona'); m('dove', { valore: d.dove || 'dentro', opzioni: [{ v: 'dentro', t: 'è dentro', icona: 'map-pin' }, { v: 'fuori', t: 'è fuori da', icona: 'map-pin-off' }] }, 'Dove'); m('zona', { valore: d.zona || (zone[0] ? zone[0].chiave : ''), opzioni: opzioniZone(), placeholder: 'Scegli la zona', icona: 'map-pin', unita: 'zone' }, 'Zona'); }
+        else if (tipo === 'zona') { m('persona', { valore: d.persona || '', opzioni: opzioniPersone(d.persona), cerca: true, placeholder: 'Scegli la persona', icona: 'user' }, 'Persona'); m('dove', { valore: d.dove || 'dentro', opzioni: [{ v: 'dentro', t: 'è dentro', icona: 'map-pin' }, { v: 'fuori', t: 'è fuori da', icona: 'map-pin-off' }] }, 'Dove'); m('zona', { valore: d.zona || (zone[0] ? zone[0].chiave : ''), opzioni: opzioniZone(), placeholder: 'Scegli la zona', icona: 'map-pin', unita: 'zone' }, 'Zona'); }
     }
     if (genere === 'azione') {
         if (tipo === 'dispositivo') { m('comando', { valore: d.comando || 'on', opzioni: [{ v: 'on', t: 'Accendi / apri', icona: 'power' }, { v: 'off', t: 'Spegni / chiudi', icona: 'power-off' }, { v: 'toggle', t: 'Inverti', icona: 'repeat' }] }, 'Comando'); m('entita', { valore: ent, opzioni: opzioniEntita(), cerca: true, placeholder: 'Scegli un dispositivo', icona: 'cpu', onChange: () => cambiato() }, 'Dispositivo'); }
@@ -1046,11 +1065,13 @@ function costruisciFrase(riga, genere, tipo, d) {
         else if (tipo === 'attesa') { agg(P('aspetta')); campo('Durata', numero('secondi', d.secondi == null ? 5 : d.secondi, 'secondi', 0, null, 1, 'Attesa in secondi')); agg(P('poi continua')); }
         else if (tipo === 'telegram') { agg(P('invia a')); m('chat', { valore: d.chat || '', opzioni: [{ v: '', t: 'Tutti i contatti', icona: 'users', classeIco: 'ico-tg' }].concat(contatti.map(c => ({ v: String(c.id), t: c.name, icona: 'user', classeIco: 'ico-tg' }))) }, 'Destinatario'); campo('Testo del messaggio', `<textarea class="campo" data-k="messaggio" placeholder="Testo del messaggio" aria-label="Testo del messaggio" rows="2">${esc(d.messaggio || '')}</textarea>`, 'campo-largo'); }
         else if (tipo === 'popup') { agg(P('titolo')); campo('Titolo', `<input type="text" class="campo titolo" data-k="titolo" value="${esc(d.titolo || 'Avviso')}" aria-label="Titolo" autocomplete="off">`); agg(P('con la card di')); m('entita', { valore: ent, opzioni: [{ v: '', t: 'nessun dispositivo', icona: 'minus' }].concat(opzioniEntita()), cerca: true, placeholder: 'nessun dispositivo', icona: 'smartphone', onChange: () => cambiato() }, 'Dispositivo'); campo('Testo dell\'avviso', `<textarea class="campo" data-k="messaggio" placeholder="Testo dell'avviso" aria-label="Testo dell'avviso" rows="2">${esc(d.messaggio || '')}</textarea>`, 'campo-largo'); }
+        else if (tipo === 'notifica_app') { agg(P('invia a')); m('dispositivo', { valore: d.dispositivo || '', opzioni: opzioniTelefoni(d.dispositivo), placeholder: 'Scegli il telefono', icona: 'smartphone', unita: 'telefoni' }, 'Telefono'); agg(P('titolo')); campo('Titolo', `<input type="text" class="campo titolo" data-k="titolo" value="${esc(d.titolo == null ? 'Wach0ss Home' : d.titolo)}" placeholder="Wach0ss Home" aria-label="Titolo" autocomplete="off" maxlength="80">`); campo('Testo della notifica', `<textarea class="campo" data-k="testo" placeholder="Testo della notifica" aria-label="Testo della notifica" rows="2" maxlength="500">${esc(d.testo || '')}</textarea>`, 'campo-largo'); campo('Prova', `<button type="button" class="btn btn-grigio s prova-notifica" onclick="provaNotifica(this)"><i data-lucide="bell-ring"></i> Invia una prova</button>`); agg(H(telefoni.length ? 'Arriva sui telefoni con l\'app iOS collegata a questo server (anche in sottofondo)' : 'Nessun telefono registrato: apri l\'app iOS e collegati a questo server')); }
         else if (tipo === 'regola') { m('comando', { valore: d.comando || 'esegui', opzioni: [{ v: 'esegui', t: 'Esegui adesso', icona: 'play' }, { v: 'attiva', t: 'Attiva', icona: 'toggle-right' }, { v: 'disattiva', t: 'Disattiva', icona: 'toggle-left' }] }, 'Comando'); m('id', { valore: d.id == null ? '' : String(d.id), opzioni: automazioni.filter(a => a.id !== cId).map(a => ({ v: String(a.id), t: a.name, icona: 'git-branch' })), cerca: true, placeholder: 'Scegli l\'automazione', icona: 'git-branch' }, 'Automazione'); }
     }
     menu.forEach(({ k, cfg }) => { const s = f.querySelector(`[data-k="${k}"]`); const onChange = cfg.onChange; cfg.onChange = v => { riga.classList.add('toccata'); cambiato(); aggiornaNote(riga); if (onChange) onChange(v); }; scelta(s, cfg); });
     f.querySelectorAll('input, textarea').forEach(i => { i.addEventListener('input', () => { riga.classList.add('toccata'); cambiato(); aggiornaNote(riga); }); i.addEventListener('change', cambiato); });
     f.querySelectorAll('.giorni button, .nega').forEach(i => i.addEventListener('click', () => riga.classList.add('toccata')));
+    icone(f);
     aggiornaNote(riga);
 }
 function sommaMinuti(hhmm, min) { const p = String(hhmm || '').split(':').map(Number); if (p.length < 2 || isNaN(p[0]) || isNaN(p[1])) return null; const t = (((p[0] * 60 + p[1] + Math.round(Number(min) || 0)) % 1440) + 1440) % 1440; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); }
@@ -1089,7 +1110,7 @@ function aggiornaRiepilogo() { const html = frase(leggiConfig()); document.getEl
 async function controlla() { const mio = ++_nControlla; try { const j = await api('/api/automazioni_avanzate/controlla', 'POST', { id: cId, name: document.getElementById('c-nome').value, config: leggiConfig() }); if (mio !== _nControlla) return j.errori || []; mostraErrori(j.errori || []); return j.errori || []; } catch (e) { return []; } }
 function rigaDiErrore(e) { const m = /^(innesco|condizione|azione)\s+(\d+)/i.exec(e || ''); return m ? { genere: m[1].toLowerCase(), n: Number(m[2]) } : null; }
 function rigaN(genere, n) { const lista = document.getElementById('c-' + ({ innesco: 'inneschi', condizione: 'condizioni', azione: 'azioni' })[genere]); return lista ? lista.querySelectorAll('.riga')[n - 1] : null; }
-function campoDiErrore(riga, e) { e = (e || '').toLowerCase(); const k = /automazion/.test(e) && riga.dataset.tipo === 'regola' ? 'id' : /person/.test(e) ? 'persona' : /\bzona\b/.test(e) ? 'zona' : /entra o esce/.test(e) ? 'evento' : /dentro o fuori/.test(e) ? 'dove' : /dispositiv|tapparell|luce|scenario|entit/.test(e) ? 'entita' : /messaggio|testo|avviso/.test(e) ? 'messaggio' : /posizion/.test(e) ? 'posizione' : /minut/.test(e) ? 'minuti' : /second/.test(e) ? 'secondi' : /valore/.test(e) ? 'valore' : /giorn/.test(e) ? 'giorni' : /orari|\bora\b/.test(e) ? 'ora' : /titolo/.test(e) ? 'titolo' : null; if (!k) return null; const s = riga.querySelector(`.frase-riga [data-k="${k}"]`); return s ? (s.querySelector('.scelta') || s) : null; }
+function campoDiErrore(riga, e) { e = (e || '').toLowerCase(); const k = riga.dataset.tipo === 'notifica_app' ? (/titolo/.test(e) ? 'titolo' : /telefon/.test(e) ? 'dispositivo' : 'testo') : /automazion/.test(e) && riga.dataset.tipo === 'regola' ? 'id' : /person/.test(e) ? 'persona' : /\bzona\b/.test(e) ? 'zona' : /entra o esce/.test(e) ? 'evento' : /dentro o fuori/.test(e) ? 'dove' : /dispositiv|tapparell|luce|scenario|entit/.test(e) ? 'entita' : /messaggio|testo|avviso/.test(e) ? 'messaggio' : /posizion/.test(e) ? 'posizione' : /minut/.test(e) ? 'minuti' : /second/.test(e) ? 'secondi' : /valore/.test(e) ? 'valore' : /giorn/.test(e) ? 'giorni' : /orari|\bora\b/.test(e) ? 'ora' : /titolo/.test(e) ? 'titolo' : null; if (!k) return null; const s = riga.querySelector(`.frase-riga [data-k="${k}"]`); return s ? (s.querySelector('.scelta') || s) : null; }
 let mostraErroriInline = false;
 function mostraErrori(errori) {
     const b = document.getElementById('c-blocco-errori'); b.style.display = errori.length ? '' : 'none';
@@ -1121,8 +1142,8 @@ function apriCostruttore(id) {
 }
 async function chiudiCostruttore() { if (cModificata && !await chiedi('Ci sono modifiche non salvate. Esco comunque?', { titolo: 'Modifiche non salvate', si: 'Esci senza salvare', no: 'Resta', pericolo: true, icona: 'alert-triangle' })) return; chiudiScelta(); chiudiCassetto(); document.getElementById('vista-cruscotto').classList.remove('fuori-sx'); document.getElementById('vista-costruttore').classList.add('fuori-dx'); chiudiScenario(); }
 function mostraEsito(v) {
-    const classe = r => /^(errore|fermata|azione \d+: errore)/.test(r) ? 'er' : (/^attendo/.test(r) ? 'att' : (/^(accendo|spengo|tapparella|luce|attivo|telegram|popup|eseguo|disattivo)/.test(r) ? 'az' : 'info'));
-    const iconaDi = (r, cl) => cl === 'er' ? 'alert-circle' : cl === 'att' ? 'timer' : cl === 'az' ? (/^(accendo|spengo)/.test(r) ? 'power' : /^tapparella/.test(r) ? 'blinds' : /^luce/.test(r) ? 'lightbulb' : /^attivo/.test(r) ? 'layers' : /^telegram/.test(r) ? 'send' : /^popup/.test(r) ? 'smartphone' : 'git-branch') : (/^innesco/.test(r) ? 'zap' : 'info');
+    const classe = r => /^(errore|fermata|azione \d+: errore)/.test(r) ? 'er' : (/^attendo/.test(r) ? 'att' : (/^(accendo|spengo|tapparella|luce|attivo|telegram|popup|notifica app|eseguo|disattivo)/.test(r) ? 'az' : 'info'));
+    const iconaDi = (r, cl) => cl === 'er' ? 'alert-circle' : cl === 'att' ? 'timer' : cl === 'az' ? (/^(accendo|spengo)/.test(r) ? 'power' : /^tapparella/.test(r) ? 'blinds' : /^luce/.test(r) ? 'lightbulb' : /^attivo/.test(r) ? 'layers' : /^telegram/.test(r) ? 'send' : /^popup/.test(r) ? 'smartphone' : /^notifica app/.test(r) ? 'bell' : 'git-branch') : (/^innesco/.test(r) ? 'zap' : 'info');
     const righe = (v.righe || []).map(r => { const cl = classe(r); return `<li class="${cl}"><span class="li"><i data-lucide="${iconaDi(r, cl)}"></i></span><span class="lt">${esc(r)}</span></li>`; }).join('');
     document.querySelectorAll('#pannello-esito .blocco:not(#c-esito-blocco)').forEach(b => b.remove());
     let val = '';

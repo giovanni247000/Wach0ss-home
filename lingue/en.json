@@ -2582,17 +2582,27 @@
   "Dove": "Where",
   "Le zone si disegnano nella pagina Mappa": "Zones are drawn on the Map page",
   "Nessuna zona: disegnale nella pagina Mappa": "No zones yet: draw them on the Map page",
-  "scegli la persona": "choose the person",
-  "scegli la zona": "choose the zone",
-  "scegli se entra o esce": "choose enters or leaves",
-  "scegli dentro o fuori": "choose inside or outside",
-  "nessuna posizione recente di questa persona": "no recent position for this person",
   "dentro": "inside",
   "fuori": "outside",
   "entra": "enters",
   "esce": "leaves",
-  "la zona non esiste piu': scegline un'altra": "the zone no longer exists: choose another one",
-  "zone": "zones"
+  "zone": "zones",
+  "Notifica sull'app iOS": "Notification on the iOS app",
+  "Scegli il telefono": "Choose the phone",
+  "Telefono": "Phone",
+  "Tutti i telefoni": "All phones",
+  "tutti i telefoni": "all phones",
+  "telefoni": "phones",
+  "telefono non registrato": "phone not registered",
+  "Testo della notifica": "Notification text",
+  "Prova": "Test",
+  "Invia una prova": "Send a test",
+  "Scrivi il testo della notifica": "Write the notification text",
+  "Nessun telefono con le notifiche attive": "No phone with notifications enabled",
+  "Arriva sui telefoni con l'app iOS collegata a questo server (anche in sottofondo)": "Delivered to the phones running the iOS app connected to this server (also in the background)",
+  "Nessun telefono registrato: apri l'app iOS e collegati a questo server": "No phone registered yet: open the iOS app and connect to this server",
+  "notifica a": "notification to",
+  "esecuzione": "run"
  },
  "sempre": {
   " non ": " not ",
@@ -2871,7 +2881,15 @@
   "Il sistema e' aggiornato.": "The system is up to date.",
   "Il server e' ripartito con la nuova versione.": "The server restarted with the new version.",
   "Una sola card di questo tipo può essere allargata: l’altra è tornata normale": "Only one card of this kind can be expanded: the other one is back to normal",
-  "Una sola card di questo tipo puo’ essere allargata: l’altra e’ tornata normale": "Only one card of this kind can be expanded: the other one is back to normal"
+  "Una sola card di questo tipo puo’ essere allargata: l’altra e’ tornata normale": "Only one card of this kind can be expanded: the other one is back to normal",
+  "scegli la persona": "choose the person",
+  "scegli la zona": "choose the zone",
+  "scegli se entra o esce": "choose enters or leaves",
+  "scegli dentro o fuori": "choose inside or outside",
+  "nessuna posizione recente di questa persona": "no recent position for this person",
+  "la zona non esiste piu': scegline un'altra": "the zone no longer exists: choose another one",
+  "Scrivi un testo": "Write a text",
+  "Solo l'app iOS puo' registrarsi": "Only the iOS app can register"
  },
  "per_pagina": {
   "/dashboard": {
@@ -3396,8 +3414,7 @@
    "Chiudere la zona che stai disegnando senza salvarla?": "Close the zone you are drawing without saving it?",
    "Zona non eliminata": "Zone not deleted",
    "Chiudi": "Close",
-   "Posizioni solo da utenti collegati": "Positions only from signed-in users",
-   "Acceso, il server accetta le posizioni solo da chi ha fatto il login, e nessuno può fingere la posizione di un altro per far scattare una regola. Se dopo averlo acceso il tuo telefono sparisce dalla mappa, l'app non manda il login: rispegnilo.": "When on, the server accepts positions only from signed-in users, so nobody can fake someone else's position to fire a rule. If your phone disappears from the map after turning it on, the app does not send the login: turn it off again."
+   "Sulla mappa compaiono solo i telefoni con l'app iOS, con il nome scelto nelle sue impostazioni (o il nome dell'iPhone).": "Only phones with the iOS app appear on the map, with the name chosen in its settings (or the iPhone's name)."
   },
   "/server_settings": {
    "Impostazioni di rete applicate: la connessione si interrompe ora.": "Network settings applied: the connection drops now.",
@@ -6068,6 +6085,50 @@
   [
    "^(NON )?(.+) fuori da (.+)$",
    "$1$2 outside $3"
+  ],
+  [
+   "^il testo della notifica e' vuoto$",
+   "the notification text is empty"
+  ],
+  [
+   "^il testo della notifica e' troppo lungo \\(massimo (\\d+) caratteri\\)$",
+   "the notification text is too long (max $1 characters)"
+  ],
+  [
+   "^il titolo della notifica e' troppo lungo \\(massimo (\\d+) caratteri\\)$",
+   "the notification title is too long (max $1 characters)"
+  ],
+  [
+   "^il telefono non e' piu' registrato: scegline un altro$",
+   "the phone is no longer registered: choose another one"
+  ],
+  [
+   "^notifica app: (.+) -> tutti i telefoni$",
+   "app notification: $1 -> all phones"
+  ],
+  [
+   "^notifica app: (.+) -> (.+)$",
+   "app notification: $1 -> $2"
+  ],
+  [
+   "^Notifica di prova in arrivo su (\\d+) telefon[oi]$",
+   "Test notification on its way to $1 phone(s)"
+  ],
+  [
+   "^nessun telefono con l'app iOS e le notifiche attive$",
+   "no phone with the iOS app and notifications enabled"
+  ],
+  [
+   "^(\\d+) telefoni$",
+   "$1 phones"
+  ],
+  [
+   "^(\\d+) zone$",
+   "$1 zones"
+  ],
+  [
+   "^1 telefono$",
+   "1 phone"
   ]
  ],
  "contesti": [
@@ -6115,6 +6176,10 @@
   [
    "secondi",
    "seconds"
+  ],
+  [
+   "(prova, non inviata)",
+   "(dry run, not sent)"
   ]
  ],
  "esclusi": [

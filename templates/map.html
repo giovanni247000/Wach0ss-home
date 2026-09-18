@@ -406,18 +406,9 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
                         <button type="button" class="primario" id="zona-salva">Salva</button>
                     </div>
                 </div>
-                <div class="percorsi" id="zona-sicurezza" style="display: none; padding-top: 0;">
-                    <div class="riga-interruttore">
-                        <span class="etichetta">Posizioni solo da utenti collegati</span>
-                        <label class="leva">
-                            <input type="checkbox" id="interruttore-solo-login">
-                            <span class="binario"></span>
-                        </label>
-                    </div>
-                    <div class="nota">
-                        <i data-lucide="shield"></i>
-                        <span>Acceso, il server accetta le posizioni solo da chi ha fatto il login, e nessuno può fingere la posizione di un altro per far scattare una regola. Se dopo averlo acceso il tuo telefono sparisce dalla mappa, l'app non manda il login: rispegnilo.</span>
-                    </div>
+                <div class="nota" style="margin: 0 12px 14px;">
+                    <i data-lucide="smartphone"></i>
+                    <span>Sulla mappa compaiono solo i telefoni con l'app iOS, con il nome scelto nelle sue impostazioni (o il nome dell'iPhone).</span>
                 </div>
             </div>
 
@@ -490,7 +481,6 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
     'use strict';
 
     var SONO_ADMIN = {{ 'true' if session.get('role') == 'admin' else 'false' }};
-    var IO_UTENTE  = {{ session.get('username', 'Utente') | tojson }};
 
     /* =================================================================
        1. LA MEMORIA DEI PERCORSI
@@ -1283,7 +1273,6 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
                 if (d.colori && d.colori.length) coloriZone = d.colori;
                 if (d.raggio_min) RAGGIO_MIN = d.raggio_min;
                 if (d.raggio_max) RAGGIO_MAX = d.raggio_max;
-                if (typeof d.solo_login === 'boolean' && SONO_ADMIN) document.getElementById('interruttore-solo-login').checked = d.solo_login;
                 var casaZ = zone.filter(function (z) { return z.casa; })[0];
                 if (casaZ) CASA_METRI = casaZ.raggio;          /* l'etichetta "A casa" segue il raggio scelto */
                 presenzaDi = {};
@@ -1452,14 +1441,6 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         var btnNuova = document.getElementById('btn-nuova-zona');
         btnNuova.style.display = '';
         btnNuova.addEventListener('click', function () { apriEditor(null); });
-        document.getElementById('zona-sicurezza').style.display = '';
-        document.getElementById('interruttore-solo-login').addEventListener('change', function () {
-            var leva = this, voluto = leva.checked;
-            fetch('/api/zone/opzioni', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ solo_login: voluto }) })
-                .then(function (r) { return r.json(); })
-                .then(function (d) { if (!d || d.status !== 'success') leva.checked = !voluto; })
-                .catch(function () { leva.checked = !voluto; });
-        });
     }
 
     /* =================================================================
@@ -1474,44 +1455,12 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
     }
 
     /* =================================================================
-       11. IL TRACCIAMENTO GPS DI QUESTO DISPOSITIVO
-       Identico a prima: se siamo dentro l'app iOS nativa non si tocca
-       niente, perche' li' il GPS lo gestisce l'app.
+       11. NIENTE GPS DAL BROWSER (18/09/2026)
+       Prima questa pagina mandava al server anche la posizione del
+       dispositivo che la stava guardando ("<utente>_webapp"): sul computer
+       era la posizione del PC, e sul telefono un doppione dell'app. Adesso
+       le posizioni le manda SOLO l'app iOS, e il server rifiuta le altre.
        ================================================================= */
-    function appNativaIOS() {
-        var ua = navigator.userAgent;
-        return /iPhone|iPad|iPod/i.test(ua) && /WebKit/i.test(ua) &&
-               !/Safari/i.test(ua) && window.navigator.standalone !== true;
-    }
-    var guardia = null, ultimoInvio = 0;
-    function avviaTracciamento() {
-        if (appNativaIOS()) return;
-        if (!('geolocation' in navigator)) return;
-        guardia = navigator.geolocation.watchPosition(
-            function (pos) {
-                var ora = Date.now();
-                if (ora - ultimoInvio <= 20000) return;
-                ultimoInvio = ora;
-                fetch('/api/location/update', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        device_id: IO_UTENTE + '_webapp',
-                        name: IO_UTENTE + ' (Web)',
-                        lat: pos.coords.latitude,
-                        lon: pos.coords.longitude
-                    })
-                }).catch(function () {});
-            },
-            function () {},
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 27000 }
-        );
-        setInterval(function () {
-            if (navigator.geolocation && guardia !== null) {
-                navigator.geolocation.getCurrentPosition(function () {}, function () {}, { maximumAge: 60000, timeout: 5000 });
-            }
-        }, 15000);
-    }
 
     /* =================================================================
        12. AVVIO
@@ -1533,7 +1482,6 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
     setInterval(aggiornaPosizioni, 5000);
     caricaZone();
     setInterval(function () { if (!editor) caricaZone(); }, 10000);   /* chi e' dentro cambia col tempo; non mentre si disegna */
-    window.addEventListener('load', avviaTracciamento);
     window.addEventListener('resize', function () { map.resize(); });
 })();
 </script>
