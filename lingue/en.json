@@ -2569,7 +2569,30 @@
   "Il ripristino sostituisce la configurazione attuale. Licenza e codice della console non entrano nel backup.": "A restore replaces the current configuration. The licence and the console code are not part of the backup.",
   "Col dito: trascina dall'icona del dispositivo, scorri toccando il resto": "With a finger: drag from the device icon, scroll by touching the rest",
   "Card non salvata sul server: al prossimo avvio potrebbe tornare com’era": "Card not saved on the server: it may come back as it was at the next start",
-  "Card non salvata: nessuna risposta dal server": "Card not saved: no answer from the server"
+  "Card non salvata: nessuna risposta dal server": "Card not saved: no answer from the server",
+  "Una persona entra o esce da una zona": "Someone enters or leaves a zone",
+  "Dove si trova una persona": "Where someone is",
+  "Scegli la persona": "Choose the person",
+  "Scegli la zona": "Choose the zone",
+  "entra in": "enters",
+  "esce da": "leaves",
+  "è dentro": "is inside",
+  "è fuori da": "is outside",
+  "Persona": "Person",
+  "Dove": "Where",
+  "Le zone si disegnano nella pagina Mappa": "Zones are drawn on the Map page",
+  "Nessuna zona: disegnale nella pagina Mappa": "No zones yet: draw them on the Map page",
+  "scegli la persona": "choose the person",
+  "scegli la zona": "choose the zone",
+  "scegli se entra o esce": "choose enters or leaves",
+  "scegli dentro o fuori": "choose inside or outside",
+  "nessuna posizione recente di questa persona": "no recent position for this person",
+  "dentro": "inside",
+  "fuori": "outside",
+  "entra": "enters",
+  "esce": "leaves",
+  "la zona non esiste piu': scegline un'altra": "the zone no longer exists: choose another one",
+  "zone": "zones"
  },
  "sempre": {
   " non ": " not ",
@@ -3357,7 +3380,24 @@
    "In movimento": "Moving",
    "Fermo": "Not moving",
    "Ieri": "Yesterday",
-   "almeno": "at least"
+   "almeno": "at least",
+   "Nuova zona": "New zone",
+   "Lettura delle zone...": "Reading zones...",
+   "Nome della zona": "Zone name",
+   "Raggio": "Radius",
+   "Tocca un punto della mappa o trascina il segnaposto per spostare il centro.": "Tap a point on the map or drag the marker to move the centre.",
+   "Il centro della zona Casa è l'indirizzo scelto nelle Impostazioni.": "The centre of the Home zone is the address set in Settings.",
+   "Eliminare la zona": "Delete the zone",
+   "Adesso qui:": "Here now:",
+   "nessuno": "nobody",
+   "Si usa nelle automazioni: quando qualcuno entra o esce.": "Used by automations: when someone enters or leaves.",
+   "Zona non salvata": "Zone not saved",
+   "Nessuna zona": "No zones",
+   "Chiudere la zona che stai disegnando senza salvarla?": "Close the zone you are drawing without saving it?",
+   "Zona non eliminata": "Zone not deleted",
+   "Chiudi": "Close",
+   "Posizioni solo da utenti collegati": "Positions only from signed-in users",
+   "Acceso, il server accetta le posizioni solo da chi ha fatto il login, e nessuno può fingere la posizione di un altro per far scattare una regola. Se dopo averlo acceso il tuo telefono sparisce dalla mappa, l'app non manda il login: rispegnilo.": "When on, the server accepts positions only from signed-in users, so nobody can fake someone else's position to fire a rule. If your phone disappears from the map after turning it on, the app does not send the login: turn it off again."
   },
   "/server_settings": {
    "Impostazioni di rete applicate: la connessione si interrompe ora.": "Network settings applied: the connection drops now.",
@@ -6004,6 +6044,30 @@
   [
    "^il server ha risposto (\\d+)$",
    "the server answered $1"
+  ],
+  [
+   "^innesco: (.+) entra in (.+)$",
+   "trigger: $1 enters $2"
+  ],
+  [
+   "^innesco: (.+) esce da (.+)$",
+   "trigger: $1 leaves $2"
+  ],
+  [
+   "^adesso (.+) e' (dentro|fuori); scatta quando (entra|esce)$",
+   "now $1 is $*2; fires when they $*3"
+  ],
+  [
+   "^adesso (.+) e' (dentro|fuori)$",
+   "now $1 is $*2"
+  ],
+  [
+   "^(NON )?(.+) dentro (.+)$",
+   "$1$2 inside $3"
+  ],
+  [
+   "^(NON )?(.+) fuori da (.+)$",
+   "$1$2 outside $3"
   ]
  ],
  "contesti": [

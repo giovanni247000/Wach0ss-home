@@ -279,6 +279,52 @@ body.notte .segno .bolla { border-color: #22252C; }
 .pop-nome { font-size: 0.95rem; font-weight: 700; margin-bottom: 3px; }
 .pop-riga { font-size: 0.76rem; color: var(--fioco); }
 
+/* --- le zone (cerchi con raggio) --- */
+.zona {
+    display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+    border-radius: var(--r-m); background: rgba(127,127,127,0.07); cursor: pointer; transition: background 0.16s;
+}
+.zona:hover { background: rgba(127,127,127,0.13); }
+.zona.scelta { box-shadow: inset 0 0 0 2px var(--accento); }
+.zona .tondo {
+    width: 15px; height: 15px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 28%, transparent);
+}
+.zona .dati { flex: 1; min-width: 0; }
+.zona .nome { font-size: 0.86rem; }
+.zona .sotto { font-size: 0.72rem; color: var(--fioco); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zona .sotto b { color: var(--testo); font-weight: 600; }
+.zona-editor {
+    margin: 0 12px 14px; padding: 12px; border-radius: var(--r-m);
+    background: rgba(127,127,127,0.07); display: flex; flex-direction: column; gap: 9px;
+}
+.zona-editor[hidden] { display: none; }
+.zona-editor .campo {
+    width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: var(--r-s);
+    border: 1px solid var(--bordo); background: var(--pannello-pieno); color: var(--testo);
+    font: inherit; font-size: 0.86rem; outline: none;
+}
+.zona-editor .campo:focus { border-color: var(--accento); }
+.colori { display: flex; gap: 7px; flex-wrap: wrap; }
+.colori button { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; transition: transform 0.16s; }
+.colori button.scelto { border-color: var(--testo); transform: scale(1.15); }
+.riga-raggio { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; color: var(--fioco); }
+.riga-raggio b { color: var(--testo); font-weight: 700; }
+.zona-editor input[type=range] { width: 100%; accent-color: var(--accento); margin: 0; }
+.zona-tasti { display: flex; gap: 8px; }
+.zona-tasti button {
+    flex: 1; padding: 9px; border-radius: var(--r-m); border: 1px solid var(--bordo);
+    background: transparent; color: var(--testo); font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+}
+.zona-tasti button.primario { background: var(--accento); border-color: var(--accento); color: #fff; }
+.zona-tasti button:disabled { opacity: 0.5; cursor: default; }
+body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.maplibregl-interactive { cursor: crosshair !important; }
+.segno-zona {
+    width: 26px; height: 26px; border-radius: 50%; border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35); cursor: grab;
+}
+.segno-zona.fermo { cursor: default; }
+
 /* ================= IL TELEFONO ====================================== */
 .maniglia { display: none; }
 @media (max-width: 860px) {
@@ -336,6 +382,47 @@ body.notte .segno .bolla { border-color: #22252C; }
 
             <div class="sezione">
                 <div class="sez-testa">
+                    <span class="con-icona"><i data-lucide="map-pin"></i> Zone</span>
+                    <button class="tastino" id="btn-nuova-zona" title="Nuova zona" aria-label="Nuova zona" style="display: none;"><i data-lucide="plus"></i></button>
+                </div>
+                <div class="elenco" id="zone">
+                    <div class="vuoto">Lettura delle zone...</div>
+                </div>
+                <div class="zona-editor" id="zona-editor" hidden>
+                    <input type="text" class="campo" id="zona-nome" placeholder="Nome della zona" maxlength="60" autocomplete="off">
+                    <div class="colori" id="zona-colori"></div>
+                    <div class="riga-raggio"><span>Raggio</span><b id="zona-raggio-testo">150 m</b></div>
+                    <input type="range" id="zona-raggio" min="30" max="3000" step="10" value="150" aria-label="Raggio">
+                    <div class="nota" id="zona-nota-centro">
+                        <i data-lucide="move"></i>
+                        <span>Tocca un punto della mappa o trascina il segnaposto per spostare il centro.</span>
+                    </div>
+                    <div class="nota" id="zona-nota-casa" style="display: none;">
+                        <i data-lucide="home"></i>
+                        <span>Il centro della zona Casa è l'indirizzo scelto nelle Impostazioni.</span>
+                    </div>
+                    <div class="zona-tasti">
+                        <button type="button" id="zona-annulla">Annulla</button>
+                        <button type="button" class="primario" id="zona-salva">Salva</button>
+                    </div>
+                </div>
+                <div class="percorsi" id="zona-sicurezza" style="display: none; padding-top: 0;">
+                    <div class="riga-interruttore">
+                        <span class="etichetta">Posizioni solo da utenti collegati</span>
+                        <label class="leva">
+                            <input type="checkbox" id="interruttore-solo-login">
+                            <span class="binario"></span>
+                        </label>
+                    </div>
+                    <div class="nota">
+                        <i data-lucide="shield"></i>
+                        <span>Acceso, il server accetta le posizioni solo da chi ha fatto il login, e nessuno può fingere la posizione di un altro per far scattare una regola. Se dopo averlo acceso il tuo telefono sparisce dalla mappa, l'app non manda il login: rispegnilo.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sezione">
+                <div class="sez-testa">
                     <span class="con-icona"><i data-lucide="route"></i> Percorsi</span>
                 </div>
                 <div class="percorsi">
@@ -379,6 +466,15 @@ body.notte .segno .bolla { border-color: #22252C; }
     <div hidden id="frasi-conferma">
         <span id="dom-svuota">Cancellare tutti i percorsi salvati su questo dispositivo?</span>
         <span id="dom-elimina">Eliminare la posizione di</span>
+        <span id="dom-elimina-zona">Eliminare la zona</span>
+        <span id="fr-persone-dentro">Adesso qui:</span>
+        <span id="fr-nessuno">nessuno</span>
+        <span id="fr-zona-usa">Si usa nelle automazioni: quando qualcuno entra o esce.</span>
+        <span id="fr-nuova-zona">Nuova zona</span>
+        <span id="fr-nessuna-zona">Nessuna zona</span>
+        <span id="fr-scarta-modifiche">Chiudere la zona che stai disegnando senza salvarla?</span>
+        <span id="fr-non-eliminata">Zona non eliminata</span>
+        <span id="fr-non-salvata">Zona non salvata</span>
     </div>
 
     <div class="comandi">
@@ -650,6 +746,43 @@ body.notte .segno .bolla { border-color: #22252C; }
             }
         });
 
+        /* le zone: poligoni in METRI veri (un cerchio a 64 lati), sotto le scie */
+        map.addSource('zone', { type: 'geojson', data: vuoto() });
+        map.addLayer({
+            id: 'zone-riempimento', type: 'fill', source: 'zone',
+            filter: ['==', ['geometry-type'], 'Polygon'],
+            paint: { 'fill-color': ['get', 'colore'], 'fill-opacity': 0.13 }
+        }, 'scie-alone');
+        map.addLayer({
+            id: 'zone-bordo', type: 'line', source: 'zone',
+            filter: ['==', ['geometry-type'], 'Polygon'],
+            paint: { 'line-color': ['get', 'colore'], 'line-width': 2, 'line-opacity': 0.75 }
+        }, 'scie-alone');
+        /* il nome sta su un PUNTO al centro: su un poligono MapLibre lo ripeterebbe a ogni piastrella */
+        map.addLayer({
+            id: 'zone-nome', type: 'symbol', source: 'zone',
+            filter: ['==', ['geometry-type'], 'Point'],
+            minzoom: 11,
+            layout: {
+                'text-field': ['get', 'etichetta'], 'text-font': ['Noto Sans Regular'],
+                'text-size': 12, 'text-anchor': 'top', 'text-offset': [0, 1.5], 'text-allow-overlap': false
+            },
+            paint: {
+                'text-color': ['get', 'colore'],
+                'text-halo-color': notte ? '#0E1014' : '#FFFFFF', 'text-halo-width': 1.6
+            }
+        });
+        /* la zona che si sta disegnando: tratteggiata, sopra tutto */
+        map.addSource('zona-editor', { type: 'geojson', data: vuoto() });
+        map.addLayer({
+            id: 'zona-editor-riempimento', type: 'fill', source: 'zona-editor',
+            paint: { 'fill-color': ['get', 'colore'], 'fill-opacity': 0.2 }
+        });
+        map.addLayer({
+            id: 'zona-editor-bordo', type: 'line', source: 'zona-editor',
+            paint: { 'line-color': ['get', 'colore'], 'line-width': 2.5, 'line-dasharray': [2, 1.5] }
+        });
+
         map.addSource('casa', { type: 'geojson', data: vuoto() });
         map.addLayer({
             id: 'casa-cerchio', type: 'circle', source: 'casa',
@@ -673,6 +806,7 @@ body.notte .segno .bolla { border-color: #22252C; }
         preparaLivelli();
         disegnaScie();
         if (casa) mostraCasa();
+        disegnaZone();
         aggiornaSegni();
         if (primoGiro && elenco.length) { primoGiro = false; inquadraTutti(); }
     });
@@ -897,9 +1031,11 @@ body.notte .segno .bolla { border-color: #22252C; }
         elenco.forEach(function (p) {
             var colore = coloreDi(p.name);
             var stato, luce = '';
-            if (p.aCasa)      { stato = 'A casa'; }
-            else if (p.muove) { stato = 'In movimento'; }
-            else              { stato = 'Fermo'; luce = ' giallo'; }
+            var zoneDi = (presenzaDi[p.name] || []).filter(function (z) { return !z.casa; });
+            if (p.aCasa)          { stato = 'A casa'; }
+            else if (zoneDi.length) { stato = '<span data-no-tr>' + pulito(zoneDi[0].nome) + '</span>'; }   /* dentro una zona disegnata */
+            else if (p.muove)     { stato = 'In movimento'; }
+            else                  { stato = 'Fermo'; luce = ' giallo'; }
 
             html +=
             '<div class="scheda' + (nascosti[p.name] ? ' spenta' : '') + (scelto === p.name ? ' scelta' : '') + '" data-nome="' + pulito(p.name) + '">' +
@@ -981,6 +1117,7 @@ body.notte .segno .bolla { border-color: #22252C; }
                     var p = unici[n], v = prima[n];
                     p.muove = v ? distanza(v.lat, v.lon, p.lat, p.lon) > PASSO_METRI : false;
                     p.aCasa = casa ? distanza(casa.lat, casa.lon, p.lat, p.lon) < CASA_METRI : false;
+                    if (presenzaDi[p.name]) p.aCasa = presenzaDi[p.name].some(function (z) { return z.casa; });   /* il server ha l'isteresi */
                     annota(p.name, p.lat, p.lon);
                     return p;
                 });
@@ -1033,7 +1170,7 @@ body.notte .segno .bolla { border-color: #22252C; }
         notte = !notte;
         document.body.classList.toggle('notte', notte);
         conservaScelta('wh_mappa_notte', notte ? '1' : '0');
-        this.querySelector('i').setAttribute('data-lucide', notte ? 'sun' : 'moon');
+        this.innerHTML = '<i data-lucide="' + (notte ? 'sun' : 'moon') + '"></i>';   /* lucide ha gia' trasformato la <i> in <svg>: si rifa' da capo */
         if (window.lucide) lucide.createIcons();
         segnoCasa = null;                     /* il segno di casa viene ricreato con lo stile */
         map.setStyle(notte ? STILI.notte : STILI.giorno);
@@ -1094,6 +1231,236 @@ body.notte .segno .bolla { border-color: #22252C; }
     });
     map.on('mouseenter', 'soste-cerchio', function () { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'soste-cerchio', function () { map.getCanvas().style.cursor = ''; });
+
+    /* =================================================================
+       9b. LE ZONE
+       Cerchi con centro e raggio, salvati sul server (/api/zone). Il server
+       calcola chi sta dentro ogni zona e lo passa alle automazioni; qui si
+       disegnano, si creano e si modificano (solo l'amministratore). La zona
+       Casa esiste sempre: il centro e' l'indirizzo delle Impostazioni.
+       ================================================================= */
+    var zone = [];                /* dal server: {chiave, nome, lat, lon, raggio, colore, casa, dentro:[persone]} */
+    var presenzaDi = {};          /* persona -> [zone in cui sta] */
+    var editor = null;            /* la zona che si sta disegnando: {chiave, nome, lat, lon, raggio, colore, casa} */
+    var segnoEditor = null;       /* il segnaposto trascinabile del centro */
+    var zonaScelta = null;        /* chiave della zona evidenziata nell'elenco */
+    var coloriZone = TAVOLOZZA.slice();
+    var RAGGIO_MIN = 30, RAGGIO_MAX = 3000;
+
+    function cerchioGeo(lat, lon, raggio) {         /* poligono a 64 lati, in metri veri */
+        var r = Math.PI / 180, n = 64, anello = [];
+        var dLat = raggio / 111320, dLon = raggio / (111320 * Math.max(0.05, Math.cos(lat * r)));
+        for (var i = 0; i <= n; i++) {
+            var a = (i / n) * 2 * Math.PI;
+            anello.push([lon + dLon * Math.cos(a), lat + dLat * Math.sin(a)]);
+        }
+        return { type: 'Polygon', coordinates: [anello] };
+    }
+    function comeRaggio(m) { return m >= 1000 ? (m / 1000).toFixed(m % 1000 ? 1 : 0) + ' km' : Math.round(m) + ' m'; }
+    function zonaFeature(z) {
+        return { type: 'Feature', properties: { chiave: z.chiave, colore: z.colore }, geometry: cerchioGeo(z.lat, z.lon, z.raggio) };
+    }
+    function zonaNome(z) {
+        return { type: 'Feature', properties: { chiave: z.chiave, colore: z.colore, etichetta: z.nome + ' \u00b7 ' + comeRaggio(z.raggio) },
+                 geometry: { type: 'Point', coordinates: [z.lon, z.lat] } };
+    }
+
+    function disegnaZone() {
+        if (!mappaPronta || !map.getSource('zone')) return;
+        var ferme = zone.filter(function (z) { return !editor || z.chiave !== editor.chiave; });
+        map.getSource('zone').setData({ type: 'FeatureCollection', features: ferme.map(zonaFeature).concat(ferme.map(zonaNome)) });
+        map.getSource('zona-editor').setData({ type: 'FeatureCollection', features: editor ? [zonaFeature(editor)] : [] });
+        /* il vecchio alone della casa era un cerchio "a occhio" in pixel: adesso c'e' la zona Casa coi metri veri */
+        if (map.getLayer('casa-cerchio')) map.setLayoutProperty('casa-cerchio', 'visibility', zone.length ? 'none' : 'visible');
+    }
+
+    function caricaZone() {
+        fetch('/api/zone')
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d || !d.zone) return;
+                zone = d.zone;
+                if (d.colori && d.colori.length) coloriZone = d.colori;
+                if (d.raggio_min) RAGGIO_MIN = d.raggio_min;
+                if (d.raggio_max) RAGGIO_MAX = d.raggio_max;
+                if (typeof d.solo_login === 'boolean' && SONO_ADMIN) document.getElementById('interruttore-solo-login').checked = d.solo_login;
+                var casaZ = zone.filter(function (z) { return z.casa; })[0];
+                if (casaZ) CASA_METRI = casaZ.raggio;          /* l'etichetta "A casa" segue il raggio scelto */
+                presenzaDi = {};
+                zone.forEach(function (z) {
+                    (z.dentro || []).forEach(function (p) { (presenzaDi[p] = presenzaDi[p] || []).push(z); });
+                });
+                disegnaZone();
+                disegnaElencoZone();
+                disegnaElenco();
+            })
+            .catch(function (e) { console.warn('[mappa] zone non lette:', e); });
+    }
+
+    function disegnaElencoZone() {
+        var cont = document.getElementById('zone');
+        if (!zone.length) { cont.innerHTML = '<div class="vuoto">' + pulito(frase('fr-nessuna-zona')) + '</div>'; return; }
+        var html = '';
+        zone.forEach(function (z) {
+            var dentro = (z.dentro || []);
+            html +=
+            '<div class="zona' + (zonaScelta === z.chiave ? ' scelta' : '') + '" data-chiave="' + pulito(z.chiave) + '" style="--c:' + pulito(z.colore) + '">' +
+                '<div class="tondo"></div>' +
+                '<div class="dati">' +
+                    '<div class="nome" data-no-tr>' + pulito(z.nome) + '</div>' +
+                    '<div class="sotto"><span data-no-tr>' + comeRaggio(z.raggio) + '</span> · ' +
+                        (dentro.length ? '<b data-no-tr>' + pulito(dentro.join(', ')) + '</b>' : pulito(frase('fr-nessuno'))) +
+                    '</div>' +
+                '</div>' +
+                (SONO_ADMIN ?
+                    '<div class="azioni">' +
+                        '<button class="tastino" data-fa="modifica" title="Modifica"><i data-lucide="pencil"></i></button>' +
+                        (z.casa ? '' : '<button class="tastino pericolo" data-fa="elimina" title="Elimina"><i data-lucide="trash-2"></i></button>') +
+                    '</div>' : '') +
+            '</div>';
+        });
+        cont.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function inquadraZona(z) {
+        var r = Math.PI / 180, dLat = z.raggio / 111320, dLon = z.raggio / (111320 * Math.max(0.05, Math.cos(z.lat * r)));
+        var largo = map.getContainer().clientWidth, alto = map.getContainer().clientHeight, telefono = largo <= 860;
+        var m = { top: 60, right: 40,
+                  bottom: telefono ? Math.min(Math.round(alto * 0.62), alto - 120) : 60,      /* sul telefono il pannello sta in basso */
+                  left: telefono ? 40 : Math.min(380, Math.round(largo * 0.34)) };
+        map.fitBounds([[z.lon - dLon, z.lat - dLat], [z.lon + dLon, z.lat + dLat]], { padding: m, maxZoom: 17, duration: 900 });
+    }
+
+    document.getElementById('zone').addEventListener('click', function (e) {
+        var riga = e.target.closest('.zona'); if (!riga) return;
+        var chiave = riga.getAttribute('data-chiave');
+        var z = zone.filter(function (x) { return x.chiave === chiave; })[0]; if (!z) return;
+        var bot = e.target.closest('.tastino');
+        if (!bot) { zonaScelta = (zonaScelta === chiave) ? null : chiave; disegnaElencoZone(); if (zonaScelta) inquadraZona(z); return; }
+        if (bot.getAttribute('data-fa') === 'modifica') apriEditor(z);
+        else if (bot.getAttribute('data-fa') === 'elimina') eliminaZona(z);
+    });
+
+    /* --- disegnare e modificare (solo amministratore) --- */
+    function apriEditor(z) {
+        if (!SONO_ADMIN) return;
+        if (editor && (editor.chiave || editor.nome || editor.raggio !== 150)) {
+            chiedi(frase('fr-scarta-modifiche'), { titolo: frase('fr-non-salvata'), si: 'Chiudi', pericolo: true }).then(function (ok) {
+                if (!ok) return;
+                chiudiEditor(true); apriEditor(z);
+            });
+            return;
+        }
+        chiudiEditor(true);
+        if (z) {
+            editor = { chiave: z.chiave, nome: z.nome, lat: z.lat, lon: z.lon, raggio: z.raggio, colore: z.colore, casa: !!z.casa };
+        } else {
+            var c = map.getCenter();
+            editor = { chiave: '', nome: '', lat: c.lat, lon: c.lng, raggio: 150,
+                       colore: coloriZone[zone.length % coloriZone.length], casa: false };
+        }
+        document.getElementById('zona-nome').value = editor.nome;
+        var cursore = document.getElementById('zona-raggio');
+        cursore.max = Math.max(3000, editor.raggio); cursore.value = editor.raggio;
+        document.getElementById('zona-raggio-testo').textContent = comeRaggio(editor.raggio);
+        document.getElementById('zona-nota-centro').style.display = editor.casa ? 'none' : '';
+        document.getElementById('zona-nota-casa').style.display = editor.casa ? '' : 'none';
+        disegnaColori();
+        document.getElementById('zona-editor').hidden = false;
+        document.body.classList.add('zona-in-modifica');
+        var el = document.createElement('div');
+        el.className = 'segno-zona' + (editor.casa ? ' fermo' : '');
+        el.style.background = editor.colore;
+        segnoEditor = new maplibregl.Marker({ element: el, anchor: 'center', draggable: !editor.casa })
+            .setLngLat([editor.lon, editor.lat]).addTo(map);
+        segnoEditor.on('drag', function () {
+            var p = segnoEditor.getLngLat(); editor.lat = p.lat; editor.lon = p.lng; disegnaZone();
+        });
+        disegnaZone();
+        inquadraZona(editor);
+        if (!z) document.getElementById('zona-nome').focus();
+        if (window.lucide) lucide.createIcons();
+    }
+    function chiudiEditor(silenzioso) {
+        if (segnoEditor) { segnoEditor.remove(); segnoEditor = null; }
+        editor = null;
+        document.getElementById('zona-editor').hidden = true;
+        document.body.classList.remove('zona-in-modifica');
+        if (!silenzioso) disegnaZone();
+    }
+    function disegnaColori() {
+        var cont = document.getElementById('zona-colori');
+        cont.innerHTML = coloriZone.map(function (c) {
+            return '<button type="button" class="' + (editor && editor.colore === c ? 'scelto' : '') + '" data-c="' + pulito(c) + '" style="background:' + pulito(c) + '" aria-label="' + pulito(c) + '"></button>';
+        }).join('');
+    }
+    document.getElementById('zona-colori').addEventListener('click', function (e) {
+        var b = e.target.closest('button'); if (!b || !editor) return;
+        editor.colore = b.getAttribute('data-c');
+        if (segnoEditor) segnoEditor.getElement().style.background = editor.colore;
+        disegnaColori(); disegnaZone();
+    });
+    document.getElementById('zona-raggio').addEventListener('input', function () {
+        if (!editor) return;
+        editor.raggio = Math.max(RAGGIO_MIN, Math.min(RAGGIO_MAX, +this.value || 150));
+        document.getElementById('zona-raggio-testo').textContent = comeRaggio(editor.raggio);
+        disegnaZone();
+    });
+    document.getElementById('zona-nome').addEventListener('input', function () { if (editor) editor.nome = this.value; });
+    map.on('click', function (e) {
+        if (!editor || editor.casa) return;
+        if (e.originalEvent && e.originalEvent.target && e.originalEvent.target.closest('.maplibregl-marker')) return;
+        editor.lat = e.lngLat.lat; editor.lon = e.lngLat.lng;
+        if (segnoEditor) segnoEditor.setLngLat([editor.lon, editor.lat]);
+        disegnaZone();
+    });
+    document.getElementById('zona-annulla').addEventListener('click', function () { chiudiEditor(); });
+    document.getElementById('zona-salva').addEventListener('click', function () {
+        if (!editor) return;
+        var nome = document.getElementById('zona-nome').value.trim();
+        if (!nome) { document.getElementById('zona-nome').focus(); return; }
+        var tasto = this; tasto.disabled = true;
+        fetch('/api/zone', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chiave: editor.chiave, nome: nome, lat: editor.lat, lon: editor.lon, raggio: editor.raggio, colore: editor.colore })
+        })
+            .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+            .then(function (x) {
+                if (!x.ok || !x.d || x.d.status !== 'success') { avvisa((x.d && x.d.message) || frase('fr-non-salvata'), { titolo: frase('fr-non-salvata') }); return; }
+                zonaScelta = x.d.zona ? x.d.zona.chiave : null;
+                chiudiEditor(true);
+                caricaZone();
+            })
+            .catch(function () { avvisa(frase('fr-non-salvata'), { titolo: frase('fr-non-salvata') }); })
+            .then(function () { tasto.disabled = false; });
+    });
+    function eliminaZona(z) {
+        if (!SONO_ADMIN || z.casa) return;
+        chiedi(frase('dom-elimina-zona') + ' \u00ab' + z.nome + '\u00bb?', { titolo: 'Elimina zona', si: 'Elimina', pericolo: true }).then(function (ok) {
+            if (!ok) return;
+            fetch('/api/zone/' + encodeURIComponent(z.chiave), { method: 'DELETE' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d && d.status === 'success') { if (editor && editor.chiave === z.chiave) chiudiEditor(true); if (zonaScelta === z.chiave) zonaScelta = null; caricaZone(); }
+                    else avvisa((d && d.message) || frase('fr-non-eliminata'), { titolo: frase('fr-non-eliminata') });
+                })
+                .catch(function () { avvisa(frase('fr-non-eliminata'), { titolo: frase('fr-non-eliminata') }); });
+        });
+    }
+    if (SONO_ADMIN) {
+        var btnNuova = document.getElementById('btn-nuova-zona');
+        btnNuova.style.display = '';
+        btnNuova.addEventListener('click', function () { apriEditor(null); });
+        document.getElementById('zona-sicurezza').style.display = '';
+        document.getElementById('interruttore-solo-login').addEventListener('change', function () {
+            var leva = this, voluto = leva.checked;
+            fetch('/api/zone/opzioni', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ solo_login: voluto }) })
+                .then(function (r) { return r.json(); })
+                .then(function (d) { if (!d || d.status !== 'success') leva.checked = !voluto; })
+                .catch(function () { leva.checked = !voluto; });
+        });
+    }
 
     /* =================================================================
        10. OROLOGIO
@@ -1164,6 +1531,8 @@ body.notte .segno .bolla { border-color: #22252C; }
 
     aggiornaPosizioni();
     setInterval(aggiornaPosizioni, 5000);
+    caricaZone();
+    setInterval(function () { if (!editor) caricaZone(); }, 10000);   /* chi e' dentro cambia col tempo; non mentre si disegna */
     window.addEventListener('load', avviaTracciamento);
     window.addEventListener('resize', function () { map.resize(); });
 })();

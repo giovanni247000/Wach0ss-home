@@ -694,13 +694,17 @@
 //  DATI
 // =============================================================================
 let entita = [], contatti = [], automazioni = [], scenari = [], statoRegole = {}, soleOggi = null;
+let zone = [], persone = [];   // zone sulla mappa (/api/zone): inneschi e condizioni "una persona entra/esce"
+const nomeZona = k => (zone.find(z => z.chiave === k) || {}).nome || k || '…';
+const opzioniPersone = () => persone.map(p => ({ v: p, t: p, icona: 'user' }));
+const opzioniZone = () => zone.map(z => ({ v: z.chiave, t: z.nome, sub: (z.raggio >= 1000 ? (z.raggio / 1000) + ' km' : z.raggio + ' m'), icona: z.casa ? 'home' : 'map-pin' }));
 let filtroAttivo = 'tutte', cId = null, cClassica = false, cModificata = false, scenaScelte = [];
 const DOMINI = { light: 'Luci', switch: 'Interruttori e prese', cover: 'Tapparelle', sensor: 'Sensori', binary_sensor: 'Sensori aperto/chiuso', media_player: 'Audio e video', climate: 'Clima', scene: 'Scenari', group: 'Gruppi', camera: 'Telecamere', fan: 'Ventole', input_boolean: 'Interruttori virtuali' };
 const ICONE = { light: 'lightbulb', switch: 'power', cover: 'blinds', sensor: 'activity', binary_sensor: 'door-open', media_player: 'speaker', climate: 'thermometer', scene: 'layers', group: 'layers', camera: 'camera', fan: 'fan', input_boolean: 'toggle-left' };
 const GIORNI = ['L', 'M', 'M', 'G', 'V', 'S', 'D'], GIORNI_LUNGHI = ['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
 const TIPI = {
-    innesco: [['stato', 'Un dispositivo cambia', 'zap'], ['durata', 'Un dispositivo resta così per un tempo', 'hourglass'], ['orario', 'A un orario', 'clock'], ['sole', 'Alba o tramonto', 'sun'], ['periodico', 'Ogni tot minuti', 'repeat']],
-    condizione: [['stato', 'Stato di un dispositivo', 'search'], ['fascia', 'Fascia oraria', 'clock'], ['giorni', 'Giorni della settimana', 'calendar'], ['sole', 'Giorno o notte', 'sun-moon']],
+    innesco: [['stato', 'Un dispositivo cambia', 'zap'], ['durata', 'Un dispositivo resta così per un tempo', 'hourglass'], ['orario', 'A un orario', 'clock'], ['sole', 'Alba o tramonto', 'sun'], ['periodico', 'Ogni tot minuti', 'repeat'], ['zona', 'Una persona entra o esce da una zona', 'map-pin']],
+    condizione: [['stato', 'Stato di un dispositivo', 'search'], ['fascia', 'Fascia oraria', 'clock'], ['giorni', 'Giorni della settimana', 'calendar'], ['sole', 'Giorno o notte', 'sun-moon'], ['zona', 'Dove si trova una persona', 'map-pin']],
     azione: [['dispositivo', 'Accendi, spegni, inverti', 'power'], ['tapparella', 'Tapparella', 'blinds'], ['luce', 'Luce: luminosità e colore', 'lightbulb'], ['scena', 'Attiva uno scenario', 'layers'], ['attesa', 'Aspetta', 'timer'], ['telegram', 'Messaggio Telegram', 'send'], ['popup', 'Avviso sull\'app', 'smartphone'], ['regola', 'Un\'altra automazione', 'git-branch']],
 };
 const CONFRONTI_ONOFF = [['diventa', 'diventa'], ['cambia', 'cambia (qualunque valore)'], ['!=', 'diventa diverso da']];
@@ -811,7 +815,7 @@ function scelta(cont, cfg) {
         const p = document.createElement('div'); p.className = 'menu' + (foglio ? ' foglio' : ''); p.setAttribute('role', foglio ? 'dialog' : 'listbox'); p.setAttribute('aria-label', titolo); if (foglio) { p.setAttribute('aria-modal', 'true'); p.setAttribute('tabindex', '-1'); }
         const conCerca = cfg.cerca || cfg.opzioni.length > 8;
         p.innerHTML = `<div class="maniglia"></div><div class="menu-titolo"><span>${esc(titolo)}</span><button type="button" class="ib s ghost" title="Chiudi" aria-label="Chiudi"><i data-lucide="x"></i></button></div>` + (conCerca ? `<div class="menu-testa"><div class="cerca"><i data-lucide="search"></i><input type="search" placeholder="Cerca per nome o id" aria-label="Cerca" autocomplete="off"></div></div>` : '') + `<div class="menu-lista" role="${foglio ? 'listbox' : 'presentation'}"></div><div class="menu-piede"><span><kbd>↑</kbd><kbd>↓</kbd> scorri</span><span><kbd>↵</kbd> scegli</span><span><kbd>Esc</kbd> chiudi</span><span class="cnt"></span></div>`;
-        const lista = p.querySelector('.menu-lista'), cnt = p.querySelector('.cnt'); const unita = cfg.opzioni.some(o => o.sub) ? 'dispositivi' : 'voci';
+        const lista = p.querySelector('.menu-lista'), cnt = p.querySelector('.cnt'); const unita = cfg.unita || (cfg.opzioni.some(o => o.sub) ? 'dispositivi' : 'voci');
         const riempiLista = (q) => {
             q = (q || '').toLowerCase().trim(); lista.innerHTML = ''; let gruppoCorr = null, n = 0;
             cfg.opzioni.forEach(o => { if (q && !(o.t + ' ' + (o.sub || '') + ' ' + (o.gruppo || '') + ' ' + aVideo(o.t) + ' ' + aVideo(o.gruppo || '')).toLowerCase().includes(q)) return; if (o.gruppo && o.gruppo !== gruppoCorr) { gruppoCorr = o.gruppo; const g = document.createElement('div'); g.className = 'gruppo'; g.setAttribute('data-no-tr', ''); g.innerHTML = evidenzia(o.gruppo, q); lista.appendChild(g); }
@@ -845,6 +849,7 @@ function clickVelo() { if (pannelloAperto) { chiudiScelta(); return; } if (docum
 // =============================================================================
 async function carica() {
     try { entita = await api('/api/entities_for_automations'); try { contatti = await api('/api/telegram_chats'); } catch (e) { contatti = []; } } catch (e) { toast('Impossibile caricare i dispositivi', true); }
+    try { const z = await api('/api/zone'); zone = z.zone || []; persone = z.persone || []; } catch (e) { zone = []; persone = []; }
     await caricaListe();
 }
 async function caricaListe() {
@@ -876,6 +881,7 @@ function tileDi(c) {
     if (i.tipo === 'orario') return { icona: 'clock', classe: 'notte' };
     if (i.tipo === 'sole') return { icona: i.evento === 'alba' ? 'sunrise' : 'sunset', classe: 'sole' };
     if (i.tipo === 'periodico') return { icona: 'repeat', classe: 'film' };
+    if (i.tipo === 'zona') return { icona: i.evento === 'esce' ? 'log-out' : 'map-pin', classe: 'pianta' };
     const d = dominioDi(i.entita), n = ((i.entita || '') + ' ' + nomeDi(i.entita)).toLowerCase(); let icona = 'zap', classe = 'caldo';
     if (d === 'binary_sensor') { if (/moviment|presenz|motion|occup/.test(n)) { icona = 'radar'; classe = 'pianta'; } else { icona = 'door-open'; classe = 'porta'; } }
     else if (d === 'light') { icona = 'lightbulb'; classe = 'luce'; }
@@ -954,6 +960,7 @@ function fraseInnesco(i) {
     if (i.tipo === 'orario') return `sono le <b>${i.ora}</b>` + ((i.giorni || []).length ? ` (${i.giorni.map(g => GIORNI_LUNGHI[g].slice(0, 3)).join(', ')})` : '');
     if (i.tipo === 'sole') { const s = Number(i.scostamento || 0), alba = i.evento === 'alba'; if (!s) return `è <b>${alba ? 'l\'alba' : 'il tramonto'}</b>`; return `<b>${Math.abs(s)} min ${s < 0 ? (alba ? 'prima dell\'alba' : 'prima del tramonto') : (alba ? 'dopo l\'alba' : 'dopo il tramonto')}</b>`; }
     if (i.tipo === 'periodico') return `passano <b>${i.minuti} minuti</b>`;
+    if (i.tipo === 'zona') return `<b data-no-tr>${esc(i.persona || '…')}</b> ${i.evento === 'esce' ? 'esce da' : 'entra in'} <b data-no-tr>${esc(nomeZona(i.zona))}</b>`;
     return '…';
 }
 function fraseCondizione(c) {
@@ -962,6 +969,7 @@ function fraseCondizione(c) {
     else if (c.tipo === 'fascia') t = `siamo fra le <b>${c.dalle}</b> e le <b>${c.alle}</b>`;
     else if (c.tipo === 'giorni') t = `è <b>${(c.giorni || []).map(g => GIORNI_LUNGHI[g]).join(', ') || '…'}</b>`;
     else if (c.tipo === 'sole') t = `è <b>${c.posizione === 'notte' ? 'notte' : 'giorno'}</b>`;
+    else if (c.tipo === 'zona') t = `<b data-no-tr>${esc(c.persona || '…')}</b> ${c.dove === 'fuori' ? 'è fuori da' : 'è dentro'} <b data-no-tr>${esc(nomeZona(c.zona))}</b>`;
     return neg ? `<i>non</i> ${t}` : t;
 }
 function fraseAzione(a) {
@@ -1019,6 +1027,7 @@ function costruisciFrase(riga, genere, tipo, d) {
         } else if (tipo === 'orario') { agg(P('alle')); campo('Ora', ora('ora', d.ora, 'Ora')); agg(P('nei giorni')); campo('Giorni', giorniHTML(d.giorni), 'giorni-c'); agg(N('giorni')); }
         else if (tipo === 'sole') { m('evento', { valore: d.evento || 'tramonto', opzioni: [{ v: 'alba', t: 'Alba', icona: 'sunrise' }, { v: 'tramonto', t: 'Tramonto', icona: 'sunset' }] }, 'Evento'); agg(P('con scostamento di')); campo('Scostamento', numero('scostamento', d.scostamento == null ? 0 : d.scostamento, 'min', null, null, 5, 'Scostamento in minuti')); agg(N('sole')); }
         else if (tipo === 'periodico') { agg(P('ogni')); campo('Ogni', numero('minuti', d.minuti == null ? 30 : d.minuti, 'minuti', 1, null, 1, 'Ogni quanti minuti')); }
+        else if (tipo === 'zona') { m('persona', { valore: d.persona || '', opzioni: opzioniPersone(), cerca: true, placeholder: 'Scegli la persona', icona: 'user' }, 'Persona'); m('evento', { valore: d.evento || 'entra', opzioni: [{ v: 'entra', t: 'entra in', icona: 'log-in' }, { v: 'esce', t: 'esce da', icona: 'log-out' }] }, 'Evento'); m('zona', { valore: d.zona || (zone[0] ? zone[0].chiave : ''), opzioni: opzioniZone(), placeholder: 'Scegli la zona', icona: 'map-pin', unita: 'zone' }, 'Zona'); agg(H(zone.length ? 'Le zone si disegnano nella pagina Mappa' : 'Nessuna zona: disegnale nella pagina Mappa')); }
     }
     if (genere === 'condizione') {
         campo('Al contrario', negaHTML(d.nega), 'nega-c');
@@ -1027,6 +1036,7 @@ function costruisciFrase(riga, genere, tipo, d) {
         else if (tipo === 'fascia') { agg(P('siamo fra le')); campo('Dalle', ora('dalle', d.dalle || '22:00', 'Dalle')); agg(P('e le')); campo('Alle', ora('alle', d.alle || '06:00', 'Alle')); agg(N('fascia')); }
         else if (tipo === 'giorni') { agg(P('è')); campo('Giorni', giorniHTML(d.giorni && d.giorni.length ? d.giorni : [0, 1, 2, 3, 4]), 'giorni-c'); }
         else if (tipo === 'sole') { agg(P('è')); m('posizione', { valore: d.posizione || 'notte', opzioni: [{ v: 'giorno', t: 'giorno (fra alba e tramonto)', icona: 'sun' }, { v: 'notte', t: 'notte', icona: 'moon' }] }, 'Momento'); }
+        else if (tipo === 'zona') { m('persona', { valore: d.persona || '', opzioni: opzioniPersone(), cerca: true, placeholder: 'Scegli la persona', icona: 'user' }, 'Persona'); m('dove', { valore: d.dove || 'dentro', opzioni: [{ v: 'dentro', t: 'è dentro', icona: 'map-pin' }, { v: 'fuori', t: 'è fuori da', icona: 'map-pin-off' }] }, 'Dove'); m('zona', { valore: d.zona || (zone[0] ? zone[0].chiave : ''), opzioni: opzioniZone(), placeholder: 'Scegli la zona', icona: 'map-pin', unita: 'zone' }, 'Zona'); }
     }
     if (genere === 'azione') {
         if (tipo === 'dispositivo') { m('comando', { valore: d.comando || 'on', opzioni: [{ v: 'on', t: 'Accendi / apri', icona: 'power' }, { v: 'off', t: 'Spegni / chiudi', icona: 'power-off' }, { v: 'toggle', t: 'Inverti', icona: 'repeat' }] }, 'Comando'); m('entita', { valore: ent, opzioni: opzioniEntita(), cerca: true, placeholder: 'Scegli un dispositivo', icona: 'cpu', onChange: () => cambiato() }, 'Dispositivo'); }
@@ -1079,7 +1089,7 @@ function aggiornaRiepilogo() { const html = frase(leggiConfig()); document.getEl
 async function controlla() { const mio = ++_nControlla; try { const j = await api('/api/automazioni_avanzate/controlla', 'POST', { id: cId, name: document.getElementById('c-nome').value, config: leggiConfig() }); if (mio !== _nControlla) return j.errori || []; mostraErrori(j.errori || []); return j.errori || []; } catch (e) { return []; } }
 function rigaDiErrore(e) { const m = /^(innesco|condizione|azione)\s+(\d+)/i.exec(e || ''); return m ? { genere: m[1].toLowerCase(), n: Number(m[2]) } : null; }
 function rigaN(genere, n) { const lista = document.getElementById('c-' + ({ innesco: 'inneschi', condizione: 'condizioni', azione: 'azioni' })[genere]); return lista ? lista.querySelectorAll('.riga')[n - 1] : null; }
-function campoDiErrore(riga, e) { e = (e || '').toLowerCase(); const k = /automazion/.test(e) && riga.dataset.tipo === 'regola' ? 'id' : /dispositiv|tapparell|luce|scenario|entit/.test(e) ? 'entita' : /messaggio|testo|avviso/.test(e) ? 'messaggio' : /posizion/.test(e) ? 'posizione' : /minut/.test(e) ? 'minuti' : /second/.test(e) ? 'secondi' : /valore/.test(e) ? 'valore' : /giorn/.test(e) ? 'giorni' : /orari|\bora\b/.test(e) ? 'ora' : /titolo/.test(e) ? 'titolo' : null; if (!k) return null; const s = riga.querySelector(`.frase-riga [data-k="${k}"]`); return s ? (s.querySelector('.scelta') || s) : null; }
+function campoDiErrore(riga, e) { e = (e || '').toLowerCase(); const k = /automazion/.test(e) && riga.dataset.tipo === 'regola' ? 'id' : /person/.test(e) ? 'persona' : /\bzona\b/.test(e) ? 'zona' : /entra o esce/.test(e) ? 'evento' : /dentro o fuori/.test(e) ? 'dove' : /dispositiv|tapparell|luce|scenario|entit/.test(e) ? 'entita' : /messaggio|testo|avviso/.test(e) ? 'messaggio' : /posizion/.test(e) ? 'posizione' : /minut/.test(e) ? 'minuti' : /second/.test(e) ? 'secondi' : /valore/.test(e) ? 'valore' : /giorn/.test(e) ? 'giorni' : /orari|\bora\b/.test(e) ? 'ora' : /titolo/.test(e) ? 'titolo' : null; if (!k) return null; const s = riga.querySelector(`.frase-riga [data-k="${k}"]`); return s ? (s.querySelector('.scelta') || s) : null; }
 let mostraErroriInline = false;
 function mostraErrori(errori) {
     const b = document.getElementById('c-blocco-errori'); b.style.display = errori.length ? '' : 'none';
