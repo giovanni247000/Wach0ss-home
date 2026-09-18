@@ -4205,7 +4205,8 @@ async function confirmDeleteContext() {
             hideDeleteConfirm();
             return showToast("Devi mantenere almeno una stanza nel sistema", "error");
         }
-        delete config[editingId]; 
+        delete config[editingId];
+        ambChiaveApp(editingId, null);                       // via anche l'ordine e le card allargate salvati nell'app
         activeRoom = Object.keys(config)[0];
         activeSubRoom = null;
         
@@ -4217,6 +4218,7 @@ async function confirmDeleteContext() {
         
     } else if (editingType === 'subroom') {
         delete config[activeRoom].sub_rooms[editingId];
+        ambChiaveApp(activeRoom + '/' + editingId, null);
         activeSubRoom = null;
         
         await saveConfig(false); // <-- FIX: Non leggere la griglia!
@@ -4227,6 +4229,12 @@ async function confirmDeleteContext() {
     }
 }
 
+        // Nell'app l'ordine delle card e le card allargate sono salvati per nome di stanza/zona ('Stanza' o
+        // 'Stanza/Zona'): a una rinomina seguono il nuovo nome, a un'eliminazione spariscono (nuova = null).
+        function ambChiaveApp(vecchia, nuova) {
+            const corpo = nuova === null ? { vecchia, elimina: true } : { vecchia, nuova };
+            return fetch('/api/mobile/rinomina_chiave', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) }).catch(() => {});
+        }
         async function saveEdits() {
             const newName = document.getElementById('edit-custom-name').value.trim();
             if (!newName) return showToast("Il nome non può essere vuoto", "error");
@@ -4243,6 +4251,7 @@ if (editingType === 'room') {
                     delete customIcons['room_' + editingId];
                 }
                 activeRoom = newName;
+                ambChiaveApp(editingId, newName);            // ordine e card allargate dell'app seguono il nuovo nome
             }
             if(selectedIcon) customIcons['room_' + activeRoom] = selectedIcon;
             
@@ -4260,6 +4269,7 @@ if (editingType === 'room') {
                 }
                 config[activeRoom].sub_rooms = newSubRooms;
                 activeSubRoom = newName;
+                ambChiaveApp(activeRoom + '/' + editingId, activeRoom + '/' + newName);
                 
                 await saveConfig(false); // <-- FIX
                 renderTabs(); updateWorkspaceView();

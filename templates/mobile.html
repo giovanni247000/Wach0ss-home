@@ -2501,10 +2501,12 @@
         .hk-card.hk-allargata { --hk-riga: 115px; --hk-gap: var(--grid-gap); grid-column: span 2; grid-row: span 2;
                                 min-height: calc(var(--hk-riga) * 2 + var(--hk-gap)); height: auto; position: relative;
                                 justify-content: flex-start; align-items: stretch; cursor: default; padding: 0; }
-        body.size-large .hk-card.hk-allargata { --hk-riga: 145px; }
+        body.size-large .hk-card.hk-allargata { --hk-riga: 145px; padding: 0; min-height: calc(var(--hk-riga) * 2 + var(--hk-gap)); }   /* vince su body.size-large .hk-card */
         body.layout-grid-1 .hk-card.hk-allargata { grid-column: span 1; }
         .hk-card.hk-allargata.type-media_player { flex-direction: column; grid-column: span 2; }
         body.layout-grid-1 .hk-card.hk-allargata.type-media_player { grid-column: span 1; }
+        /* telefono con griglia a 3 colonne: due colonne (~195px) tagliano telecomando TV e copertina: la card prende tutta la riga */
+        @media (max-width: 1023px) { body.layout-grid-3 .hk-card.hk-allargata, body.layout-grid-3 .hk-card.hk-allargata.type-media_player { grid-column: span 3; } }
         @media (min-width: 1024px) {
             .hk-card.hk-allargata { --hk-riga: 110px; --hk-gap: 16px; grid-column: span 2 !important; }
         }
@@ -2514,7 +2516,7 @@
         .hk-pannello { position: absolute; top: 12px; left: 14px; right: 14px; bottom: 12px; overflow-y: auto; overflow-x: hidden;
                        -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-top: 4px; }
         .hk-pannello::-webkit-scrollbar { display: none; }
-        .hk-pannello .hk-pannello-tasti { position: sticky; top: 0; float: right; display: flex; gap: 6px; z-index: 3; margin-left: 8px; }
+        .hk-pannello .hk-pannello-tasti { position: sticky; top: 0; height: 0; overflow: visible; display: flex; justify-content: flex-end; gap: 6px; z-index: 3; }   /* altezza zero: il modale sotto non viene spinto giu' (era un float) */
         .hk-pannello .hk-pannello-tasti button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.14);
                        background: rgba(255,255,255,0.1); color: #FFF; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .hk-pannello .hk-pannello-tasti button svg { width: 17px; height: 17px; }
@@ -2538,7 +2540,8 @@
         .hk-pannello .bottom-modal.incorporato .modal-scroll-area { max-height: none !important; overflow: visible !important; }
         .hk-card.hk-allargata:not([data-ospita]) .hk-pannello::after { content: attr(data-testo); display: block; padding: 28px 10px; text-align: center;
                        color: rgba(255,255,255,0.5); font-size: 0.85rem; }
-        body.modifica .hk-card.hk-allargata { max-height: 220px; overflow: hidden; }
+        body.modifica .hk-card.hk-allargata { max-height: 220px; min-height: 0; overflow: hidden; }   /* min-height: 0, altrimenti il min-height 2x2 vince sul max */
+        .hk-card.hk-allargata .hk-offline { top: auto; bottom: 10px; right: 14px; z-index: 3; }        /* l'etichetta Offline non finisce sotto i tasti del pannello */
     </style>
     <div class="hk-menu" id="hk-menu" role="menu">
         <div class="hk-menu-nome" id="hk-menu-nome" data-no-tr></div>
@@ -4914,10 +4917,13 @@ const uniqueActive = new Set(activeNodes.map(card => card.dataset.id)).size;
 
         // Un solo invio al bus quando l'utente smette di muovere: il KNX non va inondato.
         function inviaTemperatura(temp, subito) {
-            document.querySelectorAll(`.hk-card[data-id="${currentModalEntity}"]`).forEach(c => c.dataset.target = temp);
+            // l'entita' si fissa ADESSO, non quando scatta il timer: con due card allargate (termostato + luce)
+            // un tocco sull'altro pannello entro 420 ms cambia currentModalEntity e il comando andrebbe alla luce
+            const richiesta = currentModalEntity;
+            if (!richiesta) return;
+            document.querySelectorAll(`.hk-card[data-id="${richiesta}"]`).forEach(c => c.dataset.target = temp);
             clearTimeout(invioTermoInSospeso);
             const spedisci = () => {
-                const richiesta = currentModalEntity;
                 fetch('/api/climate_control', { method: 'POST', headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ entity_id: richiesta, temperature: temp }) })
                     .then(r => r.json().catch(() => ({})))
@@ -5841,7 +5847,10 @@ document.getElementById('volume-slider').addEventListener('change', (e) => {
                 const res = await fetch(`/api/sonos_now/${entityId}`);
                 if (!res.ok) return;
                 const now = await res.json();
-                if (now.error || currentModalEntity !== entityId) return;
+                // ospitato in una card allargata: currentModalEntity puo' essere di un altro pannello, ma il pannello Sonos e' ancora questo
+            const mm = document.getElementById('media-modal');
+            const ancoraQuesto = currentModalEntity === entityId || (mm && mm.classList.contains('incorporato') && mm.dataset.hkEntita === entityId);
+            if (now.error || !ancoraQuesto) return;
                 document.getElementById('modal-media-title').innerText = now.title || 'Nessun media';
                 document.getElementById('modal-media-artist').innerText = now.artist || 'Scegli un preferito per iniziare';
                 const btn = document.getElementById('modal-media-playpause');
@@ -5871,7 +5880,9 @@ document.getElementById('volume-slider').addEventListener('change', (e) => {
             refreshSonosNow(entityId);
             sonosSyncTimer = setInterval(() => {
                 const modal = document.getElementById('media-modal');
-                if (!modal.classList.contains('active') || currentModalEntity !== entityId) { stopSonosModalSync(); return; }
+                // ospitato in una card allargata: un tocco su un altro pannello cambia currentModalEntity, ma il pannello Sonos e' ancora questo
+                const ancoraQuesto = currentModalEntity === entityId || (modal.classList.contains('incorporato') && modal.dataset.hkEntita === entityId);
+                if (!modal.classList.contains('active') || !ancoraQuesto) { stopSonosModalSync(); return; }
                 refreshSonosNow(entityId);
             }, 4000);
             // Il tempo del brano avanza fluido in locale tra un sync e l'altro
@@ -6516,11 +6527,12 @@ let activeTimers = [];
 
     // Un invio solo quando il dito si ferma: il bus non va inondato
     function luceInvia(corpo, subito) {
-        if (!currentModalEntity) return;
+        const entita = currentModalEntity;   // fissata adesso (vedi inviaTemperatura): il timer non deve leggere una variabile cambiata nel frattempo
+        if (!entita) return;
         clearTimeout(luceInvioSospeso);
         const spedisci = () => fetch('/api/light_control', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(Object.assign({ entity_id: currentModalEntity }, corpo))
+            body: JSON.stringify(Object.assign({ entity_id: entita }, corpo))
         }).catch(err => console.error("Errore luce:", err));
         if (subito) spedisci(); else luceInvioSospeso = setTimeout(spedisci, 380);
     }
@@ -6931,11 +6943,12 @@ let coverAnimationInterval = null;
 
 function sendCoverCmd(action) {
     if(!currentModalEntity) return;
-    
-    fetch('/api/cover_control', { 
-        method: 'POST', 
-        headers: {'Content-Type': 'application/json'}, 
-        body: JSON.stringify({ entity_id: currentModalEntity, action: action }) 
+    const entitaCover = currentModalEntity;   // fissata ora: l'animazione qui sotto va sulla card di QUESTA tapparella anche se intanto si tocca un altro pannello
+
+    fetch('/api/cover_control', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ entity_id: entitaCover, action: action })
     }).catch(err => console.error("Errore cover:", err));
 
     const statusText = document.getElementById('cover-status-text');
@@ -6969,7 +6982,7 @@ function sendCoverCmd(action) {
         // Mentre il motore lavora resta scritto cosa sta facendo, non la percentuale secca
         tapDisegna(nextPos, arrivata ? null : (step > 0 ? 'IN APERTURA...' : 'IN CHIUSURA...'));
 
-        document.querySelectorAll(`.hk-card[data-id="${currentModalEntity}"]`).forEach(card => {
+        document.querySelectorAll(`.hk-card[data-id="${entitaCover}"]`).forEach(card => {
             card.dataset.position = nextPos;
             const stateEl = card.querySelector('.hk-state');
             if (stateEl) {
@@ -8659,6 +8672,14 @@ function hkToast(testo) {
 }
 
 /* ---------------- menu ---------------- */
+var hkSafeB = null;
+function hkSafeBottom() {
+    // altezza dell'indicatore Home (safe area in basso): env() non si legge da JS, lo si misura con un elemento di prova
+    if (hkSafeB !== null) return hkSafeB;
+    const p = document.createElement('div'); p.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-bottom:env(safe-area-inset-bottom,0px)';
+    document.body.appendChild(p); hkSafeB = parseFloat(getComputedStyle(p).paddingBottom) || 0; p.remove();
+    return hkSafeB;
+}
 function hkApriMenu(card, x, y) {
     if (Date.now() - hkMenuApertoA < 600 && hkMenuCard === card) return;   // pressione lunga + contextmenu nativo: una volta sola
     hkChiudiMenu();
@@ -8676,7 +8697,7 @@ function hkApriMenu(card, x, y) {
     menu.style.left = '0px'; menu.style.top = '0px';
     menu.classList.add('on');
     const left = Math.max(8, Math.min(x, window.innerWidth - menu.offsetWidth - 8));     // offsetWidth ignora la scala della transizione
-    const top = Math.max(8, Math.min(y, window.innerHeight - menu.offsetHeight - 8));
+    const top = Math.max(8, Math.min(y, window.innerHeight - menu.offsetHeight - 8 - hkSafeBottom()));   // sopra l'indicatore Home dell'iPhone
     menu.style.left = left + 'px'; menu.style.top = top + 'px';
 }
 function hkChiudiMenu() {
@@ -8699,7 +8720,7 @@ window.addEventListener('resize', hkChiudiMenu);
 
 // tasto destro (mouse): il menu al posto di quello del browser
 document.addEventListener('contextmenu', (e) => {
-    const card = e.target.closest('.hk-card'); if (!card) return;
+    const card = e.target.closest('.hk-card'); if (!card || !card.closest('.grid-hk')) return;   // solo card nella griglia (non la copia nell'avviso automazione)
     if (e.target.closest('.hk-pannello')) return;              // dentro il pannello ospitato il tasto destro resta normale
     e.preventDefault();
     if (document.body.classList.contains('modifica')) return;
@@ -8708,7 +8729,7 @@ document.addEventListener('contextmenu', (e) => {
 // pressione lunga (dito o pennino): stesso menu, nel punto toccato
 document.addEventListener('pointerdown', (e) => {
     if (e.pointerType === 'mouse') return;
-    const card = e.target.closest('.hk-card'); if (!card) return;
+    const card = e.target.closest('.hk-card'); if (!card || !card.closest('.grid-hk')) return;   // solo card nella griglia
     if (document.body.classList.contains('modifica') || e.target.closest('.hk-pannello')) return;
     hkAnnullaLp();
     hkLp = { card, x: e.clientX, y: e.clientY, scattato: false };
@@ -8740,7 +8761,7 @@ function hkAllarga(card, si, silenzioso) {
     const grid = card.closest('.grid-hk');
     const chiave = grid ? (grid.dataset.chiave || '') : '';
     if (si) {
-        if (!hkModaleDi(card)) return;
+        if (!hkModaleDi(card) || !grid) return;                // fuori dalla griglia (copia della card in un avviso) non si allarga
         card.classList.add('hk-allargata');
         hkOspita(card);
     } else {
@@ -8749,7 +8770,9 @@ function hkAllarga(card, si, silenzioso) {
         const pann = card.querySelector(':scope > .hk-pannello'); if (pann) pann.remove();
     }
     fetch('/api/mobile/allargata', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify({ chiave, entity_id: card.dataset.id, allargata: !!si }) }).catch(() => {});
+           body: JSON.stringify({ chiave, entity_id: card.dataset.id, allargata: !!si }) })
+        .then(r => { if (!r.ok) hkToast('Card non salvata sul server: al prossimo avvio potrebbe tornare com\u2019era'); })
+        .catch(() => hkToast('Card non salvata: nessuna risposta dal server'));
     if (!silenzioso) window.dispatchEvent(new Event('resize'));
 }
 function hkOspita(card) {
@@ -8791,14 +8814,29 @@ function hkRiapri(card) {
     if (!card.dataset.ospita) return;
     const velo = document.getElementById('modal-overlay');
     if (velo.classList.contains('active')) return;              // un modale vero e' aperto: si riapre alla sua chiusura (hkRiospitaTutte)
+    if (hkDitoOccupato() && hkCardGiu !== card) {              // un dito sta usando un altro pannello: riaprire ora gli cambierebbe il bersaglio a meta' gesto
+        clearTimeout(card._hkRiT); card._hkRiT = setTimeout(() => hkRiapri(card), 250); return;
+    }
     const tabB = document.getElementById('luce-tab-bianchi');
     const bianchi = card.dataset.ospita === 'light-modal' && tabB && tabB.classList.contains('attiva');
+    // le scelte fatte nel pannello non si perdono alla riapertura: intervallo del grafico del sensore, scheda Multiroom di Sonos
+    const oreSensore = (card.dataset.ospita === 'sensor-modal' && typeof sensorRangeHours !== 'undefined') ? sensorRangeHours : null;
+    const tabGruppo = card.dataset.ospita === 'media-modal' && (document.getElementById('tab-group') || {}).classList && document.getElementById('tab-group').classList.contains('active');
+    const tastierinoTv = card.dataset.ospita === 'tv-modal' && (document.getElementById('tv-numpad') || {}).classList && document.getElementById('tv-numpad').classList.contains('open');
     hkUltimoRiapri = Date.now();
     hkOspitando = true; window.__hkSilenzio = true;
     try { card.click(); } catch (e) {} finally { hkOspitando = false; window.__hkSilenzio = false; }
     velo.classList.remove('active');
     document.getElementById('app-wrapper').classList.remove('modal-active');
     if (bianchi && typeof luceScheda === 'function') { try { luceScheda('bianchi'); } catch (e) {} }   // la scheda scelta non si perde
+    if (oreSensore && oreSensore !== 24 && typeof setSensorRange === 'function') {
+        const b = document.querySelector('#sensor-ranges .sensor-range[data-hours="' + oreSensore + '"]');
+        if (b) { try { setSensorRange(oreSensore, b); } catch (e) {} }
+    }
+    if (tabGruppo && typeof switchMediaTab === 'function') { try { switchMediaTab('group'); } catch (e) {} }
+    if (tastierinoTv) { const np = document.getElementById('tv-numpad'); if (np) np.classList.add('open'); }
+    const modaleOspitato = document.getElementById(card.dataset.ospita);
+    if (modaleOspitato) modaleOspitato.dataset.hkEntita = card.dataset.id;   // il pannello mostra QUESTA entita' (vedi hkAllinea)
     card.dataset.firma = hkFirma(card);
     const p = card.querySelector('.hk-pannello-power');
     if (p) p.classList.toggle('acceso', card.classList.contains('state-on'));
@@ -8809,12 +8847,14 @@ function hkSgancia(card) {
     try { closeAllModals(); } catch (e) {}          // ferma cio' che il pannello teneva acceso (sync Sonos, stream...) e azzera le variabili
     const img = document.getElementById('modal-camera-img'); if (img && modale && modale.contains(img)) img.src = '';
     if (modale) {
-        modale.classList.remove('incorporato');
+        modale.classList.remove('incorporato'); delete modale.dataset.hkEntita;
         const o = hkOrigine[mid];
         if (o && o.parent) o.parent.insertBefore(modale, (o.next && o.next.parentNode === o.parent) ? o.next : null);
     }
     delete card.dataset.ospita; delete card.dataset.firma;
     if (card._hkOss) { card._hkOss.disconnect(); card._hkOss = null; }
+    // closeAllModals ha spento anche gli altri pannelli ospitati: si riaprono (senza contare sulla finestra dei 150 ms del velo)
+    setTimeout(hkRiospitaTutte, 60);
 }
 // prima di aprire il modale vero per una card normale: se quel modale sta dentro una card allargata, lo si libera
 function hkLiberaModale(card) {
@@ -8822,11 +8862,25 @@ function hkLiberaModale(card) {
     document.querySelectorAll('.hk-card.hk-allargata[data-ospita="' + mid + '"]').forEach(a => { if (a !== card) hkSgancia(a); });
 }
 // alla chiusura di qualsiasi modale vero, i pannelli tornano nelle card allargate rimaste senza
+function hkDitoOccupato() {
+    // un dito sta usando un pannello ospitato (cursore luce/termostato/tapparella, slider): riaprire adesso
+    // ricostruirebbe i controlli sotto il dito e cambierebbe currentModalEntity a meta' gesto
+    return hkPointerGiu || (typeof luceTrascina !== 'undefined' && luceTrascina) ||
+           !!document.querySelector('#climate-modal.trascina, #cover-modal.tap-trascina, #light-modal.luce-trascina');
+}
 function hkRiospitaTutte() {
     if (document.getElementById('modal-overlay').classList.contains('active')) return;
+    if (hkDitoOccupato()) {
+        // nel frattempo il gesto in corso deve continuare a comandare la SUA entita' (closeAllModals ha azzerato le variabili)
+        if (hkCardGiu && hkCardGiu.dataset.ospita) hkImpostaEntita(hkCardGiu.dataset.ospita, hkCardGiu.dataset.id);
+        clearTimeout(hkRiospitaT); hkRiospitaT = setTimeout(hkRiospitaTutte, 250);
+        return;
+    }
     // closeAllModals ha tolto .active e azzerato le variabili anche ai pannelli ospitati: si riaprono tutti
     document.querySelectorAll('.hk-card.hk-allargata').forEach(c => { if (!c.dataset.ospita) hkOspita(c); else hkRiapri(c); });
 }
+var hkRiospitaT = null;
+var hkCardGiu = null;             // la card allargata sotto il dito
 new MutationObserver(() => {
     if (Date.now() - hkUltimoRiapri < 150) return;              // il velo l'ha toccato hkRiapri, non un modale vero
     if (!document.getElementById('modal-overlay').classList.contains('active')) setTimeout(hkRiospitaTutte, 420);
@@ -8834,6 +8888,16 @@ new MutationObserver(() => {
 
 // A. i modali usano variabili globali (currentModalEntity, tvModalEntity...): con piu' card allargate di tipi diversi
 // puntano all'ultima aperta. Prima di ogni tocco dentro un pannello si riallineano a QUESTA card.
+function hkImpostaEntita(mid, id) {
+    // la variabile globale che i comandi di quel modale usano come bersaglio
+    try {
+        if (mid === 'tv-modal') tvModalEntity = id;
+        else if (mid === 'select-modal') selectModalEntity = id;
+        else if (mid === 'vacuum-modal') vacuumModalEntity = id;
+        else if (mid === 'sensor-modal') sensorModalEntity = id;
+        else currentModalEntity = id;
+    } catch (e) {}
+}
 function hkAllinea(card) {
     const id = card.dataset.id, mid = card.dataset.ospita; if (!mid) return;
     let ok;
@@ -8844,13 +8908,26 @@ function hkAllinea(card) {
         else if (mid === 'sensor-modal') ok = (sensorModalEntity === id);
         else ok = (currentModalEntity === id);
     } catch (e) { ok = false; }
-    if (!ok) hkRiapri(card);
+    if (ok) return;
+    const modale = document.getElementById(mid);
+    if (modale && modale.dataset.hkEntita === id && modale.classList.contains('incorporato') && card.contains(modale) && modale.classList.contains('active')) {
+        // il pannello mostra gia' questa entita': basta la variabile. Ricostruirlo (card.click) sotto il dito
+        // farebbe perdere il primo tocco (il tasto premuto viene sostituito prima del click)
+        hkImpostaEntita(mid, id);
+        return;
+    }
+    hkRiapri(card);
 }
 document.addEventListener('pointerdown', (e) => {
     const p = e.target.closest && e.target.closest('.hk-pannello'); if (!p) return;
     hkPointerGiu = true;
-    const card = p.closest('.hk-card'); if (card) hkAllinea(card);
+    const card = p.closest('.hk-card'); hkCardGiu = card || null; if (card) hkAllinea(card);
 }, true);
+// da tastiera (computer: frecce sulla barra della luce, tasti della tapparella) il bersaglio si riallinea anche senza tocco
+['focusin', 'keydown'].forEach(ev => document.addEventListener(ev, (e) => {
+    const p = e.target.closest && e.target.closest('.hk-pannello'); if (!p) return;
+    const card = p.closest('.hk-card'); if (card) hkAllinea(card);
+}, true));
 ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => { hkPointerGiu = false; }, true));
 
 function hkToggle(card) {
@@ -8881,6 +8958,9 @@ function hkOsserva(card) {
                 if (v && m) m.textContent = v.textContent;
                 card.dataset.firma = f; return;
             }
+            // il pannello del lettore multimediale si aggiorna da solo (sync Sonos, tasto play dal polling): ricostruirlo a ogni
+            // cambio di brano rifarebbe preferiti/gruppo e riporterebbe alla scheda Preferiti
+            if (card.classList.contains('type-media_player')) { card.dataset.firma = f; return; }
             hkRiapri(card);
         }, 500);
     });
@@ -8897,8 +8977,10 @@ function hkOsserva(card) {
     const salvate = window.__allargate || [];
     const esc = (s) => (window.CSS && CSS.escape) ? CSS.escape(s) : String(s).replace(/["\\]/g, '\\$&');
     salvate.forEach(k => {
-        const i = String(k).lastIndexOf('|'); if (i < 0) return;
-        const chiave = k.slice(0, i), id = k.slice(i + 1);
+        let chiave, id;
+        if (Array.isArray(k)) { chiave = String(k[0]); id = String(k[1]); }                      // [chiave, entity_id]
+        else { const i = String(k).lastIndexOf('|'); if (i < 0) return; chiave = k.slice(0, i); id = k.slice(i + 1); }   // forma vecchia
+        if (!chiave || !id) return;
         document.querySelectorAll('.grid-hk[data-chiave="' + esc(chiave) + '"] > .hk-card[data-id="' + esc(id) + '"]').forEach(card => {
             if (!hkModaleDi(card) || card.classList.contains('hk-allargata')) return;
             card.classList.add('hk-allargata');

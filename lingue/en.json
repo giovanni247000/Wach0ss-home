@@ -2567,7 +2567,9 @@
   "Configurazione, planimetrie 3D, immagini e suoni: tutto in un archivio che resta sul server.": "Configuration, 3D floor plans, images and sounds: all in one archive that stays on the server.",
   "Archivi sul server": "Archives on the server",
   "Il ripristino sostituisce la configurazione attuale. Licenza e codice della console non entrano nel backup.": "A restore replaces the current configuration. The licence and the console code are not part of the backup.",
-  "Col dito: trascina dall'icona del dispositivo, scorri toccando il resto": "With a finger: drag from the device icon, scroll by touching the rest"
+  "Col dito: trascina dall'icona del dispositivo, scorri toccando il resto": "With a finger: drag from the device icon, scroll by touching the rest",
+  "Card non salvata sul server: al prossimo avvio potrebbe tornare com’era": "Card not saved on the server: it may come back as it was at the next start",
+  "Card non salvata: nessuna risposta dal server": "Card not saved: no answer from the server"
  },
  "sempre": {
   " non ": " not ",
