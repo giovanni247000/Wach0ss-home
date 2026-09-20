@@ -2599,10 +2599,10 @@
   "Invia una prova": "Send a test",
   "Scrivi il testo della notifica": "Write the notification text",
   "Nessun telefono con le notifiche attive": "No phone with notifications enabled",
-  "Arriva sui telefoni con l'app iOS collegata a questo server (anche in sottofondo)": "Delivered to the phones running the iOS app connected to this server (also in the background)",
   "Nessun telefono registrato: apri l'app iOS e collegati a questo server": "No phone registered yet: open the iOS app and connect to this server",
   "notifica a": "notification to",
-  "esecuzione": "run"
+  "esecuzione": "run",
+  "Arriva sui telefoni con l'app iOS collegata a questo server (anche in sottofondo)": "Delivered to the phones running the iOS app connected to this server (also in the background)"
  },
  "sempre": {
   " non ": " not ",

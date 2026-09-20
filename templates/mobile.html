@@ -1851,7 +1851,13 @@
                 border-right: 1px solid rgba(255,255,255,0.1); border-top: none; padding: 50px 24px 30px 24px; 
                 align-items: stretch; justify-content: flex-start; flex-direction: column; 
                 pointer-events: auto; box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+                /* Con tante stanze il contenuto supera l'altezza dello schermo: la barra scorre
+                   (prima restava tagliato in fondo, senza modo di vederlo) */
+                overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin;
+                -webkit-overflow-scrolling: touch;
             }
+            /* i blocchi della barra non si schiacciano per stare nello schermo: si scorre */
+            .floating-nav-wrapper > * { flex-shrink: 0; }
 
             .floating-nav { 
                 flex-direction: column; padding: 0; margin: 0; border: none; 
