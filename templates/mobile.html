@@ -6215,6 +6215,7 @@ document.body.addEventListener('touchmove', function(e) {
                 !e.target.closest('.modal-scroll-area') && 
                 !e.target.closest('.imp-pagina') && 
                 !e.target.closest('#upd-overlay') && 
+                !e.target.closest('.floating-nav-wrapper') &&   /* barra laterale (iPad): scorre col dito se le stanze sono tante */
                 e.target.tagName !== 'INPUT') {
                 e.preventDefault();
             }
