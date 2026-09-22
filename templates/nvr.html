@@ -16,75 +16,166 @@
 <style>
 @import url('/static/fonts/inter.css');
 
+:root { --blu: #0A84FF; --rosso: #FF453A; --giallo: #FFD60A; --verde: #30D158; --testo2: rgba(255,255,255,0.55); --bordo: rgba(255,255,255,0.09); --vetro: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.04)); }
 html, body { margin: 0; padding: 0; background: #0B0B0F; color: #FFF; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
 * { box-sizing: border-box; }
-button { -webkit-appearance: none; appearance: none; }
-.nvr-pagina { position: fixed; inset: 0; display: flex; flex-direction: column; background: #0B0B0F; color: #FFF; }
-.imp-back { display: inline-flex; align-items: center; gap: 2px; background: transparent; border: none; color: #0A84FF; font-family: inherit; font-size: 0.95rem; font-weight: 500; padding: 6px 8px 6px 4px; cursor: pointer; border-radius: 10px; flex-shrink: 0; }
+button { -webkit-appearance: none; appearance: none; font-family: inherit; }
+.nvr-pagina { position: fixed; inset: 0; display: flex; flex-direction: column; background: radial-gradient(1200px 600px at 20% -10%, rgba(10,132,255,0.10), transparent 60%), #0B0B0F; color: #FFF; }
+.imp-back { display: inline-flex; align-items: center; gap: 2px; background: transparent; border: none; color: var(--blu); font-size: 0.95rem; font-weight: 500; padding: 6px 8px 6px 4px; cursor: pointer; border-radius: 10px; flex-shrink: 0; }
 .imp-back i { width: 22px; height: 22px; }
 .imp-back:active { background: rgba(255,255,255,0.07); }
-.nvr-live { font-size: 0.7rem; color: rgba(255,255,255,0.5); text-align: center; margin-top: -6px; min-height: 1em; }
-.nvr-testa { display: flex; align-items: center; gap: 6px; padding: calc(12px + env(safe-area-inset-top)) 14px 10px 6px; border-bottom: 1px solid rgba(255,255,255,0.08); background: linear-gradient(180deg, rgba(28,28,34,0.98), rgba(16,16,20,0.98)); flex-shrink: 0; }
+.nvr-testa { display: flex; align-items: center; gap: 6px; padding: calc(12px + env(safe-area-inset-top)) 12px 10px 6px; border-bottom: 1px solid var(--bordo); background: linear-gradient(180deg, rgba(28,28,34,0.98), rgba(16,16,20,0.98)); flex-shrink: 0; }
 .nvr-testa h2 { margin: 0; font-size: 1.06rem; font-weight: 700; letter-spacing: -0.02em; flex: 1; }
-.nvr-rec { display: none; align-items: center; gap: 6px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; color: #FF453A; background: rgba(255,69,58,0.14); border: 1px solid rgba(255,69,58,0.35); padding: 4px 9px; border-radius: 20px; }
+.nvr-rec { display: none; align-items: center; gap: 6px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.08em; color: var(--rosso); background: rgba(255,69,58,0.14); border: 1px solid rgba(255,69,58,0.35); padding: 4px 9px; border-radius: 20px; }
 .nvr-rec.on { display: inline-flex; }
-.nvr-rec i { width: 8px; height: 8px; border-radius: 50%; background: #FF453A; display: block; animation: nvrPulsa 1.2s infinite; }
+.nvr-rec i { width: 8px; height: 8px; border-radius: 50%; background: var(--rosso); display: block; animation: nvrPulsa 1.2s infinite; }
 @keyframes nvrPulsa { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.nvr-ib { width: 36px; height: 36px; border-radius: 12px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: #FFF; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; text-decoration: none; transition: background 0.15s, transform 0.1s; }
+.nvr-ib:active { transform: scale(0.94); }
+.nvr-ib:disabled { opacity: 0.3; cursor: default; }
+.nvr-ib i { width: 18px; height: 18px; }
+.nvr-ib.pericolo { color: #FF6B60; }
+.nvr-ib.pericolo:hover { background: rgba(255,69,58,0.15); }
 .nvr-corpo { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 12px 0 calc(30px + env(safe-area-inset-bottom)); }
-.nvr-int { max-width: 960px; margin: 0 auto; padding: 0 14px; display: flex; flex-direction: column; gap: 12px; }
+.nvr-int { max-width: 980px; margin: 0 auto; padding: 0 14px; display: flex; flex-direction: column; gap: 12px; }
+/* telecamere */
 .nvr-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; }
 .nvr-chips::-webkit-scrollbar { display: none; }
-.nvr-chip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 22px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.75); font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.nvr-chip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 22px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.75); font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .nvr-chip i { width: 15px; height: 15px; }
 .nvr-chip.attiva { background: #FFF; color: #000; border-color: #FFF; }
-.nvr-video-box { position: relative; background: #000; border-radius: 20px; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 15px 40px rgba(0,0,0,0.6); }
+.nvr-chip .rec { width: 7px; height: 7px; border-radius: 50%; background: var(--rosso); box-shadow: 0 0 6px var(--rosso); }
+/* player */
+.nvr-video-box { position: relative; background: #000; border-radius: 22px; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 18px 45px rgba(0,0,0,0.6); }
 .nvr-video-box video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
 .nvr-video-ora { position: absolute; left: 12px; top: 12px; background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 5px 10px; border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9rem; font-weight: 600; letter-spacing: 0.02em; }
+.nvr-video-cam { position: absolute; left: 12px; bottom: 12px; display: flex; align-items: center; gap: 7px; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 5px 10px 5px 8px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; color: rgba(255,255,255,0.9); max-width: 60%; }
+.nvr-video-cam i { width: 14px; height: 14px; color: var(--blu); flex-shrink: 0; }
+.nvr-video-cam span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nvr-video-cam small { color: rgba(255,255,255,0.55); font-weight: 500; }
 .nvr-video-msg { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: rgba(255,255,255,0.6); font-size: 0.85rem; text-align: center; padding: 20px 30px; pointer-events: none; background: rgba(0,0,0,0.35); }
 .nvr-video-msg.on { display: flex; }
 .nvr-video-msg i { width: 34px; height: 34px; opacity: 0.5; }
 .nvr-video-btn { position: absolute; bottom: 10px; right: 10px; display: flex; gap: 6px; }
 .nvr-video-btn button, .nvr-video-btn a { width: 38px; height: 38px; border-radius: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); color: #FFF; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
 .nvr-video-btn i { width: 18px; height: 18px; }
-.nvr-giorno { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.nvr-giorno-nav { display: flex; align-items: center; gap: 4px; }
-.nvr-ib { width: 36px; height: 36px; border-radius: 12px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); color: #FFF; display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: inherit; padding: 0; }
-.nvr-ib:disabled { opacity: 0.3; cursor: default; }
-.nvr-ib i { width: 18px; height: 18px; }
-.nvr-giorno-t { font-weight: 700; font-size: 0.95rem; padding: 0 4px; text-transform: capitalize; min-width: 92px; text-align: center; }
+/* giorni */
+.nvr-giorni { display: flex; align-items: center; gap: 6px; }
+.nvr-giorni-strip { flex: 1; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; scroll-behavior: smooth; }
+.nvr-giorni-strip::-webkit-scrollbar { display: none; }
+.nvr-g { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; min-width: 58px; padding: 7px 10px; border-radius: 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); cursor: pointer; }
+.nvr-g b { font-size: 0.8rem; font-weight: 700; text-transform: capitalize; }
+.nvr-g small { font-size: 0.64rem; color: var(--testo2); font-weight: 600; }
+.nvr-g.attivo { background: #FFF; color: #000; border-color: #FFF; }
+.nvr-g.attivo small { color: rgba(0,0,0,0.55); }
+.nvr-g.vuoto small { color: transparent; }
+.nvr-g.vuoto.attivo small { color: transparent; }
+.nvr-g.oggi:not(.attivo) b { color: var(--blu); }
+/* barra: zoom + info */
+.nvr-riga-cmd { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .nvr-zoom { display: flex; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 3px; }
-.nvr-zoom button { border: none; background: transparent; color: rgba(255,255,255,0.6); font-family: inherit; font-size: 0.74rem; font-weight: 700; padding: 6px 8px; border-radius: 9px; cursor: pointer; }
+.nvr-zoom button { border: none; background: transparent; color: rgba(255,255,255,0.6); font-size: 0.74rem; font-weight: 700; padding: 6px 9px; border-radius: 9px; cursor: pointer; }
 .nvr-zoom button.attivo { background: #FFF; color: #000; }
+.nvr-live { font-size: 0.72rem; color: var(--testo2); min-height: 1em; }
+.nvr-live b { color: var(--rosso); font-weight: 700; }
+/* linea del tempo */
 .nvr-tl { position: relative; background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: pan-x; }
 .nvr-tl-scroll { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -webkit-overflow-scrolling: touch; cursor: grab; }
 .nvr-tl-scroll::-webkit-scrollbar { display: none; }
 .nvr-tl-scroll canvas { display: block; }
-.nvr-tl-cursore { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: #FF453A; transform: translateX(-1px); pointer-events: none; box-shadow: 0 0 8px rgba(255,69,58,0.8); }
-.nvr-tl-cursore::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border: 7px solid transparent; border-top: 9px solid #FF453A; }
-.nvr-tl-ora { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); background: #FF453A; color: #FFF; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 8px; pointer-events: none; white-space: nowrap; }
-.nvr-tl-legenda { display: flex; gap: 14px; font-size: 0.7rem; color: rgba(255,255,255,0.5); padding: 0 4px; margin-top: -4px; }
+.nvr-tl-cursore { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--rosso); transform: translateX(-1px); pointer-events: none; box-shadow: 0 0 8px rgba(255,69,58,0.8); }
+.nvr-tl-cursore::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); border: 7px solid transparent; border-top: 9px solid var(--rosso); }
+.nvr-tl-ora { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); background: var(--rosso); color: #FFF; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 8px; pointer-events: none; white-space: nowrap; }
+.nvr-tl-legenda { display: flex; gap: 14px; font-size: 0.7rem; color: var(--testo2); padding: 0 4px; margin-top: -4px; }
 .nvr-tl-legenda span { display: inline-flex; align-items: center; gap: 5px; }
 .nvr-tl-legenda i { width: 10px; height: 10px; border-radius: 3px; display: block; }
+/* trasporto */
 .nvr-trasporto { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .nvr-trasporto .nvr-ib { width: 44px; height: 44px; }
 .nvr-trasporto .nvr-play { width: 58px; height: 58px; border-radius: 50%; background: #FFF; color: #000; border: none; }
 .nvr-trasporto .nvr-play i { width: 26px; height: 26px; }
 .nvr-trasporto .nvr-vel { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.02em; }
 .nvr-trasporto .nvr-vel.veloce { background: #FFF; color: #000; }
-.nvr-elenco-t { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); margin: 6px 0 -4px 6px; }
-.nvr-elenco { background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.045)); border: 1px solid rgba(255,255,255,0.09); border-radius: 18px; overflow: hidden; }
-.nvr-riga { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; }
-.nvr-riga:last-child { border-bottom: none; }
+/* riepilogo del giorno + elenco a gruppi (per ora) */
+.nvr-sez { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding: 0 4px; }
+.nvr-sez-t { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.42); }
+.nvr-sez-s { font-size: 0.74rem; color: var(--testo2); margin-top: 3px; }
+.nvr-sez-s b { color: rgba(255,255,255,0.85); font-weight: 600; }
+.nvr-avviso { display: none; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: rgba(255,214,10,0.1); border: 1px solid rgba(255,214,10,0.3); color: #FFE55C; font-size: 0.82rem; }
+.nvr-avviso.on { display: flex; }
+.nvr-avviso i { width: 18px; height: 18px; flex-shrink: 0; }
+.nvr-elenco { display: flex; flex-direction: column; gap: 10px; }
+.nvr-gruppo { background: var(--vetro); border: 1px solid var(--bordo); border-radius: 18px; overflow: hidden; }
+.nvr-gruppo-h { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; user-select: none; -webkit-user-select: none; background: rgba(255,255,255,0.03); }
+.nvr-gruppo-h .ora { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; font-size: 0.86rem; }
+.nvr-gruppo-h .info { flex: 1; font-size: 0.72rem; color: var(--testo2); }
+.nvr-gruppo-h .chev { width: 18px; height: 18px; color: var(--testo2); transition: transform 0.2s; }
+.nvr-gruppo.chiuso .chev { transform: rotate(-90deg); }
+.nvr-gruppo.chiuso .nvr-gruppo-c { display: none; }
+.nvr-riga { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-top: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
 .nvr-riga.attiva { background: rgba(255,69,58,0.12); }
 .nvr-riga-ico { width: 36px; height: 36px; border-radius: 11px; background: rgba(10,132,255,0.16); color: #4DA3FF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .nvr-riga-ico i { width: 17px; height: 17px; }
-.nvr-riga.evento .nvr-riga-ico { background: rgba(255,214,10,0.15); color: #FFD60A; }
+.nvr-riga.evento .nvr-riga-ico { background: rgba(255,214,10,0.15); color: var(--giallo); }
 .nvr-riga-n { font-weight: 700; font-size: 0.9rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.nvr-riga-s { font-size: 0.74rem; color: rgba(255,255,255,0.5); margin-top: 2px; }
-.nvr-riga .nvr-ib { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; text-decoration: none; }
+.nvr-riga-s { font-size: 0.74rem; color: var(--testo2); margin-top: 2px; }
+.nvr-riga .nvr-ib { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; }
 .nvr-riga .nvr-ib i { width: 15px; height: 15px; }
-.nvr-vuoto { padding: 26px 16px; text-align: center; color: rgba(255,255,255,0.45); font-size: 0.85rem; }
-@media (min-width: 1024px) { .nvr-int { padding: 0 24px; } .nvr-video-box { aspect-ratio: auto; height: 52vh; } }
+.nvr-vuoto { padding: 26px 16px; text-align: center; color: rgba(255,255,255,0.45); font-size: 0.85rem; background: var(--vetro); border: 1px solid var(--bordo); border-radius: 18px; }
+/* archivio (finestra a cartelle) */
+.nvr-velo { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; z-index: 50; }
+.nvr-velo.on { opacity: 1; visibility: visible; }
+.nvr-sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 88vh; background: #16161B; border-radius: 26px 26px 0 0; border: 1px solid rgba(255,255,255,0.1); border-bottom: none; z-index: 51; display: flex; flex-direction: column; transform: translateY(105%); visibility: hidden; pointer-events: none; transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s, visibility 0.28s; box-shadow: 0 -20px 60px rgba(0,0,0,0.7); }
+.nvr-sheet.on { transform: translateY(0); visibility: visible; pointer-events: auto; }
+.nvr-sheet-h { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; border-bottom: 1px solid var(--bordo); }
+.nvr-sheet-h h3 { margin: 0; flex: 1; font-size: 1.02rem; font-weight: 700; letter-spacing: -0.01em; }
+.nvr-sheet-h h3 small { display: block; font-size: 0.72rem; font-weight: 500; color: var(--testo2); margin-top: 2px; word-break: break-all; }
+.nvr-sheet-c { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 14px 18px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; }
+.nvr-spazio { background: var(--vetro); border: 1px solid var(--bordo); border-radius: 16px; padding: 12px 14px; }
+.nvr-spazio-r { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--testo2); margin-bottom: 8px; }
+.nvr-spazio-r b { color: #FFF; font-weight: 600; }
+.nvr-barra { height: 8px; border-radius: 6px; background: rgba(255,255,255,0.08); overflow: hidden; display: flex; }
+.nvr-barra i { display: block; height: 100%; background: var(--blu); }
+.nvr-barra i.altro { background: rgba(255,255,255,0.25); }
+.nvr-spazio-l { display: flex; gap: 14px; font-size: 0.7rem; color: var(--testo2); margin-top: 8px; }
+.nvr-spazio-l span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; background: var(--blu); vertical-align: 0; }
+.nvr-spazio-l span.altro::before { background: rgba(255,255,255,0.25); }
+.nvr-spazio-l span.libero::before { background: rgba(255,255,255,0.08); }
+.nvr-cart { background: var(--vetro); border: 1px solid var(--bordo); border-radius: 16px; overflow: hidden; }
+.nvr-cart-h { display: flex; align-items: center; gap: 10px; padding: 11px 12px 11px 14px; cursor: pointer; }
+.nvr-cart-h .ico { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(255,214,10,0.12); color: #FFD60A; flex-shrink: 0; }
+.nvr-cart-h .ico i { width: 18px; height: 18px; }
+.nvr-cart-h .n { flex: 1; min-width: 0; }
+.nvr-cart-h .n > b { display: block; font-size: 0.88rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nvr-cart-h .n small { display: block; font-size: 0.72rem; color: var(--testo2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nvr-cart-h .n small b, .nvr-cart-g .n small b { font-weight: 600; color: rgba(255,255,255,0.8); }
+.nvr-cart-h .chev { width: 18px; height: 18px; color: var(--testo2); transition: transform 0.2s; }
+.nvr-cart.chiusa .chev { transform: rotate(-90deg); }
+.nvr-cart.chiusa .nvr-cart-c { display: none; }
+.nvr-cart-c { border-top: 1px solid rgba(255,255,255,0.05); }
+.nvr-cart-g { display: flex; align-items: center; gap: 10px; padding: 9px 12px 9px 22px; border-top: 1px solid rgba(255,255,255,0.04); cursor: pointer; }
+.nvr-cart-g:first-child { border-top: none; }
+.nvr-cart-g .ico { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: rgba(10,132,255,0.14); color: #4DA3FF; flex-shrink: 0; }
+.nvr-cart-g .ico i { width: 15px; height: 15px; }
+.nvr-cart-g .n { flex: 1; min-width: 0; }
+.nvr-cart-g .n > b { display: block; font-size: 0.82rem; font-weight: 600; }
+.nvr-cart-g .n > b::first-letter { text-transform: uppercase; }
+.nvr-cart-g .n small { display: block; font-size: 0.7rem; color: var(--testo2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nvr-cart-g.attuale .n > b { color: var(--blu); }
+.nvr-cart-vuota { padding: 10px 14px 12px 22px; font-size: 0.74rem; color: var(--testo2); }
+.nvr-azioni { display: flex; flex-direction: column; gap: 8px; }
+.nvr-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.07); color: #FFF; font-size: 0.86rem; font-weight: 600; cursor: pointer; }
+.nvr-btn i { width: 17px; height: 17px; }
+.nvr-btn.pericolo { background: rgba(255,69,58,0.12); border-color: rgba(255,69,58,0.35); color: #FF6B60; }
+.nvr-btn:disabled { opacity: 0.4; cursor: default; }
+@media (min-width: 1024px) {
+    .nvr-int { padding: 0 24px; }
+    .nvr-video-box { aspect-ratio: auto; height: 52vh; }
+    .nvr-sheet { left: 50%; right: auto; bottom: auto; top: 50%; width: 560px; max-height: 84vh; border-radius: 26px; border-bottom: 1px solid rgba(255,255,255,0.1); transform: translate(-50%, -46%) scale(0.97); opacity: 0; }
+    .nvr-sheet.on { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    .nvr-azioni { flex-direction: row; }
+    .nvr-azioni .nvr-btn { flex: 1; }
+}
 </style>
 </head>
 <body>
@@ -93,25 +184,29 @@ button { -webkit-appearance: none; appearance: none; }
         <button class="imp-back" onclick="nvrChiudi()" title="Torna all'app"><i data-lucide="chevron-left"></i><span>App</span></button>
         <h2>Registrazioni</h2>
         <span class="nvr-rec" id="nvr-rec"><i></i>REC</span>
+        <button class="nvr-ib" onclick="nvrApriArchivio()" title="Archivio"><i data-lucide="folder-open"></i></button>
     </div>
     <div class="nvr-corpo">
       <div class="nvr-int">
         <div class="nvr-chips" id="nvr-chips"></div>
+        <div class="nvr-avviso" id="nvr-avviso"><i data-lucide="usb"></i><span>Unità di archivio non collegata: le registrazioni riprenderanno appena torna disponibile.</span></div>
         <div class="nvr-video-box" id="nvr-video-box">
             <video id="nvr-video" playsinline webkit-playsinline muted preload="metadata"></video>
             <div class="nvr-video-ora" id="nvr-video-ora">--:--:--</div>
+            <div class="nvr-video-cam" id="nvr-video-cam"><i data-lucide="cctv"></i><span data-no-tr id="nvr-video-cam-n"></span><small id="nvr-video-cam-g"></small></div>
             <div class="nvr-video-msg on" id="nvr-video-msg"><i data-lucide="film"></i><span>Scegli un momento sulla linea del tempo</span></div>
             <div class="nvr-video-btn">
                 <a id="nvr-scarica" href="#" download title="Scarica" style="display:none;"><i data-lucide="download"></i></a>
                 <button type="button" onclick="nvrSchermoIntero()" title="Schermo intero"><i data-lucide="maximize"></i></button>
             </div>
         </div>
-        <div class="nvr-giorno">
-            <div class="nvr-giorno-nav">
-                <button class="nvr-ib" id="nvr-g-prev" onclick="nvrCambiaGiorno(-1)" title="Giorno precedente"><i data-lucide="chevron-left"></i></button>
-                <div class="nvr-giorno-t" id="nvr-giorno-t">Oggi</div>
-                <button class="nvr-ib" id="nvr-g-next" onclick="nvrCambiaGiorno(1)" title="Giorno successivo"><i data-lucide="chevron-right"></i></button>
-            </div>
+        <div class="nvr-giorni">
+            <button class="nvr-ib" id="nvr-g-prev" onclick="nvrCambiaGiorno(-1)" title="Giorno precedente"><i data-lucide="chevron-left"></i></button>
+            <div class="nvr-giorni-strip" id="nvr-giorni"></div>
+            <button class="nvr-ib" id="nvr-g-next" onclick="nvrCambiaGiorno(1)" title="Giorno successivo"><i data-lucide="chevron-right"></i></button>
+        </div>
+        <div class="nvr-riga-cmd">
+            <div class="nvr-live" id="nvr-live"></div>
             <div class="nvr-zoom" id="nvr-zoom">
                 <button type="button" data-z="86400" class="attivo" onclick="nvrZoom(86400)">24h</button>
                 <button type="button" data-z="21600" onclick="nvrZoom(21600)">6h</button>
@@ -124,7 +219,6 @@ button { -webkit-appearance: none; appearance: none; }
             <div class="nvr-tl-cursore"></div>
             <div class="nvr-tl-ora" id="nvr-tl-ora">00:00:00</div>
         </div>
-        <div class="nvr-live" id="nvr-live"></div>
         <div class="nvr-tl-legenda"><span><i style="background:#0A84FF"></i>Registrazione</span><span><i style="background:#FF453A"></i>In corso</span><span><i style="background:#FFD60A"></i>Evento</span></div>
         <div class="nvr-trasporto">
             <button class="nvr-ib" onclick="nvrSalta(-1)" title="Spezzone precedente"><i data-lucide="skip-back"></i></button>
@@ -134,9 +228,22 @@ button { -webkit-appearance: none; appearance: none; }
             <button class="nvr-ib" onclick="nvrSalta(1)" title="Spezzone successivo"><i data-lucide="skip-forward"></i></button>
             <button class="nvr-ib nvr-vel" id="nvr-vel" onclick="nvrVelocita()" title="Velocit&agrave;" data-no-tr>1&times;</button>
         </div>
-        <div class="nvr-elenco-t">Registrazioni del giorno</div>
+        <div class="nvr-sez">
+            <div><div class="nvr-sez-t">Registrazioni del giorno</div><div class="nvr-sez-s" id="nvr-riepilogo"></div></div>
+            <button class="nvr-ib pericolo" id="nvr-del-giorno" onclick="nvrEliminaGiorno()" title="Elimina le registrazioni del giorno" style="display:none;"><i data-lucide="trash-2"></i></button>
+        </div>
         <div class="nvr-elenco" id="nvr-elenco"><div class="nvr-vuoto">Caricamento...</div></div>
       </div>
+    </div>
+
+    <!-- ARCHIVIO: le registrazioni viste come cartelle (telecamera > giorno), spazio, cancellazioni -->
+    <div class="nvr-velo" id="nvr-velo" onclick="nvrChiudiArchivio()"></div>
+    <div class="nvr-sheet" id="nvr-sheet" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Archivio">
+        <div class="nvr-sheet-h">
+            <h3>Archivio<small id="nvr-arch-cartella" data-no-tr></small></h3>
+            <button class="nvr-ib" onclick="nvrChiudiArchivio()" title="Chiudi"><i data-lucide="x"></i></button>
+        </div>
+        <div class="nvr-sheet-c" id="nvr-arch-c"><div class="nvr-vuoto">Caricamento...</div></div>
     </div>
 </div>
 
@@ -152,7 +259,8 @@ button { -webkit-appearance: none; appearance: none; }
     const MOTIVI = { sempre: 'Continua', orari: 'Fascia oraria', eventi: 'Evento', manuale: 'Manuale' };
 
     let cams = [], camId = null, giorni = [], giorno = null, t0 = 0;
-    let recs = [], eventi = [], inCorso = null, segmentoSec = 300, DUR = 86400;   // DUR: secondi del giorno mostrato (23 o 25 h con l'ora legale)
+    let archivio = null, giorniInfo = {};        // /api/nvr/archivio e, per la telecamera scelta, {giorno: {n, mb, sec}}
+    let recs = [], eventi = [], inCorso = null, segmentoSec = 300, DUR = 86400, archivioOk = true;   // DUR: secondi del giorno mostrato (23 o 25 h con l'ora legale)
     let velocita = 1, offsetAtteso = 0;
     let finestra = 86400, pxs = 0, W = 0;   // secondi visibili nella larghezza, pixel al secondo, larghezza
     let larg = 0, cw = 0, disegnatoDa = 0;  // pista intera, tela (al massimo 3 schermate), dove parte la tela
@@ -160,6 +268,7 @@ button { -webkit-appearance: none; appearance: none; }
     let voleva = false;                    // l'utente vuole vedere (play premuto)
     let ultimoT = 0;                       // istante (epoch) sotto il cursore
     let scrubbing = false, tScrub = null, tAggiorna = null, dragX = null, dragMosso = 0, dragScroll = 0;
+    const gruppiChiusi = new Set();        // ore chiuse dall'utente nell'elenco (si ricordano per il giorno)
 
     const pad2 = n => String(n).padStart(2, '0');
     const hms = T => { const d = new Date(T * 1000); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()); };
@@ -169,12 +278,15 @@ button { -webkit-appearance: none; appearance: none; }
     const daYmd = g => { const p = g.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
     const icone = el => { if (window.lucide) lucide.createIcons({ root: el }); };
     const $ = id => document.getElementById(id);
+    const lingua = () => document.documentElement.lang || 'it-IT';
+    const durata = sec => { sec = Math.round(sec || 0); const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); return h ? (h + ' h ' + (m ? m + ' min' : '')).trim() : (m ? m + ' min' : sec + ' s'); };
+    const mega = mb => mb >= 1000 ? (mb / 1000).toFixed(mb >= 10000 ? 0 : 1) + ' GB' : Math.round(mb) + ' MB';
 
-    function etichettaGiorno(g) {
+    function etichettaGiorno(g, corta) {
         if (g === oggi()) return 'Oggi';
         const ieri = new Date(); ieri.setDate(ieri.getDate() - 1);
         if (g === ymd(ieri)) return 'Ieri';
-        return daYmd(g).toLocaleDateString(document.documentElement.lang || 'it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+        return daYmd(g).toLocaleDateString(lingua(), corta ? { weekday: 'short', day: 'numeric' } : { weekday: 'short', day: 'numeric', month: 'short' });
     }
 
     function messaggio(testo, icona) {
@@ -231,6 +343,8 @@ button { -webkit-appearance: none; appearance: none; }
             box.appendChild(b);
         });
         icone(box);
+        const c = cams.find(x => x.id === camId);
+        $('nvr-video-cam-n').textContent = c ? c.nome : '';
     }
 
     async function scegliCam(id) {
@@ -242,15 +356,61 @@ button { -webkit-appearance: none; appearance: none; }
         await caricaGiorni(true);
     }
 
-    async function caricaGiorni(vaiUltimo) {
+    // i giorni arrivano dall'archivio (con numero di spezzoni e MB): la striscia li mostra tutti
+    async function caricaArchivio() {
         try {
-            const d = await (await fetch('/api/nvr/giorni?cam=' + camId, { cache: 'no-store' })).json();
-            giorni = d.giorni || [];
-        } catch (e) { giorni = []; }
+            archivio = await (await fetch('/api/nvr/archivio', { cache: 'no-store' })).json();
+        } catch (e) { archivio = null; }
+        giorniInfo = {};
+        const t = archivio && (archivio.telecamere || []).find(x => x.id === camId);
+        (t ? t.giorni : []).forEach(g => { giorniInfo[g.giorno] = g; });
+        return Object.keys(giorniInfo);
+    }
+
+    async function caricaGiorni(vaiUltimo) {
+        giorni = await caricaArchivio();
         if (!giorni.includes(oggi())) giorni.push(oggi());
         giorni.sort();
         const g = (vaiUltimo || !giorno || !giorni.includes(giorno)) ? giorni[giorni.length - 1] : giorno;
+        disegnaGiorni();
         await caricaGiorno(g);
+    }
+
+    function disegnaGiorni() {
+        const box = $('nvr-giorni');
+        box.innerHTML = '';
+        giorni.forEach(g => {
+            const b = document.createElement('button');
+            const info = giorniInfo[g];
+            b.type = 'button'; b.className = 'nvr-g' + (g === giorno ? ' attivo' : '') + (g === oggi() ? ' oggi' : '') + (info ? '' : ' vuoto');
+            b.dataset.g = g;
+            b.innerHTML = '<b></b><small></small>';
+            b.querySelector('b').textContent = etichettaGiorno(g, true);
+            b.querySelector('small').textContent = info ? (info.n + ' · ' + mega(info.mb)) : '·';
+            b.onclick = () => { if (g !== giorno) { fermaVideo(); caricaGiorno(g); } };
+            box.appendChild(b);
+        });
+        const i = giorni.indexOf(giorno);
+        $('nvr-g-prev').disabled = i <= 0;
+        $('nvr-g-next').disabled = i >= giorni.length - 1;
+        centraGiorno(box);
+    }
+
+    // centra il chip del giorno scelto SOLO in orizzontale (scrollIntoView farebbe scorrere anche la pagina)
+    function centraGiorno(box) {
+        const att = box.querySelector('.nvr-g.attivo');
+        if (!att) return;
+        const x = att.offsetLeft - (box.clientWidth - att.offsetWidth) / 2;
+        if (box.scrollTo) box.scrollTo({ left: Math.max(0, x) }); else box.scrollLeft = Math.max(0, x);
+    }
+
+    // aggiornamento leggero (tick di 10 s): numeri del chip di oggi dai dati del giorno, senza ricostruire nulla
+    function aggiornaChipGiorno() {
+        const b = document.querySelector('#nvr-giorni .nvr-g[data-g="' + giorno + '"]');
+        if (!b) return;
+        const mb = recs.reduce((a, r) => a + r.mb, 0);
+        b.classList.toggle('vuoto', !recs.length);
+        b.querySelector('small').textContent = recs.length ? (recs.length + ' · ' + mega(mb)) : '·';
     }
 
     window.nvrCambiaGiorno = function (dir) {
@@ -267,16 +427,17 @@ button { -webkit-appearance: none; appearance: none; }
             if (d.status === 'error') throw new Error(d.message);
             giorno = g; t0 = d.inizio_giorno; recs = d.registrazioni || []; eventi = d.eventi || []; inCorso = d.in_corso || null;
             if (d.segmento_sec) segmentoSec = d.segmento_sec;
+            archivioOk = d.archivio_ok !== false;
             DUR = (d.fine_giorno && d.fine_giorno > t0) ? d.fine_giorno - t0 : 86400;
         } catch (e) {
             if (!silenzioso) { $('nvr-elenco').innerHTML = '<div class="nvr-vuoto">Errore nel caricamento delle registrazioni.</div>'; }
             return;
         }
-        const i = giorni.indexOf(giorno);
-        $('nvr-giorno-t').textContent = etichettaGiorno(giorno);
-        $('nvr-g-prev').disabled = i <= 0;
-        $('nvr-g-next').disabled = i >= giorni.length - 1;
+        if (nuovo) gruppiChiusi.clear();
+        $('nvr-avviso').classList.toggle('on', !archivioOk);
         $('nvr-rec').classList.toggle('on', !!inCorso && giorno === oggi());
+        $('nvr-video-cam-g').textContent = ' · ' + etichettaGiorno(giorno);
+        if (nuovo) disegnaGiorni(); else aggiornaChipGiorno();
         prossimoSpezzone();
         disegna();
         elenco();
@@ -297,8 +458,8 @@ button { -webkit-appearance: none; appearance: none; }
         const manca = segmentoSec - (passati % segmentoSec);
         const min = Math.ceil(manca / 60);
         // due pezzi separati: cosi' la frase fissa si traduce e il tempo resta com'e'
-        if (!el.children.length) el.innerHTML = '<span>In registrazione \u00b7 il prossimo spezzone arriva tra</span> <span></span>';
-        el.children[1].textContent = manca < 60 ? 'meno di un minuto' : (min + ' min');
+        if (!el.children.length) el.innerHTML = '<b>REC</b> <span>In registrazione · il prossimo spezzone arriva tra</span> <span></span>';
+        el.children[2].textContent = manca < 60 ? 'meno di un minuto' : (min + ' min');
     }
 
     /* ---------- linea del tempo (canvas) ---------- */
@@ -565,45 +726,219 @@ button { -webkit-appearance: none; appearance: none; }
     });
     window.addEventListener('resize', () => { misura(); disegna(); scrollA(ultimoT, false); });
 
-    /* ---------- elenco del giorno ---------- */
+    /* ---------- elenco del giorno: a gruppi di un'ora, come cartelle ---------- */
     function elenco() {
         const box = $('nvr-elenco');
+        const rie = $('nvr-riepilogo');
         const voci = recs.map(r => ({ t: r.inizio, rec: r })).concat(eventi.map(e => ({ t: e.ts, ev: e }))).sort((a, b) => a.t - b.t);
+        const secTot = recs.reduce((a, r) => a + r.durata, 0), mbTot = recs.reduce((a, r) => a + r.mb, 0);
+        rie.innerHTML = '';
+        if (recs.length) {
+            // numeri e parole separati: le parole si traducono, i numeri restano
+            rie.innerHTML = '<b></b> <span>spezzoni</span> · <b></b> · <b></b>' + (eventi.length ? ' · <b></b> <span>eventi</span>' : '');
+            const b = rie.querySelectorAll('b');
+            b[0].textContent = recs.length; b[1].textContent = durata(secTot); b[2].textContent = mega(mbTot);
+            if (eventi.length) b[3].textContent = eventi.length;
+        }
+        $('nvr-del-giorno').style.display = (ADMIN && recs.length) ? 'inline-flex' : 'none';
+        $('nvr-del-giorno').disabled = !archivioOk;
         box.innerHTML = '';
         if (!voci.length) { box.innerHTML = '<div class="nvr-vuoto">Nessuna registrazione in questo giorno</div>'; return; }
+        // gruppi per ora del giorno
+        const gruppi = new Map();
         voci.forEach(v => {
-            const riga = document.createElement('div');
-            if (v.rec) {
-                const r = v.rec;
-                riga.className = 'nvr-riga' + (corrente && corrente.id === r.id ? ' attiva' : '');
-                riga.dataset.id = r.id;
-                const min = Math.round(r.durata / 60);
-                riga.innerHTML = '<div class="nvr-riga-ico"><i data-lucide="film"></i></div><div style="flex:1; min-width:0;"><div class="nvr-riga-n"></div><div class="nvr-riga-s"></div></div>'
-                    + '<a class="nvr-ib" title="Scarica" download><i data-lucide="download"></i></a>'
-                    + (ADMIN ? '<button type="button" class="nvr-ib nvr-del" title="Elimina"><i data-lucide="trash-2"></i></button>' : '');
-                riga.querySelector('.nvr-riga-n').textContent = hm(r.inizio) + ' \u2013 ' + hm(r.fine);
-                riga.querySelector('.nvr-riga-s').textContent = (min >= 1 ? min + ' min' : r.durata + ' s') + ' \u00b7 ' + r.mb + ' MB \u00b7 ' + (MOTIVI[r.motivo] || r.motivo || '');
-                const a = riga.querySelector('a'); a.href = r.url + '?scarica=1'; a.onclick = e => e.stopPropagation();
-                riga.onclick = () => { voleva = true; vaiA(r.inizio); };
-                const del = riga.querySelector('.nvr-del');
-                if (del) del.onclick = async e => {
-                    e.stopPropagation();
-                    const ok = await chiedi(hm(r.inizio) + ' \u2013 ' + hm(r.fine) + '\nIl file viene cancellato dall\'archivio.', { titolo: 'Eliminare lo spezzone?', si: 'Elimina', pericolo: true, icona: 'trash-2' });
-                    if (!ok) return;
-                    try { await fetch('/api/nvr/registrazione/' + r.id, { method: 'DELETE' }); } catch (x) {}
-                    if (corrente && corrente.id === r.id) fermaVideo();
-                    caricaGiorno(giorno, true);
-                };
-            } else {
-                const e = v.ev;
-                riga.className = 'nvr-riga evento';
-                riga.innerHTML = '<div class="nvr-riga-ico"><i data-lucide="zap"></i></div><div style="flex:1; min-width:0;"><div class="nvr-riga-n"></div><div class="nvr-riga-s"></div></div>';
-                riga.querySelector('.nvr-riga-n').textContent = hms(e.ts);
-                riga.querySelector('.nvr-riga-s').textContent = (e.entita || '') + (e.stato ? ' \u2192 ' + e.stato : '');
-                riga.onclick = () => { voleva = true; vaiA(e.ts - 3); };
-            }
-            box.appendChild(riga);
+            const h = Math.floor((v.t - t0) / 3600);
+            if (!gruppi.has(h)) gruppi.set(h, []);
+            gruppi.get(h).push(v);
         });
+        gruppi.forEach((lista, h) => {
+            const g = document.createElement('div');
+            const chiave = giorno + '#' + h;
+            g.className = 'nvr-gruppo' + (gruppiChiusi.has(chiave) ? ' chiuso' : '');
+            const nRec = lista.filter(v => v.rec).length, nEv = lista.length - nRec;
+            const mb = lista.reduce((a, v) => a + (v.rec ? v.rec.mb : 0), 0);
+            g.innerHTML = '<div class="nvr-gruppo-h" role="button" tabindex="0"><span class="ora"></span><span class="info"></span><i data-lucide="chevron-down" class="chev"></i></div><div class="nvr-gruppo-c"></div>';
+            g.querySelector('.ora').textContent = hm(t0 + h * 3600) + ' – ' + hm(t0 + (h + 1) * 3600);
+            const info = g.querySelector('.info');
+            info.innerHTML = '<b></b> <span>spezzoni</span>' + (mb ? ' · <b></b>' : '') + (nEv ? ' · <b></b> <span>eventi</span>' : '');
+            const bb = info.querySelectorAll('b'); bb[0].textContent = nRec;
+            if (mb) bb[1].textContent = mega(mb);
+            if (nEv) bb[mb ? 2 : 1].textContent = nEv;
+            const gh = g.querySelector('.nvr-gruppo-h');
+            gh.setAttribute('aria-expanded', String(!g.classList.contains('chiuso')));
+            gh.onclick = () => {
+                g.classList.toggle('chiuso');
+                gh.setAttribute('aria-expanded', String(!g.classList.contains('chiuso')));
+                if (g.classList.contains('chiuso')) gruppiChiusi.add(chiave); else gruppiChiusi.delete(chiave);
+            };
+            gh.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); gh.click(); } };
+            const c = g.querySelector('.nvr-gruppo-c');
+            lista.forEach(v => c.appendChild(rigaVoce(v)));
+            box.appendChild(g);
+        });
+        icone(box);
+    }
+
+    function rigaVoce(v) {
+        const riga = document.createElement('div');
+        if (v.rec) {
+            const r = v.rec;
+            riga.className = 'nvr-riga' + (corrente && corrente.id === r.id ? ' attiva' : '');
+            riga.dataset.id = r.id;
+            const min = Math.round(r.durata / 60);
+            riga.innerHTML = '<div class="nvr-riga-ico"><i data-lucide="film"></i></div><div style="flex:1; min-width:0;"><div class="nvr-riga-n"></div><div class="nvr-riga-s"></div></div>'
+                + '<a class="nvr-ib" title="Scarica" download><i data-lucide="download"></i></a>'
+                + (ADMIN ? '<button type="button" class="nvr-ib nvr-del pericolo" title="Elimina"><i data-lucide="trash-2"></i></button>' : '');
+            riga.querySelector('.nvr-riga-n').textContent = hm(r.inizio) + ' – ' + hm(r.fine);
+            riga.querySelector('.nvr-riga-s').textContent = (min >= 1 ? min + ' min' : r.durata + ' s') + ' · ' + r.mb + ' MB · ' + (MOTIVI[r.motivo] || r.motivo || '');
+            const a = riga.querySelector('a'); a.href = r.url + '?scarica=1'; a.onclick = e => e.stopPropagation();
+            riga.onclick = () => { voleva = true; vaiA(r.inizio); };
+            const del = riga.querySelector('.nvr-del');
+            if (del) del.onclick = async e => {
+                e.stopPropagation();
+                const ok = await chiedi(hm(r.inizio) + ' – ' + hm(r.fine) + '\nIl file viene cancellato dall\'archivio.', { titolo: 'Eliminare lo spezzone?', si: 'Elimina', pericolo: true, icona: 'trash-2' });
+                if (!ok) return;
+                try { await fetch('/api/nvr/registrazione/' + r.id, { method: 'DELETE' }); } catch (x) {}
+                if (corrente && corrente.id === r.id) fermaVideo();
+                await caricaGiorni(false);
+            };
+        } else {
+            const e = v.ev;
+            riga.className = 'nvr-riga evento';
+            riga.innerHTML = '<div class="nvr-riga-ico"><i data-lucide="zap"></i></div><div style="flex:1; min-width:0;"><div class="nvr-riga-n"></div><div class="nvr-riga-s"></div></div>';
+            riga.querySelector('.nvr-riga-n').textContent = hms(e.ts);
+            riga.querySelector('.nvr-riga-s').textContent = (e.entita || '') + (e.stato ? ' → ' + e.stato : '');
+            riga.onclick = () => { voleva = true; vaiA(e.ts - 3); };
+        }
+        return riga;
+    }
+
+    /* ---------- cancellazioni in blocco ---------- */
+    async function cancella(corpo, testo, titolo) {
+        if (!archivioOk && !corpo.senza_file) { avvisa('Unità di archivio non collegata: collegala e riprova.', { titolo: 'Archivio', icona: 'usb' }); return false; }
+        const ok = await chiedi(testo, { titolo: titolo, si: 'Elimina', pericolo: true, icona: 'trash-2' });
+        if (!ok) return false;
+        let d = null;
+        try { d = await (await fetch('/api/nvr/registrazioni', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) })).json(); } catch (e) {}
+        if (!d || d.status !== 'success') { avvisa((d && d.message) || 'Cancellazione non riuscita', { titolo: 'Archivio', icona: 'alert-circle' }); return false; }
+        fermaVideo();
+        await caricaGiorni(false);
+        if ($('nvr-sheet').classList.contains('on')) disegnaArchivio();
+        return true;
+    }
+
+    window.nvrEliminaGiorno = function () {
+        const c = cams.find(x => x.id === camId);
+        cancella({ cam: camId, giorno: giorno }, (c ? c.nome + ' – ' : '') + etichettaGiorno(giorno) + '\nTutti gli spezzoni di questo giorno vengono cancellati dall\'archivio.', 'Eliminare il giorno?');
+    };
+
+    /* ---------- archivio (cartelle) ---------- */
+    let focusPrima = null;
+    window.nvrApriArchivio = async function () {
+        focusPrima = document.activeElement;
+        $('nvr-velo').classList.add('on'); $('nvr-sheet').classList.add('on'); $('nvr-sheet').setAttribute('aria-hidden', 'false');
+        $('nvr-arch-c').innerHTML = '<div class="nvr-vuoto">Caricamento...</div>';
+        const chiudi = $('nvr-sheet').querySelector('.nvr-sheet-h button'); if (chiudi) chiudi.focus();
+        await caricaArchivio();
+        disegnaArchivio();
+    };
+    window.nvrChiudiArchivio = function () {
+        $('nvr-velo').classList.remove('on'); $('nvr-sheet').classList.remove('on'); $('nvr-sheet').setAttribute('aria-hidden', 'true');
+        if (focusPrima && focusPrima.focus) { try { focusPrima.focus(); } catch (e) {} }
+    };
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') nvrChiudiArchivio(); });
+
+    function disegnaArchivio() {
+        const box = $('nvr-arch-c');
+        $('nvr-arch-cartella').textContent = (archivio && archivio.cartella) || '';
+        if (!archivio) { box.innerHTML = '<div class="nvr-vuoto">Archivio non raggiungibile.</div>'; return; }
+        box.innerHTML = '';
+        // spazio dell'unita': registrazioni / altro / libero
+        const sp = archivio.spazio;
+        const spazio = document.createElement('div'); spazio.className = 'nvr-spazio';
+        if (sp && sp.totale_gb) {
+            const usatoReg = archivio.totale.gb, altro = Math.max(0, sp.totale_gb - sp.libero_gb - usatoReg);
+            spazio.innerHTML = '<div class="nvr-spazio-r"><span><b></b> <span>registrazioni</span> · <b></b></span><span><b></b> <span>liberi di</span> <b></b></span></div>'
+                + '<div class="nvr-barra"><i></i><i class="altro"></i></div>'
+                + '<div class="nvr-spazio-l"><span>Registrazioni</span><span class="altro">Altro</span><span class="libero">Libero</span></div>';
+            const b = spazio.querySelectorAll('.nvr-spazio-r b');
+            b[0].textContent = archivio.totale.n; b[1].textContent = usatoReg.toFixed(usatoReg < 10 ? 2 : 1) + ' GB';
+            b[2].textContent = sp.libero_gb.toFixed(1) + ' GB'; b[3].textContent = sp.totale_gb.toFixed(0) + ' GB';
+            const bar = spazio.querySelectorAll('.nvr-barra i');
+            bar[0].style.width = (100 * usatoReg / sp.totale_gb).toFixed(2) + '%'; bar[1].style.width = (100 * altro / sp.totale_gb).toFixed(2) + '%';
+        } else {
+            spazio.innerHTML = '<div class="nvr-spazio-r"><span><b></b> <span>registrazioni</span> · <b></b></span><span>' + (archivio.archivio_ok ? '' : 'Unità non collegata') + '</span></div>';
+            const b = spazio.querySelectorAll('b'); b[0].textContent = archivio.totale.n; b[1].textContent = archivio.totale.gb.toFixed(2) + ' GB';
+        }
+        box.appendChild(spazio);
+        // una "cartella" per telecamera, dentro le cartelle dei giorni
+        (archivio.telecamere || []).forEach(t => {
+            const cart = document.createElement('div');
+            cart.className = 'nvr-cart' + (t.id === camId ? '' : ' chiusa');
+            cart.innerHTML = '<div class="nvr-cart-h" role="button" tabindex="0"><div class="ico"><i data-lucide="folder"></i></div><div class="n"><b><span data-no-tr></span><span class="rimossa"></span></b><small></small></div>'
+                + (ADMIN && t.n ? '<button type="button" class="nvr-ib pericolo" title="Elimina tutte le registrazioni della telecamera"' + (archivio.archivio_ok ? '' : ' disabled') + '><i data-lucide="trash-2"></i></button>' : '')
+                + '<i data-lucide="chevron-down" class="chev"></i></div><div class="nvr-cart-c"></div>';
+            cart.querySelector('b span').textContent = t.nome;
+            cart.querySelector('b .rimossa').textContent = t.presente ? '' : ' (rimossa)';
+            const small = cart.querySelector('small');
+            small.innerHTML = '<span data-no-tr></span> · <b></b> <span>spezzoni</span> · <b></b>';
+            small.querySelector('span').textContent = t.cartella + '/';
+            const sb = small.querySelectorAll('b'); sb[0].textContent = t.n; sb[1].textContent = t.gb.toFixed(2) + ' GB';
+            const testa = cart.querySelector('.nvr-cart-h');
+            testa.onclick = e => { if (!e.target.closest('button')) { cart.classList.toggle('chiusa'); testa.setAttribute('aria-expanded', String(!cart.classList.contains('chiusa'))); } };
+            testa.setAttribute('aria-expanded', String(!cart.classList.contains('chiusa')));
+            testa.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); testa.click(); } };
+            const delCam = cart.querySelector('.nvr-cart-h button');
+            if (delCam) delCam.onclick = () => cancella({ cam: t.id }, t.nome + '\nTutte le registrazioni di questa telecamera vengono cancellate dall\'archivio.', 'Eliminare la telecamera dall\'archivio?');
+            const c = cart.querySelector('.nvr-cart-c');
+            if (!t.giorni.length) { c.innerHTML = '<div class="nvr-cart-vuota">Nessuna registrazione</div>'; }
+            t.giorni.forEach(g => {
+                const r = document.createElement('div');
+                r.className = 'nvr-cart-g' + (t.id === camId && g.giorno === giorno ? ' attuale' : '');
+                r.setAttribute('role', 'button'); r.tabIndex = 0;
+                r.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); r.click(); } };
+                r.innerHTML = '<div class="ico"><i data-lucide="calendar"></i></div><div class="n"><b><span></span> · <span data-no-tr></span></b><small></small></div>'
+                    + (ADMIN ? '<button type="button" class="nvr-ib pericolo" title="Elimina il giorno"' + (archivio.archivio_ok ? '' : ' disabled') + '><i data-lucide="trash-2"></i></button>' : '');
+                r.querySelector('b span').textContent = etichettaGiorno(g.giorno);
+                r.querySelector('b span[data-no-tr]').textContent = g.giorno;
+                const s2 = r.querySelector('small');
+                s2.innerHTML = '<b></b> <span>spezzoni</span> · <b></b> · <b></b>';
+                const b2 = s2.querySelectorAll('b'); b2[0].textContent = g.n; b2[1].textContent = durata(g.sec); b2[2].textContent = mega(g.mb);
+                r.onclick = async e => {
+                    if (e.target.closest('button')) return;
+                    nvrChiudiArchivio();
+                    if (t.id !== camId) { camId = t.id; try { localStorage.setItem('nvr_cam', String(t.id)); } catch (x) {} disegnaChips(); fermaVideo(); giorni = await caricaArchivio(); if (!giorni.includes(oggi())) giorni.push(oggi()); giorni.sort(); }
+                    else fermaVideo();
+                    caricaGiorno(g.giorno);
+                };
+                const del = r.querySelector('button');
+                if (del) del.onclick = () => cancella({ cam: t.id, giorno: g.giorno }, t.nome + ' – ' + etichettaGiorno(g.giorno) + '\nTutti gli spezzoni di questo giorno vengono cancellati dall\'archivio.', 'Eliminare il giorno?');
+                c.appendChild(r);
+            });
+            box.appendChild(cart);
+        });
+        // azioni in fondo
+        if (ADMIN) {
+            const az = document.createElement('div'); az.className = 'nvr-azioni';
+            if (archivio.senza_file) {
+                const b = document.createElement('button'); b.type = 'button'; b.className = 'nvr-btn';
+                b.innerHTML = '<i data-lucide="broom"></i><span>Rimuovi le voci senza file</span> <b data-no-tr>(' + archivio.senza_file + ')</b>';
+                b.onclick = async () => {
+                    try { await fetch('/api/nvr/registrazioni', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ senza_file: true }) }); } catch (e) {}
+                    await caricaGiorni(false); disegnaArchivio();
+                };
+                az.appendChild(b);
+            }
+            const tutto = document.createElement('button'); tutto.type = 'button'; tutto.className = 'nvr-btn pericolo'; tutto.disabled = !archivio.totale.n || !archivio.archivio_ok;
+            tutto.innerHTML = '<i data-lucide="trash-2"></i><span>Svuota l\'archivio</span>';
+            tutto.onclick = () => cancella({ tutto: true }, 'Tutte le registrazioni di tutte le telecamere vengono cancellate dall\'unità. Le telecamere attive ricominciano a registrare subito dopo.', 'Svuotare tutto l\'archivio?');
+            az.appendChild(tutto);
+            box.appendChild(az);
+        }
+        const nota = document.createElement('div'); nota.className = 'nvr-sez-s'; nota.style.padding = '0 4px';
+        nota.innerHTML = '<span>Sull\'unità i file stanno in</span> <span>telecamera / giorno / ora.mp4</span><span>; le registrazioni più vecchie di</span> <b></b> <span>giorni vengono cancellate da sole.</span>';
+        nota.querySelector('b').textContent = archivio.giorni_conservazione;
+        box.appendChild(nota);
         icone(box);
     }
 
