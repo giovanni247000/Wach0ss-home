@@ -2632,7 +2632,16 @@
   "(rimossa)": "(removed)",
   "Manuale": "Manual",
   "telecamera / giorno / ora.mp4": "camera / day / time.mp4",
-  "Unità di archivio non collegata: collegala e riprova.": "Archive drive not connected: connect it and try again."
+  "Unità di archivio non collegata: collegala e riprova.": "Archive drive not connected: connect it and try again.",
+  "I percorsi li registra il tuo server dalle posizioni dell'app, anche quando questa pagina è chiusa. Restano solo qui e si cancellano da soli dopo": "Your server records the routes from the app's positions, even when this page is closed. They stay here only and are deleted automatically after",
+  "giorni.": "days.",
+  "Punti": "Points",
+  "Cancellare tutti i percorsi registrati dal server?": "Delete all routes recorded by the server?",
+  "Cancellare i percorsi di questo giorno?": "Delete this day's routes?",
+  "Cancella i percorsi": "Delete routes",
+  "Percorsi": "Routes",
+  "Percorso": "Route",
+  "Soste": "Stops"
  },
  "sempre": {
   " non ": " not ",

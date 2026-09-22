@@ -417,25 +417,17 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
                     <span class="con-icona"><i data-lucide="route"></i> Percorsi</span>
                 </div>
                 <div class="percorsi">
-                    <div class="riga-interruttore">
-                        <span class="etichetta">Registra i percorsi</span>
-                        <label class="leva">
-                            <input type="checkbox" id="interruttore-reg">
-                            <span class="binario"></span>
-                        </label>
-                    </div>
-
                     <div class="giorni" id="giorni"></div>
 
                     <div class="numeri">
                         <div class="numero"><b id="n-strada">0</b><span>Percorso</span></div>
                         <div class="numero"><b id="n-soste">0</b><span>Soste</span></div>
-                        <div class="numero"><b id="n-spazio">0</b><span>Memoria</span></div>
+                        <div class="numero"><b id="n-punti">0</b><span>Punti</span></div>
                     </div>
 
                     <div class="nota">
                         <i data-lucide="shield"></i>
-                        <span>I percorsi restano su questo dispositivo e non vengono inviati a nessuno.</span>
+                        <span>I percorsi li registra il tuo server dalle posizioni dell'app, anche quando questa pagina è chiusa. Restano solo qui e si cancellano da soli dopo <b id="n-giorni" data-no-tr>30</b> giorni.</span>
                     </div>
 
                     <button class="svuota" id="svuota">
@@ -455,7 +447,8 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
     <!-- Le domande delle conferme: stanno qui perche' il traduttore lavora sulla
          pagina, non dentro il codice. Nascoste, lette al momento del clic. -->
     <div hidden id="frasi-conferma">
-        <span id="dom-svuota">Cancellare tutti i percorsi salvati su questo dispositivo?</span>
+        <span id="dom-svuota">Cancellare tutti i percorsi registrati dal server?</span>
+        <span id="dom-svuota-giorno">Cancellare i percorsi di questo giorno?</span>
         <span id="dom-elimina">Eliminare la posizione di</span>
         <span id="dom-elimina-zona">Eliminare la zona</span>
         <span id="fr-persone-dentro">Adesso qui:</span>
@@ -483,20 +476,21 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
     var SONO_ADMIN = {{ 'true' if session.get('role') == 'admin' else 'false' }};
 
     /* =================================================================
-       1. LA MEMORIA DEI PERCORSI
-       Il server tiene solo l'ULTIMA posizione di ogni dispositivo: non
-       esiste nessuno storico e non possiamo crearne uno senza toccare
-       app.py. Quindi la scia se la costruisce questa pagina, guardando le
-       posizioni cambiare, e se la tiene nel browser di QUESTO dispositivo.
-       Conseguenza da dire chiaro: si registra solo mentre la pagina e'
-       aperta, e la storia non e' condivisa con gli altri dispositivi.
+       1. I PERCORSI
+       Li registra il SERVER (tabella posizioni_storico, riempita da
+       /api/location/update con le posizioni che l'app manda anche in
+       sottofondo) e questa pagina li legge da /api/location/storico.
+       Prima invece la scia se la costruiva la pagina nel localStorage:
+       esisteva solo mentre era aperta e solo su quel dispositivo, ed e'
+       il motivo per cui i tragitti risultavano quasi sempre incompleti.
        ================================================================= */
     var MEM = (function () {
-        var PRE = 'wh_percorso_';
-        var GIORNI_TENUTI = 7;      /* oltre, si butta: e' spazio del browser */
-        var MAX_PUNTI     = 1200;   /* per persona, per giorno */
-
-        function chiave(g) { return PRE + g; }
+        /* I percorsi arrivano da /api/location/storico: e' il server a registrarli dalle
+           posizioni che l'app manda anche in sottofondo. Qui si tiene solo quello che serve
+           a disegnare: il giorno guardato adesso, con i suoi punti. */
+        var giorni_ = [];            /* giorni che hanno qualcosa, dal piu' recente */
+        var giorniTenuti = 30;
+        var cache = {};              /* giorno -> {persona: [[ts, lat, lon, fermo], ...]} */
 
         function nomeGiorno(d) {
             return d.getFullYear() + '-' +
@@ -504,73 +498,32 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
                    String(d.getDate()).padStart(2, '0');
         }
         function oggi() { return nomeGiorno(new Date()); }
+        function leggi(g) { return cache[g] || {}; }
+        function giorni() { return giorni_.slice(); }
+        function puntiDi(g) {
+            var d = cache[g] || {}, n = 0;
+            Object.keys(d).forEach(function (k) { n += d[k].length; });
+            return n;
+        }
 
-        /* La giornata in corso si tiene in memoria e si scrive su disco a gruppi:
-           un setItem a ogni punto vuol dire riscrivere tutta la giornata ogni
-           cinque secondi, e su un tablet a muro sempre acceso e' un lavoro inutile
-           che si sente. */
-        var vivo = { giorno: null, dati: null, sporco: false };
+        /* Scarica un giorno. Ritorna una promessa, cosi' chi chiama sa quando ridisegnare. */
+        function carica(g) {
+            return fetch('/api/location/storico?giorno=' + encodeURIComponent(g), { cache: 'no-store' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (!d || d.error) return false;
+                    cache[g] = d.persone || {};
+                    giorni_ = d.giorni || [];
+                    if (d.giorni_tenuti) giorniTenuti = d.giorni_tenuti;
+                    return true;
+                })
+                .catch(function (e) { console.warn('[mappa] percorsi non caricati:', e); return false; });
+        }
+        function scorda(g) { if (g) delete cache[g]; else cache = {}; }
 
-        function leggi(g) {
-            if (vivo.giorno === g && vivo.dati) return vivo.dati;
-            var d;
-            try { d = JSON.parse(localStorage.getItem(chiave(g)) || '{}'); }
-            catch (e) { d = {}; }
-            if (g === oggi()) { vivo.giorno = g; vivo.dati = d; vivo.sporco = false; }
-            return d;
-        }
-        function segna(g, dati) {            /* modificato: si scrivera' fra poco */
-            if (vivo.giorno === g) { vivo.dati = dati; vivo.sporco = true; }
-            else scrivi(g, dati);
-        }
-        function versa() {                   /* scrive davvero */
-            if (!vivo.sporco || !vivo.giorno) return;
-            vivo.sporco = false;
-            scrivi(vivo.giorno, vivo.dati);
-        }
-        function scrivi(g, dati) {
-            try { localStorage.setItem(chiave(g), JSON.stringify(dati)); return true; }
-            catch (e) {
-                /* memoria piena: butto il giorno piu' vecchio e riprovo una volta */
-                var g2 = giorni();
-                if (g2.length > 1) { localStorage.removeItem(chiave(g2[g2.length - 1])); }
-                try { localStorage.setItem(chiave(g), JSON.stringify(dati)); return true; }
-                catch (e2) { return false; }
-            }
-        }
-        function giorni() {
-            var out = [];
-            for (var i = 0; i < localStorage.length; i++) {
-                var k = localStorage.key(i);
-                if (k && k.indexOf(PRE) === 0) out.push(k.slice(PRE.length));
-            }
-            return out.sort().reverse();
-        }
-        function pota() {
-            var g = giorni();
-            for (var i = GIORNI_TENUTI; i < g.length; i++) localStorage.removeItem(chiave(g[i]));
-        }
-        function cancellaTutto() {
-            giorni().forEach(function (g) { localStorage.removeItem(chiave(g)); });
-            vivo.giorno = null; vivo.dati = null; vivo.sporco = false;
-        }
-        function pesoKB() {
-            var n = 0;
-            giorni().forEach(function (g) { n += (localStorage.getItem(chiave(g)) || '').length; });
-            return Math.round(n / 1024);
-        }
-        function scorda() { vivo.giorno = null; vivo.dati = null; vivo.sporco = false; }
-
-        setInterval(versa, 20000);
-        window.addEventListener('pagehide', versa);
-        document.addEventListener('visibilitychange', function () {
-            if (document.visibilityState === 'hidden') versa();
-        });
-
-        return { oggi: oggi, nomeGiorno: nomeGiorno, leggi: leggi, scrivi: scrivi,
-                 segna: segna, versa: versa, scorda: scorda,
-                 giorni: giorni, pota: pota, cancellaTutto: cancellaTutto,
-                 pesoKB: pesoKB, MAX_PUNTI: MAX_PUNTI };
+        return { oggi: oggi, nomeGiorno: nomeGiorno, leggi: leggi, giorni: giorni,
+                 carica: carica, scorda: scorda, puntiDi: puntiDi,
+                 tenuti: function () { return giorniTenuti; } };
     })();
 
     /* regole di annotazione: senza queste la scia diventa un gomitolo,
@@ -669,7 +622,7 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
     var nascosti = {};            /* nome -> true: scia spenta */
     var scelto = null;            /* la persona selezionata nell'elenco */
     var giornoScelto = MEM.oggi();
-    var registra = ricordaScelta('wh_percorso_attivo', '1') === '1';
+    var sceltoAMano = false;      /* true solo se l'utente ha toccato un giorno: altrimenti si segue "oggi" */
     var primoGiro = true;
     var mappaPronta = false;
 
@@ -808,37 +761,25 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
        persona e' rimasta li' mentre la guardavamo. Chi sta in casa tutto il giorno
        occupa UN punto, non trecento: e la sosta diventa un dato che abbiamo
        osservato, non una cosa indovinata rimettendo insieme i puntini. */
-    function annota(nome, lat, lon) {
-        if (!registra) return;
-        var g = MEM.oggi();
-        var dati = MEM.leggi(g);
-        var scia = dati[nome] || (dati[nome] = []);
-        var t = adesso();
-        var u = scia[scia.length - 1];
-
-        if (!u) {
-            scia.push([t, +lat.toFixed(5), +lon.toFixed(5), 0]);
-        } else {
-            var vistoFinoA = u[0] + (u[3] || 0);
-            var pausa = t - vistoFinoA;
-            var d = distanza(u[1], u[2], lat, lon);
-
-            if (pausa > BUCO) {
-                /* la pagina era chiusa: non sappiamo cosa e' successo in mezzo.
-                   Si comincia un punto nuovo, e il vuoto restera' un vuoto. */
-                scia.push([t, +lat.toFixed(5), +lon.toFixed(5), 0]);
-            } else if (d < PASSO_METRI) {
-                u[3] = t - u[0];                     /* fermo li': allungo la sosta */
-            } else if (pausa > 0 && d / pausa > VEL_ASSURDA) {
-                return;                              /* salto impossibile: e' il GPS che sbaglia */
-            } else {
-                scia.push([t, +lat.toFixed(5), +lon.toFixed(5), 0]);
+    /* La scia NON si costruisce piu' qui: la registra il server dalle posizioni dell'app
+       (tabella posizioni_storico), quindi esiste anche a pagina chiusa ed e' uguale su tutti
+       i dispositivi. Questa pagina la chiede, la disegna e basta. */
+    var ultimoCaricamento = 0;
+    function aggiornaPercorso(forza) {
+        var t = Date.now();
+        if (!forza && t - ultimoCaricamento < 20000) return;      /* al massimo ogni 20 s */
+        ultimoCaricamento = t;
+        var chiesto = giornoScelto;
+        MEM.carica(chiesto).then(function (ok) {
+            if (!ok) return;
+            disegnaGiorni();          /* puo' cambiare il giorno scelto, se quello di prima non c'e' piu' */
+            if (giornoScelto !== chiesto) {
+                ultimoCaricamento = 0;
+                aggiornaPercorso(true);   /* ...e allora si scarica quello nuovo */
+                return;
             }
-        }
-
-        if (scia.length > MEM.MAX_PUNTI) scia.splice(0, scia.length - MEM.MAX_PUNTI);
-        MEM.segna(g, dati);
-        if (g === giornoScelto) disegnaScie();
+            disegnaScie();
+        });
     }
 
     /* =================================================================
@@ -850,7 +791,7 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         var dati   = MEM.leggi(giornoScelto);
         var linee  = vuoto();
         var soste  = vuoto();
-        var strada = 0, quanteSoste = 0;
+        var strada = 0, quanteSoste = 0, quantiPunti = 0;
         var ora    = adesso();
 
         Object.keys(dati).forEach(function (nome) {
@@ -859,6 +800,7 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
             var punti = dati[nome];
             if (!punti || !punti.length) return;
             var colore = coloreDi(nome);
+            quantiPunti += punti.length;
 
             /* --- la linea, spezzata dove la pagina era chiusa ---
                Un vuoto non si chiude mai con una linea piena: quella sarebbe una
@@ -933,7 +875,7 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
 
         document.getElementById('n-strada').textContent = comeStrada(strada);
         document.getElementById('n-soste').textContent  = quanteSoste;
-        document.getElementById('n-spazio').textContent = MEM.pesoKB() + ' KB';
+        document.getElementById('n-punti').textContent = quantiPunti;
     }
 
     /* =================================================================
@@ -1108,7 +1050,6 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
                     p.muove = v ? distanza(v.lat, v.lon, p.lat, p.lon) > PASSO_METRI : false;
                     p.aCasa = casa ? distanza(casa.lat, casa.lon, p.lat, p.lon) < CASA_METRI : false;
                     if (presenzaDi[p.name]) p.aCasa = presenzaDi[p.name].some(function (z) { return z.casa; });   /* il server ha l'isteresi */
-                    annota(p.name, p.lat, p.lon);
                     return p;
                 });
 
@@ -1166,21 +1107,41 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         map.setStyle(notte ? STILI.notte : STILI.giorno);
     });
 
-    var lev = document.getElementById('interruttore-reg');
-    lev.checked = registra;
-    lev.addEventListener('change', function () {
-        registra = this.checked;
-        conservaScelta('wh_percorso_attivo', registra ? '1' : '0');
-    });
-
-    document.getElementById('svuota').addEventListener('click', function () {
-        chiedi(frase('dom-svuota'), { titolo: 'Svuota percorsi', si: 'Svuota', pericolo: true }).then(function (ok) {
+    /* Cancella: il giorno guardato, oppure tutto (pressione lunga / tasto destro).
+       I percorsi stanno sul server, quindi sparisce per tutti. */
+    function svuota(tutto) {
+        var dom = tutto ? frase('dom-svuota') : frase('dom-svuota-giorno');
+        chiedi(dom, { titolo: 'Svuota percorsi', si: 'Cancella', pericolo: true, icona: 'trash-2' }).then(function (ok) {
             if (!ok) return;
-            MEM.cancellaTutto();
-            disegnaGiorni();
-            disegnaScie();
+            fetch('/api/location/storico', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(tutto ? { tutto: true } : { giorno: giornoScelto })
+            }).then(function (r) { return r.json(); }).then(function (d) {
+                if (!d || d.status !== 'success') { avvisa((d && d.error) || 'Cancellazione non riuscita', { titolo: 'Percorsi' }); return; }
+                MEM.scorda();
+                aggiornaPercorso(true);
+            }).catch(function () { avvisa('Cancellazione non riuscita', { titolo: 'Percorsi' }); });
         });
+    }
+    var bSvuota = document.getElementById('svuota');
+    var tieni = null, eraLunga = false;      /* una sola conferma: il clic che segue la pressione lunga non conta */
+    function fermaTimer() { if (tieni) { clearTimeout(tieni); tieni = null; } }
+    bSvuota.addEventListener('click', function () {
+        if (eraLunga) { eraLunga = false; return; }
+        svuota(false);
     });
+    bSvuota.addEventListener('contextmenu', function (e) {
+        e.preventDefault(); fermaTimer();
+        if (eraLunga) { eraLunga = false; return; }
+        eraLunga = true; svuota(true);
+    });
+    bSvuota.addEventListener('pointerdown', function () {
+        eraLunga = false;
+        tieni = setTimeout(function () { tieni = null; eraLunga = true; svuota(true); }, 700);
+    });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { bSvuota.addEventListener(ev, fermaTimer); });
+    if (!SONO_ADMIN) bSvuota.style.display = 'none';      /* cancellare i percorsi e' cosa da amministratore */
 
     document.getElementById('maniglia').addEventListener('click', function () {
         document.body.classList.toggle('chiuso');
@@ -1194,18 +1155,23 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         var ieri = MEM.nomeGiorno(new Date(Date.now() - 86400000));
         if (g.indexOf(oggi) === -1) g.unshift(oggi);
         if (giornoScelto && g.indexOf(giornoScelto) === -1) giornoScelto = oggi;
+        if (!sceltoAMano && giornoScelto !== oggi) giornoScelto = oggi;   /* e' passata la mezzanotte */
 
-        cont.innerHTML = g.slice(0, 7).map(function (x) {
+        cont.innerHTML = g.slice(0, 10).map(function (x) {
             var eti = x === oggi ? 'Oggi' : (x === ieri ? 'Ieri' : x.slice(8) + '/' + x.slice(5, 7));
             return '<button class="giorno' + (x === giornoScelto ? ' scelto' : '') + '" data-g="' + x + '">' + eti + '</button>';
         }).join('');
+        var ng = document.getElementById('n-giorni');
+        if (ng) ng.textContent = MEM.tenuti();
     }
     document.getElementById('giorni').addEventListener('click', function (e) {
         var b = e.target.closest('.giorno');
         if (!b) return;
         giornoScelto = b.getAttribute('data-g');
+        sceltoAMano = giornoScelto !== MEM.oggi();
         disegnaGiorni();
         disegnaScie();
+        aggiornaPercorso(true);           /* il giorno scelto si scarica adesso */
     });
 
     /* --- il palloncino delle soste --- */
@@ -1466,8 +1432,18 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
        12. AVVIO
        ================================================================= */
     if (window.lucide) lucide.createIcons();
-    MEM.pota();
+    /* le scie di prima erano salvate nel browser: ora i percorsi stanno sul server,
+       quindi si libera quello spazio una volta sola */
+    try {
+        for (var i_ = localStorage.length - 1; i_ >= 0; i_--) {
+            var k_ = localStorage.key(i_);
+            if (k_ && k_.indexOf('wh_percorso_') === 0) localStorage.removeItem(k_);
+        }
+    } catch (e_) {}
     disegnaGiorni();
+    aggiornaPercorso(true);
+    setInterval(function () { if (!document.hidden) aggiornaPercorso(false); }, 20000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) aggiornaPercorso(true); });
     orologio();
     setInterval(orologio, 1000);
 
