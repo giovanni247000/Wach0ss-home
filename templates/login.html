@@ -3,669 +3,1294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#040407">
-
+    <meta name="theme-color" content="#05070D">
     <link rel="manifest" href="/static/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Orion Home">
-
     <title>Accedi | Wach0ss Home Smart Home</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="/static/fonts/inter.css">
+    <script src="/static/vendor/lucide-1.41.0.min.js"></script>
 
     <style>
     /* =====================================================================
-       ACCESSO — LA CASA AL BUIO
-       Una stanza vera: la finestra con la notte fuori, il tavolino, la
-       lampada. Si tira la cordicella, la luce si accende con un guizzo e
-       la casa si sveglia. Tutto disegnato qui dentro: nessuna immagine da
-       scaricare, funziona anche su un impianto senza internet.
+       ACCESSO — LA CASA CHE SI SVEGLIA
+       Di notte la casa dorme ma veglia: la luna entra dalla portafinestra
+       fra le lamelle della veneziana, il termostato respira, il sensore
+       dell'allarme ha il suo puntino. Si tira la cordicella: la lampada si
+       accende, la stanza si scalda e le cose della casa si svegliano in
+       fila (luci, clima, tapparelle, sicurezza), poi arriva l'accesso.
+
+       COME E' FATTA
+       - Due DIPINTI a tutto schermo (SVG fermi): la stanza di notte e la
+         stanza accesa. Si anima solo l'opacita' di quella accesa.
+       - I vetri sono buchi nei dipinti: dietro c'e' la vista (cielo, luna,
+         citta') e la veneziana, che sale davvero.
+       - Sopra: termostato, sensore, cordicella, pulviscolo, segni.
+       Il palco e' 1600 x 1000 unita' (--u), appoggiato al fondo dello
+       schermo: gli SVG usano viewBox 0 0 1600 1000 con xMidYMax meet, che
+       e' esattamente la stessa regola, e disegnano muro e pavimento anche
+       fuori dal viewBox, cosi' riempiono qualsiasi schermo.
+       Orizzonte (occhio) a y 470, pavimento da y 770.
        ===================================================================== */
     :root {
-        --luce:       #FFD9A0;
-        --luce-forte: #FFF0D2;
-        --ambra:      #FFB865;
-        --luna:       #7FA6FF;
-        --blu:        #0A84FF;
-        --testo:      #F4F4F8;
-        --fioco:      rgba(244,244,248,0.52);
-        --bordo:      rgba(255,255,255,0.13);
-        --danger:     #FF453A;
-        --t:          1.6s;
+        --u: calc(min(100vw, 160vh) / 1600);
+        --ambra:  #FFB865;
+        --oro-1:  #F6D6A0;
+        --oro-2:  #D9A25E;
+        --testo:  #F5F0E8;
+        --fioco:  rgba(240,228,212,0.58);
+        --danger: #FF6B5E;
+        --card-w: clamp(330px, 26vw, 384px);
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body {
         margin: 0; padding: 0; height: 100%; overflow: hidden;
-        background: #040407; color: var(--testo);
+        background: #05070D; color: var(--testo);
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         -webkit-font-smoothing: antialiased;
     }
 
     /* ================= LA STANZA ======================================== */
-    /* Dove sta il centro della lampada. Il palco e' una riga: lampada, spazio, riquadro,
-       il tutto centrato. Quindi la lampada e' spostata a sinistra di mezzo riquadro piu'
-       mezzo spazio. Serve per far partire le luci DALLA LAMPADA e non dal centro dello
-       schermo, che e' l'errore che si vedeva prima. */
-    :root {
-        --lamp-l:    clamp(180px, 26vw, 330px);                        /* quanto e' larga la lampada */
-        --lampx:     calc(50% - (clamp(24px, 7vw, 110px) + 410px) / 2); /* dove sta, in orizzontale */
-        --lamp-piede: calc(24.5vh - 0.0409 * var(--lamp-l));            /* il piede, dal fondo dello schermo */
-        --lamp-orlo:  calc(var(--lamp-piede) + 0.678 * var(--lamp-l));  /* l'orlo basso del paralume */
-        --lamp-cima:  calc(var(--lamp-piede) + 1.26 * var(--lamp-l));   /* l'orlo alto del paralume */
-    }
+    .scena { position: fixed; inset: 0; overflow: hidden; z-index: 0; background: #05070D; }
+    .dipinto { position: absolute; inset: 0; pointer-events: none; }
+    .dipinto > svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: hidden; }
+    .dipinto-caldo { opacity: 0; }
 
-    .scena { position: fixed; inset: 0; overflow: hidden; z-index: 0; perspective: 1200px; }
-    .strato { position: absolute; inset: -4%; will-change: transform; transition: transform 0.9s cubic-bezier(0.22,1,0.36,1); }
+    .palco-scena {
+        position: absolute; bottom: 0; left: 50%;
+        width: calc(1600 * var(--u)); height: calc(1000 * var(--u));
+        margin-left: calc(-800 * var(--u));
+        pointer-events: none;
+    }
+    .pz {  /* un pezzo della scena: --x --y --w --h in unita' del palco */
+        position: absolute;
+        left: calc(var(--x) * var(--u)); top: calc(var(--y) * var(--u));
+        width: calc(var(--w) * var(--u)); height: calc(var(--h) * var(--u));
+    }
+    .pz > svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
-    /* il muro: la notte, poi il caldo della lampada */
-    .muro {
-        background:
-            radial-gradient(90% 70% at 22% 8%, rgba(90,130,220,0.10) 0%, rgba(0,0,0,0) 55%),
-            linear-gradient(175deg, #0B0C14 0%, #07070C 48%, #030305 100%);
-        transition: background var(--t) ease;
+    /* ---- la vista dai vetri e la veneziana (sotto ai dipinti) ------------ */
+    .vista { --x: 62; --y: 154; --w: 240; --h: 598; overflow: hidden; }
+    .vista .cielo { position: absolute; inset: -2%; transition: transform 1.2s cubic-bezier(0.22,1,0.36,1); }
+    .vista .cielo svg { width: 100%; height: 100%; display: block; }
+    .veneziana { --x: 62; --y: 154; --w: 240; --h: 392; overflow: hidden; }
+    .veneziana .lamelle {
+        position: absolute; inset: 0;
+        transition: transform 1.8s cubic-bezier(0.45,0,0.2,1) 0.9s;
     }
-    body.accesa .muro {
-        background:
-            radial-gradient(80% 60% at 22% 6%, rgba(90,130,220,0.07) 0%, rgba(0,0,0,0) 50%),
-            /* la macchia calda: sta sopra la lampada e cade piano allontanandosi */
-            radial-gradient(62% 46% at var(--lampx) 44%, rgba(255,190,116,0.30) 0%, rgba(255,152,78,0.10) 42%, rgba(0,0,0,0) 74%),
-            radial-gradient(120% 90% at var(--lampx) 44%, rgba(255,160,90,0.10) 0%, rgba(0,0,0,0) 62%),
-            linear-gradient(175deg, #1B1826 0%, #121019 50%, #08070C 100%);
-    }
-    /* battiscopa: dà profondità alla parete */
-    .muro::after {
-        content: ''; position: absolute; left: 0; right: 0; bottom: 26%; height: 2px;
-        background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.07) 40%, rgba(255,255,255,0.02) 100%);
-    }
+    .veneziana .lamelle svg { width: 100%; height: 100%; display: block; }
+    body.accesa .veneziana .lamelle { transform: translateY(calc(-236 / 392 * 100%)); }
+    .veneziana .calde { opacity: 0; transition: opacity 1.2s ease 0.3s; }
+    body.accesa .veneziana .calde { opacity: 1; }
 
-    /* ---- LA FINESTRA: si vede anche al buio, ed è la cosa che dà respiro -- */
-    .finestra {
-        position: absolute; left: 9%; top: 15%; width: 17vw; min-width: 170px; height: 34vh; min-height: 210px;
-        border-radius: 10px 10px 4px 4px;
-        background: linear-gradient(180deg, #0D1730 0%, #0A1226 55%, #070D1C 100%);
-        box-shadow: inset 0 0 60px rgba(0,0,0,0.75), 0 0 60px rgba(90,130,220,0.10);
-        overflow: hidden;
-        border: 1px solid rgba(160,190,255,0.10);
-    }
-    .finestra::before {   /* la traversa della finestra */
-        content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; margin-left: -1.5px;
-        background: rgba(10,12,20,0.9); box-shadow: 0 0 8px rgba(0,0,0,0.6);
-    }
-    .finestra::after {
-        content: ''; position: absolute; left: 0; right: 0; top: 46%; height: 3px;
-        background: rgba(10,12,20,0.9); box-shadow: 0 0 8px rgba(0,0,0,0.6);
-    }
-    /* Con la stanza accesa la finestra si spegne: l'occhio si abitua alla luce vicina
-       e la notte fuori sembra piu' scura. Arriva dopo, non subito. */
-    .stelle { position: absolute; inset: 0; opacity: 0.9; transition: opacity 1.4s ease; }
-    body.accesa .stelle { opacity: 0.40; transition-delay: 0.9s; }
-    body.accesa .citta  { opacity: 0.15; transition-delay: 0.9s; }
-    .stella { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #CFE0FF; }
-    .citta {                       /* le luci lontane della città, sfocate come si vedono davvero */
-        position: absolute; left: 0; right: 0; bottom: 0; height: 26%;
-        background:
-            repeating-linear-gradient(90deg, rgba(255,206,140,0.75) 0 2px, rgba(0,0,0,0) 2px 11px),
-            linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(8,12,24,0.95) 78%);
-        opacity: 0.30; filter: blur(2.2px); transition: opacity 1.4s ease;
-        -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 45%, #000 100%);
-                mask-image: linear-gradient(180deg, rgba(0,0,0,0) 0%, #000 45%, #000 100%);
-    }
-    /* la luce lunare che entra e si posa sul pavimento */
-    .raggio-luna {
-        position: absolute; left: 4%; top: 10%; width: 34vw; height: 92vh;
-        background: linear-gradient(168deg, rgba(120,160,255,0.10) 0%, rgba(120,160,255,0.03) 40%, rgba(0,0,0,0) 70%);
-        transform: skewX(-11deg); pointer-events: none;
-        transition: opacity var(--t) ease;
-    }
-    body.accesa .raggio-luna { opacity: 0.35; }
+    .luci-citta .lv { animation: occhiolino 7s ease-in-out infinite; }
+    .luci-citta .lv:nth-child(3n) { animation-duration: 11s; animation-delay: -3s; }
+    .luci-citta .lv:nth-child(4n+1) { animation-duration: 9s; animation-delay: -6s; }
+    @keyframes occhiolino { 0%, 100% { opacity: 1; } 46% { opacity: 1; } 50% { opacity: 0.2; } 56% { opacity: 1; } }
+    .antenna { animation: antenna 2.6s steps(1) infinite; }
+    @keyframes antenna { 0%, 100% { opacity: 1; } 50% { opacity: 0.12; } }
 
-    /* ---- IL TAVOLINO ---------------------------------------------------- */
-    .tavolo {
-        position: absolute; left: 0; right: 0; bottom: 0; height: 26%;
-        background: linear-gradient(180deg, #14131A 0%, #0C0B10 40%, #060609 100%);
-        border-top: 1px solid rgba(255,255,255,0.06);
-        transition: background var(--t) ease, box-shadow var(--t) ease;
-    }
-    body.accesa .tavolo {
-        background: linear-gradient(180deg, #2A2320 0%, #191419 45%, #08070B 100%);
-        box-shadow: inset 0 24px 60px rgba(255,170,90,0.10);
-    }
-    /* il piano e' lucidato: appena sotto il bordo restituisce un lustro, e il legno
-       ha una venatura che si legge solo di sbieco, quando la luce lo prende basso */
-    .tavolo::before {
-        content: ''; position: absolute; left: 0; right: 0; top: 0; height: 46%;
-        background:
-            repeating-linear-gradient(91deg, rgba(255,255,255,0.016) 0 2px, rgba(0,0,0,0) 2px 7px),
-            linear-gradient(180deg, rgba(255,236,206,0.055) 0%, rgba(255,220,175,0.014) 42%, rgba(255,210,160,0) 100%);
-        opacity: 0; transition: opacity var(--t) ease 0.36s; pointer-events: none;
-    }
-    body.accesa .tavolo::before { opacity: 1; }
-    /* la pozza di luce sul piano, sotto la lampada */
-    .pozza {
-        position: absolute; bottom: 0; left: var(--lampx); width: 74vmin; height: 26.5%;
-        transform: translateX(-50%);
-        background: radial-gradient(50% 100% at 50% 0%, rgba(255,196,126,0.34) 0%, rgba(255,160,90,0.10) 45%, rgba(0,0,0,0) 76%);
-        opacity: 0; transition: opacity var(--t) ease; pointer-events: none;
-    }
-    .pozza::after {
-        content: ''; position: absolute; left: 50%; top: 0; width: 84px; height: 62%;
-        margin-left: -42px; filter: blur(11px);
-        background: linear-gradient(180deg, rgba(255,206,140,0.30) 0%, rgba(255,180,105,0.08) 55%, rgba(255,170,90,0) 100%);
-    }
-    body.accesa .pozza { opacity: 1; }
+    /* ---- IL TERMOSTATO ---------------------------------------------------- */
+    .termostato { --x: 836; --y: 274; --w: 88; --h: 88; }
+    .lumino { animation: respiroLumino 4.2s ease-in-out infinite; }
+    @keyframes respiroLumino { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+    .sveglio { opacity: 0; transition: opacity 0.9s ease; }
+    .termostato .sveglio { transition-delay: 0.6s; }
+    body.accesa .sveglio { opacity: 1; }
+    .termostato .lumino-g { transition: opacity 0.4s ease 0.6s; }
+    body.accesa .termostato .lumino-g { opacity: 0; }
+    .arco { stroke-dasharray: 0 200; transition: stroke-dasharray 1.4s cubic-bezier(0.22,1,0.36,1) 0.7s; }
+    body.accesa .arco { stroke-dasharray: 64 200; }
 
-    /* Il cono che scende dall'orlo del paralume: parte largo quanto il paralume e si
-       apre fino al tavolo. La forma sta sul figlio, la sfocatura sul padre: cosi' i bordi
-       restano morbidi invece di essere tagliati netti. */
-    .cono {
-        position: absolute; bottom: 0; left: var(--lampx);
-        width: calc(2.05 * var(--lamp-l)); height: var(--lamp-orlo);
-        transform: translateX(-50%);
-        filter: blur(22px); mix-blend-mode: screen;
-        opacity: 0; transition: opacity var(--t) ease; pointer-events: none;
-    }
-    .cono::before {
-        content: ''; position: absolute; inset: 0;
-        background: linear-gradient(180deg, rgba(255,220,162,0.34) 0%, rgba(255,190,120,0.15) 42%,
-                                            rgba(255,162,92,0.035) 80%, rgba(255,150,80,0) 100%);
-        clip-path: polygon(34% 0%, 66% 0%, 100% 100%, 0% 100%);
-    }
-    body.accesa .cono { opacity: 1; }
+    /* ---- IL SENSORE DELL'ALLARME ------------------------------------------ */
+    .sensore { --x: 516; --y: 32; --w: 48; --h: 64; }
+    .led { animation: led 3.4s ease-in-out infinite; }
+    @keyframes led { 0%, 84%, 100% { opacity: 0.4; } 88% { opacity: 1; } 92% { opacity: 0.4; } 95% { opacity: 1; } }
+    .sensore .sveglio { transition-delay: 1.2s; }
+    .caldo { opacity: 0; transition: opacity 1s ease 0.2s; }
+    body.accesa .caldo { opacity: 1; }
+    .sensore .caldo { transition-delay: 1.1s; }
+    .led-rosso { display: none; }
+    body.blocco .led-rosso { display: inline; }
+    body.blocco .led-verde { display: none; }
 
-    /* L'ombra del paralume esiste solo dove c'e' la lampada: sul telefono nemmeno nasce */
-    .ombra-paralume { display: none; }
-
-    /* E il cono che sale: un paralume aperto sopra manda luce anche al soffitto.
-       E' la meta' che mancava, ed e' quella che fa sembrare la stanza vera. */
-    .cono-su {
-        position: absolute; bottom: var(--lamp-cima); left: var(--lampx);
-        width: calc(1.9 * var(--lamp-l)); height: 40vh;
-        transform: translateX(-50%);
-        filter: blur(26px); mix-blend-mode: screen;
-        opacity: 0; transition: opacity var(--t) ease; pointer-events: none;
-    }
-    .cono-su::before {
-        content: ''; position: absolute; inset: 0;
-        background: linear-gradient(to top, rgba(255,214,152,0.26) 0%, rgba(255,184,114,0.09) 48%, rgba(255,160,90,0) 100%);
-        clip-path: polygon(0% 0%, 100% 0%, 61% 100%, 39% 100%);
-    }
-    body.accesa .cono-su { opacity: 1; }
-
-    /* ---- LA PIANTA in un angolo ----------------------------------------- */
-    .pianta { position: absolute; right: 2.5%; bottom: 24%; width: 11vw; min-width: 100px; max-width: 150px;
-              opacity: 0.26; transition: opacity var(--t) ease; }
-    body.accesa .pianta { opacity: 0.6; }
-
-    /* ---- IL PANNELLO A MURO che si accende ------------------------------ */
-    .pannello {
-        position: absolute; left: 9%; top: 6%;
-        width: 84px; height: 56px; border-radius: 12px;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.07);
-        display: flex; align-items: center; justify-content: center; gap: 6px;
-        transition: background var(--t) ease, border-color var(--t) ease, box-shadow var(--t) ease;
-    }
-    .pannello span { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.10); transition: all var(--t) ease; }
-    body.accesa .pannello { background: rgba(255,255,255,0.055); border-color: rgba(255,200,140,0.20); box-shadow: 0 0 26px rgba(255,180,110,0.10); }
-    body.accesa .pannello span:nth-child(1) { background: #30D158; box-shadow: 0 0 10px rgba(48,209,88,0.9); }
-    body.accesa .pannello span:nth-child(2) { background: var(--ambra); box-shadow: 0 0 10px rgba(255,184,101,0.9); }
-    body.accesa .pannello span:nth-child(3) { background: var(--blu);   box-shadow: 0 0 10px rgba(10,132,255,0.9); }
-    @media (max-width: 1150px) { .pannello, .pianta, .finestra, .raggio-luna { display: none; } }
-
-    /* Il bagliore blu che respira: e' lo sfondo storico dell'accesso, quello che il
-       cliente vede sul telefono da sempre. Sul computer c'e' la stanza, quindi resta spento. */
-    .alone-blu {
-        position: absolute; top: 50%; left: 50%; display: none; pointer-events: none;
-        width: 80vw; height: 80vw; max-width: 800px; max-height: 800px; border-radius: 50%;
-        background: radial-gradient(circle, rgba(10,132,255,0.15) 0%, rgba(0,0,0,0) 60%);
-        filter: blur(60px); transform: translate(-50%, -50%);
-        animation: respiroBlu 15s ease-in-out infinite alternate;
-    }
-    @keyframes respiroBlu {
-        0%   { transform: translate(-50%, -50%) scale(0.9); opacity: 0.7; }
-        100% { transform: translate(-50%, -45%) scale(1.1); opacity: 1; }
-    }
-
-    #particle-canvas { position: absolute; inset: 0; opacity: 0.30; transition: opacity var(--t) ease; }
-    body.accesa #particle-canvas { opacity: 1; }
-
-    #lockout-glow {
-        position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease; pointer-events: none;
-        background: radial-gradient(70% 60% at 50% 40%, rgba(255,69,58,0.22) 0%, rgba(0,0,0,0) 70%);
-    }
-
-    /* ---- LE TARGHETTE DELLA DOMOTICA ------------------------------------ */
-    .oggetti { position: absolute; inset: 0; pointer-events: none; }
-    .oggetto {
-        position: absolute; display: flex; align-items: center; gap: 9px;
-        padding: 11px 15px; border-radius: 17px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.08);
-        backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-        color: rgba(244,244,248,0.78); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.01em;
-        opacity: 0; transform: translateY(14px) scale(0.96);
-        transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.22,1,0.36,1);
-    }
-    body.accesa .oggetto { opacity: 1; transform: none; }
-    .oggetto i { width: 15px; height: 15px; color: var(--ambra); }
-    .oggetto .pallino { width: 6px; height: 6px; border-radius: 50%; background: #30D158; box-shadow: 0 0 9px rgba(48,209,88,0.85); }
-    .oggetto:nth-child(1) { top: 12%; left: 30%;  transition-delay: 0.5s; }
-    .oggetto:nth-child(2) { top: 70%; left: 5%;   transition-delay: 0.68s; }
-    .oggetto:nth-child(3) { top: 11%; right: 4%;  transition-delay: 0.86s; }
-    .oggetto:nth-child(4) { top: 47%; right: 3%;  transition-delay: 1.04s; }
-    @media (max-width: 1250px) { .oggetti { display: none; } }
-
-    /* ================= IL PALCO ========================================= */
-    .palco {
-        position: relative; z-index: 2; height: 100%; width: 100%;
-        display: flex; align-items: center; justify-content: center;
-        gap: clamp(24px, 7vw, 110px); padding: 24px;
-    }
-
-    /* ---- LA LAMPADA ----------------------------------------------------- */
-    /* La scritta esce dal flusso: se occupa spazio alza la lampada e la stacca dal tavolo.
-       E la lampada si aggancia al basso, non al centro: il piede deve finire un dito
-       SOTTO il bordo del tavolo, altrimenti sembra appesa per aria.
-       Il tavolo e' alto 26vh; sotto il piede l'SVG ha un 3% di vuoto; il palco ha 24px
-       di bordo. Da qui il conto. */
-    .lato-lampada {
-        position: relative; display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
-        align-self: flex-end;
-        margin-bottom: calc(var(--lamp-piede) - 24px);
-    }
-    .lampada-blocco { position: relative; width: max-content; }
-    .lampada { width: clamp(180px, 26vw, 330px); height: auto; display: block; overflow: visible; }
-
-    .paralume-luce { opacity: 0; transition: opacity 0.5s ease; }
-    body.accesa .paralume-luce { opacity: 1; }
-    /* anche il metallo e la base prendono il caldo della lampadina */
-    .lampada { filter: saturate(0.42) brightness(0.72); transition: filter var(--t) ease; }
-    body.accesa .lampada { filter: saturate(1.06) brightness(1.06) drop-shadow(0 10px 40px rgba(255,170,90,0.25)); }
-
-    .alone {
-        position: absolute; top: 4%; left: 50%; width: 175%; padding-bottom: 175%;
-        transform: translateX(-50%); border-radius: 50%; pointer-events: none;
-        background: radial-gradient(circle, rgba(255,214,150,0.32) 0%, rgba(255,175,95,0.11) 38%, rgba(0,0,0,0) 68%);
-        opacity: 0; transition: opacity var(--t) ease;
-        mix-blend-mode: screen;
-    }
-    body.accesa .alone { opacity: 1; }
-
-    /* il guizzo di accensione: due battiti e poi luce piena */
+    /* ---- IL GUIZZO: due battiti e poi luce piena --------------------------- */
     @keyframes guizzo {
-        0%   { opacity: 0; }
-        8%   { opacity: 1; }
-        14%  { opacity: 0.15; }
-        22%  { opacity: 1; }
-        30%  { opacity: 0.45; }
-        100% { opacity: 1; }
+        0% { opacity: 0; } 7% { opacity: 1; } 13% { opacity: 0.15; } 21% { opacity: 0.95; }
+        28% { opacity: 0.45; } 40% { opacity: 1; } 100% { opacity: 1; }
     }
-    body.accesa .paralume-luce, body.accesa .alone { animation: guizzo 1.1s ease-out; }
-    /* quando la luce era gia' accesa (password sbagliata, ricarica, telefono)
-       non si rifa' la scenetta: la stanza e' semplicemente illuminata */
-    /* La stanza non si accende tutta insieme: prima il bulbo, poi la luce che esce,
-       poi il muro che si scalda, per ultimo il piano. Sono decimi di secondo, ma sono
-       quelli che fanno la differenza fra "una luce si e' accesa" e "qualcuno ha acceso
-       la lampada". */
-    .cono            { transition-delay: 0.10s; }
-    .ombra-paralume  { transition-delay: 0.12s; }
-    .cono-su         { transition-delay: 0.17s; }
-    .muro            { transition-delay: 0.18s; }
-    .pozza           { transition-delay: 0.24s; }
-    .tavolo          { transition-delay: 0.32s; }
+    body.accesa .dipinto-caldo { opacity: 1; animation: guizzo 1.1s ease-out both; }
 
-    /* Dopo l'accensione la luce non resta immobile: respira appena, come una
-       lampadina calda vera. Un sette per cento, non si nota e si sente. */
-    @keyframes fiato { 0%, 100% { opacity: 1; } 50% { opacity: 0.93; } }
-    body.accesa .alone { animation: guizzo 1.1s ease-out, fiato 9s ease-in-out 1.2s infinite; }
-
-    /* Quando la scenetta non si deve rifare (password sbagliata, ricarica, telefono)
-       tutto e' gia' al suo posto: niente attese, niente guizzo. Il respiro resta. */
-    /* i riflessi sul metallo non ci sono finche' non c'e' la lampadina, e sfarfallano
-       insieme a lei: perche' sono lei, rispecchiata nell'ottone e nel bronzo */
-    .riflesso-caldo { opacity: 0; transition: opacity var(--t) ease; }
-    body.accesa .riflesso-caldo { opacity: 1; animation: guizzo 1.1s ease-out; }
-    body.senza-scena .riflesso-caldo { animation: none; transition: none; }
-
-    body.senza-scena .paralume-luce { animation: none; }
-    body.senza-scena .alone { animation: fiato 9s ease-in-out infinite; }
-    body.senza-scena .lato-accesso, body.senza-scena .oggetto,
-    body.senza-scena .muro, body.senza-scena .tavolo, body.senza-scena .tavolo::before,
-    body.senza-scena .cono, body.senza-scena .cono-su, body.senza-scena .ombra-paralume,
-    body.senza-scena .stelle, body.senza-scena .citta,
-    body.senza-scena .pozza, body.senza-scena .pianta, body.senza-scena .pannello { transition: none; }
-    body.senza-scena .oggetto, body.senza-scena .cono, body.senza-scena .cono-su,
-    body.senza-scena .ombra-paralume, body.senza-scena .muro, body.senza-scena .pozza,
-    body.senza-scena .stelle, body.senza-scena .citta,
-    body.senza-scena .tavolo, body.senza-scena .tavolo::before { transition-delay: 0s; }
-
-    /* ---- LA CORDICELLA --------------------------------------------------- */
+    /* ---- LA CORDICELLA ----------------------------------------------------- */
     .cordicella {
-        position: absolute; top: 41%; right: 13%;
-        width: 36px; padding: 0; border: none; background: transparent;
+        position: absolute; left: calc(772 * var(--u) - 24px); top: calc(379 * var(--u));
+        width: 48px; padding: 0 0 12px; border: none; background: transparent;
         display: flex; flex-direction: column; align-items: center;
-        cursor: grab; z-index: 3; transform-origin: top center;
+        cursor: grab; z-index: 3; transform-origin: top center; touch-action: none;
+        pointer-events: auto;
         transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
     .cordicella:active { cursor: grabbing; }
-    /* a luce accesa la cordicella resta appesa (fa parte della lampada) ma
-       non e' piu' un comando: tirarla di nuovo non spegne niente. */
     body.accesa .cordicella { pointer-events: none; cursor: default; }
     .cordicella .filo {
-        width: 2px; height: clamp(54px, 9vh, 92px);
-        background: linear-gradient(180deg, rgba(255,235,200,0.42), rgba(255,225,180,0.16));
-        border-radius: 2px;
+        width: 1.5px; height: calc(88 * var(--u));
+        background: linear-gradient(180deg, rgba(150,165,205,0.12), rgba(214,196,160,0.55));
+        border-radius: 2px; transition: background 1s ease;
     }
+    body.accesa .cordicella .filo { background: linear-gradient(180deg, rgba(255,230,190,0.55), rgba(255,214,160,0.7)); }
     .cordicella .pomello {
-        width: 14px; height: 14px; border-radius: 50%; margin-top: -1px;
-        background: radial-gradient(circle at 32% 28%, #FFF6E2, #D8B478 55%, #8A6B3C);
-        box-shadow: 0 3px 10px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.12) inset, 0 0 14px rgba(255,200,130,0.35);
+        position: relative; width: 13px; height: 17px; border-radius: 45% 45% 50% 50%; margin-top: -1px;
+        background: radial-gradient(circle at 36% 30%, #FFF4DC 0%, #F2C987 38%, #B98547 100%);
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.14) inset, 0 3px 8px rgba(0,0,0,0.6), 0 0 14px 2px rgba(255,190,110,0.55);
     }
-    @keyframes richiamo { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
-    body:not(.accesa) .cordicella { animation: richiamo 2.4s ease-in-out infinite; }
-    .cordicella.tirata { transform: translateY(34px); animation: none; }
-    .cordicella:focus-visible { outline: 2px solid var(--ambra); outline-offset: 8px; border-radius: 14px; }
-
-    /* ---- IL SUGGERIMENTO -------------------------------------------------- */
-    .suggerimento {
-        position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-        margin-top: 26px; white-space: nowrap; display: flex; align-items: center; gap: 9px;
-        color: rgba(244,244,248,0.62); font-size: 0.9rem; font-weight: 500; letter-spacing: 0.04em;
-        text-shadow: 0 0 22px rgba(255,200,140,0.28);
-        opacity: 0.95; transition: opacity 0.5s ease;
+    /* la zona da toccare: 48 x 48 intorno alla pallina */
+    .cordicella .pomello > .presa { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; }
+    .cordicella .pomello::before {
+        content: ''; position: absolute; left: 50%; top: 50%; width: 70px; height: 70px; margin: -35px 0 0 -35px;
+        border-radius: 50%; pointer-events: none;
+        background: radial-gradient(closest-side, rgba(255,196,120,0.42) 0%, rgba(255,180,100,0.12) 50%, rgba(255,180,100,0) 100%);
+        animation: fiatoPomello 3.2s ease-in-out infinite;
     }
-    .suggerimento i { width: 17px; height: 17px; color: var(--ambra); }
-    @keyframes respiro { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
-    body:not(.accesa) .suggerimento { animation: respiro 2.6s ease-in-out infinite; }
-    body.accesa .suggerimento { opacity: 0 !important; pointer-events: none; }
+    .cordicella .pomello::after {
+        content: ''; position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px;
+        border-radius: 50%; border: 1px solid rgba(255,206,140,0.55); pointer-events: none; opacity: 0;
+        animation: onda 3.2s cubic-bezier(0.2,0.6,0.3,1) 1.2s infinite;
+    }
+    @keyframes fiatoPomello { 0%, 100% { opacity: 0.55; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.08); } }
+    @keyframes onda { 0% { opacity: 0.8; transform: scale(0.6); } 70%, 100% { opacity: 0; transform: scale(2.4); } }
+    body.accesa .cordicella .pomello::before, body.accesa .cordicella .pomello::after { animation: none; opacity: 0; }
+    @keyframes richiamo { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(1.4deg); } }
+    body:not(.accesa) .cordicella { animation: richiamo 4.8s ease-in-out infinite; }
+    .cordicella.tirata { transform: translateY(30px); animation: none !important; }
+    .cordicella:focus-visible { outline: none; }
+    .cordicella:focus-visible .pomello { outline: 2px solid var(--ambra); outline-offset: 7px; }
 
-    /* ---- IL RIQUADRO DI ACCESSO ------------------------------------------- */
+    /* ---- I SEGNI: un puntino e una parola accanto all'oggetto che si sveglia */
+    .segno {
+        position: absolute; left: calc(var(--x) * var(--u)); top: calc(var(--y) * var(--u));
+        display: flex; align-items: center; gap: 7px; white-space: nowrap;
+        font-size: 10.5px; line-height: 1; font-weight: 600; letter-spacing: 0.17em; text-transform: uppercase;
+        color: rgba(255,238,214,0.80); text-shadow: 0 1px 10px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.6);
+        opacity: 0; transform: translate(var(--tx, 0%), -50%) translateY(5px);
+        transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.22,1,0.36,1);
+        pointer-events: none;
+    }
+    .segno::before {
+        content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+        background: var(--c); box-shadow: 0 0 0 3px rgba(0,0,0,0.25), 0 0 10px var(--c);
+    }
+    .segno.a-sx { flex-direction: row-reverse; --tx: -100%; }
+    .segno.al-centro { --tx: -50%; }
+    body.accesa .segno { opacity: 1; transform: translate(var(--tx, 0%), -50%); }
+    .sg-luci  { --x: 560; --y: 300; --c: #FFD08A; transition-delay: 0.35s; }
+    .sg-clima { --x: 880; --y: 372; --c: #FF9F43; transition-delay: 0.75s; }
+    .sg-tapp  { --x: 346; --y: 124; --c: #9DB8FF; transition-delay: 1.05s; }
+    .sg-sic   { --x: 572; --y: 64;  --c: #5BE38C; transition-delay: 1.35s; }
+    body.blocco .sg-sic { --c: #FF6B5E; }
+
+    /* ---- il pulviscolo, la vignetta e la grana ----------------------------- */
+    #polvere { position: absolute; pointer-events: none; }
+    .vignetta {
+        position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(120% 100% at 40% 42%, rgba(0,0,0,0) 50%, rgba(1,2,6,0.5) 85%, rgba(1,2,6,0.72) 100%);
+    }
+    .grana {
+        position: absolute; inset: 0; pointer-events: none; opacity: 0.045;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.9 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+        background-size: 200px 200px;
+    }
+    #lockout-glow {
+        position: absolute; inset: 0; opacity: 0; transition: opacity 1.2s ease; pointer-events: none;
+        background: radial-gradient(60% 55% at 72% 48%, rgba(255,69,58,0.16) 0%, rgba(0,0,0,0) 70%);
+    }
+
+    /* ================= IL PALCO DELL'ACCESSO ============================= */
+    .palco {
+        position: fixed; inset: 0; z-index: 2; pointer-events: none;
+        /* il bordo sinistro del lato destro: centrato a 430 unita', ma mai a meno di 36 px
+           dal termostato (che finisce a 924 unita') e mai fuori dallo schermo a destra */
+        --ax: min(max(calc(50% + 124 * var(--u) + 36px), calc(50% + 430 * var(--u) - var(--card-w) / 2)), calc(100% - var(--card-w) - 16px));
+    }
+    .lato-accesso, .intro {
+        position: absolute; top: 0; bottom: 0;
+        left: var(--ax); width: var(--card-w);
+        display: flex; flex-direction: column; justify-content: center;
+    }
+    /* il contenitore che scorre e' piu' largo del riquadro: cosi' non ne taglia l'ombra.
+       Lo centrano i margini automatici del riquadro, non justify-content: se il riquadro e'
+       piu' alto dello schermo, cosi' si scorre fino in cima invece di restare tagliato. */
+    .lato-accesso { left: calc(var(--ax) - 70px); width: calc(var(--card-w) + 140px); padding: 24px 70px 60px; justify-content: flex-start; }
+
+    /* ---- LA PRESENTAZIONE, a luce spenta ---------------------------------- */
+    .intro { transition: opacity 0.5s ease 0.1s, transform 0.8s ease 0.1s; }
+    body.accesa .intro { opacity: 0; transform: translateY(-10px); visibility: hidden; transition: opacity 0.5s ease 0.1s, transform 0.8s ease 0.1s, visibility 0s linear 0.7s; }
+    .intro-marchio { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+    .intro-marchio img { width: 34px; height: 34px; border-radius: 9px; box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 6px 18px rgba(0,0,0,0.5); }
+    .intro-marchio span { font-size: 12px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(214,222,245,0.62); }
+    .intro h2 {
+        margin: 0; font-size: clamp(38px, 3.9vw, 58px); line-height: 1.02; font-weight: 300; letter-spacing: -0.035em;
+        background: linear-gradient(180deg, #F2F5FF 0%, #B9C6E8 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .intro h2 em { font-style: normal; font-weight: 600; }
+    .intro p { margin: 18px 0 0; font-size: 15px; line-height: 1.5; color: rgba(200,210,236,0.62); max-width: 30ch; }
+    .intro-segno {
+        margin-top: 30px; display: inline-flex; align-items: center; gap: 10px; align-self: flex-start;
+        padding: 10px 16px 10px 12px; border-radius: 999px; pointer-events: auto; cursor: pointer;
+        border: 1px solid rgba(255,200,130,0.26); background: rgba(255,190,110,0.07);
+        color: rgba(255,224,184,0.9); font: 500 13px/1.2 inherit; font-family: inherit;
+        transition: background 0.25s, border-color 0.25s;
+    }
+    .intro-segno:hover { background: rgba(255,190,110,0.12); border-color: rgba(255,200,130,0.42); }
+    .intro-segno:focus-visible { outline: 2px solid var(--ambra); outline-offset: 3px; }
+    .intro-segno i, .intro-segno svg { width: 16px; height: 16px; color: var(--ambra); }
+    .intro-segno span { white-space: nowrap; }
+    .intro-tasto { margin-top: 12px; padding-left: 4px; font-size: 12px; color: rgba(200,210,236,0.45); }
+    .intro-tasto kbd {
+        font-family: inherit; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 5px;
+        border: 1px solid rgba(255,222,180,0.3); color: rgba(255,222,180,0.75);
+    }
+    @media not all and (hover: hover) { .intro-tasto { display: none; } }
+
+    /* ---- IL RIQUADRO DI ACCESSO -------------------------------------------- */
     .lato-accesso {
-        width: 100%; max-width: 410px;
-        opacity: 0; transform: translateY(28px) scale(0.96); pointer-events: none;
-        transition: opacity 0.9s ease 0.5s, transform 1s cubic-bezier(0.22,1,0.36,1) 0.5s,
-                    max-width 0.9s cubic-bezier(0.22,1,0.36,1), margin 0.9s ease;
+        /* a luce spenta il riquadro non c'e' nemmeno per la tastiera: niente campi invisibili col fuoco */
+        opacity: 0; transform: translateY(24px) scale(0.975); pointer-events: none; visibility: hidden;
+        transition: opacity 0.9s ease 1.5s, transform 1.1s cubic-bezier(0.22,1,0.36,1) 1.5s, visibility 0s linear 1.5s;
+        overflow-y: auto; scrollbar-width: none;
     }
-    body:not(.accesa) .lato-accesso { max-width: 0; margin: 0 -14px; overflow: hidden; }
-    body.accesa .lato-accesso { opacity: 1; transform: none; pointer-events: auto; }
+    .lato-accesso::-webkit-scrollbar { display: none; }
+    body.accesa .lato-accesso { opacity: 1; transform: none; visibility: visible; }
+    body.accesa .lato-accesso .glass-card { pointer-events: auto; }
+    .lato-accesso > .glass-card { margin: auto 0; flex-shrink: 0; }
 
     .glass-card {
         position: relative;
-        background: linear-gradient(155deg, rgba(40,36,44,0.72) 0%, rgba(22,21,28,0.70) 100%);
-        backdrop-filter: blur(42px) saturate(180%); -webkit-backdrop-filter: blur(42px) saturate(180%);
-        border: 1px solid var(--bordo);
-        border-radius: 32px; padding: 40px 34px; text-align: center;
-        box-shadow: 0 40px 90px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.09);
+        background: linear-gradient(165deg, rgba(46,32,24,0.80) 0%, rgba(22,16,14,0.86) 55%, rgba(14,11,12,0.9) 100%);
+        -webkit-backdrop-filter: blur(16px) saturate(130%); backdrop-filter: blur(16px) saturate(130%);
+        border-radius: 28px; padding: 34px 30px 30px; text-align: center;
+        box-shadow: 0 40px 80px -24px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.3),
+                    inset 0 1px 0 rgba(255,236,210,0.08);
     }
-    /* il bordo caldo dal lato della lampada */
+    /* il bordo scaldato dal lato della lampada */
     .glass-card::before {
         content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
-        background: linear-gradient(120deg, rgba(255,196,126,0.55) 0%, rgba(255,255,255,0.06) 42%, rgba(255,255,255,0) 70%);
+        background: linear-gradient(110deg, rgba(255,206,140,0.70) 0%, rgba(255,206,140,0.16) 30%, rgba(255,236,210,0.06) 60%, rgba(255,236,210,0.10) 100%);
         -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor; mask-composite: exclude;
-        pointer-events: none;
+        -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+    }
+    .glass-card::after {
+        content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+        background: radial-gradient(90% 60% at 0% 35%, rgba(255,184,110,0.13) 0%, rgba(255,184,110,0) 70%);
     }
 
-    .card-header { margin-bottom: 30px; }
+    .card-header { margin-bottom: 26px; position: relative; z-index: 1; }
     .brand-logo {
-        width: 72px; height: 72px; margin: 0 auto 18px auto;
-        display: flex; align-items: center; justify-content: center;
+        width: 58px; height: 58px; margin: 0 auto 18px; border-radius: 16px; overflow: hidden;
+        box-shadow: 0 0 0 1px rgba(255,220,170,0.2), 0 10px 30px rgba(0,0,0,0.5), 0 0 40px rgba(255,190,120,0.2);
     }
-    .brand-logo img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 26px rgba(255,190,120,0.35)); }
-    .card-header h1 { margin: 0 0 7px 0; font-size: 1.72rem; font-weight: 800; letter-spacing: -0.03em; }
-    .card-header p  { margin: 0; font-size: 0.9rem; color: var(--fioco); letter-spacing: 0.01em; }
+    .brand-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card-header h1 { margin: 0 0 6px; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.028em; }
+    .card-header p  { margin: 0; font-size: 0.9rem; color: var(--fioco); text-wrap: balance; }
 
-    .input-group { position: relative; margin-bottom: 13px; text-align: left; }
+    form { position: relative; z-index: 1; }
+    .input-group { position: relative; margin-bottom: 12px; text-align: left; }
     .form-input {
-        width: 100%; padding: 16px 16px 16px 48px;
-        background: rgba(255,255,255,0.055);
-        border: 1px solid rgba(255,255,255,0.09);
-        border-radius: 17px; color: var(--testo);
-        font-family: inherit; font-size: 0.97rem;
+        width: 100%; height: 52px; padding: 0 16px 0 46px;
+        background: rgba(0,0,0,0.22);
+        border: 1px solid rgba(255,236,210,0.10);
+        border-radius: 14px; color: var(--testo);
+        font-family: inherit; font-size: 16px;
         transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
     }
-    .form-input::placeholder { color: rgba(244,244,248,0.34); }
+    .form-input::placeholder { color: rgba(240,228,212,0.38); }
     .form-input:focus {
-        outline: none; background: rgba(255,255,255,0.085);
+        outline: none; background: rgba(0,0,0,0.30);
         border-color: rgba(255,200,130,0.6);
-        box-shadow: 0 0 0 4px rgba(255,190,120,0.11);
+        box-shadow: 0 0 0 4px rgba(255,190,120,0.12);
     }
-    .input-icon { position: absolute; left: 17px; top: 50%; transform: translateY(-50%); color: rgba(244,244,248,0.38); display: flex; pointer-events: none; }
-    .input-icon i { width: 18px; height: 18px; }
+    .input-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: rgba(240,228,212,0.4); display: flex; pointer-events: none; transition: color 0.25s; }
+    .input-icon i, .input-icon svg { width: 17px; height: 17px; }
+    .form-input:focus + .input-icon { color: var(--ambra); }
 
     .btn-primary {
-        width: 100%; margin-top: 10px; padding: 16px;
-        background: linear-gradient(135deg, #FFD08A 0%, #FF9A3D 100%);
-        color: #2A1902; border: none; border-radius: 17px;
-        font-family: inherit; font-size: 1rem; font-weight: 700;
+        position: relative; width: 100%; height: 52px; margin-top: 8px; padding: 0 16px;
+        background: linear-gradient(180deg, var(--oro-1) 0%, var(--oro-2) 100%);
+        color: #2A1904; border: none; border-radius: 14px;
+        font-family: inherit; font-size: 15.5px; font-weight: 650; letter-spacing: 0.005em;
         cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
-        box-shadow: 0 14px 34px rgba(255,160,80,0.30);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,70,20,0.35),
+                    0 12px 30px -8px rgba(255,170,80,0.45);
         transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
     }
-    .btn-primary:hover { transform: translateY(-2px); filter: brightness(1.06); box-shadow: 0 18px 40px rgba(255,160,80,0.38); }
+    .btn-primary i, .btn-primary svg { width: 17px; height: 17px; transition: transform 0.25s; }
+    .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .btn-primary:hover svg { transform: translateX(3px); }
     .btn-primary:active { transform: translateY(0) scale(0.99); }
+    .btn-primary:focus-visible { outline: 2px solid #FFE3B8; outline-offset: 3px; }
+
+    /* primo avvio: la riga della citta' col pulsante GPS */
+    .riga-posizione { display: flex; gap: 8px; }
+    .riga-posizione > div { flex-grow: 1; position: relative; }
+    .nota-posizione { text-wrap: balance; font-size: 0.8rem; color: var(--fioco); margin: 6px 2px 10px; text-align: left; line-height: 1.4; }
+    .btn-gps {
+        flex: 0 0 52px; width: 52px; height: 52px; border-radius: 14px; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(255,190,110,0.08); color: var(--ambra);
+        border: 1px solid rgba(255,200,130,0.3); transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-gps:hover { background: rgba(255,190,110,0.14); border-color: rgba(255,200,130,0.5); }
+    .btn-gps:focus-visible { outline: 2px solid #FFE3B8; outline-offset: 3px; }
+    .btn-gps i, .btn-gps svg { width: 19px; height: 19px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     .alert-error {
-        display: flex; align-items: center; gap: 10px; text-align: left;
-        background: rgba(255,69,58,0.13); border: 1px solid rgba(255,69,58,0.30);
-        color: #FFB4AE; border-radius: 15px; padding: 12px 15px; margin-bottom: 17px; font-size: 0.86rem;
+        position: relative; z-index: 1;
+        display: flex; align-items: flex-start; gap: 11px; text-align: left;
+        background: linear-gradient(180deg, rgba(255,96,80,0.16), rgba(255,96,80,0.10));
+        border: 1px solid rgba(255,120,100,0.38);
+        color: #FFE1DC; border-radius: 14px; padding: 12px 14px; margin-bottom: 16px;
+        font-size: 0.88rem; line-height: 1.4; font-weight: 500;
+        box-shadow: 0 8px 24px -12px rgba(255,80,60,0.5);
+        animation: arrivoErrore 0.5s cubic-bezier(0.22,1,0.36,1) both;
     }
-    .alert-error i { width: 17px; height: 17px; flex-shrink: 0; }
+    .alert-error span { text-wrap: balance; }
+    .alert-error i, .alert-error svg { width: 18px; height: 18px; flex-shrink: 0; color: #FF8A7A; margin-top: 1px; }
+    @keyframes arrivoErrore { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 
-    .lockout-container { flex-direction: column; align-items: center; gap: 11px; }
-    .shield-icon { color: var(--danger); }
-    .shield-icon i { width: 46px; height: 46px; }
-    .lockout-container h2 { margin: 0; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; }
-    .lockout-container p  { margin: 0; font-size: 0.88rem; color: var(--fioco); }
-    .countdown-display { margin-top: 12px; font-size: 2.2rem; font-weight: 800; letter-spacing: 0.06em; color: var(--danger); font-variant-numeric: tabular-nums; }
+    .lockout-container { flex-direction: column; align-items: center; gap: 10px; position: relative; z-index: 1; padding: 6px 0 4px; }
+    .shield-icon {
+        width: 78px; height: 78px; border-radius: 50%; margin-bottom: 8px;
+        display: flex; align-items: center; justify-content: center; color: #FF7A6C;
+        background: radial-gradient(closest-side, rgba(255,90,70,0.22), rgba(255,90,70,0.06));
+        box-shadow: 0 0 0 1px rgba(255,110,90,0.3), 0 0 40px rgba(255,80,60,0.25);
+    }
+    .shield-icon i, .shield-icon svg { width: 36px; height: 36px; }
+    .lockout-container h2 { margin: 0; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
+    .lockout-container p  { margin: 0; font-size: 0.9rem; line-height: 1.45; color: var(--fioco); max-width: 28ch; }
+    .countdown-display {
+        margin-top: 14px; padding: 12px 22px; border-radius: 16px;
+        font-size: 2.1rem; font-weight: 700; letter-spacing: 0.06em; color: #FF8274; font-variant-numeric: tabular-nums;
+        background: rgba(0,0,0,0.25); border: 1px solid rgba(255,110,90,0.22);
+    }
 
     .wh-lingua-angolo {
         position: fixed; top: calc(18px + env(safe-area-inset-top)); right: 18px; z-index: 5;
-        opacity: 0.4; transition: opacity 0.6s ease;
+        opacity: 0.5; transition: opacity 0.6s ease; color: #E6E9F2;
     }
     .wh-lingua-angolo:hover, body.accesa .wh-lingua-angolo { opacity: 1; }
+    /* Il selettore della lingua e' lo stesso di tutte le pagine (blocco LINGUA, da non toccare):
+       qui prende solo i colori della stanza. Il blu iOS pieno, a luce accesa, era l'unico freddo
+       acceso in una scena tutta ambra. */
+    body.spenta .wh-lingua button.on { background: rgba(138,160,214,0.30); color: #E6EAF5; }
+    body.accesa .wh-lingua button.on { background: #E6B868; color: #2A1A08; }
+    body.accesa .wh-lingua { background: rgba(255,214,160,0.10); }
 
-    /* =====================================================================
-       QUELLO CHE LA LAMPADA ILLUMINA
-       Solo sul computer: sul telefono la lampada non c'e' proprio, quindi
-       tutto questo blocco non deve nemmeno essere letto.
-       ===================================================================== */
-    @media (min-width: 861px) {
-        /* Dietro al paralume il muro NON e' il punto piu' chiaro: il paralume fa
-           ombra alla sua altezza, e la luce passa sopra e sotto. Senza questa fascia
-           la lampada sembra una macchia luminosa incollata al muro. */
-        .ombra-paralume {
-            display: block;
-            position: absolute; left: var(--lampx); bottom: var(--lamp-orlo);
-            width: calc(3.4 * var(--lamp-l)); height: calc(0.62 * var(--lamp-l));
-            transform: translateX(-50%);
-            background: radial-gradient(closest-side, rgba(6,4,10,0.42) 0%, rgba(6,4,10,0.16) 52%, rgba(6,4,10,0) 100%);
-            filter: blur(30px); pointer-events: none;
-            opacity: 0; transition: opacity var(--t) ease;
-        }
-        body.accesa .ombra-paralume { opacity: 1; }
+    /* lo sfondo del telefono: esiste solo li' */
+    .sfondo-tel { display: none; }
 
-        /* Il riquadro sta nella stanza, e la lampada gli sta a sinistra: quel bordo
-           deve prendere luce, l'altro no. */
-        body.accesa .glass-card {
-            box-shadow: 0 40px 90px rgba(0,0,0,0.65),
-                        inset 0 1px 0 rgba(255,255,255,0.09),
-                        inset 30px 0 70px -34px rgba(255,196,130,0.75),
-                        -22px 0 60px -30px rgba(255,170,95,0.28);
-        }
+    /* ================= QUANDO NON SI RIFA' LA SCENETTA ===================== */
+    /* password sbagliata, ricarica, blocco accessi, primo avvio: tutto e' gia' al suo posto */
+    body.senza-scena .scena *, body.senza-scena .lato-accesso, body.senza-scena .intro,
+    body.senza-scena .segno { transition: none !important; }
+    body.senza-scena .dipinto-caldo { animation: none; }
 
-        /* Le targhette prendono il filo di luce dal lato dove sta la lampada:
-           quella sopra da sotto, quella a sinistra da destra, quelle a destra da sinistra.
-           E piu' sono lontane, meno luce prendono. */
-        body.accesa .oggetto:nth-child(1) { box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset 0 -1px 0 rgba(255,206,146,0.42); }
-        body.accesa .oggetto:nth-child(2) { box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset -1px 0 0 rgba(255,200,140,0.26); }
-        body.accesa .oggetto:nth-child(3) { box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset  1px 0 0 rgba(255,196,134,0.16); }
-        body.accesa .oggetto:nth-child(4) { box-shadow: 0 10px 30px rgba(0,0,0,0.35), inset  1px 0 0 rgba(255,196,134,0.16); }
-
-        /* Il vetro della finestra riflette la lampada: una riga calda sul montante
-           dalla parte giusta, appena accennata. */
-        .finestra { position: absolute; }
-        body.accesa .finestra { box-shadow: inset 0 0 60px rgba(0,0,0,0.75), 0 0 60px rgba(90,130,220,0.10),
-                                            inset -26px 0 44px -30px rgba(255,190,120,0.55); }
+    /* schermi bassi: il riquadro si fa piu' compatto */
+    @media (max-height: 700px) and (min-width: 861px) {
+        .glass-card { padding: 24px 26px 22px; }
+        .card-header { margin-bottom: 18px; }
+        .brand-logo { width: 46px; height: 46px; margin-bottom: 12px; }
+        .form-input, .btn-primary { height: 46px; }
+        .btn-gps { height: 46px; flex-basis: 46px; }
+    }
+    /* il primo avvio e' alto: sugli schermi medi si stringe un po' */
+    @media (max-height: 820px) and (min-width: 861px) {
+        .glass-card.setup { padding: 26px 26px 24px; }
+        .glass-card.setup .card-header { margin-bottom: 18px; }
+        .glass-card.setup .brand-logo { width: 48px; height: 48px; margin-bottom: 12px; }
+        .glass-card.setup .input-group { margin-bottom: 10px; }
+        .glass-card.setup .form-input, .glass-card.setup .btn-primary { height: 48px; }
+        .glass-card.setup .btn-gps { height: 48px; flex-basis: 48px; }
     }
 
     /* =====================================================================
-       IL TELEFONO — LA GRAFICA DI SEMPRE
-       Sul telefono la stanza con la lampada non c'e': torna esattamente
-       l'accesso che il cliente conosce, fondo nero, bagliore blu che respira,
-       pulviscolo con le linee, riquadro di vetro e tasto bianco.
-       Ogni regola qui sotto rimette i valori originali: colori, raggi,
-       spaziature e caratteri sono quelli di prima, uno per uno.
+       IL TELEFONO: niente lampada, il riquadro subito, su una notte curata.
+       Vale anche per ogni schermo in verticale (iPad Pro 12,9" e 13" in
+       verticale sono larghi 1024-1032 px): li' la stanza, larga 16:10,
+       resterebbe schiacciata in fondo sotto mezzo schermo di muro nero.
+       La stessa condizione e' nello script (TELEFONO).
        ===================================================================== */
-    @media (max-width: 860px) {
-        /* la stanza sparisce tutta: niente lampada, niente tavolo, niente targhette,
-           e nemmeno le luci che la lampada buttava sul muro */
-        .lato-lampada, .finestra, .raggio-luna, .pianta, .pannello, .oggetti,
-        .pozza, .cono, .cono-su, .ombra-paralume, .tavolo, .muro::after { display: none; }
-
-        /* il fondo: nero pieno, con sopra il bagliore blu */
-        html, body { background: #060606; }
-        .muro { background: #060606 !important; }
-        .alone-blu { display: block; }
-
-        /* il pulviscolo qui e' bianco e collegato, come nell'accesso di sempre */
-        #particle-canvas { opacity: 1; }
-        #lockout-glow { background: radial-gradient(circle at 50% 50%, rgba(255,69,58,0.15) 0%, rgba(0,0,0,0) 70%); filter: blur(40px); }
-
-        /* il riquadro sta al centro dello schermo, largo al massimo 420 */
-        .palco { flex-direction: column; gap: 0; align-items: center; justify-content: center;
-                 padding: 24px 24px calc(24px + env(safe-area-inset-bottom)); }
-        .lato-accesso { max-width: 420px; width: 100%; }
-
-        .glass-card {
-            background: rgba(20,20,22,0.65);
-            backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-top: 1px solid rgba(255,255,255,0.15);
-            border-radius: 28px; padding: 48px 36px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1);
+    @media (max-width: 860px), (orientation: portrait) {
+        .dipinto, .palco-scena, .intro, .vignetta { display: none; }
+        .scena { background: linear-gradient(180deg, #050918 0%, #0A1230 46%, #151B3C 74%, #1B1B34 100%); }
+        .sfondo-tel { display: block; position: absolute; inset: 0; overflow: hidden; }
+        .sfondo-tel > svg { position: absolute; display: block; }
+        .sfondo-tel .cielo-tel { inset: 0; width: 100%; height: 100%; }
+        .sfondo-tel .citta-tel { left: 0; bottom: 0; width: 100%; height: 30vh; min-height: 190px; }
+        .sfondo-tel .caldo-tel {
+            position: absolute; left: 50%; top: 50%; width: 900px; height: 900px; margin: -450px 0 0 -450px;
+            background: radial-gradient(closest-side, rgba(255,170,96,0.26) 0%, rgba(255,150,86,0.09) 45%, rgba(255,150,86,0) 100%);
         }
-        .glass-card::before { display: none; }   /* niente bordo caldo: qui non c'e' nessuna lampada */
-
-        .card-header { margin-bottom: 40px; }
-        .card-header h1 { font-size: 1.75rem; font-weight: 600; margin-bottom: 8px; }
-        .card-header p  { font-size: 0.95rem; color: #8E8E93; }
-
-        .brand-logo {
-            width: 56px; height: 56px; margin: 0 auto 32px auto; border-radius: 18px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: inset 0 2px 4px rgba(255,255,255,0.05), 0 8px 16px rgba(0,0,0,0.4);
-            overflow: hidden;
+        .lato-accesso {
+            left: 0; right: 0; width: auto;
+            padding: calc(20px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));
         }
-        .brand-logo img { width: 32px; height: 32px; filter: none; }
-
-        .input-group { margin-bottom: 20px; }
-        .form-input {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.08);
-            padding: 16px 16px 16px 52px; border-radius: 16px; font-size: 1rem;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .form-input::placeholder { color: rgba(255,255,255,0.25); }
-        .form-input:focus {
-            background: rgba(10,132,255,0.03);
-            border-color: rgba(10,132,255,0.5);
-            box-shadow: 0 0 0 4px rgba(10,132,255,0.15), inset 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .input-icon { left: 18px; color: #8E8E93; transition: color 0.3s ease; }
-        .input-icon i { width: 20px; height: 20px; }
-        .form-input:focus + .input-icon { color: #0A84FF; }
-
-        .btn-primary {
-            background: #F5F5F7; color: #060606;
-            padding: 16px; border-radius: 16px; margin-top: 12px;
-            font-size: 1rem; font-weight: 600;
-            box-shadow: 0 8px 20px rgba(255,255,255,0.1);
-        }
-        .btn-primary:hover { filter: none; background: #FFFFFF; box-shadow: 0 12px 25px rgba(255,255,255,0.15); }
-        .btn-primary:active { transform: scale(0.97); }
-
-        .alert-error {
-            background: rgba(255,69,58,0.1); border: 1px solid rgba(255,69,58,0.2);
-            color: #FF453A; border-radius: 14px; padding: 14px 16px; margin-bottom: 24px; font-size: 0.9rem;
-        }
-        .alert-error i { width: 18px; height: 18px; }
-
-        .shield-icon {
-            width: 72px; height: 72px; border-radius: 20px;
-            background: rgba(255,69,58,0.1); border: 1px solid rgba(255,69,58,0.3);
-            display: flex; align-items: center; justify-content: center;
-        }
-        .lockout-container h2 { font-size: 1.5rem; font-weight: 600; }
-        .lockout-container p  { color: #8E8E93; }
-        .countdown-display { color: #FF453A; }
-
-        /* il riquadro entra dal basso, come ha sempre fatto */
+        .lato-accesso > .glass-card { width: 100%; max-width: 420px; margin: auto; }
+        .glass-card { padding: 38px 26px 30px; border-radius: 30px;
+                      background: linear-gradient(165deg, rgba(40,30,26,0.78) 0%, rgba(18,14,16,0.86) 100%); }
+        .glass-card::before { background: linear-gradient(180deg, rgba(255,206,140,0.45) 0%, rgba(255,236,210,0.06) 40%, rgba(255,236,210,0.08) 100%); }
+        .glass-card::after { background: radial-gradient(80% 50% at 50% 0%, rgba(255,184,110,0.12) 0%, rgba(255,184,110,0) 70%); }
+        .brand-logo { width: 64px; height: 64px; border-radius: 18px; margin-bottom: 20px; }
+        .card-header { margin-bottom: 30px; }
         body.senza-scena .lato-accesso { animation: salitaRiquadro 0.8s cubic-bezier(0.16,1,0.3,1) both; }
         .wh-lingua-angolo { top: max(16px, env(safe-area-inset-top)); right: 16px; opacity: 1; }
+        #lockout-glow { background: radial-gradient(70% 45% at 50% 50%, rgba(255,69,58,0.18) 0%, rgba(0,0,0,0) 70%); }
     }
     @keyframes salitaRiquadro { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
 
-    /* sugli schermi stretti il riquadro si stringeva un po': era cosi' anche prima */
-    @media (max-width: 480px) {
-        .glass-card { padding: 40px 24px; border-radius: 32px; }
-        .card-header h1 { font-size: 1.6rem; }
-        .countdown-display { font-size: 2.2rem; }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; transition-delay: 0s !important; }
+        body.accesa .dipinto-caldo { opacity: 1; }
     }
-    @media (max-height: 700px) and (min-width: 861px) { .lampada { width: 128px; } .cordicella .filo { height: 38px; } }
-
-    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition-duration: 0.01ms !important; } }
     </style>
     <script src="/static/popup.js"></script>
+    <!-- senza JavaScript la corda non si tira: il riquadro c'e' subito, altrimenti non si entra -->
+    <noscript><style>
+        .intro { display: none !important; }
+        .lato-accesso { opacity: 1 !important; transform: none !important; visibility: visible !important; }
+        .lato-accesso .glass-card { pointer-events: auto !important; }
+    </style></noscript>
 </head>
 <body class="spenta">
 
     <div class="scena" id="scena">
-        <div class="strato muro" data-p="6"></div>
-        <div class="alone-blu"></div>
 
-        <div class="strato" data-p="14">
-            <div class="finestra">
-                <div class="stelle" id="stelle"></div>
-                <div class="citta"></div>
+        <!-- ============ SOTTO I DIPINTI: la vista dai vetri e la veneziana ============ -->
+        <div class="palco-scena" aria-hidden="true">
+            <div class="pz vista">
+                <div class="cielo" id="cielo">
+                    <svg viewBox="62 154 240 598" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="vCielo" x1="0" y1="154" x2="0" y2="480" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#03061A"/>
+                                <stop offset="0.55" stop-color="#0A1436"/>
+                                <stop offset="0.86" stop-color="#1A2553"/>
+                                <stop offset="1" stop-color="#3A3561"/>
+                            </linearGradient>
+                            <linearGradient id="vSotto" x1="0" y1="470" x2="0" y2="752" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#141A38"/>
+                                <stop offset="0.25" stop-color="#0A0E22"/>
+                                <stop offset="1" stop-color="#05070F"/>
+                            </linearGradient>
+                            <radialGradient id="vAlone" cx="112" cy="292" r="80" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#E4ECFF" stop-opacity="0.75"/>
+                                <stop offset="0.25" stop-color="#A9BEF5" stop-opacity="0.3"/>
+                                <stop offset="1" stop-color="#8FA8EC" stop-opacity="0"/>
+                            </radialGradient>
+                            <radialGradient id="vDisco" cx="0.4" cy="0.38" r="0.65">
+                                <stop offset="0" stop-color="#FDFEFF"/><stop offset="0.7" stop-color="#E2E9FB"/><stop offset="1" stop-color="#BCC9EC"/>
+                            </radialGradient>
+                            <linearGradient id="vStrada" x1="0" y1="600" x2="0" y2="660" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#F3B77A" stop-opacity="0"/><stop offset="1" stop-color="#F3B77A" stop-opacity="0.14"/>
+                            </linearGradient>
+                            <radialGradient id="vFoschia" cx="182" cy="480" r="170" gradientUnits="userSpaceOnUse" gradientTransform="translate(0 480) scale(1 0.35) translate(0 -480)">
+                                <stop offset="0" stop-color="#FFB27A" stop-opacity="0.30"/>
+                                <stop offset="1" stop-color="#FFB27A" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <rect x="40" y="130" width="290" height="360" fill="url(#vCielo)"/>
+                        <rect x="40" y="470" width="290" height="300" fill="url(#vSotto)"/>
+                        <g fill="#DDE6FF">
+                            <circle cx="80" cy="180" r="0.8" opacity="0.7"/><circle cx="150" cy="200" r="0.6" opacity="0.5"/>
+                            <circle cx="210" cy="176" r="0.9" opacity="0.8"/><circle cx="262" cy="230" r="0.7" opacity="0.6"/>
+                            <circle cx="236" cy="300" r="0.6" opacity="0.5"/><circle cx="286" cy="186" r="0.6" opacity="0.6"/>
+                            <circle cx="170" cy="262" r="0.5" opacity="0.5"/><circle cx="222" cy="360" r="0.7" opacity="0.5"/>
+                            <circle cx="276" cy="330" r="0.8" opacity="0.6"/><circle cx="72" cy="380" r="0.6" opacity="0.4"/>
+                            <circle cx="160" cy="394" r="0.5" opacity="0.4"/><circle cx="252" cy="410" r="0.6" opacity="0.4"/>
+                        </g>
+                        <!-- la luna, alta a sinistra: di notte e' dietro la veneziana -->
+                        <circle cx="112" cy="292" r="80" fill="url(#vAlone)"/>
+                        <circle cx="112" cy="292" r="11" fill="url(#vDisco)"/>
+                        <circle cx="108" cy="295" r="2.2" fill="#B9C6E6" opacity="0.45"/><circle cx="116" cy="287" r="1.5" fill="#B9C6E6" opacity="0.4"/><circle cx="117" cy="296" r="1" fill="#B9C6E6" opacity="0.35"/>
+                        <!-- la citta' all'orizzonte -->
+                        <rect x="40" y="420" width="290" height="80" fill="url(#vFoschia)"/>
+                        <path fill="#0C1128" d="M40 470 V458 H70 V450 H84 V456 H98 V444 H112 V452 H126 V438 H134 V430 H140 V438 H146 V454 H164 V446 H178 V458 H196 V440 H214 V452 H226 V446 H244 V434 H250 V426 H254 V434 H262 V450 H280 V444 H296 V456 H330 V470 Z"/>
+                        <g class="luci-citta" fill="#FFD59A">
+                            <rect class="lv" x="100" y="448" width="1.6" height="1.6" opacity="0.9"/><rect x="130" y="442" width="1.6" height="1.6" opacity="0.7"/>
+                            <rect x="136" y="448" width="1.6" height="1.6" opacity="0.6"/><rect class="lv" x="200" y="446" width="1.6" height="1.6" opacity="0.8"/>
+                            <rect x="206" y="452" width="1.6" height="1.6" opacity="0.6"/><rect x="248" y="440" width="1.6" height="1.6" opacity="0.8"/>
+                            <rect class="lv" x="256" y="446" width="1.6" height="1.6" opacity="0.7"/><rect x="72" y="460" width="1.6" height="1.6" opacity="0.6"/>
+                            <rect x="170" y="452" width="1.6" height="1.6" opacity="0.5"/><rect class="lv" x="286" y="452" width="1.6" height="1.6" opacity="0.7"/>
+                        </g>
+                        <!-- sotto l'orizzonte: i tetti vicini e le strade, poi la ringhiera -->
+                        <path fill="#080B1A" d="M40 494 H66 V488 H92 V493 H118 V484 H146 V491 H170 V482 H200 V490 H226 V486 H256 V493 H282 V485 H330 V770 H40 Z"/>
+                        <path fill="#05070F" d="M40 530 H78 V520 H112 V528 H150 V516 H196 V526 H232 V518 H276 V529 H330 V770 H40 Z"/>
+                        <g class="luci-citta" fill="#FFCF8E">
+                            <rect x="54" y="486" width="2" height="2" opacity="0.8"/><rect class="lv" x="92" y="480" width="2" height="2" opacity="0.7"/>
+                            <rect x="118" y="490" width="2" height="2" opacity="0.6"/><rect x="150" y="478" width="2" height="2" opacity="0.8"/>
+                            <rect class="lv" x="188" y="486" width="2" height="2" opacity="0.7"/><rect x="226" y="480" width="2" height="2" opacity="0.6"/>
+                            <rect x="262" y="486" width="2" height="2" opacity="0.8"/><rect class="lv" x="296" y="480" width="2" height="2" opacity="0.6"/>
+                            <rect x="74" y="514" width="2.4" height="2.4" opacity="0.6"/><rect x="138" y="522" width="2.4" height="2.4" opacity="0.7"/>
+                            <rect class="lv" x="176" y="510" width="2.4" height="2.4" opacity="0.6"/><rect x="244" y="518" width="2.4" height="2.4" opacity="0.7"/>
+                            <rect x="282" y="530" width="2.4" height="2.4" opacity="0.5"/><rect x="104" y="540" width="2.4" height="2.4" opacity="0.5"/>
+                            <rect x="66" y="580" width="3" height="3" opacity="0.5"/><rect class="lv" x="214" y="590" width="3" height="3" opacity="0.6"/>
+                            <rect x="150" y="604" width="3" height="3" opacity="0.4"/><rect x="270" y="612" width="3" height="3" opacity="0.5"/>
+                        </g>
+                        <!-- il palazzo di fronte, oltre la strada -->
+                        <rect x="40" y="542" width="290" height="230" fill="#070A17"/>
+                        <rect x="40" y="542" width="290" height="1" fill="#8FA6E0" opacity="0.12"/>
+                        <g class="luci-citta"><rect x="144" y="552" width="6" height="9" fill="#FFCF8E" opacity="0.35"/><rect x="183" y="552" width="6" height="9" fill="#FFCF8E" opacity="0.35"/><rect x="196" y="552" width="6" height="9" fill="#161C38" opacity="0.6"/><rect class="lv" x="209" y="552" width="6" height="9" fill="#FFCF8E" opacity="0.35"/><rect x="222" y="552" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="235" y="552" width="6" height="9" fill="#FFCF8E" opacity="0.56"/><rect x="248" y="552" width="6" height="9" fill="#FFCF8E" opacity="0.35"/><rect x="274" y="552" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="287" y="552" width="6" height="9" fill="#FFCF8E" opacity="0.24"/><rect class="lv" x="66" y="578" width="6" height="9" fill="#FFCF8E" opacity="0.35"/><rect x="92" y="578" width="6" height="9" fill="#FFCF8E" opacity="0.35"/><rect x="105" y="578" width="6" height="9" fill="#FFCF8E" opacity="0.35"/><rect x="144" y="578" width="6" height="9" fill="#FFCF8E" opacity="0.35"/><rect x="170" y="578" width="6" height="9" fill="#FFCF8E" opacity="0.24"/><rect x="209" y="578" width="6" height="9" fill="#FFCF8E" opacity="0.45"/><rect x="222" y="578" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="235" y="578" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="248" y="578" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="274" y="578" width="6" height="9" fill="#FFCF8E" opacity="0.24"/><rect x="66" y="604" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="79" y="604" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="92" y="604" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="105" y="604" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="118" y="604" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="144" y="604" width="6" height="9" fill="#161C38" opacity="0.6"/><rect class="lv" x="196" y="604" width="6" height="9" fill="#FFCF8E" opacity="0.56"/><rect x="209" y="604" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="222" y="604" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="235" y="604" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="261" y="604" width="6" height="9" fill="#FFCF8E" opacity="0.45"/><rect x="287" y="604" width="6" height="9" fill="#FFCF8E" opacity="0.24"/><rect x="66" y="630" width="6" height="9" fill="#FFCF8E" opacity="0.45"/><rect x="92" y="630" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="118" y="630" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="131" y="630" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="144" y="630" width="6" height="9" fill="#161C38" opacity="0.6"/><rect class="lv" x="157" y="630" width="6" height="9" fill="#FFCF8E" opacity="0.35"/><rect x="183" y="630" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="196" y="630" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="222" y="630" width="6" height="9" fill="#FFCF8E" opacity="0.56"/><rect x="235" y="630" width="6" height="9" fill="#FFCF8E" opacity="0.45"/><rect x="261" y="630" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="274" y="630" width="6" height="9" fill="#161C38" opacity="0.6"/><rect x="287" y="630" width="6" height="9" fill="#FFCF8E" opacity="0.24"/></g>
+                        <rect x="40" y="600" width="290" height="60" fill="url(#vStrada)"/>
+                        <!-- la ringhiera del balcone -->
+                        <g fill="#020309">
+                            <rect x="40" y="640" width="290" height="6"/>
+                            <path d="M52 646h3v110h-3zM68 646h3v110h-3zM84 646h3v110h-3zM100 646h3v110h-3zM116 646h3v110h-3zM132 646h3v110h-3zM148 646h3v110h-3zM164 646h3v110h-3zM180 646h3v110h-3zM196 646h3v110h-3zM212 646h3v110h-3zM228 646h3v110h-3zM244 646h3v110h-3zM260 646h3v110h-3zM276 646h3v110h-3zM292 646h3v110h-3z"/>
+                        </g>
+                        <rect x="40" y="640" width="290" height="1" fill="#9FB6F0" opacity="0.22"/>
+                        <circle class="antenna" cx="252" cy="425" r="1.3" fill="#FF5A4E"/>
+                        <circle class="antenna" cx="252" cy="425" r="4" fill="#FF5A4E" opacity="0.22"/>
+                    </svg>
+                </div>
             </div>
-            <div class="raggio-luna"></div>
-            <div class="pannello"><span></span><span></span><span></span></div>
+
+            <!-- la veneziana nei vetri alti: lamelle sottili, fra una e l'altra passa la luna -->
+            <div class="pz veneziana">
+                <div class="lamelle">
+                    <svg viewBox="62 154 240 392" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="vLamella" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#1A2238"/><stop offset="0.5" stop-color="#121A2C"/><stop offset="1" stop-color="#0A0F1C"/>
+                            </linearGradient>
+                            <pattern id="vLamelle" x="0" y="154" width="240" height="9" patternUnits="userSpaceOnUse">
+                                <rect y="0" width="240" height="7.2" fill="url(#vLamella)"/>
+                                <rect y="0" width="240" height="0.7" fill="#AFC4FF" opacity="0.16"/>
+                            </pattern>
+                            <pattern id="vLamelleCalde" x="0" y="154" width="240" height="9" patternUnits="userSpaceOnUse">
+                                <rect y="0" width="240" height="7.2" fill="#E9A866" opacity="0.22"/>
+                                <rect y="0" width="240" height="1" fill="#FFD9A6" opacity="0.5"/>
+                            </pattern>
+                            <linearGradient id="vCaldeX" x1="62" y1="0" x2="302" y2="0" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#fff" stop-opacity="0.15"/><stop offset="1" stop-color="#fff" stop-opacity="1"/>
+                            </linearGradient>
+                            <radialGradient id="vLunaLamelle" cx="112" cy="292" r="90" gradientUnits="userSpaceOnUse">
+                                <stop offset="0" stop-color="#C9D8FF" stop-opacity="0.34"/><stop offset="0.3" stop-color="#9FB6F2" stop-opacity="0.12"/><stop offset="1" stop-color="#9FB6F2" stop-opacity="0"/>
+                            </radialGradient>
+                            <mask id="vMascheraCalde"><rect x="62" y="154" width="240" height="300" fill="url(#vCaldeX)"/></mask>
+                        </defs>
+                        <!-- i cordini -->
+                        <path d="M92 154V440M144 154V440M220 154V440M272 154V440" stroke="#2A3350" stroke-width="0.8" opacity="0.8"/>
+                        <rect x="62" y="154" width="240" height="286" fill="url(#vLamelle)"/>
+                        <rect x="62" y="154" width="240" height="286" fill="url(#vLunaLamelle)"/>
+                        <!-- il terminale, che la luna prende sotto -->
+                        <rect x="62" y="438" width="240" height="7" fill="#1B2338"/>
+                        <rect x="62" y="444.4" width="240" height="1" fill="#C7D6FF" opacity="0.45"/>
+                        <g class="calde" mask="url(#vMascheraCalde)">
+                            <rect x="62" y="154" width="240" height="286" fill="url(#vLamelleCalde)"/>
+                            <rect x="62" y="438" width="240" height="1.2" fill="#FFD9A6" opacity="0.6"/>
+                        </g>
+                    </svg>
+                </div>
+            </div>
         </div>
 
-        <div class="strato" data-p="10">
-            <svg class="pianta" viewBox="0 0 120 190" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M60 190V96" stroke="#2E3A2E" stroke-width="4" stroke-linecap="round"/>
-                <path d="M60 118C60 118 28 108 20 78c22-2 40 16 40 40Z" fill="#26372A"/>
-                <path d="M60 106C60 106 92 96 100 66c-22-2-40 16-40 40Z" fill="#2C4030"/>
-                <path d="M60 138C60 138 32 132 24 108c20-1 36 12 36 30Z" fill="#223022"/>
-                <path d="M60 128C60 128 88 120 96 98c-20-1-36 12-36 30Z" fill="#283A2C"/>
-                <path d="M44 190h32l-5-32H49z" fill="#3A3038"/>
-                <ellipse cx="60" cy="158" rx="16" ry="4" fill="#4A3E48"/>
+        <!-- ============ IL DIPINTO DI NOTTE ============ -->
+        <div class="dipinto dipinto-notte" aria-hidden="true">
+          <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMax meet">
+            <defs>
+                <!-- forme che servono a tutti e due i dipinti -->
+                <path id="muroForato" fill-rule="evenodd" d="M-1400 -900H3000V770H-1400Z M62 154V546H174V154Z M190 154V546H302V154Z M62 560V752H174V560Z M190 560V752H302V560Z"/>
+                <path id="vetri" d="M62 154V546H174V154Z M190 154V546H302V154Z M62 560V752H174V560Z M190 560V752H302V560Z"/>
+                <path id="telaioAnte" fill-rule="evenodd" d="M50 142H314V768H50Z M62 154V546H174V154Z M190 154V546H302V154Z M62 560V752H174V560Z M190 560V752H302V560Z"/>
+                <path id="cassa" fill-rule="evenodd" d="M30 92H334V770H30Z M44 106V770H320V106Z"/>
+                <path id="battiscopa" d="M-1400 754H30V770H-1400Z M334 754H3000V770H334Z"/>
+                <path id="doghe" d="M-700 770L-1850 1000M-654 770L-1769 1000M-608 770L-1687 1000M-562 770L-1606 1000M-516 770L-1525 1000M-470 770L-1444 1000M-424 770L-1362 1000M-378 770L-1281 1000M-332 770L-1200 1000M-286 770L-1119 1000M-240 770L-1037 1000M-194 770L-956 1000M-148 770L-875 1000M-102 770L-794 1000M-56 770L-712 1000M-10 770L-631 1000M36 770L-550 1000M82 770L-468 1000M128 770L-387 1000M174 770L-306 1000M220 770L-225 1000M266 770L-143 1000M312 770L-62 1000M358 770L19 1000M404 770L100 1000M450 770L182 1000M496 770L263 1000M542 770L344 1000M588 770L425 1000M634 770L507 1000M680 770L588 1000M726 770L669 1000M772 770L751 1000M818 770L832 1000M864 770L913 1000M910 770L994 1000M956 770L1076 1000M1002 770L1157 1000M1048 770L1238 1000M1094 770L1319 1000M1140 770L1401 1000M1186 770L1482 1000M1232 770L1563 1000M1278 770L1644 1000M1324 770L1726 1000M1370 770L1807 1000M1416 770L1888 1000M1462 770L1970 1000M1508 770L2051 1000M1554 770L2132 1000M1600 770L2213 1000M1646 770L2295 1000M1692 770L2376 1000M1738 770L2457 1000M1784 770L2538 1000M1830 770L2620 1000M1876 770L2701 1000M1922 770L2782 1000M1968 770L2863 1000M2014 770L2945 1000"/>
+                <!-- la luna a terra: ogni vetro proiettato sul pavimento (vedi NOTE.md) -->
+                <path id="macchiaBassa" d="M70 777 L185 777 L345 881 L192 881Z M201 777 L316 777 L521 881 L367 881Z"/>
+                <path id="macchiaAlta" d="M204 891 L361 891 L515 991 L321 991Z M384 891 L541 891 L737 991 L543 991Z"/>
+                <path id="fascioBasso" d="M62 560 L174 560 L345 881 L192 881 L70 777 L62 752Z M190 560 L302 560 L521 881 L367 881 L201 777 L190 752Z"/>
+                <path id="fascioAlto" d="M62 440 L174 440 L515 991 L321 991 L204 891 L62 546Z M190 440 L302 440 L737 991 L543 991 L384 891 L190 546Z"/>
+
+                <!-- la madia -->
+                <path id="madiaCorpo" d="M506 556H874V700H506Z"/>
+                <path id="madiaPiano" d="M504 538H876L880 544H500Z"/>
+                <path id="madiaBordo" d="M500 544H880V556H500Z"/>
+                <path id="gambe" d="M517 700H525L522 790H520Z M855 700H863L860 790H858Z"/>
+                <path id="gambeDietro" d="M529 700H533L531.5 778H530.5Z M847 700H851L849.5 778H848.5Z"/>
+                <!-- la bottiglia col ramo, i libri -->
+                <path id="bottiglia" d="M552 538 C548 520 546 500 552 486 C556 478 558 474 558 464 H566 C566 474 568 478 572 486 C578 500 576 520 572 538 Z"/>
+                <path id="rami" d="M562 464 C560 440 552 418 542 392 M558 430 C566 414 576 404 588 396 M548 410 C540 402 532 398 522 398 M561 448 C570 442 578 440 586 440"/>
+                <path id="libro1" d="M800 524H872V538H800Z"/>
+                <path id="libro2" d="M806 513H866V524H806Z"/>
+                <path id="libro3" d="M803 500H869V513H803Z"/>
+
+                <!-- la lampada: paralume simmetrico visto un poco da sotto -->
+                <path id="paralume" d="M616 236 A64 6 0 0 1 744 236 L796 372 A116 12 0 0 1 564 372 Z"/>
+                <path id="paralumeFronte" d="M616 236 A64 6 0 0 1 744 236 L796 372 A116 12 0 0 0 564 372 Z"/>
+                <path id="orloAlto" d="M616 236 A64 6 0 0 1 744 236 L745.6 240.5 A65.6 6 0 0 0 614.4 240.5 Z"/>
+                <path id="orloBasso" d="M564 372 A116 12 0 0 1 796 372 L793.7 366 A113.7 12 0 0 0 566.3 366 Z"/>
+                <path id="trama" d="M618.2 234.4L568.0 368.9M623.0 233.3L576.6 366.6M630.3 232.2L589.9 364.4M639.7 231.3L607.0 362.7M650.9 230.7L627.3 361.3M663.4 230.2L650.0 360.4M676.7 230.0L673.9 360.0M690.0 230.1L698.1 360.1M702.9 230.4L721.6 360.8M714.9 231.0L743.2 361.9M725.3 231.8L762.0 363.5M733.7 232.7L777.3 365.5M739.7 233.8L788.3 367.7"/>
+                <path id="vaso" d="M672 426 C672 438 628 448 626 484 C624 516 646 532 656 534 H704 C714 532 736 516 734 484 C732 448 688 438 688 426 Z"/>
+                <clipPath id="clipVaso"><use href="#vaso"/></clipPath>
+                <clipPath id="clipParalume"><use href="#paralumeFronte"/></clipPath>
+
+                <!-- la pianta: foglie a violino in due meta' (luce e ombra) -->
+                <path id="fSx" d="M0 0 C-14 -6 -22 -24 -20 -44 C-19 -58 -34 -70 -34 -86 C-34 -100 -16 -108 0 -104 L1.2 -104 L1.2 0 Z"/>
+                <path id="fDx" d="M0 0 C14 -6 22 -24 20 -44 C19 -58 34 -70 34 -86 C34 -100 16 -108 0 -104 C1 -70 1 -34 0 0 Z"/>
+                <path id="fBordoSx" d="M0 0 C-14 -6 -22 -24 -20 -44 C-19 -58 -34 -70 -34 -86 C-34 -100 -16 -108 0 -104"/>
+                <path id="fBordoDx" d="M0 0 C14 -6 22 -24 20 -44 C19 -58 34 -70 34 -86 C34 -100 16 -108 0 -104"/>
+                <g id="foglia">
+                    <use href="#fSx" style="fill: var(--fsx)"/>
+                    <use href="#fDx" style="fill: var(--fdx)"/>
+                    <use href="#fBordoSx" style="fill: none; stroke: var(--bsx); stroke-width: 1.6"/>
+                    <use href="#fBordoDx" style="fill: none; stroke: var(--bdx); stroke-width: 1.1"/>
+                    <path d="M0 -4 C0 -40 0 -70 0 -100" style="fill: none; stroke: var(--nerv); stroke-width: 1.2"/>
+                </g>
+                <g id="fogliame">
+                    <g style="fill: none; stroke: var(--stelo); stroke-linecap: round">
+                        <path d="M400 700 C398 646 404 580 408 520 C410 480 412 450 412 424" stroke-width="4.5"/>
+                        <path d="M404 612 C392 586 372 556 350 530" stroke-width="3"/>
+                        <path d="M407 570 C424 548 444 526 464 508" stroke-width="3"/>
+                    </g>
+                    <use href="#foglia" transform="translate(403 640) rotate(-78) scale(0.78)"/>
+                    <use href="#foglia" transform="translate(405 604) rotate(72) scale(0.82)"/>
+                    <use href="#foglia" transform="translate(350 532) rotate(-56) scale(0.92)"/>
+                    <use href="#foglia" transform="translate(407 566) rotate(-30) scale(0.86)"/>
+                    <use href="#foglia" transform="translate(464 510) rotate(52) scale(0.9)"/>
+                    <use href="#foglia" transform="translate(354 536) rotate(-12) scale(0.8)"/>
+                    <use href="#foglia" transform="translate(460 514) rotate(14) scale(0.76)"/>
+                    <use href="#foglia" transform="translate(410 468) rotate(-42) scale(0.84)"/>
+                    <use href="#foglia" transform="translate(411 482) rotate(40) scale(0.9)"/>
+                    <use href="#foglia" transform="translate(412 428) rotate(6) scale(0.86)"/>
+                </g>
+                <path id="vasoPianta" d="M356 702 L364 786 Q400 792 436 786 L444 702 Z"/>
+
+                <!-- ============ colori della notte ============ -->
+                <linearGradient id="nMuro" x1="0" y1="-600" x2="0" y2="770" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#030409"/><stop offset="0.5" stop-color="#060912"/><stop offset="1" stop-color="#0A0E1B"/>
+                </linearGradient>
+                <radialGradient id="nRimbalzo" cx="200" cy="480" r="620" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#253566" stop-opacity="0.62"/>
+                    <stop offset="0.35" stop-color="#18234A" stop-opacity="0.42"/>
+                    <stop offset="0.7" stop-color="#0E1530" stop-opacity="0.18"/>
+                    <stop offset="1" stop-color="#0E1530" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="nRimbalzoBasso" cx="380" cy="800" r="380" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#3A4F8C" stop-opacity="0.34"/><stop offset="1" stop-color="#3A4F8C" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="nDestra" x1="700" y1="0" x2="1900" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.5"/>
+                </linearGradient>
+                <linearGradient id="nSinistra" x1="-500" y1="0" x2="60" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#000" stop-opacity="0.55"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="nPav" x1="0" y1="770" x2="0" y2="1000" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#0B0F1D"/><stop offset="1" stop-color="#030409"/>
+                </linearGradient>
+                <radialGradient id="nPavLuna" cx="360" cy="900" r="420" gradientUnits="userSpaceOnUse" gradientTransform="translate(360 900) scale(1 0.45) translate(-360 -900)">
+                    <stop offset="0" stop-color="#2B3C70" stop-opacity="0.55"/><stop offset="1" stop-color="#2B3C70" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="nMacchia" x1="100" y1="780" x2="640" y2="990" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#B8CBFF" stop-opacity="0.46"/><stop offset="0.55" stop-color="#97AFEE" stop-opacity="0.32"/><stop offset="1" stop-color="#7F99DC" stop-opacity="0.2"/>
+                </linearGradient>
+                <linearGradient id="nFascio" x1="150" y1="440" x2="620" y2="1000" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#AFC5FF" stop-opacity="0.22"/><stop offset="0.45" stop-color="#8FAAEE" stop-opacity="0.085"/><stop offset="1" stop-color="#7E98DC" stop-opacity="0.02"/>
+                </linearGradient>
+                <linearGradient id="nRiflesso" x1="0" y1="772" x2="0" y2="900" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#9FB4F0" stop-opacity="0.14"/><stop offset="1" stop-color="#9FB4F0" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="nCassa" x1="30" y1="0" x2="334" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#0C1226"/><stop offset="1" stop-color="#121A33"/>
+                </linearGradient>
+                <linearGradient id="nAnte" x1="50" y1="0" x2="314" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#101729"/><stop offset="1" stop-color="#0C1222"/>
+                </linearGradient>
+                <linearGradient id="nCorpo" x1="506" y1="0" x2="874" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#161A29"/><stop offset="0.5" stop-color="#0F121E"/><stop offset="1" stop-color="#090B13"/>
+                </linearGradient>
+                <pattern id="canne" x="506" y="0" width="8" height="10" patternUnits="userSpaceOnUse">
+                    <rect x="0" width="1.1" height="10" fill="#000" fill-opacity="0.5"/>
+                    <rect x="1.1" width="1" height="10" fill="#9CB0E8" fill-opacity="0.06"/>
+                </pattern>
+                <linearGradient id="nOttone" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#56628A"/><stop offset="0.3" stop-color="#34353F"/><stop offset="1" stop-color="#121216"/>
+                </linearGradient>
+                <linearGradient id="nTela" x1="564" y1="0" x2="796" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#2E3A60"/><stop offset="0.28" stop-color="#1D2646"/><stop offset="0.7" stop-color="#121932"/><stop offset="1" stop-color="#0A0F20"/>
+                </linearGradient>
+                <linearGradient id="nTelaV" x1="0" y1="236" x2="0" y2="372" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#000" stop-opacity="0.25"/><stop offset="0.5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#9DB6F5" stop-opacity="0.10"/>
+                </linearGradient>
+                <linearGradient id="nTelaVolume" x1="564" y1="0" x2="796" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#000" stop-opacity="0.2"/><stop offset="0.12" stop-color="#B9CCFF" stop-opacity="0.10"/><stop offset="0.3" stop-color="#B9CCFF" stop-opacity="0.03"/>
+                    <stop offset="0.8" stop-color="#000" stop-opacity="0.15"/><stop offset="1" stop-color="#000" stop-opacity="0.35"/>
+                </linearGradient>
+                <radialGradient id="nCeramica" cx="662" cy="462" r="96" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#30427A"/><stop offset="0.45" stop-color="#172350"/><stop offset="1" stop-color="#060A18"/>
+                </radialGradient>
+                <linearGradient id="nVasoP" x1="356" y1="0" x2="444" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#27304A"/><stop offset="0.35" stop-color="#171D2E"/><stop offset="1" stop-color="#0A0D16"/>
+                </linearGradient>
+                <linearGradient id="nRigaBattiscopa" x1="334" y1="0" x2="900" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#9FB6F0" stop-opacity="0.2"/><stop offset="1" stop-color="#9FB6F0" stop-opacity="0"/>
+                </linearGradient>
+                <radialGradient id="nBagliore" cx="150" cy="330" r="330" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#C9D8FF" stop-opacity="0.12"/><stop offset="0.4" stop-color="#9FB6F2" stop-opacity="0.04"/><stop offset="1" stop-color="#9FB6F2" stop-opacity="0"/>
+                </radialGradient>
+
+                <clipPath id="fuoriVetri">
+                    <use href="#muroForato" style="clip-rule: evenodd"/>
+                    <rect x="-1400" y="770" width="4400" height="400"/>
+                </clipPath>
+                <clipPath id="clipMuro"><use href="#muroForato" style="clip-rule: evenodd"/></clipPath>
+                <!-- l'intonaco: macchie larghe e leggerissime, si vedono dove arriva la luce -->
+                <filter id="intonaco" x="0" y="0" width="100%" height="100%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.0045 0.007" numOctaves="3" seed="7"/>
+                    <feColorMatrix values="0 0 0 0 0.72  0 0 0 0 0.8  0 0 0 0 1  0.5 0 0 0 -0.2"/>
+                </filter>
+                <filter id="intonacoCaldo" x="0" y="0" width="100%" height="100%">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.0045 0.007" numOctaves="3" seed="7"/>
+                    <feColorMatrix values="0 0 0 0 1  0 0 0 0 0.78  0 0 0 0 0.55  0.5 0 0 0 -0.2"/>
+                </filter>
+                <filter id="sf2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2"/></filter>
+                <filter id="sf3" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
+                <filter id="sf6" x="-30%" y="-100%" width="160%" height="300%"><feGaussianBlur stdDeviation="6"/></filter>
+                <filter id="sf10" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="10"/></filter>
+                <filter id="sf16" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="16"/></filter>
+                <filter id="sf24" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="24"/></filter>
+                <filter id="sf30" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="30"/></filter>
+            </defs>
+
+            <!-- il muro: nero lontano, blu dove arriva la luna -->
+            <use href="#muroForato" fill="url(#nMuro)"/>
+            <use href="#muroForato" fill="url(#nRimbalzo)"/>
+            <use href="#muroForato" fill="url(#nRimbalzoBasso)"/>
+            <use href="#muroForato" fill="url(#nDestra)"/>
+            <use href="#muroForato" fill="url(#nSinistra)"/>
+            <g clip-path="url(#clipMuro)" opacity="0.08"><rect x="-300" y="-300" width="2200" height="1070" filter="url(#intonaco)"/></g>
+
+            <!-- il pavimento: parquet in prospettiva -->
+            <rect x="-1400" y="770" width="4400" height="400" fill="url(#nPav)"/>
+            <rect x="-1400" y="770" width="4400" height="400" fill="url(#nPavLuna)"/>
+            <use href="#doghe" stroke="#8FA6DE" stroke-opacity="0.05" stroke-width="1.1" fill="none"/>
+            <rect x="-1400" y="770" width="4400" height="400" fill="url(#nDestra)"/>
+            <!-- il riflesso della portafinestra sul parquet lucido -->
+            <g filter="url(#sf6)">
+                <path d="M62 772H174L180 900H58Z M190 772H302L312 900H186Z" fill="url(#nRiflesso)"/>
+            </g>
+            <!-- la luna a terra, con i montanti e il traverso in ombra -->
+            <g filter="url(#sf30)" opacity="0.5">
+                <use href="#macchiaBassa" fill="#6F88D6" opacity="0.4"/>
+                <use href="#macchiaAlta" fill="#6F88D6" opacity="0.35"/>
+            </g>
+            <g filter="url(#sf2)">
+                <use href="#macchiaBassa" fill="url(#nMacchia)"/>
+                <use href="#macchiaAlta" fill="url(#nMacchia)"/>
+            </g>
+
+            <!-- il battiscopa -->
+            <use href="#battiscopa" fill="#0A0E1B"/>
+            <path d="M-1400 754H30" stroke="#6F84BE" stroke-opacity="0.12" stroke-width="1"/>
+            <rect x="-1400" y="754" width="4400" height="16" fill="url(#nDestra)"/>
+            <path d="M334 754H900" stroke="url(#nRigaBattiscopa)" stroke-width="1"/>
+
+            <!-- la portafinestra: cassa, cassonetto, ante, soglia -->
+            <path d="M320 106L334 92V770L320 770Z" fill="#000" opacity="0.25"/>
+            <rect x="334" y="96" width="10" height="674" fill="#000" opacity="0.22" filter="url(#sf3)"/>
+            <use href="#cassa" fill="url(#nCassa)"/>
+            <path d="M30 92H334" stroke="#6F84BE" stroke-opacity="0.18" stroke-width="1.2"/>
+            <path d="M44 106V770" stroke="#000" stroke-opacity="0.5" stroke-width="1.2"/>
+            <!-- lo sguincio a destra, che si vede di sbieco -->
+            <path d="M314 142L320 106V770L314 768Z" fill="#0A1020"/>
+            <!-- il cassonetto della veneziana -->
+            <rect x="44" y="106" width="276" height="36" fill="#0D1325"/>
+            <rect x="44" y="140" width="276" height="2" fill="#000" opacity="0.55"/>
+            <use href="#telaioAnte" fill="url(#nAnte)"/>
+            <!-- il controluce del cielo sugli spigoli dei telai -->
+            <g fill="none" stroke="#A9C0FF" stroke-width="1" stroke-opacity="0.26">
+                <path d="M62 154V546 M190 154V546 M62 560V752 M190 560V752"/>
+                <path d="M62 546H174 M190 546H302 M62 752H174 M190 752H302" stroke-opacity="0.4"/>
+            </g>
+            <path d="M174 154V752 M302 154V752" stroke="#000" stroke-opacity="0.5" stroke-width="1.2" fill="none"/>
+            <rect x="181.4" y="142" width="1.2" height="626" fill="#000" opacity="0.7"/>
+            <!-- la maniglia -->
+            <rect x="185" y="466" width="4" height="16" rx="1.5" fill="#1E2436"/>
+            <rect x="185" y="470" width="16" height="4" rx="2" fill="#565466"/>
+            <rect x="185" y="470" width="16" height="1" rx="0.5" fill="#C9D6FF" opacity="0.45"/>
+            <!-- la soglia -->
+            <rect x="36" y="766" width="292" height="8" rx="1" fill="#172038"/>
+            <rect x="36" y="766" width="292" height="1" fill="#B8CCFF" opacity="0.32"/>
+
+            <!-- il fascio di luna nell'aria (il pulviscolo vive solo qui dentro) -->
+            <g clip-path="url(#fuoriVetri)">
+                <g filter="url(#sf10)">
+                    <use href="#fascioBasso" fill="url(#nFascio)"/>
+                    <use href="#fascioAlto" fill="url(#nFascio)" opacity="0.8"/>
+                </g>
+            </g>
+
+            <!-- la pianta, controluce nel fascio -->
+            <ellipse cx="402" cy="789" rx="56" ry="6" fill="#000" opacity="0.65" filter="url(#sf3)"/>
+            <g style="--stelo:#0E1822; --fsx:#13223A; --fdx:#0C1726; --bsx:rgba(170,195,255,0.34); --bdx:rgba(0,0,0,0); --nerv:rgba(150,175,235,0.12)">
+                <use href="#fogliame"/>
+            </g>
+            <use href="#vasoPianta" fill="url(#nVasoP)"/>
+            <rect x="352" y="696" width="96" height="9" rx="3" fill="#1A2032"/>
+            <rect x="352" y="696" width="96" height="1" fill="#B6C8FF" opacity="0.3"/>
+            <path d="M357 705L365 786" stroke="#B6C8FF" stroke-opacity="0.35" stroke-width="1.2"/>
+
+            <!-- la madia cannettata con le gambe d'ottone -->
+            <rect x="506" y="556" width="368" height="214" fill="#000" opacity="0.35" filter="url(#sf10)"/>
+            <ellipse cx="690" cy="791" rx="214" ry="9" fill="#000" opacity="0.7" filter="url(#sf6)"/>
+            <use href="#gambeDietro" fill="#16161C"/>
+            <use href="#madiaCorpo" fill="url(#nCorpo)"/>
+            <use href="#madiaCorpo" fill="url(#canne)"/>
+            <rect x="689" y="560" width="2" height="136" fill="#040509" opacity="0.8"/>
+            <rect x="506" y="694" width="368" height="6" fill="#06070B" opacity="0.9"/>
+            <rect x="506" y="556" width="368" height="10" fill="#000" opacity="0.35"/>
+            <use href="#gambe" fill="url(#nOttone)"/>
+            <use href="#madiaBordo" fill="#141826"/>
+            <use href="#madiaPiano" fill="#1B2032"/>
+            <path d="M500 544H880" stroke="#A9BCF4" stroke-opacity="0.16" stroke-width="1"/>
+            <rect x="506" y="556" width="1.2" height="140" fill="#B7C8FF" opacity="0.14"/>
+
+            <!-- la bottiglia col ramo secco, i libri -->
+            <use href="#rami" fill="none" stroke="#1C2130" stroke-width="1.3" stroke-linecap="round"/>
+            <use href="#bottiglia" fill="#141A2A"/>
+            <path d="M553 536 C549 520 547 500 553 487 C557 479 559 475 559 465" stroke="#B6C8FF" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+            <use href="#libro1" fill="#171C2C"/><use href="#libro2" fill="#1E1C2B"/><use href="#libro3" fill="#141927"/>
+            <path d="M800 524H872 M806 513H866 M803 500H869" stroke="#9FB2E6" stroke-opacity="0.16" stroke-width="1"/>
+            <circle cx="836" cy="491" r="9" fill="#2A2A30"/>
+            <path d="M829 487 A9 9 0 0 1 836 482" stroke="#C9D6FF" stroke-opacity="0.45" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+
+            <!-- la lampada, spenta: la disegna la luna -->
+            <ellipse cx="680" cy="541" rx="74" ry="4" fill="#000" opacity="0.6" filter="url(#sf2)"/>
+            <rect x="677" y="380" width="6" height="48" rx="2" fill="url(#nOttone)"/>
+            <use href="#vaso" fill="url(#nCeramica)"/>
+            <g clip-path="url(#clipVaso)">
+                <ellipse cx="652" cy="470" rx="7" ry="22" transform="rotate(20 652 470)" fill="#DCE6FF" opacity="0.28"/>
+                <ellipse cx="648" cy="464" rx="2.2" ry="9" transform="rotate(20 648 464)" fill="#F0F4FF" opacity="0.55"/>
+                <path d="M671 430 C668 440 630 450 627.6 484 C626 514 646 530 656 533" stroke="#AFC4FF" stroke-opacity="0.3" stroke-width="1.6" fill="none"/>
+                <!-- il pomello caldo si specchia nella ceramica -->
+                <ellipse cx="728" cy="478" rx="1.4" ry="3.6" fill="#FFD8A6" opacity="0.7"/>
+            </g>
+            <ellipse cx="680" cy="427" rx="9" ry="2" fill="#070A14"/>
+            <rect x="648" y="533" width="64" height="8" rx="2" fill="#26241F"/>
+            <rect x="648" y="533" width="64" height="1" fill="#C9D6FF" opacity="0.3"/>
+            <!-- il paralume: tela, orli e volume -->
+            <ellipse cx="680" cy="372" rx="116" ry="12" fill="#04060C"/>
+            <use href="#paralumeFronte" fill="url(#nTela)"/>
+            <use href="#paralumeFronte" fill="url(#nTelaV)"/>
+            <use href="#paralumeFronte" fill="url(#nTelaVolume)"/>
+            <g clip-path="url(#clipParalume)">
+                <use href="#trama" stroke="#B4C6F2" stroke-opacity="0.045" stroke-width="1" fill="none"/>
+            </g>
+            <use href="#orloAlto" fill="#0B1020"/>
+            <use href="#orloBasso" fill="#0B1020"/>
+            <path d="M616 236 L564 372" stroke="#BFD0FF" stroke-opacity="0.5" stroke-width="1.4" stroke-linecap="round"/>
+            <path d="M616 236 A64 6 0 0 1 744 236" stroke="#9FB2E4" stroke-opacity="0.35" stroke-width="1" fill="none"/>
+            <path d="M564 372 A116 12 0 0 0 680 384" stroke="#9FB2E4" stroke-opacity="0.22" stroke-width="1" fill="none"/>
+
+            <!-- la luna che sborda un poco dalla finestra, come in un obiettivo -->
+            <rect x="-200" y="0" width="760" height="760" fill="url(#nBagliore)"/>
+          </svg>
+        </div>
+
+        <!-- ============ IL DIPINTO ACCESO (sopra, trasparente finche' e' spenta) ============ -->
+        <div class="dipinto dipinto-caldo" aria-hidden="true">
+          <svg viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMax meet">
+            <defs>
+                <linearGradient id="cMuro" x1="0" y1="-600" x2="0" y2="770" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#040408"/><stop offset="0.5" stop-color="#07080F"/><stop offset="1" stop-color="#0A0C16"/>
+                </linearGradient>
+                <radialGradient id="cRimbalzo" cx="170" cy="480" r="460" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#1D2A56" stop-opacity="0.55"/><stop offset="0.5" stop-color="#141D40" stop-opacity="0.3"/><stop offset="1" stop-color="#141D40" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="cAmbiente" cx="690" cy="400" r="1050" gradientUnits="userSpaceOnUse" gradientTransform="translate(690 400) scale(1 0.8) translate(-690 -400)">
+                    <stop offset="0" stop-color="#C98748"/>
+                    <stop offset="0.1" stop-color="#A9672F"/>
+                    <stop offset="0.22" stop-color="#874820"/>
+                    <stop offset="0.36" stop-color="#592C12" stop-opacity="0.97"/>
+                    <stop offset="0.52" stop-color="#32190B" stop-opacity="0.92"/>
+                    <stop offset="0.7" stop-color="#150C09" stop-opacity="0.72"/>
+                    <stop offset="0.86" stop-color="#0C0708" stop-opacity="0.4"/>
+                    <stop offset="1" stop-color="#0C0708" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="cConoSu" x1="0" y1="236" x2="0" y2="-200" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#FFE3B4" stop-opacity="0.85"/><stop offset="0.3" stop-color="#FFC888" stop-opacity="0.5"/><stop offset="0.7" stop-color="#F0A660" stop-opacity="0.16"/><stop offset="1" stop-color="#F0A660" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="cConoGiu" x1="0" y1="372" x2="0" y2="548" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#FFEBC6" stop-opacity="0.9"/><stop offset="1" stop-color="#FFC888" stop-opacity="0.62"/>
+                </linearGradient>
+                <radialGradient id="cAlone" cx="680" cy="318" r="230" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#FFE9C4" stop-opacity="0.45"/><stop offset="0.35" stop-color="#FFC580" stop-opacity="0.18"/><stop offset="1" stop-color="#FFB060" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="cPav" x1="0" y1="770" x2="0" y2="1000" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#0D0C12"/><stop offset="1" stop-color="#040305"/>
+                </linearGradient>
+                <radialGradient id="cPozza" cx="690" cy="860" r="560" gradientUnits="userSpaceOnUse" gradientTransform="translate(690 860) scale(1 0.42) translate(-690 -860)">
+                    <stop offset="0" stop-color="#A86C38" stop-opacity="0.85"/><stop offset="0.3" stop-color="#7A4A26" stop-opacity="0.7"/><stop offset="0.65" stop-color="#3A2214" stop-opacity="0.45"/><stop offset="1" stop-color="#3A2214" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="cPiano" x1="500" y1="0" x2="880" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#7A4A26"/><stop offset="0.3" stop-color="#E8B070"/><stop offset="0.5" stop-color="#FFE2B2"/><stop offset="0.7" stop-color="#E8B070"/><stop offset="1" stop-color="#7A4A26"/>
+                </linearGradient>
+                <linearGradient id="cBordo" x1="500" y1="0" x2="880" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#2A170C"/><stop offset="0.5" stop-color="#5E3718"/><stop offset="1" stop-color="#2A170C"/>
+                </linearGradient>
+                <linearGradient id="cCorpo" x1="0" y1="556" x2="0" y2="700" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#3B2414"/><stop offset="0.5" stop-color="#23150D"/><stop offset="1" stop-color="#140C08"/>
+                </linearGradient>
+                <linearGradient id="cCorpoX" x1="506" y1="0" x2="874" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#000" stop-opacity="0.45"/><stop offset="0.5" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.5"/>
+                </linearGradient>
+                <pattern id="canneC" x="506" y="0" width="8" height="10" patternUnits="userSpaceOnUse">
+                    <rect x="0" width="1.1" height="10" fill="#000" fill-opacity="0.45"/>
+                    <rect x="1.1" width="1.2" height="10" fill="#FFC98A" fill-opacity="0.09"/>
+                </pattern>
+                <linearGradient id="cOttone" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#5A3E1C"/><stop offset="0.35" stop-color="#F6DCA2"/><stop offset="0.6" stop-color="#C3954F"/><stop offset="1" stop-color="#3A2710"/>
+                </linearGradient>
+                <radialGradient id="cTela" cx="680" cy="318" r="150" gradientUnits="userSpaceOnUse" gradientTransform="translate(680 318) scale(1 0.85) translate(-680 -318)">
+                    <stop offset="0" stop-color="#FFF5DF"/><stop offset="0.4" stop-color="#FFE0AE"/><stop offset="0.75" stop-color="#F2B470"/><stop offset="1" stop-color="#C77A3A"/>
+                </radialGradient>
+                <linearGradient id="cTelaBordi" x1="564" y1="0" x2="796" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#8A4E20" stop-opacity="0.6"/><stop offset="0.2" stop-color="#8A4E20" stop-opacity="0"/><stop offset="0.8" stop-color="#8A4E20" stop-opacity="0"/><stop offset="1" stop-color="#8A4E20" stop-opacity="0.65"/>
+                </linearGradient>
+                <linearGradient id="cTelaV" x1="0" y1="236" x2="0" y2="372" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#9A5A26" stop-opacity="0.35"/><stop offset="0.35" stop-color="#9A5A26" stop-opacity="0"/>
+                </linearGradient>
+                <radialGradient id="cBocca" cx="680" cy="372" r="116" gradientUnits="userSpaceOnUse" gradientTransform="translate(680 372) scale(1 0.1) translate(-680 -372)">
+                    <stop offset="0" stop-color="#FFFFF6"/><stop offset="0.6" stop-color="#FFF0D0"/><stop offset="1" stop-color="#FFD69A"/>
+                </radialGradient>
+                <radialGradient id="cCeramica" cx="668" cy="456" r="100" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#3C5496"/><stop offset="0.5" stop-color="#1B2A60"/><stop offset="1" stop-color="#080C1E"/>
+                </radialGradient>
+                <radialGradient id="cSpalla" cx="680" cy="430" r="60" gradientUnits="userSpaceOnUse" gradientTransform="translate(680 430) scale(1 0.5) translate(-680 -430)">
+                    <stop offset="0" stop-color="#FFD9A0" stop-opacity="0.8"/><stop offset="1" stop-color="#FFD9A0" stop-opacity="0"/>
+                </radialGradient>
+                <linearGradient id="cVasoP" x1="356" y1="0" x2="444" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#1A1C26"/><stop offset="0.6" stop-color="#3A2C22"/><stop offset="1" stop-color="#6A4A30"/>
+                </linearGradient>
+                <linearGradient id="cVetro" x1="62" y1="0" x2="302" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#0A0810" stop-opacity="0.12"/><stop offset="1" stop-color="#2A160C" stop-opacity="0.35"/>
+                </linearGradient>
+                <linearGradient id="cCassa" x1="30" y1="0" x2="334" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#0E1122"/><stop offset="0.7" stop-color="#1D1520"/><stop offset="1" stop-color="#3A2418"/>
+                </linearGradient>
+                <linearGradient id="cAnte" x1="50" y1="0" x2="314" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#0E1222"/><stop offset="0.6" stop-color="#1A1420"/><stop offset="1" stop-color="#2E1E18"/>
+                </linearGradient>
+                <linearGradient id="cMacchia" x1="100" y1="780" x2="640" y2="990" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#9DB4F2" stop-opacity="0.26"/><stop offset="1" stop-color="#8098D8" stop-opacity="0.12"/>
+                </linearGradient>
+                <linearGradient id="cFascio" x1="150" y1="440" x2="620" y2="1000" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#AFC5FF" stop-opacity="0.12"/><stop offset="0.5" stop-color="#8FAAEE" stop-opacity="0.04"/><stop offset="1" stop-color="#7E98DC" stop-opacity="0"/>
+                </linearGradient>
+                <linearGradient id="cRigaBattiscopa" x1="334" y1="0" x2="1500" y2="0" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#FFC58A" stop-opacity="0.06"/><stop offset="0.3" stop-color="#FFC58A" stop-opacity="0.24"/><stop offset="1" stop-color="#FFC58A" stop-opacity="0"/>
+                </linearGradient>
+                <radialGradient id="cDestra" cx="1350" cy="420" r="520" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#000" stop-opacity="0.18"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+                </radialGradient>
+            </defs>
+
+            <!-- il muro: freddo vicino alla finestra, caldo intorno alla lampada -->
+            <use href="#muroForato" fill="url(#cMuro)"/>
+            <use href="#muroForato" fill="url(#cAmbiente)"/>
+            <use href="#muroForato" fill="url(#cRimbalzo)"/>
+            <g clip-path="url(#clipMuro)" opacity="0.07"><rect x="-300" y="-300" width="2200" height="1070" filter="url(#intonacoCaldo)"/></g>
+            <!-- i due coni della lampada sul muro, e l'alone -->
+            <g filter="url(#sf24)" opacity="0.62">
+                <path d="M620 238 C592 170 520 60 360 -200 L1000 -200 C840 60 768 170 740 238 Z" fill="url(#cConoSu)"/>
+            </g>
+            <g filter="url(#sf16)">
+                <path d="M566 372 C540 426 486 486 430 548 L930 548 C874 486 820 426 794 372 Z" fill="url(#cConoGiu)"/>
+            </g>
+            <rect x="380" y="60" width="600" height="520" fill="url(#cAlone)"/>
+            <rect x="-1400" y="-900" width="4400" height="1670" fill="url(#cDestra)"/>
+
+            <!-- il pavimento -->
+            <rect x="-1400" y="770" width="4400" height="400" fill="url(#cPav)"/>
+            <rect x="-1400" y="770" width="4400" height="400" fill="url(#cPozza)"/>
+            <use href="#doghe" stroke="#E0A060" stroke-opacity="0.06" stroke-width="1.1" fill="none"/>
+            <!-- l'ombra della madia a terra: la luce passa sopra il bordo e cade piu' avanti -->
+            <path d="M480 770H900L940 806H440Z" fill="#050304" opacity="0.55" filter="url(#sf10)"/>
+            <!-- la luna resta, fredda, sul parquet caldo -->
+            <g filter="url(#sf2)">
+                <use href="#macchiaBassa" fill="url(#cMacchia)"/>
+                <use href="#macchiaAlta" fill="url(#cMacchia)"/>
+            </g>
+
+            <!-- il battiscopa -->
+            <use href="#battiscopa" fill="#120C0A"/>
+            <path d="M334 754H1500" stroke="url(#cRigaBattiscopa)" stroke-width="1"/>
+            <rect x="-1400" y="754" width="4400" height="16" fill="url(#nDestra)"/>
+
+            <!-- la portafinestra: il caldo la prende dal lato della lampada -->
+            <path d="M320 106L334 92V770L320 770Z" fill="#000" opacity="0.2"/>
+            <use href="#cassa" fill="url(#cCassa)"/>
+            <path d="M334 92V770" stroke="#FFC58A" stroke-opacity="0.35" stroke-width="1.4"/>
+            <path d="M30 92H334" stroke="#E6A868" stroke-opacity="0.18" stroke-width="1.2"/>
+            <path d="M314 142L320 106V770L314 768Z" fill="#4A2C1A"/>
+            <rect x="44" y="106" width="276" height="36" fill="#140F16"/>
+            <rect x="44" y="106" width="276" height="1.2" fill="#E6A868" opacity="0.2"/>
+            <rect x="44" y="140" width="276" height="2" fill="#000" opacity="0.55"/>
+            <use href="#telaioAnte" fill="url(#cAnte)"/>
+            <g fill="none" stroke="#A9C0FF" stroke-width="1" stroke-opacity="0.16">
+                <path d="M62 154V546 M190 154V546 M62 560V752 M190 560V752"/>
+            </g>
+            <g fill="none" stroke="#FFC58A" stroke-width="1.1" stroke-opacity="0.3">
+                <path d="M174 154V752 M302 154V752 M314 142V768"/>
+            </g>
+            <rect x="181.4" y="142" width="1.2" height="626" fill="#000" opacity="0.7"/>
+            <!-- il vetro, con la luce accesa, fa un po' da specchio -->
+            <use href="#vetri" fill="url(#cVetro)"/>
+            <rect x="185" y="466" width="4" height="16" rx="1.5" fill="#241A1A"/>
+            <rect x="185" y="470" width="16" height="4" rx="2" fill="#8A6A44"/>
+            <rect x="185" y="470" width="16" height="1" rx="0.5" fill="#FFE2B0" opacity="0.7"/>
+            <rect x="36" y="766" width="292" height="8" rx="1" fill="#1C1620"/>
+            <rect x="36" y="766" width="292" height="1" fill="#B8CCFF" opacity="0.22"/>
+
+            <!-- il fascio di luna, piu' debole -->
+            <g clip-path="url(#fuoriVetri)">
+                <g filter="url(#sf10)"><use href="#fascioBasso" fill="url(#cFascio)"/></g>
+            </g>
+
+            <!-- l'ombra della pianta sul muro, spinta verso la finestra dalla lampada -->
+            <g opacity="0.42" filter="url(#sf6)" clip-path="url(#clipMuro)" style="--stelo:#000; --fsx:#000; --fdx:#000; --bsx:none; --bdx:none; --nerv:none">
+                <use href="#fogliame" transform="translate(-70 34) scale(0.92 0.95) translate(33 20)"/>
+            </g>
+            <!-- la pianta: fredda dal lato della finestra, calda da quello della lampada -->
+            <ellipse cx="410" cy="789" rx="58" ry="6" fill="#000" opacity="0.6" filter="url(#sf3)"/>
+            <g style="--stelo:#2E2618; --fsx:#1C2820; --fdx:#36432A; --bsx:rgba(160,185,245,0.20); --bdx:rgba(255,200,130,0.26); --nerv:rgba(255,214,160,0.14)">
+                <use href="#fogliame"/>
+            </g>
+            <use href="#vasoPianta" fill="url(#cVasoP)"/>
+            <rect x="352" y="696" width="96" height="9" rx="3" fill="#3A2A20"/>
+            <rect x="352" y="696" width="96" height="1.2" fill="#FFD29A" opacity="0.45"/>
+            <path d="M443 705L435 786" stroke="#FFC58A" stroke-opacity="0.45" stroke-width="1.4"/>
+
+            <!-- la madia: piano in piena luce, fronte in penombra -->
+            <rect x="506" y="556" width="368" height="214" fill="#000" opacity="0.4" filter="url(#sf10)"/>
+            <use href="#gambeDietro" fill="#2A1C10"/>
+            <use href="#madiaCorpo" fill="url(#cCorpo)"/>
+            <use href="#madiaCorpo" fill="url(#canneC)"/>
+            <use href="#madiaCorpo" fill="url(#cCorpoX)"/>
+            <rect x="689" y="560" width="2" height="136" fill="#0A0605" opacity="0.8"/>
+            <rect x="506" y="694" width="368" height="6" fill="#0A0605" opacity="0.9"/>
+            <rect x="506" y="556" width="368" height="12" fill="#000" opacity="0.3"/>
+            <use href="#gambe" fill="url(#cOttone)"/>
+            <use href="#madiaBordo" fill="url(#cBordo)"/>
+            <use href="#madiaPiano" fill="url(#cPiano)"/>
+            <path d="M500 544H880" stroke="#FFE7C0" stroke-opacity="0.55" stroke-width="1"/>
+            <!-- l'ombra del vaso sul piano -->
+            <ellipse cx="680" cy="541" rx="52" ry="2.6" fill="#3A200E" opacity="0.7" filter="url(#sf2)"/>
+
+            <!-- la bottiglia e i libri, presi di lato -->
+            <use href="#rami" fill="none" stroke="#6A4E34" stroke-width="1.3" stroke-linecap="round"/>
+            <use href="#bottiglia" fill="#3A2A22"/>
+            <path d="M571 536 C575 520 577 500 571 487 C567 479 565 475 565 465" stroke="#FFD29A" stroke-opacity="0.7" stroke-width="1.4" fill="none"/>
+            <use href="#libro1" fill="#6B4A2E"/><use href="#libro2" fill="#8A3A28"/><use href="#libro3" fill="#2E4A4A"/>
+            <path d="M800 524H872 M806 513H866 M803 500H869" stroke="#FFE2B6" stroke-opacity="0.45" stroke-width="1"/>
+            <circle cx="836" cy="491" r="9" fill="#9A7440"/>
+            <circle cx="832" cy="487" r="3" fill="#FFF1D4" opacity="0.8"/>
+
+            <!-- la lampada accesa -->
+            <rect x="677" y="380" width="6" height="48" rx="2" fill="url(#cOttone)"/>
+            <use href="#vaso" fill="url(#cCeramica)"/>
+            <g clip-path="url(#clipVaso)">
+                <ellipse cx="680" cy="440" rx="60" ry="28" fill="url(#cSpalla)"/>
+                <ellipse cx="698" cy="448" rx="10" ry="4" transform="rotate(22 698 448)" fill="#FFF1D6" opacity="0.75"/>
+                <ellipse cx="660" cy="446" rx="8" ry="3" transform="rotate(-24 660 446)" fill="#FFE6BC" opacity="0.5"/>
+                <path d="M689 430 C692 440 730 450 732.4 484 C734 514 714 530 704 533" stroke="#FFC58A" stroke-opacity="0.35" stroke-width="1.6" fill="none"/>
+                <ellipse cx="650" cy="474" rx="5" ry="18" transform="rotate(20 650 474)" fill="#AFC4FF" opacity="0.12"/>
+            </g>
+            <ellipse cx="680" cy="427" rx="9" ry="2" fill="#2A1C12"/>
+            <rect x="648" y="533" width="64" height="8" rx="2" fill="url(#cOttone)"/>
+            <!-- dentro al paralume, dalla bocca: la parte piu' luminosa -->
+            <ellipse cx="680" cy="372" rx="116" ry="12" fill="url(#cBocca)"/>
+            <use href="#paralumeFronte" fill="url(#cTela)"/>
+            <use href="#paralumeFronte" fill="url(#cTelaBordi)"/>
+            <use href="#paralumeFronte" fill="url(#cTelaV)"/>
+            <g clip-path="url(#clipParalume)">
+                <use href="#trama" stroke="#A0602C" stroke-opacity="0.12" stroke-width="1" fill="none"/>
+            </g>
+            <!-- gli orli sono nastro: in controluce vengono piu' scuri -->
+            <use href="#orloAlto" fill="#C98848"/>
+            <use href="#orloBasso" fill="#D4924E"/>
+            <path d="M616 236 A64 6 0 0 1 744 236" stroke="#FFF3DA" stroke-opacity="0.85" stroke-width="1.3" fill="none"/>
+            <path d="M564 372 A116 12 0 0 1 796 372" stroke="#FFF7E6" stroke-opacity="0.9" stroke-width="1.2" fill="none"/>
+          </svg>
+        </div>
+
+        <!-- ============ SOPRA I DIPINTI: le cose che si svegliano ============ -->
+        <div class="palco-scena">
+            <canvas id="polvere" aria-hidden="true"></canvas>
+
+            <!-- il sensore dell'allarme -->
+            <div class="pz sensore" aria-hidden="true">
+                <svg viewBox="516 32 48 64">
+                    <defs>
+                        <linearGradient id="sCorpo" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#262E44"/><stop offset="1" stop-color="#141A2A"/>
+                        </linearGradient>
+                        <linearGradient id="sCaldo" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#E9E3D8" stop-opacity="0.10"/><stop offset="1" stop-color="#FFD7A0" stop-opacity="0.34"/>
+                        </linearGradient>
+                        <radialGradient id="sLed" cx="0.5" cy="0.5" r="0.5">
+                            <stop offset="0" stop-color="#4ADE80" stop-opacity="0.9"/><stop offset="1" stop-color="#4ADE80" stop-opacity="0"/>
+                        </radialGradient>
+                        <radialGradient id="sLedR" cx="0.5" cy="0.5" r="0.5">
+                            <stop offset="0" stop-color="#FF5A4E" stop-opacity="0.95"/><stop offset="1" stop-color="#FF5A4E" stop-opacity="0"/>
+                        </radialGradient>
+                    </defs>
+                    <rect x="525" y="41" width="32" height="50" rx="8" fill="#000" opacity="0.4"/>
+                    <rect x="524" y="38" width="32" height="50" rx="8" fill="url(#sCorpo)"/>
+                    <path d="M531 38.6H549" stroke="#B9CBFF" stroke-opacity="0.28" stroke-width="1" stroke-linecap="round"/>
+                    <path d="M524.6 46V80" stroke="#B9CBFF" stroke-opacity="0.2" stroke-width="1" stroke-linecap="round"/>
+                    <rect x="529" y="58" width="22" height="22" rx="10" fill="#0A0E18"/>
+                    <path d="M529 65H551M529 72H551M535 58V80M540 58V80M545 58V80" stroke="#8FA6DA" stroke-opacity="0.09" stroke-width="0.6"/>
+                    <path d="M533 61 Q537 59.4 541 59.4" stroke="#C9D8FF" stroke-opacity="0.32" stroke-width="1" fill="none" stroke-linecap="round"/>
+                    <g class="caldo">
+                        <rect x="524" y="38" width="32" height="50" rx="8" fill="url(#sCaldo)"/>
+                        <path d="M555.4 46V80" stroke="#FFD49A" stroke-opacity="0.5" stroke-width="1" stroke-linecap="round"/>
+                        <rect x="529" y="58" width="22" height="22" rx="10" fill="#0B0D14"/>
+                    </g>
+                    <g class="led-verde">
+                        <circle class="led" cx="540" cy="48" r="6" fill="url(#sLed)"/>
+                        <circle class="led" cx="540" cy="48" r="1.5" fill="#6EF09A"/>
+                        <g class="sveglio"><circle cx="540" cy="48" r="8" fill="url(#sLed)" opacity="0.7"/><circle cx="540" cy="48" r="1.6" fill="#B8FFD0"/></g>
+                    </g>
+                    <g class="led-rosso">
+                        <circle cx="540" cy="48" r="9" fill="url(#sLedR)"/>
+                        <circle cx="540" cy="48" r="1.8" fill="#FFC2BC"/>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- il termostato: di notte un lumino; sveglio, un arco e un segno (nessun numero) -->
+            <div class="pz termostato" aria-hidden="true">
+                <svg viewBox="836 274 88 88">
+                    <defs>
+                        <linearGradient id="tAnello" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#48536E"/><stop offset="0.45" stop-color="#1C2233"/><stop offset="1" stop-color="#282F43"/>
+                        </linearGradient>
+                        <linearGradient id="tAnelloC" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#FFD9A0" stop-opacity="0.75"/><stop offset="0.5" stop-color="#8A5A30" stop-opacity="0.25"/><stop offset="1" stop-color="#000" stop-opacity="0"/>
+                        </linearGradient>
+                        <radialGradient id="tFaccia" cx="0.45" cy="0.4" r="0.6">
+                            <stop offset="0" stop-color="#111727"/><stop offset="1" stop-color="#03050B"/>
+                        </radialGradient>
+                        <radialGradient id="tFacciaAccesa" cx="0.5" cy="0.5" r="0.5">
+                            <stop offset="0" stop-color="#2A1A0E"/><stop offset="1" stop-color="#0A0605"/>
+                        </radialGradient>
+                        <radialGradient id="tLumino" cx="0.5" cy="0.5" r="0.5">
+                            <stop offset="0" stop-color="#FFB865" stop-opacity="0.9"/><stop offset="1" stop-color="#FFB865" stop-opacity="0"/>
+                        </radialGradient>
+                        <linearGradient id="tArco" x1="0" y1="1" x2="1" y2="0">
+                            <stop offset="0" stop-color="#FFB45E"/><stop offset="1" stop-color="#FF7A3A"/>
+                        </linearGradient>
+                    </defs>
+                    <circle cx="883" cy="322" r="33" fill="#000" opacity="0.4"/>
+                    <circle cx="880" cy="318" r="30" fill="url(#tAnello)"/>
+                    <path d="M854 306 A28 28 0 0 1 872 291" stroke="#C4D3FF" stroke-opacity="0.45" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+                    <circle cx="880" cy="318" r="24.5" fill="url(#tFaccia)"/>
+                    <circle cx="880" cy="318" r="24.5" fill="none" stroke="#000" stroke-opacity="0.6" stroke-width="1"/>
+                    <g class="lumino-g">
+                        <circle class="lumino" cx="880" cy="336" r="5" fill="url(#tLumino)"/>
+                        <circle class="lumino" cx="880" cy="336" r="1.3" fill="#FFD9A6"/>
+                    </g>
+                    <g class="sveglio">
+                        <circle cx="880" cy="318" r="30" fill="url(#tAnelloC)"/>
+                        <circle cx="880" cy="318" r="24.5" fill="url(#tFacciaAccesa)"/>
+                        <circle cx="880" cy="318" r="18" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2"
+                                stroke-dasharray="85 200" transform="rotate(135 880 318)" stroke-linecap="round"/>
+                        <!-- il segno al centro: una fiammella stilizzata -->
+                        <path d="M880 309 C884 313 886 316 886 320 C886 324 883.4 327 880 327 C876.6 327 874 324 874 320 C874 317 876 315 877.5 313 C878 316 879 317 880.5 317.6 C880 314.6 880 312 880 309 Z"
+                              fill="none" stroke="#FFD9A6" stroke-width="1.3" stroke-linejoin="round" opacity="0.9"/>
+                    </g>
+                    <circle class="arco" cx="880" cy="318" r="18" fill="none" stroke="url(#tArco)" stroke-width="2.2"
+                            transform="rotate(135 880 318)" stroke-linecap="round"/>
+                </svg>
+            </div>
+
+            <!-- i segni: un puntino e una parola, niente valori -->
+            <div class="segno a-sx sg-luci" aria-hidden="true">Luci</div>
+            <div class="segno al-centro sg-clima" aria-hidden="true">Clima</div>
+            <div class="segno sg-tapp" aria-hidden="true">Tapparelle</div>
+            <div class="segno sg-sic" aria-hidden="true">Sicurezza</div>
+
+            <!-- la cordicella: si tira col dito, col mouse o con la tastiera -->
+            <button type="button" id="cordicella" class="cordicella"
+                    aria-label="Tira la cordicella per accendere la luce" title="Tira la cordicella per accendere la luce">
+                <span class="filo"></span>
+                <span class="pomello"><span class="presa"></span></span>
+            </button>
+        </div>
+
+        <div class="vignetta"></div>
+        <div class="grana"></div>
+
+        <!-- il telefono: una notte curata, niente stanza -->
+        <div class="sfondo-tel" aria-hidden="true">
+            <svg class="cielo-tel" viewBox="0 0 400 800" preserveAspectRatio="xMidYMin slice">
+                <defs>
+                    <radialGradient id="tAloneLuna" cx="300" cy="150" r="170" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#DCE6FF" stop-opacity="0.34"/><stop offset="0.2" stop-color="#A9BEF5" stop-opacity="0.14"/><stop offset="1" stop-color="#8FA8EC" stop-opacity="0"/>
+                    </radialGradient>
+                    <radialGradient id="tDisco" cx="0.4" cy="0.38" r="0.65">
+                        <stop offset="0" stop-color="#FDFEFF"/><stop offset="0.7" stop-color="#E2E9FB"/><stop offset="1" stop-color="#BCC9EC"/>
+                    </radialGradient>
+                    <filter id="tSfuma" x="-20%" y="-200%" width="140%" height="500%"><feGaussianBlur stdDeviation="3"/></filter>
+                    <linearGradient id="tNube" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0" stop-color="#8FA3D8" stop-opacity="0"/><stop offset="0.5" stop-color="#8FA3D8" stop-opacity="0.16"/><stop offset="1" stop-color="#8FA3D8" stop-opacity="0"/>
+                    </linearGradient>
+                </defs>
+                <!-- luna e nuvole un po' piu' in alto: col messaggio d'errore il riquadro sale e la tagliava a meta' -->
+                <g transform="translate(0 -32)">
+                <circle cx="300" cy="150" r="170" fill="url(#tAloneLuna)"/>
+                <circle cx="300" cy="150" r="14" fill="url(#tDisco)"/>
+                <circle cx="296" cy="153" r="2.6" fill="#B9C6E6" opacity="0.4"/><circle cx="305" cy="144" r="1.8" fill="#B9C6E6" opacity="0.35"/><circle cx="306" cy="155" r="1.2" fill="#B9C6E6" opacity="0.3"/>
+                <g filter="url(#tSfuma)">
+                    <ellipse cx="262" cy="176" rx="120" ry="7" fill="url(#tNube)"/>
+                    <ellipse cx="338" cy="194" rx="90" ry="5" fill="url(#tNube)" opacity="0.8"/>
+                    <ellipse cx="120" cy="250" rx="140" ry="6" fill="url(#tNube)" opacity="0.5"/>
+                </g>
+                </g>
+                <g fill="#DDE6FF">
+                    <circle cx="40" cy="60" r="0.9" opacity="0.7"/><circle cx="120" cy="30" r="0.7" opacity="0.5"/><circle cx="190" cy="96" r="1" opacity="0.8"/>
+                    <circle cx="60" cy="210" r="0.8" opacity="0.6"/><circle cx="366" cy="300" r="0.7" opacity="0.5"/><circle cx="150" cy="170" r="0.6" opacity="0.5"/>
+                    <circle cx="232" cy="40" r="0.6" opacity="0.4"/><circle cx="20" cy="330" r="0.7" opacity="0.5"/><circle cx="386" cy="60" r="0.9" opacity="0.6"/>
+                    <circle cx="96" cy="120" r="0.5" opacity="0.5"/><circle cx="220" cy="250" r="0.6" opacity="0.4"/><circle cx="110" cy="300" r="0.6" opacity="0.4"/>
+                    <circle cx="16" cy="140" r="0.6" opacity="0.5"/><circle cx="352" cy="370" r="0.5" opacity="0.4"/><circle cx="170" cy="360" r="0.5" opacity="0.35"/>
+                </g>
+            </svg>
+            <div class="caldo-tel"></div>
+            <svg class="citta-tel" viewBox="0 0 400 200" preserveAspectRatio="xMidYMax slice">
+                <defs>
+                    <linearGradient id="tFoschia" x1="0" y1="40" x2="0" y2="200" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#FFB27A" stop-opacity="0"/><stop offset="0.55" stop-color="#FF9E6A" stop-opacity="0.13"/><stop offset="1" stop-color="#FFB27A" stop-opacity="0.2"/>
+                    </linearGradient>
+                    <linearGradient id="tLontani" x1="0" y1="60" x2="0" y2="200" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#1A2146"/><stop offset="1" stop-color="#101532"/>
+                    </linearGradient>
+                    <linearGradient id="tVicini" x1="0" y1="100" x2="0" y2="200" gradientUnits="userSpaceOnUse">
+                        <stop offset="0" stop-color="#0B0F22"/><stop offset="1" stop-color="#05070F"/>
+                    </linearGradient>
+                </defs>
+                <rect y="30" width="400" height="170" fill="url(#tFoschia)"/>
+                <path fill="url(#tLontani)" d="M0 200 V97 H28 V90 H56 V99 H86 V73 H106 V92 H136 V101 H170 V68 H189 V81 H217 V67 H235 V102 H266 V100 H281 V90 H307 V101 H341 V72 H375 V62 H400 V200 Z"/>
+                <rect x="224" y="52" width="1.4" height="15" fill="#1A2146"/>
+                <g fill="#F2C88E" opacity="0.55"><rect x="43" y="95" width="1.6" height="1.8"/><rect x="37" y="102" width="1.6" height="1.8"/><rect x="65" y="111" width="1.6" height="1.8"/><rect x="65" y="118" width="1.6" height="1.8"/><rect x="83" y="118" width="1.6" height="1.8"/><rect x="89" y="99" width="1.6" height="1.8"/><rect x="89" y="106" width="1.6" height="1.8"/><rect x="115" y="97" width="1.6" height="1.8"/><rect x="127" y="111" width="1.6" height="1.8"/><rect x="109" y="118" width="1.6" height="1.8"/><rect x="145" y="106" width="1.6" height="1.8"/><rect x="163" y="106" width="1.6" height="1.8"/><rect x="185" y="94" width="1.6" height="1.8"/><rect x="226" y="72" width="1.6" height="1.8"/><rect x="232" y="72" width="1.6" height="1.8"/><rect x="232" y="86" width="1.6" height="1.8"/><rect x="220" y="93" width="1.6" height="1.8"/><rect x="226" y="114" width="1.6" height="1.8"/><rect x="284" y="95" width="1.6" height="1.8"/><rect x="296" y="95" width="1.6" height="1.8"/><rect x="302" y="95" width="1.6" height="1.8"/><rect x="290" y="109" width="1.6" height="1.8"/><rect x="284" y="116" width="1.6" height="1.8"/><rect x="368" y="105" width="1.6" height="1.8"/><rect x="350" y="119" width="1.6" height="1.8"/><rect x="368" y="119" width="1.6" height="1.8"/><rect x="378" y="67" width="1.6" height="1.8"/><rect x="396" y="67" width="1.6" height="1.8"/></g>
+                <path fill="url(#tVicini)" d="M0 200 V137 H44 V107 H64 V116 H83 V142 H108 V133 H126 V132 H154 V116 H190 V118 H224 V122 H262 V104 H295 V109 H334 V145 H366 V130 H392 V109 H400 V200 Z"/>
+                <g class="luci-citta" fill="#FFD59A"><rect x="32" y="143" width="2.2" height="2.6" opacity="0.45"/><rect x="32" y="152" width="2.2" height="2.6" opacity="0.60"/><rect x="4" y="161" width="2.2" height="2.6" opacity="0.90"/><rect x="25" y="161" width="2.2" height="2.6" opacity="0.60"/><rect class="lv" x="4" y="170" width="2.2" height="2.6" opacity="0.75"/><rect x="11" y="170" width="2.2" height="2.6" opacity="0.90"/><rect x="25" y="170" width="2.2" height="2.6" opacity="0.60"/><rect x="39" y="170" width="2.2" height="2.6" opacity="0.90"/><rect class="lv" x="4" y="188" width="2.2" height="2.6" opacity="0.90"/><rect x="11" y="188" width="2.2" height="2.6" opacity="0.90"/><rect x="25" y="188" width="2.2" height="2.6" opacity="0.75"/><rect x="39" y="188" width="2.2" height="2.6" opacity="0.60"/><rect x="55" y="122" width="2.2" height="2.6" opacity="0.60"/><rect class="lv" x="55" y="149" width="2.2" height="2.6" opacity="0.45"/><rect x="48" y="167" width="2.2" height="2.6" opacity="0.75"/><rect class="lv" x="68" y="122" width="2.2" height="2.6" opacity="0.60"/><rect x="75" y="167" width="2.2" height="2.6" opacity="0.45"/><rect x="94" y="157" width="2.2" height="2.6" opacity="0.90"/><rect class="lv" x="101" y="175" width="2.2" height="2.6" opacity="0.75"/><rect class="lv" x="101" y="184" width="2.2" height="2.6" opacity="0.75"/><rect x="101" y="193" width="2.2" height="2.6" opacity="0.75"/><rect x="112" y="139" width="2.2" height="2.6" opacity="0.90"/><rect x="119" y="157" width="2.2" height="2.6" opacity="0.45"/><rect class="lv" x="112" y="184" width="2.2" height="2.6" opacity="0.45"/><rect class="lv" x="137" y="138" width="2.2" height="2.6" opacity="0.75"/><rect class="lv" x="144" y="192" width="2.2" height="2.6" opacity="0.45"/><rect x="179" y="131" width="2.2" height="2.6" opacity="0.45"/><rect x="158" y="140" width="2.2" height="2.6" opacity="0.45"/><rect x="172" y="149" width="2.2" height="2.6" opacity="0.75"/><rect x="179" y="149" width="2.2" height="2.6" opacity="0.60"/><rect x="158" y="185" width="2.2" height="2.6" opacity="0.75"/><rect class="lv" x="215" y="133" width="2.2" height="2.6" opacity="0.45"/><rect x="215" y="169" width="2.2" height="2.6" opacity="0.45"/><rect class="lv" x="228" y="128" width="2.2" height="2.6" opacity="0.90"/><rect x="242" y="128" width="2.2" height="2.6" opacity="0.60"/><rect x="242" y="146" width="2.2" height="2.6" opacity="0.90"/><rect x="249" y="146" width="2.2" height="2.6" opacity="0.90"/><rect x="235" y="155" width="2.2" height="2.6" opacity="0.75"/><rect x="256" y="182" width="2.2" height="2.6" opacity="0.90"/><rect x="280" y="110" width="2.2" height="2.6" opacity="0.75"/><rect x="266" y="173" width="2.2" height="2.6" opacity="0.75"/><rect x="280" y="182" width="2.2" height="2.6" opacity="0.45"/><rect x="306" y="115" width="2.2" height="2.6" opacity="0.90"/><rect x="313" y="124" width="2.2" height="2.6" opacity="0.90"/><rect x="313" y="133" width="2.2" height="2.6" opacity="0.90"/><rect x="299" y="142" width="2.2" height="2.6" opacity="0.45"/><rect x="306" y="142" width="2.2" height="2.6" opacity="0.60"/><rect class="lv" x="313" y="151" width="2.2" height="2.6" opacity="0.45"/><rect x="320" y="160" width="2.2" height="2.6" opacity="0.90"/><rect x="320" y="178" width="2.2" height="2.6" opacity="0.75"/><rect x="345" y="151" width="2.2" height="2.6" opacity="0.60"/><rect x="352" y="151" width="2.2" height="2.6" opacity="0.45"/><rect x="338" y="160" width="2.2" height="2.6" opacity="0.90"/><rect x="352" y="169" width="2.2" height="2.6" opacity="0.75"/><rect x="345" y="178" width="2.2" height="2.6" opacity="0.75"/><rect x="345" y="187" width="2.2" height="2.6" opacity="0.45"/><rect x="352" y="187" width="2.2" height="2.6" opacity="0.90"/><rect class="lv" x="359" y="187" width="2.2" height="2.6" opacity="0.60"/><rect x="370" y="136" width="2.2" height="2.6" opacity="0.60"/><rect x="377" y="145" width="2.2" height="2.6" opacity="0.45"/><rect x="384" y="145" width="2.2" height="2.6" opacity="0.90"/><rect x="370" y="154" width="2.2" height="2.6" opacity="0.45"/><rect x="370" y="172" width="2.2" height="2.6" opacity="0.45"/><rect class="lv" x="396" y="115" width="2.2" height="2.6" opacity="0.45"/></g>
+                <circle class="antenna" cx="224.7" cy="51.5" r="0.9" fill="#FF5A4E"/>
+                <circle class="antenna" cx="224.7" cy="51.5" r="2.8" fill="#FF5A4E" opacity="0.2"/>
             </svg>
         </div>
 
-        <canvas id="particle-canvas"></canvas>
-        <div class="ombra-paralume"></div>
-        <div class="cono-su"></div>
-        <div class="cono"></div>
         <div id="lockout-glow"></div>
-        <div class="tavolo"></div>
-        <div class="pozza"></div>
-
-        <div class="oggetti">
-            <div class="oggetto"><i data-lucide="lightbulb"></i> Luci <span class="pallino"></span></div>
-            <div class="oggetto"><i data-lucide="thermometer"></i> Clima <span class="pallino"></span></div>
-            <div class="oggetto"><i data-lucide="blinds"></i> Tapparelle <span class="pallino"></span></div>
-            <div class="oggetto"><i data-lucide="shield-check"></i> Sicurezza <span class="pallino"></span></div>
-        </div>
     </div>
 
     <div class="wh-lingua-angolo">
@@ -716,177 +1341,17 @@
 
     <main class="palco">
 
-        <div class="lato-lampada">
-            <div class="lampada-blocco">
-            <div class="alone"></div>
-
-            <svg class="lampada" viewBox="0 0 220 300" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <defs>
-                    <linearGradient id="gTela" x1="0.1" y1="0" x2="0.95" y2="1">
-                        <stop offset="0%"   stop-color="#43424F"/>
-                        <stop offset="42%"  stop-color="#2B2A35"/>
-                        <stop offset="100%" stop-color="#17161E"/>
-                    </linearGradient>
-                    <linearGradient id="gTelaAccesa" x1="0.5" y1="0" x2="0.5" y2="1">
-                        <stop offset="0%"   stop-color="#4E4234"/>
-                        <stop offset="30%"  stop-color="#7A6142"/>
-                        <stop offset="72%"  stop-color="#C69B62"/>
-                        <stop offset="100%" stop-color="#F0C98C"/>
-                    </linearGradient>
-                    <linearGradient id="gOttone" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%"   stop-color="#3C3327"/>
-                        <stop offset="38%"  stop-color="#C4A268"/>
-                        <stop offset="60%"  stop-color="#8A7043"/>
-                        <stop offset="100%" stop-color="#2E2A22"/>
-                    </linearGradient>
-                    <linearGradient id="gBase" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%"   stop-color="#584835"/>
-                        <stop offset="55%"  stop-color="#332A20"/>
-                        <stop offset="100%" stop-color="#181310"/>
-                    </linearGradient>
-                    <radialGradient id="gBulbo" cx="50%" cy="40%" r="60%">
-                        <stop offset="0%"   stop-color="#FFF8E8"/>
-                        <stop offset="45%"  stop-color="#FFD79B"/>
-                        <stop offset="100%" stop-color="rgba(255,170,90,0)"/>
-                    </radialGradient>
-                    <!-- il calore che sale dal basso: la tela si accende verso l'orlo,
-                         in alto resta ancora fredda. E' come si comporta una tela tesa
-                         con la lampadina sotto la meta' del paralume. -->
-                    <radialGradient id="gTelaFuoco" cx="50%" cy="86%" r="64%">
-                        <stop offset="0%"   stop-color="#FFF3D6" stop-opacity="0.95"/>
-                        <stop offset="38%"  stop-color="#FFD8A0" stop-opacity="0.52"/>
-                        <stop offset="100%" stop-color="#FFB86A" stop-opacity="0"/>
-                    </radialGradient>
-                    <!-- la sagoma della lampadina che si intravede dietro la stoffa -->
-                    <radialGradient id="gFilamento" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%"   stop-color="#FFFDF4" stop-opacity="0.85"/>
-                        <stop offset="45%"  stop-color="#FFE0AC" stop-opacity="0.33"/>
-                        <stop offset="100%" stop-color="#FFC078" stop-opacity="0"/>
-                    </radialGradient>
-                    <!-- l'orlo basso: li' la tela e' piu' sottile e brucia di bianco -->
-                    <linearGradient id="gOrlo" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%"   stop-color="#FFB86A" stop-opacity="0.20"/>
-                        <stop offset="50%"  stop-color="#FFF6DF" stop-opacity="0.95"/>
-                        <stop offset="100%" stop-color="#FFB86A" stop-opacity="0.20"/>
-                    </linearGradient>
-                    <!-- quello che succede dentro al paralume non deve uscire dai bordi -->
-                    <clipPath id="cTela"><path d="M46 126 L78 30 h64 l32 96 z"/></clipPath>
-                    <!-- la riga speculare sullo stelo: bianca sotto il paralume, si spegne scendendo -->
-                    <linearGradient id="gSpecolo" x1="0.5" y1="0" x2="0.5" y2="1">
-                        <stop offset="0%"   stop-color="#FFF6E2" stop-opacity="0.95"/>
-                        <stop offset="18%"  stop-color="#FFE0AE" stop-opacity="0.70"/>
-                        <stop offset="52%"  stop-color="#D8B478" stop-opacity="0.30"/>
-                        <stop offset="100%" stop-color="#8A6B3C" stop-opacity="0.12"/>
-                    </linearGradient>
-                    <radialGradient id="gColletto" cx="42%" cy="30%" r="70%">
-                        <stop offset="0%"   stop-color="#FFEFCE" stop-opacity="0.85"/>
-                        <stop offset="100%" stop-color="#FFEFCE" stop-opacity="0"/>
-                    </radialGradient>
-                    <!-- il bronzo prende luce dalla spalla, non dal fondo -->
-                    <linearGradient id="gBronzoAcceso" x1="0.5" y1="0" x2="0.5" y2="1">
-                        <stop offset="0%"   stop-color="#FFD9A0" stop-opacity="0.34"/>
-                        <stop offset="55%"  stop-color="#FFB865" stop-opacity="0.08"/>
-                        <stop offset="100%" stop-color="#FFB865" stop-opacity="0"/>
-                    </linearGradient>
-                    <!-- il filo di luce sullo spigolo: acceso al centro, spento agli estremi -->
-                    <linearGradient id="gFiloBordo" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%"   stop-color="#FFE0AE" stop-opacity="0"/>
-                        <stop offset="30%"  stop-color="#FFF3D6" stop-opacity="0.85"/>
-                        <stop offset="62%"  stop-color="#FFD9A0" stop-opacity="0.55"/>
-                        <stop offset="100%" stop-color="#FFD9A0" stop-opacity="0"/>
-                    </linearGradient>
-                    <radialGradient id="gPiattoBase" cx="46%" cy="34%" r="66%">
-                        <stop offset="0%"   stop-color="#FFEBC6" stop-opacity="0.5"/>
-                        <stop offset="100%" stop-color="#FFEBC6" stop-opacity="0"/>
-                    </radialGradient>
-                    <filter id="morbido" x="-60%" y="-60%" width="220%" height="220%">
-                        <feGaussianBlur stdDeviation="9"/>
-                    </filter>
-                    <filter id="tenue" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="4.5"/>
-                    </filter>
-                </defs>
-
-                <!-- ombra della lampada sul piano -->
-                <ellipse class="ombra" cx="110" cy="281" rx="74" ry="10" fill="#000" opacity="0.55" filter="url(#morbido)"/>
-
-                <!-- base in bronzo -->
-                <path d="M66 279c0-11 20-18 44-18s44 7 44 18z" fill="url(#gBase)"/>
-                <!-- la luce viene da sopra: schiarisce la spalla della campana e muore a meta' -->
-                <path class="riflesso-caldo" d="M66 279c0-11 20-18 44-18s44 7 44 18z" fill="url(#gBronzoAcceso)"/>
-                <ellipse cx="110" cy="261" rx="44" ry="9" fill="#41352A"/>
-                <!-- il filo di luce sul bordo alto: e' li' che il metallo taglia la luce -->
-                <path class="riflesso-caldo" d="M66 261a44 9 0 0 1 88 0" fill="none"
-                      stroke="url(#gFiloBordo)" stroke-width="1.6" stroke-linecap="round"/>
-                <ellipse cx="110" cy="259" rx="30" ry="6" fill="#5A4A36" opacity="0.7"/>
-                <!-- il piatto interno della base raccoglie un po' di caldo -->
-                <ellipse class="riflesso-caldo" cx="110" cy="259" rx="30" ry="6" fill="url(#gPiattoBase)"/>
-
-                <!-- stelo in ottone: un tubo tornito, non un cilindro dipinto -->
-                <rect x="104" y="132" width="12" height="130" rx="6" fill="url(#gOttone)"/>
-                <!-- la riga che rispecchia il bulbo: stretta, spostata a sinistra come tutta la luce -->
-                <rect class="riflesso-caldo" x="106.6" y="133" width="2.2" height="128" rx="1.1" fill="url(#gSpecolo)"/>
-                <!-- il metallo raccoglie anche il buio: bordo destro in controluce -->
-                <rect x="113.4" y="133" width="1.6" height="128" rx="0.8" fill="#0B0906" opacity="0.45"/>
-                <!-- due anelli di tornitura: spezzano la riga e danno la scala -->
-                <rect x="103" y="150" width="14" height="3"   rx="1.5" fill="#0B0906" opacity="0.30"/>
-                <rect x="103" y="149" width="14" height="1.2" rx="0.6" fill="#E8C98A" opacity="0.30"/>
-                <rect x="103" y="243" width="14" height="3"   rx="1.5" fill="#0B0906" opacity="0.30"/>
-                <rect x="103" y="242" width="14" height="1.2" rx="0.6" fill="#E8C98A" opacity="0.30"/>
-                <ellipse cx="110" cy="132" rx="13" ry="5" fill="#A98A55"/>
-                <ellipse class="riflesso-caldo" cx="110" cy="131" rx="13" ry="5" fill="url(#gColletto)"/>
-                <circle cx="110" cy="128" r="8" fill="url(#gOttone)"/>
-                <!-- il punto di fuoco sul portalampada -->
-                <circle class="riflesso-caldo" cx="107.6" cy="125.4" r="2.6" fill="#FFF3D6" fill-opacity="0.75"/>
-
-                <!-- paralume spento -->
-                <path class="paralume-buio" d="M46 126 L78 30 h64 l32 96 z" fill="url(#gTela)" stroke="rgba(255,255,255,0.11)" stroke-width="1.3"/>
-                <ellipse cx="110" cy="30" rx="32" ry="7" fill="#2F2E39" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
-
-                <!-- paralume acceso: la tela che filtra la luce -->
-                <g class="paralume-luce">
-                    <path d="M46 126 L78 30 h64 l32 96 z" fill="url(#gTelaAccesa)" stroke="rgba(255,215,155,0.55)" stroke-width="1.5"/>
-                    <g clip-path="url(#cTela)">
-                        <!-- il calore che sale verso l'orlo -->
-                        <ellipse cx="110" cy="118" rx="80" ry="54" fill="url(#gTelaFuoco)"/>
-                        <!-- la lampadina che si intravede dietro la stoffa -->
-                        <ellipse cx="110" cy="96" rx="26" ry="30" fill="url(#gFilamento)" filter="url(#tenue)"/>
-                        <!-- le stecche del telaio: la tela e' tesa su queste e li' passa meno luce -->
-                        <path d="M78 30 L46 126 M142 30 L174 126 M96 30 L88 126 M124 30 L132 126"
-                              stroke="#7A5A34" stroke-opacity="0.30" stroke-width="1.4"/>
-                        <!-- la cucitura verticale -->
-                        <path d="M110 30 V126" stroke="#8A6438" stroke-opacity="0.16" stroke-width="1"/>
-                    </g>
-                    <ellipse cx="110" cy="30" rx="32" ry="7" fill="#6B5334" stroke="rgba(255,215,155,0.45)" stroke-width="1"/>
-                    <!-- l'orlo inferiore acceso: li' la tela e' piu' sottile -->
-                    <path d="M46 126 h128" stroke="url(#gOrlo)" stroke-width="2.4"/>
-                    <!-- la luce che esce dal fondo -->
-                    <ellipse cx="110" cy="126" rx="70" ry="16" fill="url(#gBulbo)"/>
-                    <ellipse cx="110" cy="126" rx="40" ry="9" fill="#FFEFCE"/>
-                    <ellipse cx="110" cy="126" rx="20" ry="5" fill="#FFFDF6"/>
-                    <!-- e dalla cima, verso il soffitto -->
-                    <ellipse cx="110" cy="30" rx="24" ry="5" fill="#FFE3B4" opacity="0.55"/>
-                    <ellipse cx="110" cy="28" rx="13" ry="3" fill="#FFF7E4" opacity="0.8"/>
-                </g>
-
-                <ellipse cx="110" cy="126" rx="64" ry="14" fill="none" stroke="rgba(255,255,255,0.13)" stroke-width="1.3"/>
-            </svg>
-
-            <button type="button" id="cordicella" class="cordicella"
-                    aria-label="Tira la cordicella per accendere la luce" title="Tira la cordicella per accendere la luce">
-                <span class="filo"></span>
-                <span class="pomello"></span>
-            </button>
-            </div>
-
-            <div class="suggerimento" id="suggerimento">
-                <i data-lucide="arrow-down"></i>
-                <span>Tira la cordicella per accendere</span>
-            </div>
+        <!-- a luce spenta: la presentazione -->
+        <div class="intro" id="intro">
+            <div class="intro-marchio" aria-hidden="true"><img src="{{ url_for('static', filename='logo.png') }}" alt=""><span>Wach0ss Home</span></div>
+            <h2>La casa<br><em>dorme.</em></h2>
+            <p>Accendi la luce per entrare.</p>
+            <button type="button" class="intro-segno" id="intro-segno" tabindex="-1"><i data-lucide="lamp"></i><span>Tira la cordicella per accendere</span></button>
+            <div class="intro-tasto">oppure premi <kbd>Invio</kbd></div>
         </div>
 
         <div class="lato-accesso" id="lato-accesso">
-        <div class="glass-card">
+        <div class="glass-card{% if setup_mode and not locked_until %} setup{% endif %}">
             {% if locked_until %}
             <div class="lockout-container" style="display: flex;">
                 <div class="shield-icon"><i data-lucide="shield-alert"></i></div>
@@ -902,7 +1367,9 @@
                     const diff = Math.floor(lockedUntilTimestamp - now);
                     if (diff <= 0) {
                         document.getElementById('countdown-timer').innerHTML = "00:00:00";
-                        window.location.reload(); 
+                        // di nuovo /login con un GET: reload() dopo una password sbagliata rimanderebbe
+                        // il modulo (POST) e conterebbe un altro tentativo sbagliato
+                        window.location.replace(window.location.href);
                         return;
                     }
                     const displayH = String(Math.floor(diff / 3600)).padStart(2, '0');
@@ -912,7 +1379,7 @@
                 }
                 setInterval(updateTimer, 1000); updateTimer();
             </script>
-            
+
             {% elif setup_mode %}
             <div class="card-header">
                 <div class="brand-logo"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo"></div>
@@ -920,7 +1387,7 @@
                 <p>Crea il tuo profilo Admin e imposta il server</p>
             </div>
 
-            {% if error %}<div class="alert-error"><i data-lucide="alert-circle"></i><span>{{ error }}</span></div>{% endif %}
+            {% if error %}<div class="alert-error"><i data-lucide="circle-alert"></i><span>{{ error }}</span></div>{% endif %}
 
             <form method="POST" action="{{ url_for('login') }}">
                 <div class="input-group">
@@ -928,42 +1395,42 @@
                     <div class="input-icon"><i data-lucide="user"></i></div>
                 </div>
                 <div class="input-group">
-                    <input type="password" name="password" class="form-input" placeholder="Crea Password" required>
+                    <input type="password" name="password" class="form-input" placeholder="Crea Password" required autocomplete="new-password">
                     <div class="input-icon"><i data-lucide="key-round"></i></div>
                 </div>
                 <div class="input-group">
-                    <input type="password" name="password_confirm" class="form-input" placeholder="Ripeti Password" required>
-                    <div class="input-icon"><i data-lucide="check-circle-2"></i></div>
+                    <input type="password" name="password_confirm" class="form-input" placeholder="Ripeti Password" required autocomplete="new-password">
+                    <div class="input-icon"><i data-lucide="circle-check"></i></div>
                 </div>
 
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; text-align: left;">Imposta posizione per le automazioni e il meteo:</p>
-                <div class="input-group" style="display: flex; gap: 8px;">
-                    <div style="flex-grow: 1; position: relative;">
+                <p class="nota-posizione">Imposta posizione per le automazioni e il meteo:</p>
+                <div class="input-group riga-posizione">
+                    <div>
                         <input type="text" name="location_name" id="loc_name" class="form-input" placeholder="Città" required>
                         <div class="input-icon"><i data-lucide="map-pin"></i></div>
                     </div>
-                    <button type="button" onclick="getGPS()" class="btn-primary" style="margin: 0; width: 60px; padding: 0; background: rgba(10, 132, 255, 0.15); color: var(--accent-blue);" title="Usa il GPS del dispositivo">
+                    <button type="button" onclick="getGPS()" class="btn-gps" title="Usa il GPS del dispositivo" aria-label="Usa il GPS del dispositivo">
                         <i data-lucide="crosshair"></i>
                     </button>
                 </div>
-                
+
                 <input type="hidden" name="lat" id="loc_lat" value="">
                 <input type="hidden" name="lon" id="loc_lon" value="">
 
-                <button type="submit" class="btn-primary" style="margin-top: 20px;">Inizializza Sistema</button>
+                <button type="submit" class="btn-primary" style="margin-top: 18px;">Inizializza Sistema <i data-lucide="arrow-right"></i></button>
             </form>
 
             <script>
                 function getGPS() {
                     const btn = document.querySelector('button[onclick="getGPS()"]');
-                    btn.innerHTML = `<i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i>`;
+                    btn.innerHTML = `<i data-lucide="loader-circle" style="animation: spin 1s linear infinite;"></i>`;
                     lucide.createIcons();
 
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(async function(pos) {
                             document.getElementById('loc_lat').value = pos.coords.latitude;
                             document.getElementById('loc_lon').value = pos.coords.longitude;
-                            
+
                             try {
                                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
                                 const data = await res.json();
@@ -976,7 +1443,11 @@
                         }, function() {
                             avvisa("Devi autorizzare l'uso del GPS dal tuo browser.", { titolo: "Posizione", icona: "map-pin" });
                             btn.innerHTML = `<i data-lucide="crosshair"></i>`; lucide.createIcons();
-                        });
+                        }, { timeout: 20000 });
+                    } else {
+                        // niente GPS nel browser: il mirino torna com'era, la citta' si scrive a mano
+                        avvisa("Devi autorizzare l'uso del GPS dal tuo browser.", { titolo: "Posizione", icona: "map-pin" });
+                        btn.innerHTML = `<i data-lucide="crosshair"></i>`; lucide.createIcons();
                     }
                 }
             </script>
@@ -984,49 +1455,50 @@
             <div class="card-header">
                 <div class="brand-logo"><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo"></div>
                 <h1>Wach0ss Home</h1>
-                <p>Autenticazione richiesta</p>
+                <p>Bentornato a casa</p>
             </div>
 
-            {% if error %}<div class="alert-error"><i data-lucide="alert-circle"></i><span>{{ error }}</span></div>{% endif %}
+            {% if error %}<div class="alert-error"><i data-lucide="circle-alert"></i><span>{{ error }}</span></div>{% endif %}
 
             <form method="POST" action="{{ url_for('login') }}">
                 <div class="input-group">
-                    <input type="text" name="username" class="form-input" placeholder="Nome utente" required autocomplete="username" spellcheck="false" autofocus>
+                    <!-- dopo una password sbagliata il nome resta scritto: il fuoco va sulla password -->
+                    <input type="text" name="username" class="form-input" placeholder="Nome utente" required autocomplete="username" spellcheck="false" autofocus{% if error and request.form.get('username') %} value="{{ request.form.get('username') }}"{% endif %}>
                     <div class="input-icon"><i data-lucide="user"></i></div>
                 </div>
                 <div class="input-group">
                     <input type="password" name="password" class="form-input" placeholder="Password di sistema" required autocomplete="current-password">
                     <div class="input-icon"><i data-lucide="key-round"></i></div>
                 </div>
-                <button type="submit" class="btn-primary">Accedi</button>
+                <button type="submit" class="btn-primary">Accedi <i data-lucide="arrow-right"></i></button>
             </form>
-            {% endif %}        </div>
+            {% endif %}
+        </div>
         </div>
 
     </main>
 
 <script>
-    lucide.createIcons();
+    // se le icone non si caricassero, la corda e la rete dei 12 s devono funzionare lo stesso
+    try { lucide.createIcons(); } catch (e) {}
 
-    /* le stelle fuori dalla finestra: sparse una volta sola */
-    (function () {
-        const cielo = document.getElementById('stelle');
-        if (!cielo) return;
-        let html = '';
-        for (let i = 0; i < 34; i++) {
-            const x = Math.random() * 100, y = Math.random() * 78;
-            const o = 0.25 + Math.random() * 0.65, d = (Math.random() * 3).toFixed(1);
-            html += '<i class="stella" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;opacity:' + o.toFixed(2) +
-                    ';animation:respiro ' + (2.5 + Math.random() * 3).toFixed(1) + 's ease-in-out ' + d + 's infinite"></i>';
-        }
-        cielo.innerHTML = html;
-    })();
+    /* la disposizione del telefono: la stessa condizione del foglio di stile */
+    const TELEFONO = '(max-width: 860px), (orientation: portrait)';
 
     /* =====================================================================
        LA CORDICELLA
-       Si tira col dito, col mouse o con la tastiera: e' un <button> vero.
-       In blocco accessi la luce si accende da sola: li' non c'e' niente da
-       giocare, c'e' solo da leggere.
+       Si tira col dito, col mouse o con la tastiera (e' un <button> vero);
+       a luce spenta anche Invio o Spazio accendono, e la pastiglia sotto la
+       presentazione fa lo stesso. La cordicella si tira UNA VOLTA SOLA per
+       sessione: dopo, la luce e' gia' accesa.
+       Si accende da sola, senza scenetta:
+       - password sbagliata: nessuno vuole rifare il giochino a ogni lettera
+         sbagliata; il fuoco va sulla password;
+       - blocco accessi: li' non c'e' niente da giocare, c'e' solo da leggere;
+       - primo avvio: chi lo fa e' l'installatore, che deve compilare un modulo
+         lungo e non "entrare in casa"; e la casa non ha ancora niente da
+         svegliare (nessun utente, nessun impianto configurato);
+       - telefono: la lampada non c'e' proprio, si entra e basta.
        ===================================================================== */
     (function () {
         const corpo = document.body;
@@ -1044,6 +1516,14 @@
             corpo.classList.remove('spenta');
         }
 
+        // il fuoco sul primo campo, ma solo se l'utente non e' gia' dentro il riquadro
+        function fuocoSulPrimo() {
+            const att = document.activeElement;
+            if (att && att.closest && att.closest('#lato-accesso')) return;
+            const primo = document.querySelector('#lato-accesso input:not([type=hidden])');
+            if (primo && !window.matchMedia(TELEFONO).matches) primo.focus();
+        }
+
         function accendi() {
             if (accesa) return;
             accesa = true; ricorda();
@@ -1052,14 +1532,14 @@
             setTimeout(function () {
                 corpo.classList.add('accesa');
                 corpo.classList.remove('spenta');
-                setTimeout(function () {
-                    const primo = document.querySelector('#lato-accesso input:not([type=hidden])');
-                    if (primo && window.innerWidth > 860) primo.focus();
-                }, 1000);
+                // il riquadro arriva per ultimo, dopo che la casa si e' svegliata
+                setTimeout(fuocoSulPrimo, 1900);
             }, 200);
         }
 
         corda.addEventListener('click', accendi);
+        const pastiglia = document.getElementById('intro-segno');
+        if (pastiglia) pastiglia.addEventListener('click', accendi);
 
         let partenza = null;
         corda.addEventListener('pointerdown', function (e) { partenza = e.clientY; corda.setPointerCapture(e.pointerId); });
@@ -1073,131 +1553,133 @@
         corda.addEventListener('pointerup', molla);
         corda.addEventListener('pointercancel', molla);
 
-        /* La cordicella si tira UNA VOLTA SOLA per sessione. Se hai sbagliato la
-           password, o se ricarichi, la luce e' gia' accesa: nessuno vuole rifare
-           il giochino ogni volta che scrive male una lettera.
-           Sul telefono la lampada non c'e' proprio: si entra e basta. */
-        const telefono = window.matchMedia('(max-width: 860px)').matches;
-        const errore   = !!document.querySelector('.alert-error');
-        const blocco   = !!document.querySelector('.lockout-container');
-        if (telefono || errore || blocco || giaAccesa()) {
+        /* Invio o spazio a luce spenta: come tirare la corda */
+        document.addEventListener('keydown', function (e) {
+            if (accesa || e.defaultPrevented) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+                if (e.target && e.target.closest && e.target.closest('button, a, input, .wh-lingua')) return;
+                e.preventDefault(); accendi();
+            }
+        });
+
+        const mqTelefono = window.matchMedia(TELEFONO);
+        const telefono   = mqTelefono.matches;
+        function aTelefono(e) { if (e.matches) accendiSubito(); }
+        if (mqTelefono.addEventListener) mqTelefono.addEventListener('change', aTelefono);
+        else if (mqTelefono.addListener) mqTelefono.addListener(aTelefono);
+        window.addEventListener('resize', function () { aTelefono(mqTelefono); });   // anche dove 'change' arriva tardi
+        const errore     = !!document.querySelector('.alert-error');
+        const blocco     = !!document.querySelector('.lockout-container');
+        const primoAvvio = !!document.querySelector('input[name=password_confirm]');
+        if (blocco) corpo.classList.add('blocco');
+        if (telefono || errore || blocco || primoAvvio || giaAccesa()) {
             accendiSubito();
             if (errore) {
-                const primo = document.querySelector('#lato-accesso input[type=password], #lato-accesso input:not([type=hidden])');
+                // accesso: la password (il nome e' rimasto scritto); primo avvio: il primo campo
+                const pw = document.querySelector('#lato-accesso input[name=password]');
+                const nome = document.querySelector('#lato-accesso input[name=username]');
+                const primo = (pw && nome && nome.value && !primoAvvio) ? pw
+                            : document.querySelector('#lato-accesso input:not([type=hidden])');
                 if (primo) primo.focus();
             }
         }
 
         /* rete di sicurezza: se qualcosa impedisse di tirare la corda, dopo 12
            secondi la luce si accende lo stesso. Nessuno resta chiuso fuori. */
-        setTimeout(function () { if (!accesa) accendiSubito(); }, 12000);
+        setTimeout(function () { if (!accesa) { accendiSubito(); fuocoSulPrimo(); } }, 12000);
 
         window.WH_accendiLuce = accendi;
     })();
 
-    /* la stanza si muove appena col mouse: da' profondita' senza dare fastidio */
+    /* la notte fuori si sposta appena col mouse: il vetro ha profondita' */
     (function () {
-        const strati = document.querySelectorAll('.strato');
-        if (!strati.length || window.matchMedia('(max-width: 860px)').matches) return;
+        const cielo = document.getElementById('cielo');
+        if (!cielo || !window.matchMedia('(hover: hover)').matches || window.matchMedia(TELEFONO).matches) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        let attesa = false, mx = 0, my = 0;
         window.addEventListener('mousemove', function (e) {
-            const dx = (e.clientX / window.innerWidth - 0.5), dy = (e.clientY / window.innerHeight - 0.5);
-            strati.forEach(function (s) {
-                const p = +(s.dataset.p || 6);
-                s.style.transform = 'translate3d(' + (-dx * p) + 'px,' + (-dy * p * 0.6) + 'px,0)';
+            mx = e.clientX / window.innerWidth - 0.5; my = e.clientY / window.innerHeight - 0.5;
+            if (attesa) return; attesa = true;
+            requestAnimationFrame(function () {
+                attesa = false;
+                cielo.style.transform = 'translate3d(' + (mx * -5).toFixed(1) + 'px,' + (my * -3).toFixed(1) + 'px,0)';
             });
         });
     })();
-
-    /* pulviscolo nell'aria: si vede nel cono di luce */
+    /* =====================================================================
+       IL PULVISCOLO. Pochi granelli su una tela che copre solo il fascio e
+       la lampada. Di notte vivono SOLO dentro il fascio di luna; a luce
+       accesa quelli del fascio si affievoliscono e nascono quelli caldi
+       intorno al paralume.
+       ===================================================================== */
     (function () {
-        const canvas = document.getElementById('particle-canvas');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        let larghezza, altezza, granelli = [];
-        const mouse = { x: null, y: null };
-        window.addEventListener('mousemove', function (e) { mouse.x = e.clientX; mouse.y = e.clientY; });
-        window.addEventListener('mouseout',  function ()  { mouse.x = null; mouse.y = null; });
-
-        function Granello() {
-            this.x = Math.random() * larghezza; this.y = Math.random() * altezza;
-            this.r = Math.random() * 1.7 + 0.35;
-            this.vx = (Math.random() - 0.5) * 0.16; this.vy = (Math.random() - 0.5) * 0.16 - 0.05;
-        }
-        Granello.prototype.passo = function () {
-            this.x += this.vx; this.y += this.vy;
-            if (this.x < -10) this.x = larghezza + 10; if (this.x > larghezza + 10) this.x = -10;
-            if (this.y < -10) this.y = altezza + 10;   if (this.y > altezza + 10) this.y = -10;
-        };
-        function ridimensiona() {
-            larghezza = canvas.width = window.innerWidth;
-            altezza   = canvas.height = window.innerHeight;
-            // sul telefono la densita' e' quella storica dell'accesso; sul computer
-            // la polvere e' piu' rada perche' deve solo attraversare il cono di luce
-            const quanti = larghezza <= 860
-                ? Math.min(90, Math.floor(larghezza * altezza / 10000))
-                : Math.min(130, Math.floor(larghezza * altezza / 15000));
-            granelli = []; for (let i = 0; i < quanti; i++) granelli.push(new Granello());
-        }
-        // la posizione della lampadina sullo schermo: serve per far brillare la polvere
-        // solo dentro la luce invece che ovunque, anche negli angoli neri
-        let luceX = 0, luceY = 0, giri = 0;
-        function dovEluce() {
-            const l = document.querySelector('.lampada');
-            if (!l) return;
-            const r = l.getBoundingClientRect();
-            if (!r.width) return;
-            luceX = r.left + r.width / 2;
-            luceY = r.top + r.height * 0.42;
-        }
-
-        function disegna() {
-            ctx.clearRect(0, 0, larghezza, altezza);
-            const acceso = document.body.classList.contains('accesa');
-            // sul telefono il pulviscolo e' quello di sempre: puntini bianchi che
-            // brillano e si collegano fra loro. Sul computer e' polvere nella luce.
-            const costellazione = larghezza <= 860;
-            // dove sta la lampadina: la polvere si vede solo dove la luce arriva.
-            // La posizione la rileggo di rado, non serve a ogni fotogramma.
-            if (!costellazione && (giri++ % 45 === 0)) dovEluce();
-            for (let i = 0; i < granelli.length; i++) {
-                const g = granelli[i]; g.passo();
-                ctx.beginPath(); ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
-                if (costellazione) {
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                    ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
-                    ctx.fill(); ctx.shadowBlur = 0;
-                } else if (acceso) {
-                    const dx0 = g.x - luceX, dy0 = g.y - luceY;
-                    const lontano = Math.sqrt(dx0 * dx0 + dy0 * dy0) / (larghezza * 0.52);
-                    ctx.fillStyle = 'rgba(255, 216, 164, ' + (0.62 * Math.max(0.05, 1 - lontano)).toFixed(3) + ')';
-                    ctx.fill();
-                } else {
-                    ctx.fillStyle = 'rgba(150, 175, 230, 0.28)';
-                    ctx.fill();
-                }
-                if (costellazione) {
-                    for (let j = i + 1; j < granelli.length; j++) {
-                        const h = granelli[j];
-                        const ax = g.x - h.x, ay = g.y - h.y, dd = Math.sqrt(ax * ax + ay * ay);
-                        if (dd < 110) {
-                            ctx.beginPath();
-                            ctx.strokeStyle = 'rgba(255, 255, 255, ' + (1 - dd / 110) * 0.4 + ')';
-                            ctx.lineWidth = 0.8; ctx.moveTo(g.x, g.y); ctx.lineTo(h.x, h.y); ctx.stroke();
-                        }
-                    }
-                }
-                if (!costellazione && acceso && mouse.x !== null) {
-                    const dx = g.x - mouse.x, dy = g.y - mouse.y, d = Math.sqrt(dx * dx + dy * dy);
-                    if (d < 130) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = 'rgba(255, 196, 130, ' + (1 - d / 130) * 0.26 + ')';
-                        ctx.lineWidth = 1; ctx.moveTo(g.x, g.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
-                    }
-                }
+        const tela = document.getElementById('polvere');
+        if (!tela || window.matchMedia(TELEFONO).matches) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const ctx = tela.getContext('2d');
+        const X = 50, Y = 150, W = 880, H = 850;      // in unita' del palco
+        // le colonne del fascio (le stesse del disegno)
+        const fasci = [
+            [[62,560],[174,560],[345,881],[192,881],[70,777],[62,752]],
+            [[190,560],[302,560],[521,881],[367,881],[201,777],[190,752]],
+            [[62,440],[174,440],[515,991],[321,991],[204,891],[62,546]],
+            [[190,440],[302,440],[737,991],[543,991],[384,891],[190,546]]
+        ];
+        function dentro(x, y, p) {
+            let c = false;
+            for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
+                if (((p[i][1] > y) !== (p[j][1] > y)) && (x < (p[j][0] - p[i][0]) * (y - p[i][1]) / (p[j][1] - p[i][1]) + p[i][0])) c = !c;
             }
-            requestAnimationFrame(disegna);
+            return c;
         }
-        window.addEventListener('resize', ridimensiona); ridimensiona(); disegna();
+        function nelFascio(x, y) { for (let k = 0; k < fasci.length; k++) if (dentro(x, y, fasci[k])) return true; return false; }
+        let u = 1, dpr = 1;
+        function misura() {
+            u = Math.min(window.innerWidth, window.innerHeight * 1.6) / 1600;
+            dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+            tela.style.left = (X * u) + 'px'; tela.style.top = (Y * u) + 'px';
+            tela.style.width = (W * u) + 'px'; tela.style.height = (H * u) + 'px';
+            tela.width = Math.round(W * u * dpr); tela.height = Math.round(H * u * dpr);
+        }
+        const R = Math.random;
+        function granello(caldo) {
+            let x, y;
+            if (caldo) { x = 680 + (R() - 0.5) * 360; y = 200 + R() * 360; }
+            else { for (let t = 0; t < 40; t++) { x = 60 + R() * 680; y = 440 + R() * 550; if (nelFascio(x, y)) break; } }
+            return { x: x, y: y, r: 0.5 + R() * 1.2, vx: (R() - 0.5) * 0.08, vy: (R() - 0.35) * 0.06, f: R() * 6.28, caldo: caldo };
+        }
+        const granelli = [];
+        for (let i = 0; i < 44; i++) granelli.push(granello(false));
+        for (let i = 0; i < 22; i++) granelli.push(granello(true));
+        let ultimo = 0;
+        function disegna(t) {
+            requestAnimationFrame(disegna);
+            if (t - ultimo < 33) return;            // 30 fotogrammi al secondo bastano
+            ultimo = t;
+            const accesa = document.body.classList.contains('accesa');
+            const s = u * dpr;
+            ctx.clearRect(0, 0, tela.width, tela.height);
+            for (let i = 0; i < granelli.length; i++) {
+                const g = granelli[i];
+                if (g.caldo && !accesa) continue;
+                g.x += g.vx; g.y += g.vy; g.f += 0.025;
+                let a;
+                if (g.caldo) {
+                    const dx = (g.x - 680) / 190, dy = (g.y - 330) / 220;
+                    a = Math.max(0, 1 - Math.sqrt(dx * dx + dy * dy)) * 0.7;
+                    if (a <= 0.02) { Object.assign(g, granello(true)); continue; }
+                } else {
+                    if (!nelFascio(g.x, g.y)) { Object.assign(g, granello(false)); continue; }
+                    a = (accesa ? 0.3 : 0.85) * (1 - (g.y - 440) / 800);
+                }
+                a *= 0.55 + 0.45 * Math.sin(g.f);
+                if (a < 0.03) continue;
+                ctx.beginPath(); ctx.arc((g.x - X) * s, (g.y - Y) * s, g.r * dpr, 0, 6.283);
+                ctx.fillStyle = g.caldo ? 'rgba(255,228,184,' + a.toFixed(3) + ')' : 'rgba(205,220,255,' + a.toFixed(3) + ')';
+                ctx.fill();
+            }
+        }
+        window.addEventListener('resize', misura); misura(); requestAnimationFrame(disegna);
     })();
 </script>
 </body>

@@ -1,0 +1,2285 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#EFEFF4" id="meta-tema">
+    <meta name="color-scheme" content="light dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Wach0ss Home | Dispositivi KNX</title>
+    <!-- Pagina a se' (come /map e /nvr): tutti i dispositivi KNX dell'impianto, da aggiungere,
+         guardare e modificare. Solo amministratore. Tutto servito dal server, niente CDN. -->
+    <script src="/static/vendor/lucide-1.41.0.min.js"></script>
+    <script>window.lucide||document.write('<scr'+'ipt src="https://unpkg.com/lucide@1.41.0/dist/umd/lucide.min.js"><\/scr'+'ipt>');</script>
+    <script src="/static/popup.js"></script>
+<style>
+@import url('/static/fonts/inter.css');
+
+/* =====================================================================
+   COLORI: giorno (come la dashboard) e notte (per chi lavora nel quadro al buio).
+   La notte cambia solo la vernice, mai la disposizione.
+   ===================================================================== */
+:root {
+    --sfondo: #EFEFF4;
+    --pannello: rgba(255,255,255,0.82);
+    --pieno: #FFFFFF;
+    --incavo: #F4F4F8;
+    --testo: #1C1C1E;
+    --fioco: #6E6E73;
+    --fioco-2: rgba(60,60,67,0.45);
+    --accento: #0A84FF;
+    --accento-scuro: #0060D0;
+    --accento-velo: rgba(10,132,255,0.10);
+    --verde: #1FA64A;
+    --verde-velo: rgba(31,166,74,0.12);
+    --ambra: #E08600;
+    --ambra-velo: rgba(255,159,10,0.13);
+    --rosso: #DC3545;
+    --rosso-velo: rgba(220,53,69,0.10);
+    --bordo: rgba(0,0,0,0.075);
+    --bordo-forte: rgba(0,0,0,0.13);
+    --riga: rgba(120,120,128,0.07);
+    --riga-su: rgba(120,120,128,0.13);
+    --ombra: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.05);
+    --ombra-su: 0 2px 4px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.09);
+    --ombra-f: 0 24px 70px rgba(0,0,0,0.22);
+    --r-s: 10px; --r-m: 14px; --r-l: 20px; --r-xl: 26px;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --alto: env(safe-area-inset-top, 0px);
+    --basso: env(safe-area-inset-bottom, 0px);
+    /* un colore per tipo: la riga si riconosce prima di leggerla */
+    --c-light: #FF9F0A; --c-switch: #0A84FF; --c-cover: #5E5CE6; --c-climate: #FF6B5E; --c-altro: #8E8E93;
+}
+body.notte {
+    --sfondo: #0D0F13;
+    --pannello: rgba(22,24,30,0.80);
+    --pieno: #16181E;
+    --incavo: #0F1116;
+    --testo: #F2F3F5;
+    --fioco: #9AA0AB;
+    --fioco-2: rgba(235,235,245,0.38);
+    --accento-velo: rgba(10,132,255,0.16);
+    --verde: #34D269;
+    --verde-velo: rgba(52,210,105,0.14);
+    --ambra: #FFB340;
+    --ambra-velo: rgba(255,179,64,0.14);
+    --rosso: #FF5A5F;
+    --rosso-velo: rgba(255,90,95,0.13);
+    --bordo: rgba(255,255,255,0.08);
+    --bordo-forte: rgba(255,255,255,0.15);
+    --riga: rgba(255,255,255,0.045);
+    --riga-su: rgba(255,255,255,0.09);
+    --ombra: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.28);
+    --ombra-su: 0 2px 6px rgba(0,0,0,0.35), 0 14px 32px rgba(0,0,0,0.4);
+    --ombra-f: 0 24px 70px rgba(0,0,0,0.6);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; height: 100%; background: var(--sfondo); color: var(--testo);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none; font-feature-settings: 'cv11', 'ss01'; }
+button, input, select, textarea { font-family: inherit; color: inherit; }
+button { -webkit-appearance: none; appearance: none; }
+[data-lucide] { width: 18px; height: 18px; }
+.num { font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); }
+.nascosto { display: none !important; }
+
+/* =====================================================================
+   IMPIANTO: testata ferma in alto, corpo che scorre
+   ===================================================================== */
+.pagina { position: fixed; inset: 0; display: flex; flex-direction: column;
+    background:
+        radial-gradient(1100px 520px at 12% -12%, rgba(10,132,255,0.11), transparent 62%),
+        radial-gradient(900px 480px at 100% 0%, rgba(94,92,230,0.07), transparent 60%),
+        var(--sfondo); }
+body.notte .pagina { background:
+        radial-gradient(1100px 520px at 12% -12%, rgba(10,132,255,0.16), transparent 62%),
+        radial-gradient(900px 480px at 100% 0%, rgba(94,92,230,0.12), transparent 60%),
+        var(--sfondo); }
+
+.testa { flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+    padding: calc(10px + var(--alto)) 18px 10px 8px; position: relative; z-index: 5;
+    background: var(--pannello); border-bottom: 1px solid var(--bordo);
+    backdrop-filter: blur(26px) saturate(180%); -webkit-backdrop-filter: blur(26px) saturate(180%); }
+.indietro { display: inline-flex; align-items: center; gap: 1px; background: transparent; border: none;
+    color: var(--accento); font-size: 0.95rem; font-weight: 500; padding: 7px 10px 7px 4px; cursor: pointer;
+    border-radius: var(--r-s); flex-shrink: 0; transition: background .15s; }
+.indietro [data-lucide] { width: 22px; height: 22px; }
+.indietro:hover { background: var(--accento-velo); }
+.titolo { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+.titolo .logo { width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    color: #FFF; background: linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%); box-shadow: 0 4px 12px rgba(10,132,255,0.3); }
+.titolo .logo [data-lucide] { width: 19px; height: 19px; }
+.titolo h1 { margin: 0; font-size: 1.08rem; font-weight: 700; letter-spacing: -0.022em; line-height: 1.2; white-space: nowrap; }
+.titolo small { display: block; font-size: 0.74rem; color: var(--fioco); font-weight: 500; margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.azioni-testa { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.gw { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px; border-radius: 16px;
+    font-size: 0.74rem; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap;
+    background: var(--riga); color: var(--fioco); border: 1px solid var(--bordo); }
+.gw .punto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.gw.su { background: var(--verde-velo); color: var(--verde); border-color: transparent; }
+.gw.su .punto { animation: battito 2.4s ease-in-out infinite; }
+.gw.giu { background: var(--rosso-velo); color: var(--rosso); border-color: transparent; }
+@keyframes battito { 0%, 100% { box-shadow: 0 0 0 0 rgba(31,166,74,0.45); } 60% { box-shadow: 0 0 0 6px rgba(31,166,74,0); } }
+
+.tb { height: 36px; min-width: 36px; padding: 0 10px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center;
+    gap: 7px; cursor: pointer; background: var(--pieno); color: var(--testo); border: 1px solid var(--bordo);
+    font-size: 0.84rem; font-weight: 600; position: relative; transition: background .15s, transform .1s, box-shadow .15s; box-shadow: var(--ombra); }
+.tb:hover { background: var(--incavo); }
+.tb:active { transform: scale(0.95); }
+.tb [data-lucide] { width: 17px; height: 17px; }
+.tb .bollo { position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+    background: var(--accento); color: #FFF; font-size: 0.66rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--sfondo); }
+.tb.primario { background: linear-gradient(135deg, #0A84FF 0%, #0063D1 100%); color: #FFF; border-color: transparent;
+    padding: 0 14px 0 11px; box-shadow: 0 4px 14px rgba(10,132,255,0.35); }
+.tb.primario:hover { filter: brightness(1.07); }
+
+.corpo { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+.interno { max-width: 1120px; margin: 0 auto; padding: 20px 24px calc(40px + var(--basso)); display: flex; flex-direction: column; gap: 14px; }
+
+/* =====================================================================
+   STRISCIA DI AVVISO (gateway): una sola, mai un avviso per riga
+   ===================================================================== */
+#striscia:empty { display: none; }
+.striscia { display: flex; align-items: flex-start; gap: 12px; padding: 13px 16px; border-radius: var(--r-m);
+    background: var(--ambra-velo); border: 1px solid rgba(255,159,10,0.28); font-size: 0.84rem; line-height: 1.5; }
+.striscia > [data-lucide] { color: var(--ambra); flex-shrink: 0; margin-top: 1px; }
+.striscia b { font-weight: 700; }
+.striscia .spiega { color: var(--fioco); display: block; margin-top: 1px; }
+.striscia.grigia { background: var(--riga); border-color: var(--bordo); }
+.striscia.grigia > [data-lucide] { color: var(--fioco); }
+.striscia a { color: var(--accento); font-weight: 600; text-decoration: none; }
+
+/* =====================================================================
+   RIEPILOGO: le tessere sono anche i filtri per tipo
+   ===================================================================== */
+.tessere { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.tessera { display: flex; flex-direction: column; gap: 10px; padding: 14px 15px 13px; border-radius: var(--r-l); cursor: pointer; text-align: left;
+    background: var(--pieno); border: 1px solid var(--bordo); box-shadow: var(--ombra); position: relative; overflow: hidden;
+    transition: transform .18s var(--curva), box-shadow .18s, border-color .18s; }
+.tessera:hover { transform: translateY(-2px); box-shadow: var(--ombra-su); }
+.tessera .icona { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.tessera .icona [data-lucide] { width: 17px; height: 17px; }
+.tessera .cifra { font-size: 1.62rem; font-weight: 750; letter-spacing: -0.035em; line-height: 1; font-variant-numeric: tabular-nums; }
+.tessera .nome { font-size: 0.74rem; font-weight: 600; color: var(--fioco); margin-top: 3px; }
+.tessera.attiva { border-color: var(--c); box-shadow: 0 0 0 1px var(--c), var(--ombra-su); }
+.tessera.attiva::after { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--c) 5%, transparent); pointer-events: none; }
+.tessera.vuota .cifra { color: var(--fioco-2); }
+.tessera.allarme .cifra { color: var(--ambra); }
+.tessera.allarme.zero .cifra { color: var(--verde); }
+.tessera.allarme.zero .icona { --c: var(--verde) !important; }
+/* una tessera che non filtrerebbe niente (zero dispositivi) resta ferma */
+.tessera:disabled { cursor: default; }
+.tessera:disabled:hover { transform: none; box-shadow: var(--ombra); }
+.tessera:focus-visible, .filtro:focus-visible, .segmenti button:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+
+/* =====================================================================
+   BARRA: ricerca, modo di raggruppare, filtri di stato
+   ===================================================================== */
+.barra { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.cerca { flex: 1 1 320px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px 0 14px; border-radius: var(--r-m);
+    background: var(--pieno); border: 1px solid var(--bordo); box-shadow: var(--ombra); transition: border-color .15s, box-shadow .15s; }
+.cerca:focus-within { border-color: var(--accento); box-shadow: 0 0 0 4px var(--accento-velo); }
+.cerca > [data-lucide] { color: var(--fioco); flex-shrink: 0; }
+.cerca input { flex: 1; min-width: 0; border: none; background: transparent; font-size: 0.92rem; outline: none; height: 100%; }
+.cerca input::placeholder { color: var(--fioco-2); }
+.kbd { font-family: var(--mono); font-size: 0.7rem; font-weight: 600; color: var(--fioco); padding: 3px 7px; border-radius: 6px;
+    border: 1px solid var(--bordo-forte); background: var(--incavo); }
+.cerca .pulisci { width: 28px; height: 28px; border-radius: 8px; border: none; background: var(--riga); cursor: pointer; display: none;
+    align-items: center; justify-content: center; color: var(--fioco); }
+.cerca .pulisci [data-lucide] { width: 15px; height: 15px; }
+.cerca.piena .pulisci { display: inline-flex; }
+.cerca.piena .kbd { display: none; }
+
+.segmenti { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--riga-su); gap: 2px; height: 44px; align-items: center; }
+.segmenti button { height: 38px; padding: 0 13px; border-radius: 9px; border: none; background: transparent; cursor: pointer;
+    font-size: 0.82rem; font-weight: 600; color: var(--fioco); display: inline-flex; align-items: center; gap: 7px; transition: all .16s; }
+.segmenti button [data-lucide] { width: 16px; height: 16px; }
+.segmenti button.su { background: var(--pieno); color: var(--testo); box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.04); }
+
+.filtri { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 1px; margin: -1px; }
+.filtri::-webkit-scrollbar { display: none; }
+.filtro { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px; border-radius: 17px; cursor: pointer;
+    background: transparent; border: 1px solid var(--bordo-forte); color: var(--fioco); font-size: 0.8rem; font-weight: 600; transition: all .15s; }
+.filtro [data-lucide] { width: 15px; height: 15px; }
+.filtro:hover { color: var(--testo); background: var(--riga); }
+.filtro .n { font-variant-numeric: tabular-nums; opacity: .75; }
+.filtro.su { background: var(--testo); color: var(--sfondo); border-color: var(--testo); }
+.filtro.avviso:not(.su) .n { color: var(--ambra); opacity: 1; }
+.conteggio { margin-left: auto; font-size: 0.78rem; color: var(--fioco); font-weight: 500; white-space: nowrap; }
+
+/* =====================================================================
+   GRUPPI E RIGHE
+   ===================================================================== */
+.gruppo { background: var(--pieno); border: 1px solid var(--bordo); border-radius: var(--r-l); box-shadow: var(--ombra); overflow: hidden; }
+/* la testata e' un vero pulsante (si raggiunge col Tab): tolte le vesti del browser */
+.gruppo-testa { display: flex; align-items: center; gap: 12px; padding: 13px 18px; cursor: pointer; user-select: none; -webkit-user-select: none;
+    width: 100%; margin: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; }
+.gruppo-testa:hover { background: var(--riga); }
+.gruppo-testa:focus-visible, .riga:focus-visible { outline: 2px solid var(--accento); outline-offset: -2px; }
+/* l'anello segue gli angoli arrotondati del gruppo, invece di venire tagliato */
+.gruppo-testa:focus-visible { border-radius: calc(var(--r-l) - 1px) calc(var(--r-l) - 1px) 0 0; }
+.gruppo.chiuso .gruppo-testa:focus-visible { border-radius: calc(var(--r-l) - 1px); }
+.righe .riga:last-child:focus-visible { border-radius: 0 0 calc(var(--r-l) - 1px) calc(var(--r-l) - 1px); }
+.gruppo-testa .ico { width: 30px; height: 30px; border-radius: 9px; background: var(--riga-su); color: var(--fioco);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.gruppo-testa .ico [data-lucide] { width: 16px; height: 16px; }
+.gruppo-testa .t { font-size: 0.92rem; font-weight: 700; letter-spacing: -0.012em; }
+.gruppo-testa .t .sotto { font-weight: 500; color: var(--fioco); font-size: 0.8rem; margin-left: 6px; }
+.gruppo-testa .quanti { min-width: 24px; height: 22px; padding: 0 8px; border-radius: 11px; background: var(--riga-su); font-size: 0.72rem; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center; font-variant-numeric: tabular-nums; }
+.gruppo-testa .mix { margin-left: auto; display: flex; gap: 5px; align-items: center; }
+.gruppo-testa .mix i { width: 7px; height: 7px; border-radius: 50%; display: block; }
+.gruppo-testa .mix span { font-size: 0.74rem; color: var(--fioco); margin-right: 8px; }
+.gruppo-testa .freccia { color: var(--fioco); transition: transform .22s var(--curva); flex-shrink: 0; }
+.gruppo.chiuso .freccia { transform: rotate(-90deg); }
+.gruppo.chiuso .righe { display: none; }
+
+.riga { display: grid; grid-template-columns: 42px minmax(190px, 1fr) minmax(0, 1.25fr) 156px 18px; align-items: center; gap: 14px;
+    padding: 11px 18px; border-top: 1px solid var(--bordo); cursor: pointer; position: relative; transition: background .14s; }
+.riga:hover { background: var(--riga); }
+.riga.scelta { background: var(--accento-velo); }
+.riga.scelta::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accento); }
+.riga.nuova { animation: lampo 1.6s var(--curva); }
+@keyframes lampo { 0% { background: rgba(10,132,255,0.28); } 100% { background: transparent; } }
+.piastra { width: 42px; height: 42px; border-radius: 13px; display: flex; align-items: center; justify-content: center; position: relative;
+    color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); flex-shrink: 0; }
+.piastra [data-lucide] { width: 20px; height: 20px; }
+.piastra.accesa { background: var(--c); color: #FFF; box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 45%, transparent); }
+.piastra .segno { position: absolute; right: -3px; bottom: -3px; width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--pieno);
+    background: var(--ambra); }
+.piastra .segno.rosso { background: var(--rosso); }
+.chi { min-width: 0; }
+.chi b { display: block; font-size: 0.94rem; font-weight: 650; letter-spacing: -0.012em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chi small { display: flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--fioco); margin-top: 3px; white-space: nowrap; overflow: hidden; }
+.chi small .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--fioco-2); flex-shrink: 0; }
+.chi small .cliente { display: inline-flex; align-items: center; gap: 4px; }
+.chi small .cliente [data-lucide] { width: 12px; height: 12px; }
+.chi small .preferito { display: inline-flex; color: var(--ambra); margin-left: -2px; }
+.chi small .preferito svg { width: 12px; height: 12px; fill: currentColor; }
+mark { background: rgba(255,214,10,0.45); color: inherit; border-radius: 3px; padding: 0 1px; }
+body.notte mark { background: rgba(255,214,10,0.3); }
+
+.indirizzi { display: flex; gap: 6px; flex-wrap: nowrap; overflow: hidden; min-width: 0; }
+.ga { display: inline-flex; align-items: baseline; gap: 6px; height: 26px; padding: 0 9px; border-radius: 8px; flex-shrink: 0; align-items: center;
+    background: var(--incavo); border: 1px solid var(--bordo); font-family: var(--mono); font-size: 0.76rem; font-weight: 600; white-space: nowrap; }
+.ga em { font-style: normal; font-family: 'Inter', sans-serif; font-size: 0.66rem; font-weight: 600; color: var(--fioco);
+    text-transform: uppercase; letter-spacing: 0.05em; }
+.ga.piu { font-family: 'Inter', sans-serif; color: var(--fioco); font-size: 0.72rem; }
+
+.stato { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 11px; border-radius: 14px; white-space: nowrap;
+    font-size: 0.76rem; font-weight: 650; background: var(--riga); color: var(--fioco); justify-self: end; }
+.stato .luce { width: 7px; height: 7px; border-radius: 50%; background: var(--fioco-2); flex-shrink: 0; }
+.stato.acceso { background: var(--verde-velo); color: var(--verde); }
+.stato.acceso .luce { background: var(--verde); box-shadow: 0 0 0 3px color-mix(in srgb, var(--verde) 22%, transparent); }
+.stato.caldo { background: rgba(255,107,94,0.12); color: #E5483C; }
+body.notte .stato.caldo { color: #FF8A7F; }
+.stato.freddo { background: rgba(10,132,255,0.11); color: var(--accento); }
+.stato.avviso { background: var(--ambra-velo); color: var(--ambra); }
+.stato.errore { background: var(--rosso-velo); color: var(--rosso); }
+.stato.spento-bus { opacity: .6; }
+.stato [data-lucide] { width: 14px; height: 14px; }
+.stato .barretta { width: 34px; height: 5px; border-radius: 3px; background: var(--riga-su); overflow: hidden; flex-shrink: 0; }
+.stato .barretta i { display: block; height: 100%; background: currentColor; border-radius: 3px; }
+.stato .t-corto { display: none; }
+.riga > .vai { color: var(--fioco-2); width: 18px; height: 18px; }
+.riga:hover > .vai { color: var(--fioco); }
+
+.fondo-elenco { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 6px 0 0; font-size: 0.76rem; color: var(--fioco-2); text-align: center; }
+.fondo-elenco [data-lucide] { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* caricamento: righe finte che brillano */
+.scheletro { height: 13px; border-radius: 7px; background: linear-gradient(90deg, var(--riga) 0%, var(--riga-su) 50%, var(--riga) 100%);
+    background-size: 200% 100%; animation: brilla 1.3s linear infinite; }
+@keyframes brilla { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* stati vuoti */
+.vuoto { text-align: center; padding: 54px 24px 50px; background: var(--pieno); border: 1px solid var(--bordo); border-radius: var(--r-xl); box-shadow: var(--ombra); }
+.vuoto .pila { display: flex; justify-content: center; gap: 10px; margin-bottom: 22px; }
+.vuoto .pila span { width: 48px; height: 48px; border-radius: 15px; display: flex; align-items: center; justify-content: center;
+    color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.vuoto .pila span:nth-child(2) { transform: translateY(-8px); }
+.vuoto .pila span:nth-child(3) { transform: translateY(-4px); }
+.vuoto h2 { margin: 0 0 8px; font-size: 1.28rem; font-weight: 750; letter-spacing: -0.025em; }
+.vuoto p { margin: 0 auto; max-width: 440px; font-size: 0.9rem; line-height: 1.6; color: var(--fioco); }
+.vuoto .azioni { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+.vuoto.piccolo { padding: 32px 20px; }
+.vuoto.piccolo h2 { font-size: 1rem; }
+
+/* =====================================================================
+   BOTTONI
+   ===================================================================== */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 13px; cursor: pointer;
+    font-size: 0.88rem; font-weight: 650; border: 1px solid var(--bordo-forte); background: var(--pieno); color: var(--testo);
+    transition: background .15s, transform .1s, filter .15s, box-shadow .15s; white-space: nowrap; }
+.btn:hover { background: var(--incavo); }
+.btn:active { transform: scale(0.97); }
+.btn [data-lucide] { width: 17px; height: 17px; }
+.btn.primario { background: linear-gradient(135deg, #0A84FF 0%, #0063D1 100%); color: #FFF; border-color: transparent; box-shadow: 0 4px 14px rgba(10,132,255,0.3); }
+.btn.primario:hover { filter: brightness(1.07); }
+.btn.pericolo { color: var(--rosso); background: transparent; border-color: color-mix(in srgb, var(--rosso) 30%, transparent); }
+.btn.pericolo:hover { background: var(--rosso-velo); }
+.btn.quadrato { width: 44px; padding: 0; }
+.btn.piccolo { height: 34px; padding: 0 12px; border-radius: 10px; font-size: 0.8rem; }
+.btn:disabled { opacity: .42; cursor: default; transform: none; filter: none; }
+.btn .giro { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: gira .7s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+
+/* =====================================================================
+   CASSETTO: a destra su schermo largo, foglio dal basso sul telefono
+   ===================================================================== */
+.velo { position: fixed; inset: 0; z-index: 50; background: rgba(10,12,18,0.32); opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; }
+body.notte .velo { background: rgba(0,0,0,0.55); }
+.velo.su { opacity: 1; visibility: visible; }
+.cassetto { position: fixed; top: 0; right: 0; bottom: 0; width: 500px; max-width: 100vw; z-index: 51; display: flex; flex-direction: column;
+    background: var(--pieno); border-left: 1px solid var(--bordo); box-shadow: var(--ombra-f);
+    transform: translateX(104%); visibility: hidden; transition: transform .32s var(--curva), visibility .32s; }
+.cassetto.su { transform: none; visibility: visible; }
+.cassetto:focus { outline: none; }          /* riceve il fuoco solo per tenerlo dentro, non e' un comando */
+.cas-testa { flex-shrink: 0; display: flex; align-items: center; gap: 13px; padding: calc(16px + var(--alto)) 18px 15px 20px; border-bottom: 1px solid var(--bordo); }
+.cas-testa .piastra { width: 46px; height: 46px; border-radius: 14px; }
+.cas-testa .t { flex: 1; min-width: 0; }
+.cas-testa h2 { margin: 0; font-size: 1.12rem; font-weight: 750; letter-spacing: -0.022em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cas-testa .id { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; font-family: var(--mono); font-size: 0.72rem; color: var(--fioco);
+    max-width: 100%; cursor: help; }
+.cas-testa .id [data-lucide] { width: 12px; height: 12px; flex-shrink: 0; }
+.cas-testa .id span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cas-testa .passo { font-size: 0.74rem; color: var(--fioco); font-weight: 600; margin-top: 3px; }
+.chiudi { width: 36px; height: 36px; border-radius: 11px; border: none; background: var(--riga); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--fioco); flex-shrink: 0; transition: background .15s; }
+.chiudi:hover { background: var(--riga-su); color: var(--testo); }
+.cas-corpo { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 18px 20px 26px; display: flex; flex-direction: column; gap: 22px; }
+.cas-corpo > * { flex-shrink: 0; }          /* un elenco lungo non deve schiacciare ricerca e filtri */
+.cas-piede { flex-shrink: 0; display: flex; gap: 10px; align-items: center; padding: 14px 20px calc(14px + var(--basso)); border-top: 1px solid var(--bordo); background: var(--pieno); }
+.cas-piede .spazio { flex: 1; }
+.cas-piede .btn.primario { min-width: 170px; }
+
+.sezione { display: flex; flex-direction: column; gap: 12px; }
+.sezione > h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fioco); }
+.sezione > h3 [data-lucide] { width: 14px; height: 14px; }
+.sezione > h3 .dx { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 0.76rem; }
+
+/* scheda "adesso": lo stato dal vivo nel cassetto */
+.adesso { display: flex; align-items: center; gap: 14px; padding: 15px 16px; border-radius: var(--r-l); background: var(--incavo); border: 1px solid var(--bordo); }
+.adesso .grande { font-size: 1.5rem; font-weight: 750; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.adesso .grande small { font-size: 0.95rem; font-weight: 600; color: var(--fioco); letter-spacing: -0.01em; }
+.adesso .dett { font-size: 0.76rem; color: var(--fioco); margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.adesso .dett [data-lucide] { width: 13px; height: 13px; }
+.adesso .t { flex: 1; min-width: 0; }
+.adesso .prove { display: flex; gap: 6px; flex-shrink: 0; }
+.adesso .barra-pos { height: 6px; border-radius: 3px; background: var(--riga-su); margin-top: 9px; overflow: hidden; max-width: 220px; }
+.adesso .barra-pos i { display: block; height: 100%; border-radius: 3px; background: var(--c-cover); transition: width .4s var(--curva); }
+.guasto { display: flex; gap: 11px; padding: 13px 15px; border-radius: var(--r-m); background: var(--rosso-velo); border: 1px solid color-mix(in srgb, var(--rosso) 25%, transparent);
+    font-size: 0.82rem; line-height: 1.5; }
+.guasto [data-lucide] { color: var(--rosso); flex-shrink: 0; margin-top: 1px; }
+.guasto code { font-family: var(--mono); font-size: 0.76rem; word-break: break-word; }
+.bozza { display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-radius: var(--r-m); background: var(--accento-velo); font-size: 0.82rem; }
+.bozza [data-lucide] { color: var(--accento); flex-shrink: 0; }
+.bozza .t { flex: 1; }
+.bozza button { border: none; background: transparent; color: var(--accento); font-weight: 700; font-size: 0.8rem; cursor: pointer; padding: 6px 8px; border-radius: 8px; }
+.bozza button:hover { background: rgba(10,132,255,0.12); }
+
+/* campi */
+.campo { display: flex; flex-direction: column; gap: 7px; }
+.campo > label { display: flex; align-items: baseline; gap: 8px; font-size: 0.8rem; font-weight: 650; }
+.campo > label .obbl { color: var(--rosso); font-weight: 700; }
+.campo > label .dpt { margin-left: auto; font-family: var(--mono); font-size: 0.68rem; font-weight: 600; color: var(--fioco-2); }
+.campo input[type=text], .campo select, .campo textarea { width: 100%; height: 44px; padding: 0 13px; border-radius: 12px; border: 1px solid var(--bordo-forte);
+    background: var(--incavo); font-size: 0.92rem; outline: none; transition: border-color .15s, box-shadow .15s, background .15s; }
+.campo textarea { height: auto; min-height: 70px; padding: 11px 13px; resize: vertical; line-height: 1.5; }
+.campo select { -webkit-appearance: none; appearance: none; cursor: pointer; padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; }
+.campo input:focus, .campo select:focus, .campo textarea:focus { border-color: var(--accento); box-shadow: 0 0 0 4px var(--accento-velo); background: var(--pieno); }
+.campo input::placeholder, .campo textarea::placeholder { color: var(--fioco-2); }
+.campo .aiuto { font-size: 0.74rem; color: var(--fioco); line-height: 1.5; }
+.ga-campo.pieno .aiuto { display: none; }
+.campo.errore input { border-color: var(--rosso); box-shadow: 0 0 0 4px var(--rosso-velo); }
+
+.ga-campo .riga-in { display: flex; gap: 6px; }
+.ga-campo .riga-in input { font-family: var(--mono); font-size: 0.95rem; font-weight: 600; letter-spacing: 0.02em; flex: 1; min-width: 0; }
+.ga-campo .mini { width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; border: 1px solid var(--bordo-forte); background: var(--pieno);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--fioco); transition: all .15s; }
+.ga-campo .mini:hover { color: var(--accento); border-color: var(--accento); background: var(--accento-velo); }
+.ga-campo .mini:disabled { opacity: .35; cursor: default; background: var(--pieno); color: var(--fioco); border-color: var(--bordo-forte); }
+.ga-campo .mini [data-lucide] { width: 17px; height: 17px; }
+.ga-campo .mini .giro { width: 15px; height: 15px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: gira .7s linear infinite; }
+.nota-ga { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; line-height: 1.45; color: var(--fioco); min-height: 0; }
+.nota-ga:empty { display: none; }
+.nota-ga [data-lucide] { width: 13px; height: 13px; flex-shrink: 0; }
+.nota-ga.ok { color: var(--fioco); }
+.nota-ga.bene { color: var(--verde); }
+.nota-ga.avviso { color: var(--ambra); }
+.nota-ga.errore { color: var(--rosso); }
+.nota-ga button.link { border: none; background: none; padding: 0; color: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; font-size: inherit; }
+.proposto { display: inline-flex; align-items: center; gap: 4px; margin-left: 4px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    color: #8E5CE6; background: rgba(142,92,230,0.12); padding: 2px 7px; border-radius: 6px; }
+.proposto [data-lucide] { width: 11px; height: 11px; }
+
+.facoltativi { border: 1px dashed var(--bordo-forte); border-radius: var(--r-m); }
+.facoltativi > button { width: 100%; display: flex; align-items: center; gap: 9px; padding: 12px 14px; border: none; background: transparent; cursor: pointer;
+    font-size: 0.82rem; font-weight: 650; color: var(--fioco); text-align: left; }
+.facoltativi > button:hover { color: var(--testo); }
+.facoltativi > button [data-lucide] { width: 16px; height: 16px; transition: transform .2s; }
+.facoltativi.aperti > button [data-lucide]:last-child { transform: rotate(180deg); }
+.facoltativi > button .quanti { margin-left: auto; font-size: 0.74rem; color: var(--fioco-2); font-weight: 600; }
+.facoltativi .dentro { display: none; padding: 4px 14px 16px; flex-direction: column; gap: 16px; }
+.facoltativi.aperti .dentro { display: flex; }
+
+.scelta-nome { display: flex; flex-direction: column; gap: 6px; padding: 12px 13px; border-radius: 12px; background: var(--incavo); border: 1px solid var(--bordo); font-size: 0.8rem; }
+.scelta-nome .q { color: var(--fioco); line-height: 1.45; }
+.scelta-nome label { display: flex; align-items: center; gap: 9px; cursor: pointer; font-weight: 600; }
+.scelta-nome input { accent-color: var(--accento); width: 16px; height: 16px; margin: 0; }
+
+/* tipi (primo passo dell'aggiunta) */
+.tipi { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tipo { display: flex; align-items: center; gap: 13px; padding: 14px; border-radius: var(--r-l); border: 1px solid var(--bordo-forte); background: var(--pieno);
+    cursor: pointer; text-align: left; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.tipo:hover { border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 16%, transparent); transform: translateY(-1px); }
+.tipo .piastra { width: 44px; height: 44px; }
+.tipo b { display: block; font-size: 0.92rem; font-weight: 700; }
+.tipo small { display: block; font-size: 0.74rem; color: var(--fioco); margin-top: 2px; line-height: 1.35; }
+.tipo.largo { grid-column: 1 / -1; }
+.oppure { display: flex; align-items: center; gap: 12px; color: var(--fioco-2); font-size: 0.74rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.oppure::before, .oppure::after { content: ''; flex: 1; height: 1px; background: var(--bordo); }
+
+/* dove e' usato */
+.usi { display: flex; flex-wrap: wrap; gap: 7px; }
+.uso { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 15px; background: var(--incavo); border: 1px solid var(--bordo);
+    font-size: 0.78rem; font-weight: 600; max-width: 100%; }
+.uso [data-lucide] { width: 14px; height: 14px; color: var(--fioco); flex-shrink: 0; }
+.uso span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nessun-uso { font-size: 0.8rem; color: var(--fioco); }
+
+/* ETS: elenco degli indirizzi importati */
+.ets-cerca { display: flex; align-items: center; gap: 9px; height: 42px; padding: 0 12px; border-radius: 12px; background: var(--incavo); border: 1px solid var(--bordo-forte); }
+.ets-cerca:focus-within { border-color: var(--accento); box-shadow: 0 0 0 4px var(--accento-velo); background: var(--pieno); }
+.ets-cerca [data-lucide] { color: var(--fioco); width: 16px; height: 16px; }
+.ets-cerca input { flex: 1; border: none; background: transparent; outline: none; font-size: 0.88rem; min-width: 0; }
+.ets-lista { display: flex; flex-direction: column; border: 1px solid var(--bordo); border-radius: var(--r-m); overflow: hidden; }
+.ets-v { display: flex; align-items: center; gap: 12px; padding: 10px 13px; border: none; border-top: 1px solid var(--bordo); background: var(--pieno);
+    cursor: pointer; text-align: left; width: 100%; transition: background .12s; }
+.ets-v:first-child { border-top: none; }
+.ets-v:hover { background: var(--riga); }
+.ets-v .addr { font-family: var(--mono); font-size: 0.82rem; font-weight: 700; color: var(--accento); min-width: 62px; flex-shrink: 0; }
+.ets-v .n { flex: 1; min-width: 0; }
+.ets-v .n b { display: block; font-size: 0.84rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ets-v .n small { display: block; font-size: 0.72rem; color: var(--fioco); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ets-v .dx { flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
+.ets-v .etichetta { font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: var(--riga-su); color: var(--fioco); white-space: nowrap;
+    max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.ets-v .etichetta.uso { background: var(--ambra-velo); color: var(--ambra); }
+.ets-v .etichetta.adatto { background: var(--verde-velo); color: var(--verde); }
+.ets-v.usato { background: var(--incavo); }
+.ets-v.usato .addr { color: var(--fioco); }
+.ets-v .piu { width: 28px; height: 28px; border-radius: 8px; background: var(--accento-velo); color: var(--accento); display: flex; align-items: center; justify-content: center; }
+.ets-v .piu [data-lucide] { width: 15px; height: 15px; }
+.ets-altro { padding: 12px; text-align: center; font-size: 0.76rem; color: var(--fioco); background: var(--incavo); border-top: 1px solid var(--bordo); }
+.deposito { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 34px 20px; border-radius: var(--r-l);
+    border: 2px dashed var(--bordo-forte); background: var(--incavo); cursor: pointer; transition: all .18s; }
+.deposito:hover, .deposito.sopra { border-color: var(--accento); background: var(--accento-velo); }
+.deposito .ico { width: 54px; height: 54px; border-radius: 17px; background: var(--pieno); box-shadow: var(--ombra); display: flex; align-items: center; justify-content: center; color: var(--accento); }
+.deposito .ico [data-lucide] { width: 24px; height: 24px; }
+.deposito b { font-size: 0.95rem; font-weight: 700; }
+.deposito span { font-size: 0.8rem; color: var(--fioco); line-height: 1.5; }
+.deposito .percorso { font-size: 0.72rem; color: var(--fioco-2); font-family: var(--mono); }
+
+/* avvisi a comparsa */
+.biscotti { position: fixed; left: 50%; bottom: calc(24px + var(--basso)); transform: translateX(-50%); z-index: 90; display: flex; flex-direction: column; gap: 8px;
+    align-items: center; pointer-events: none; width: max-content; max-width: calc(100vw - 32px); }
+.biscotto { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-radius: 14px; background: rgba(28,28,30,0.94); color: #FFF;
+    font-size: 0.85rem; font-weight: 550; line-height: 1.45; box-shadow: 0 12px 34px rgba(0,0,0,0.3); pointer-events: auto; max-width: 520px;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); animation: entra .3s var(--curva); }
+body.notte .biscotto { background: rgba(58,58,62,0.96); }
+.biscotto [data-lucide] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+.biscotto.bene [data-lucide] { color: #4CD964; }
+.biscotto.male [data-lucide] { color: #FF6B6B; }
+.biscotto.avviso [data-lucide] { color: #FFC24A; }
+.biscotto small { display: block; font-weight: 450; opacity: .72; margin-top: 2px; font-size: 0.78rem; }
+.biscotto.via { animation: esce .25s var(--curva) forwards; }
+@keyframes entra { from { opacity: 0; transform: translateY(12px) scale(.97); } }
+@keyframes esce { to { opacity: 0; transform: translateY(8px) scale(.97); } }
+
+/* =====================================================================
+   SCHERMI MEDI E TELEFONO
+   ===================================================================== */
+@media (max-width: 1060px) {
+    .tessere { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .riga { grid-template-columns: 42px minmax(0, 1fr) auto 18px; }
+    .stato { justify-self: end; }
+    .riga .indirizzi { display: none; }
+    /* cercando un indirizzo resta visibile la pastiglia che corrisponde, cosi' si vede perche' la riga e' li' */
+    .riga.cerca-ga { grid-template-columns: 42px minmax(0, 1fr) auto auto 18px; }
+    .riga.cerca-ga .indirizzi { display: flex; }
+    .riga.cerca-ga .ga:not(.trovato), .riga.cerca-ga .ga.trovato ~ .ga.trovato { display: none; }
+}
+@media (max-width: 760px) {
+    .testa { padding: calc(8px + var(--alto)) 12px 8px 4px; gap: 6px; }
+    .indietro span, .titolo .logo, .tb .etichetta, .gw .etichetta { display: none; }
+    .gw { padding: 0 10px; }
+    .titolo small { display: none; }
+    .interno { padding: 14px 14px calc(96px + var(--basso)); gap: 12px; }
+    .tessere { display: flex; overflow-x: auto; scrollbar-width: none; margin: 0 -14px; padding: 2px 14px 4px; gap: 9px; scroll-snap-type: x mandatory; }
+    .tessere::-webkit-scrollbar { display: none; }
+    .tessera { scroll-snap-align: start; }
+    .barra { gap: 9px; }
+    .cerca { flex-basis: 100%; }
+    .cerca .kbd { display: none; }
+    .segmenti { flex: 1; }
+    .segmenti button { flex: 1; justify-content: center; padding: 0 8px; }
+    .conteggio { display: none; }
+    .riga { padding: 11px 14px; gap: 12px; }
+    .gruppo-testa { padding: 12px 14px; }
+    .gruppo-testa .mix { display: none; }
+    .chi small .nascondi-tel { display: none; }
+    .stato { padding: 0 9px; }
+    .stato .barretta { display: none; }
+    .stato .t-lungo { display: none; }
+    .stato .t-corto { display: inline; }
+    .stato.solo-ico { width: 28px; padding: 0; justify-content: center; }
+    .riga { grid-template-columns: 42px minmax(0, 1fr) auto 14px; }
+    .tessera { flex: 0 0 auto; flex-direction: row; align-items: center; gap: 10px; padding: 10px 14px 10px 10px; border-radius: var(--r-m); }
+    .tessera .cifra { font-size: 1.2rem; }
+    .tessera .nome { margin-top: 1px; font-size: 0.7rem; }
+    .tessera .icona { width: 30px; height: 30px; }
+    .cassetto { top: auto; left: 0; right: 0; width: auto; max-height: 94vh; height: 94vh; border-left: none; border-top: 1px solid var(--bordo);
+        border-radius: var(--r-xl) var(--r-xl) 0 0; transform: translateY(104%); }
+    .cassetto::before { content: ''; position: absolute; top: 7px; left: 50%; width: 38px; height: 5px; border-radius: 3px; background: var(--bordo-forte); transform: translateX(-50%); }
+    .cas-testa { padding-top: 22px; }
+    .tipi { grid-template-columns: 1fr; }
+    .cas-piede .btn.primario { min-width: 0; flex: 1; }
+    .aggiungi-tel { display: flex !important; }
+}
+.aggiungi-tel { display: none; position: fixed; right: 18px; bottom: calc(20px + var(--basso)); z-index: 20; width: 58px; height: 58px; border-radius: 19px; border: none;
+    align-items: center; justify-content: center; color: #FFF; cursor: pointer; background: linear-gradient(135deg, #0A84FF 0%, #0063D1 100%);
+    box-shadow: 0 10px 26px rgba(10,132,255,0.45); }
+.aggiungi-tel [data-lucide] { width: 26px; height: 26px; }
+.aggiungi-tel:active { transform: scale(0.94); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="pagina">
+    <header class="testa">
+        <button class="indietro" type="button" onclick="KNX.esci()" title="Torna alle integrazioni"><i data-lucide="chevron-left"></i><span>Integrazioni</span></button>
+        <div class="titolo">
+            <div class="logo"><i data-lucide="network"></i></div>
+            <div style="min-width:0">
+                <h1>Dispositivi KNX</h1>
+                <small id="sotto-titolo">&nbsp;</small>
+            </div>
+        </div>
+        <div class="azioni-testa">
+            <span class="gw" id="gw" title="Stato del gateway KNX"><span class="punto"></span><span class="etichetta" id="gw-testo">Gateway</span></span>
+            <button class="tb" type="button" onclick="KNX.apriEts()" title="Indirizzi importati da ETS"><i data-lucide="file-spreadsheet"></i><span class="etichetta">ETS</span><span class="bollo nascosto" id="bollo-ets" data-no-tr></span></button>
+            <button class="tb" type="button" onclick="KNX.notte()" title="Giorno e notte" id="bt-notte"><i data-lucide="moon"></i></button>
+            <button class="tb primario" type="button" onclick="KNX.nuovo()" title="Aggiungi un dispositivo (N)"><i data-lucide="plus"></i><span class="etichetta">Aggiungi</span></button>
+        </div>
+    </header>
+
+    <main class="corpo" id="corpo">
+        <div class="interno">
+            <div id="striscia"></div>
+            <div class="tessere" id="tessere"></div>
+            <div class="barra">
+                <label class="cerca" id="cerca">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="q" placeholder="Cerca per nome, stanza o indirizzo (es. 1/2/)" autocomplete="off" spellcheck="false">
+                    <span class="kbd">/</span>
+                    <button type="button" class="pulisci" onclick="KNX.pulisciRicerca()" title="Cancella la ricerca"><i data-lucide="x"></i></button>
+                </label>
+                <div class="segmenti" id="raggruppa" role="tablist">
+                    <button type="button" data-g="stanza" title="Raggruppa per stanza"><i data-lucide="door-open"></i>Stanze</button>
+                    <button type="button" data-g="tipo" title="Raggruppa per tipo"><i data-lucide="layers"></i>Tipi</button>
+                    <button type="button" data-g="linea" title="Raggruppa per linea degli indirizzi"><i data-lucide="hash"></i>Linee</button>
+                </div>
+            </div>
+            <div class="filtri" id="filtri"></div>
+            <div id="elenco"></div>
+        </div>
+    </main>
+    <button class="aggiungi-tel" type="button" onclick="KNX.nuovo()" title="Aggiungi dispositivo"><i data-lucide="plus"></i></button>
+</div>
+
+<div class="velo" id="velo" onclick="KNX.chiudi()"></div>
+<aside class="cassetto" id="cassetto" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="cas-titolo" tabindex="-1">
+    <div class="cas-testa" id="cas-testa"></div>
+    <div class="cas-corpo" id="cas-corpo"></div>
+    <div class="cas-piede" id="cas-piede"></div>
+</aside>
+<input type="file" id="file-ets" accept=".csv,.esf,.xml,.txt,.knxproj" hidden>
+<div class="biscotti" id="biscotti" aria-live="polite"></div>
+
+<script>
+(function () {
+    'use strict';
+
+    /* =================================================================
+       1. ATTREZZI
+       ================================================================= */
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const icone = el => { if (window.lucide) window.lucide.createIcons({ root: el || document }); };
+    /* traduzione a mano, per i testi che il traduttore della pagina non vede (i placeholder dei
+       campi protetti da data-no-tr). In italiano WH_T non c'e' e resta il testo com'e'. */
+    const tr = t => { try { return window.WH_T ? window.WH_T(t) : t; } catch (e) { return t; } };
+    const memo = {
+        leggi(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+        scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+        togli(k) { try { localStorage.removeItem(k); } catch (e) {} },
+    };
+    const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const confronto = new Intl.Collator('it', { numeric: true, sensitivity: 'base' });
+
+    /* Le chiamate al server. Una risposta che non e' JSON vuol dire quasi sempre sessione
+       scaduta (il login rimanda alla pagina di accesso): il modulo NON si svuota, lo si dice. */
+    async function api(url, opzioni) {
+        const o = Object.assign({ credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } }, opzioni || {});
+        if (o.corpo !== undefined) { o.body = JSON.stringify(o.corpo); delete o.corpo; }
+        let r;
+        try { r = await fetch(url, o); } catch (e) { throw { tipo: 'rete', message: 'Il server non risponde. Controlla la connessione e riprova.' }; }
+        const tipo = r.headers.get('content-type') || '';
+        if (!tipo.includes('json')) throw { tipo: 'sessione', message: 'La sessione è scaduta: rientra e ripeti l\'operazione. Quello che hai scritto è ancora qui.' };
+        let j = {};
+        try { j = await r.json(); } catch (e) { throw { tipo: 'server', message: 'Risposta non valida dal server.' }; }
+        j._http = r.status;
+        if (r.status === 403) throw { tipo: 'permessi', message: 'Serve un utente amministratore.' };
+        return j;
+    }
+
+    function biscotto(testo, sotto, tipo, durata) {
+        const box = $('biscotti');
+        const el = document.createElement('div');
+        const ico = { bene: 'circle-check', male: 'circle-alert', avviso: 'triangle-alert' }[tipo || 'bene'] || 'info';
+        el.className = 'biscotto ' + (tipo || 'bene');
+        el.innerHTML = '<i data-lucide="' + ico + '"></i><div><span></span>' + (sotto ? '<small></small>' : '') + '</div>';
+        el.querySelector('span').textContent = testo;
+        if (sotto) el.querySelector('small').textContent = sotto;
+        box.appendChild(el);
+        icone(el);
+        while (box.children.length > 3) box.firstChild.remove();
+        setTimeout(() => { el.classList.add('via'); setTimeout(() => el.remove(), 260); }, durata || 3600);
+    }
+
+    function quandoFa(ts) {
+        if (!ts) return '';
+        const s = Math.max(0, Math.round(Date.now() / 1000 - ts));
+        if (s < 45) return 'adesso';
+        if (s < 3600) return Math.round(s / 60) + ' min fa';
+        if (s < 86400) return Math.round(s / 3600) + ' h fa';
+        const d = new Date(ts * 1000);
+        return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    /* =================================================================
+       2. CHE COSA E' UN DISPOSITIVO KNX (tipi, indirizzi, regole)
+       ================================================================= */
+    const TIPI = {
+        light:   { nome: 'Luce',         plurale: 'Luci',         icona: 'lightbulb',   colore: 'var(--c-light)' },
+        switch:  { nome: 'Interruttore', plurale: 'Interruttori', icona: 'power',       colore: 'var(--c-switch)' },
+        cover:   { nome: 'Tapparella',   plurale: 'Tapparelle',   icona: 'blinds',      colore: 'var(--c-cover)' },
+        climate: { nome: 'Termostato',   plurale: 'Termostati',   icona: 'thermometer', colore: 'var(--c-climate)' },
+    };
+    const ORDINE_TIPI = ['light', 'switch', 'cover', 'climate'];
+    const tipoDi = dom => TIPI[dom] || { nome: dom || 'Altro', plurale: 'Altri', icona: 'cpu', colore: 'var(--c-altro)' };
+
+    const GA = ['ga_command', 'ga_state', 'ga_stop', 'ga_position', 'ga_position_state', 'ga_brightness', 'ga_brightness_state',
+                'ga_temperature', 'ga_setpoint', 'ga_setpoint_state', 'ga_heat_cool', 'ga_heat_cool_state', 'ga_mode', 'ga_mode_state'];
+
+    /* Ogni campo, detto come lo direbbe l'installatore. 'dpt' e' quello che ci si aspetta:
+       serve solo a un avviso gentile, mai a bloccare (sugli ESF il DPT e' spesso inventato). */
+    const CAMPI = {
+        light: {
+            ga_command:          { t: 'Accendi / spegni',     d: 'Il comando on/off',               dpt: '1.001', breve: 'on/off',  att: /^1\./ },
+            ga_state:            { t: 'Stato acceso / spento', d: 'Il ritorno dall\'attuatore: senza, l\'app non sa se è accesa davvero', dpt: '1.001', breve: 'stato', att: /^1\./ },
+            ga_brightness:       { t: 'Luminosità',            d: 'Valore 0–100%: se c\'è, la luce diventa regolabile',   dpt: '5.001', breve: 'lum.',  att: /^5\./ },
+            ga_brightness_state: { t: 'Stato luminosità',      d: 'Il ritorno del valore dall\'attuatore',                dpt: '5.001', breve: 'st. lum.', att: /^5\./ },
+        },
+        switch: {
+            ga_command: { t: 'Accendi / spegni', d: 'Il comando on/off',                  dpt: '1.001', breve: 'on/off',   att: /^1\./ },
+            ga_state:   { t: 'Stato',            d: 'Il ritorno dall\'attuatore',          dpt: '1.001', breve: 'stato', att: /^1\./ },
+        },
+        cover: {
+            ga_command:        { t: 'Su / giù',        d: 'Movimento lungo: sale o scende fino in fondo',  dpt: '1.008', breve: 'su/giù', att: /^1\./ },
+            ga_stop:           { t: 'Stop / lamelle',  d: 'Movimento breve: ferma la corsa o gira le lamelle', dpt: '1.010', breve: 'stop', att: /^1\./ },
+            ga_position:       { t: 'Posizione',       d: 'Va a una percentuale precisa',                  dpt: '5.001', breve: 'pos.',    att: /^5\./ },
+            ga_position_state: { t: 'Stato posizione', d: 'Dove si trova adesso: senza, l\'app non vede la percentuale', dpt: '5.001', breve: 'st. pos.', att: /^5\./ },
+        },
+        climate: {
+            ga_temperature:     { t: 'Temperatura ambiente',        d: 'Quella misurata dalla sonda',            dpt: '9.001',  breve: 'amb.',  att: /^9\./ },
+            ga_setpoint:        { t: 'Temperatura desiderata',      d: 'Il setpoint che l\'app imposta',          dpt: '9.001',  breve: 'set',  att: /^9\./ },
+            ga_setpoint_state:  { t: 'Stato temperatura desiderata', d: 'Il setpoint letto dal termostato',       dpt: '9.001',  breve: 'st. set', att: /^9\./ },
+            ga_heat_cool:       { t: 'Caldo / freddo',              d: 'Commuta riscaldamento e raffrescamento', dpt: '1.100',  breve: 'c/f',  att: /^1\./ },
+            ga_heat_cool_state: { t: 'Stato caldo / freddo',        d: 'Il ritorno della commutazione',          dpt: '1.100',  breve: 'st. c/f', att: /^1\./ },
+            ga_mode:            { t: 'Modalità HVAC',               d: 'Comfort, notte, protezione… (in alternativa a caldo/freddo)', dpt: '20.102', breve: 'modo', att: /^20\./ },
+            ga_mode_state:      { t: 'Stato modalità',              d: 'Il ritorno della modalità',              dpt: '20.102', breve: 'st. modo', att: /^20\./ },
+        },
+    };
+    /* quali campi si vedono subito e quali stanno sotto "facoltativi" */
+    const DISPOSIZIONE = {
+        light:   { principali: ['ga_command', 'ga_state'], facoltativi: ['ga_brightness', 'ga_brightness_state'], obbligatori: ['ga_command'] },
+        dimmer:  { principali: ['ga_command', 'ga_state', 'ga_brightness', 'ga_brightness_state'], facoltativi: [], obbligatori: ['ga_command'] },
+        switch:  { principali: ['ga_command', 'ga_state'], facoltativi: [], obbligatori: ['ga_command'] },
+        cover:   { principali: ['ga_command', 'ga_stop', 'ga_position', 'ga_position_state'], facoltativi: [], obbligatori: ['ga_command'] },
+        climate: { principali: ['ga_temperature', 'ga_setpoint', 'ga_setpoint_state'], facoltativi: ['ga_heat_cool', 'ga_heat_cool_state', 'ga_mode', 'ga_mode_state'], obbligatori: ['ga_temperature', 'ga_setpoint'] },
+    };
+    const campiDi = dom => CAMPI[dom] || CAMPI.switch;
+
+    /* Indirizzo di gruppo: tre livelli 0-31/0-7/0-255, oppure due livelli 0-31/0-2047.
+       La stessa regola sta sul server: qui serve a dirlo mentre si scrive. */
+    function gaValido(v) {
+        v = String(v || '').trim();
+        if (!v) return true;
+        let m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{1,3})$/);
+        if (m) return +m[1] <= 31 && +m[2] <= 7 && +m[3] <= 255;
+        m = v.match(/^(\d{1,2})\/(\d{1,4})$/);
+        if (m) return +m[1] <= 31 && +m[2] <= 2047;
+        return false;
+    }
+    const gaChiave = v => String(v || '').split('/').map(x => x.padStart(5, '0')).join('/');
+
+    /* =================================================================
+       3. STATO DELLA PAGINA
+       ================================================================= */
+    const S = {
+        dati: null,              // ultima risposta di /api/knx/dispositivi
+        perId: {},
+        ets: { voci: [], per: {}, caricato: false, totale: 0 },
+        q: '',
+        tipo: '',                // filtro dalle tessere
+        filtro: '',              // problemi | senzastanza | maisentiti
+        raggruppa: memo.leggi('knx_raggruppa', ''),
+        chiusi: memo.leggi('knx_chiusi', {}),
+        nuovi: {},               // entity_id appena creati: lampeggiano una volta
+        cassetto: null,          // cosa c'e' nel cassetto adesso
+    };
+
+    /* =================================================================
+       4. CARICAMENTO E AGGIORNAMENTO DAL VIVO
+       ================================================================= */
+    let giro = null, firma = '', firmaDisp = '', disegnatoAlle = 0;
+    function carica(silenzioso) {
+        if (giro) return giro.then(() => carica(silenzioso));
+        giro = caricaOra(silenzioso).finally(() => { giro = null; });
+        return giro;
+    }
+    async function caricaOra(silenzioso) {
+        try {
+            const d = await api('/api/knx/dispositivi');
+            if (d._http !== 200) throw { message: d.message || d.error || 'Errore del server' };
+            /* niente da ridisegnare se non e' cambiato niente (ma ogni minuto si', per "2 min fa") */
+            const nuova = JSON.stringify(d);
+            if (silenzioso && nuova === firma && Date.now() - disegnatoAlle < 60000 && !Object.keys(S.nuovi).length) return;
+            firma = nuova; disegnatoAlle = Date.now();
+            S.dati = d;
+            S.perId = {};
+            (d.dispositivi || []).forEach(x => { S.perId[x.entity_id] = x; });
+            if (!S.raggruppa) {
+                /* in cantiere le stanze non ci sono ancora: si parte per tipo */
+                const conStanza = (d.dispositivi || []).filter(x => x.stanza).length;
+                S.raggruppa = conStanza >= Math.max(1, (d.dispositivi || []).length / 4) ? 'stanza' : 'tipo';
+            }
+            /* l'elenco ETS dice chi usa ogni indirizzo: va riletto quando cambia il progetto importato
+               E quando cambiano i dispositivi (creati, rinominati, spostati, eliminati, anche da un altro
+               tablet). La firma dei dispositivi e' fatta solo di id, nomi e indirizzi: gli stati dal vivo
+               cambiano di continuo e non devono far ripartire la richiesta ogni 6 s. */
+            const nuovaDisp = JSON.stringify((d.dispositivi || []).map(x => [x.entity_id, x.nome, x.indirizzi]));
+            let rileggiEts = false;
+            if (d.ets && d.ets.totale !== S.ets.totale) { S.ets.totale = d.ets.totale; if (S.ets.caricato || d.ets.totale) rileggiEts = true; }
+            if (nuovaDisp !== firmaDisp) { if (firmaDisp && S.ets.caricato && S.ets.totale) rileggiEts = true; firmaDisp = nuovaDisp; }
+            if (rileggiEts) caricaEts();
+            disegna();
+            if (S.cassetto && S.cassetto.modo === 'modifica') aggiornaAdesso();
+        } catch (e) {
+            if (!silenzioso || !S.dati) mostraErroreCarico(e);
+            else if (e.tipo === 'sessione' && !S.avvisatoSessione) { S.avvisatoSessione = true; biscotto('Sessione scaduta', 'Rientra per continuare a vedere gli stati dal vivo.', 'avviso', 6000); }
+        }
+    }
+    function mostraErroreCarico(e) {
+        $('elenco').innerHTML = '<div class="vuoto piccolo"><div class="pila"><span style="--c:var(--rosso)"><i data-lucide="circle-alert"></i></span></div>' +
+            '<h2>Non riesco a leggere i dispositivi</h2><p></p><div class="azioni"><button class="btn" type="button" onclick="KNX.ricarica()"><i data-lucide="rotate-ccw"></i>Riprova</button></div></div>';
+        $('elenco').querySelector('p').textContent = e.message || '';
+        ultimoHtml.elenco = null;                                  // scritto a mano: il prossimo disegno riscrive
+        icone($('elenco'));
+    }
+    /* Una lettura alla volta. Chi la chiede mentre una e' gia' in corso aspetta quella, ma se
+       quella era partita PRIMA del momento che gli interessa ('dopo', es. la risposta di un
+       salvataggio) se ne fa un'altra subito dopo: cosi' non si legge mai un elenco vecchio. */
+    let etsGiro = null, etsPartito = 0, etsAncora = false;
+    function caricaEts(dopo) {
+        if (etsGiro) { if (etsPartito < (dopo || Date.now())) etsAncora = true; return etsGiro; }
+        etsGiro = (async () => {
+            do { etsAncora = false; etsPartito = Date.now(); await caricaEtsOra(); } while (etsAncora);
+        })().finally(() => { etsGiro = null; });
+        return etsGiro;
+    }
+    async function caricaEtsOra() {
+        try {
+            const d = await api('/api/knx/ets_list?tutti=1');
+            S.ets.voci = d.voci || [];
+            S.ets.totale = d.totale || S.ets.voci.length;
+            S.ets.per = {};
+            S.ets.voci.forEach(v => { S.ets.per[v.address] = v; });
+            S.ets.caricato = true;
+            const b = $('bollo-ets');
+            b.textContent = S.ets.totale > 999 ? '999+' : String(S.ets.totale);
+            b.classList.toggle('nascosto', !S.ets.totale);
+            const c = S.cassetto;
+            if (!c) return;
+            if (c.modo === 'ets') {
+                /* se l'elenco c'e' gia' si rifa' solo lui: la casella di ricerca resta com'e', col cursore */
+                if ($('ets-lista') && S.ets.totale) {
+                    const n = $('cas-testa').querySelector('.passo [data-no-tr]');
+                    if (n) n.textContent = S.ets.totale;
+                    disegnaListaEts();
+                } else disegnaEts();
+            }
+            else if ((c.modo === 'nuovo' && c.passo === 1) || c.modo === 'scelta') disegnaListaEts();
+            else if (c.valori) aggiornaNoteGa();                 // modulo aperto: le note "gia' usato da"
+        } catch (e) { /* senza ETS la pagina lavora lo stesso */ }
+    }
+    /* stati dal vivo: ogni 6 s, solo a pagina visibile */
+    setInterval(() => { if (!document.hidden) carica(true); }, 6000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) carica(true); });
+
+    /* =================================================================
+       5. L'ELENCO
+       ================================================================= */
+    function haSorgenteStato(d) {
+        const i = d.indirizzi || {};
+        if (d.dominio === 'cover') return !!i.ga_position_state;
+        if (d.dominio === 'climate') return !!(i.ga_temperature || i.ga_setpoint_state);
+        return !!(i.ga_state || i.ga_brightness_state);
+    }
+    function gwSu() { return S.dati && S.dati.gateway && S.dati.gateway.stato === 'online'; }
+    function problema(d) {
+        if (d.errore) return 'errore';
+        if (gwSu() && !d.sul_bus) return 'fuori';
+        return '';
+    }
+    function maiSentito(d) { return gwSu() && haSorgenteStato(d) && !d.visto && !d.errore; }
+
+    /* la pasticca dello stato: dice il vero, anche quando non sa */
+    function pasticca(d) {
+        const p = problema(d);
+        if (p === 'errore') return { cls: 'errore', ico: 'circle-alert', testo: 'Non caricato' };
+        if (p === 'fuori') return { cls: 'avviso', ico: 'triangle-alert', testo: 'Non sul bus' };
+        if (!S.dati || !S.dati.gateway || S.dati.gateway.stato !== 'online') return { cls: 'spento-bus', ico: 'wifi-off', testo: '' };
+        if (!haSorgenteStato(d)) return { cls: '', ico: 'send', testo: 'Solo comando', corto: '' };
+        if (!d.visto) return { cls: '', ico: 'clock', testo: 'In attesa', corto: '' };
+        if (d.dominio === 'cover') {
+            const pos = d.posizione;
+            if (pos == null) return { cls: '', luce: true, testo: '—' };
+            if (pos <= 0) return { cls: '', luce: true, testo: 'Chiusa' };
+            if (pos >= 100) return { cls: 'acceso', luce: true, testo: 'Aperta' };
+            return { cls: 'acceso', barra: pos, testo: pos + '%' };
+        }
+        if (d.dominio === 'climate') {
+            const c = d.clima || {};
+            const modo = c.modo || d.stato;
+            const freddo = modo === 'cool';
+            const a = c.attuale != null ? Number(c.attuale).toFixed(1) + '°' : '—';
+            const t = c.desiderata != null ? Number(c.desiderata).toFixed(1) + '°' : '—';
+            return { cls: freddo ? 'freddo' : 'caldo', ico: freddo ? 'snowflake' : 'flame', testo: a + ' → ' + t, noTr: true };
+        }
+        if (d.stato === 'on') return d.dimmer && d.luminosita != null
+            ? { cls: 'acceso', luce: true, testo: 'Acceso · ' + d.luminosita + '%', corto: d.luminosita + '%' }
+            : { cls: 'acceso', luce: true, testo: 'Acceso' };
+        return { cls: '', luce: true, testo: 'Spento' };
+    }
+    function htmlPasticca(d) {
+        const p = pasticca(d);
+        let dentro = '';
+        if (p.luce) dentro += '<span class="luce"></span>';
+        if (p.ico) dentro += '<i data-lucide="' + p.ico + '"></i>';
+        if (p.barra != null) dentro += '<span class="barretta"><i style="width:' + p.barra + '%"></i></span>';
+        if (p.testo) dentro += '<span class="' + (p.corto != null ? 't-lungo' : '') + '"' + (p.noTr || /^\d/.test(p.testo) ? ' data-no-tr' : '') + '>' + esc(p.testo) + '</span>';
+        if (p.corto) dentro += '<span class="t-corto" data-no-tr>' + esc(p.corto) + '</span>';
+        const titolo = d.errore ? ' title="' + esc(d.errore) + '"' : (!gwSu() ? ' title="Gateway non collegato"' : (d.visto ? ' title="Ultimo messaggio dal bus: ' + esc(quandoFa(d.visto)) + '"' : ''));
+        return '<span class="stato ' + p.cls + (p.corto === '' ? ' solo-ico' : '') + '"' + titolo + (p.corto != null ? ' aria-label="' + esc(p.testo) + '"' : '') + '>' + dentro + '</span>';
+    }
+    function evidenzia(testo, q) {
+        const t = String(testo || '');
+        if (!q) return esc(t);
+        const i = norm(t).indexOf(norm(q));
+        if (i < 0) return esc(t);
+        return esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length));
+    }
+    /* Ricerca per indirizzo ("1/0/", "1/0/1"): si confronta livello per livello, ogni indirizzo
+       da solo. I livelli completi devono essere uguali, l'ultimo (ancora in scrittura) basta che
+       cominci cosi'. Una sottostringa sul testo unito farebbe trovare anche 11/0/x e 21/0/x. */
+    function pezziGa(q) {
+        const t = String(q || '').replace(/\s+/g, '');
+        return /^\d*(\/\d*)+$/.test(t) ? t.split('/') : null;
+    }
+    function gaCorrisponde(ga, pz) {
+        if (!ga || !pz) return false;
+        const a = String(ga).split('/');
+        return pz.every((p, i) => p === '' || (i < pz.length - 1 ? a[i] === p : (a[i] || '').startsWith(p)));
+    }
+    /* quanto dell'indirizzo evidenziare: sempre dall'inizio, mai un pezzo a meta' ("2[1/0/]6") */
+    function evidenziaGa(ga, pz) {
+        const a = String(ga || '').split('/');
+        let n = 0;
+        pz.forEach((p, i) => { n += i < pz.length - 1 ? (a[i] || '').length + 1 : p.length; });
+        n = Math.min(n, String(ga).length);
+        return n ? '<mark>' + esc(String(ga).slice(0, n)) + '</mark>' + esc(String(ga).slice(n)) : esc(ga);
+    }
+    function chips(d, q) {
+        const campi = campiDi(d.dominio);
+        const pz = pezziGa(q);
+        let pieni = Object.keys(campi).filter(k => (d.indirizzi || {})[k]);
+        /* cercando un indirizzo, quelli che corrispondono vanno davanti: mai nascosti dietro "+N" */
+        if (pz) pieni = pieni.filter(k => gaCorrisponde(d.indirizzi[k], pz)).concat(pieni.filter(k => !gaCorrisponde(d.indirizzi[k], pz)));
+        const mostrati = pieni.slice(0, 3);
+        let h = mostrati.map(k => {
+            const trovato = pz && gaCorrisponde(d.indirizzi[k], pz);
+            return '<span class="ga' + (trovato ? ' trovato' : '') + '"><em>' + esc(campi[k].breve) + '</em><span data-no-tr>' + (trovato ? evidenziaGa(d.indirizzi[k], pz) : esc(d.indirizzi[k])) + '</span></span>';
+        }).join('');
+        if (pieni.length > 3) h += '<span class="ga piu" data-no-tr>+' + (pieni.length - 3) + '</span>';
+        return h;
+    }
+    function passaFiltri(d) {
+        if (S.tipo && d.dominio !== S.tipo) return false;
+        if (S.filtro === 'problemi' && !problema(d)) return false;
+        if (S.filtro === 'senzastanza' && d.stanza) return false;
+        if (S.filtro === 'maisentiti' && !maiSentito(d)) return false;
+        const pz = pezziGa(S.q);
+        if (pz) {
+            /* solo gli indirizzi che la pagina mostra per quel tipo (il comando nascosto del termostato no) */
+            return Object.keys(campiDi(d.dominio)).some(k => gaCorrisponde((d.indirizzi || {})[k], pz));
+        }
+        if (S.q) {
+            const q = norm(S.q);
+            const tutto = [d.nome, d.nome_cliente, d.stanza, d.note, d.entity_id, tipoDi(d.dominio).nome].concat(GA.map(k => (d.indirizzi || {})[k] || '')).map(norm).join(' \u0001 ');
+            if (!tutto.includes(q)) return false;
+        }
+        return true;
+    }
+
+    /* --- il fuoco da tastiera sopravvive ai ridisegni ---
+       Ogni pezzo riscritto (righe, testate, tessere, filtri) si riconosce da una chiave stabile:
+       se il fuoco era li' e il nodo e' sparito, lo si rimette sul nodo nuovo con la stessa chiave. */
+    function chiaveFuoco(el) {
+        if (!el || !el.closest || el === document.body) return null;
+        const r = el.closest('.riga[data-id]');
+        if (r) return '.riga[data-id="' + CSS.escape(r.dataset.id) + '"]';
+        const g = el.closest('.gruppo-testa');
+        if (g && g.parentNode && g.parentNode.dataset.chiave != null) return '.gruppo[data-chiave="' + CSS.escape(g.parentNode.dataset.chiave) + '"] > .gruppo-testa';
+        const k = el.closest('[data-k]');
+        if (k && k.parentNode && k.parentNode.id) return '#' + CSS.escape(k.parentNode.id) + ' [data-k="' + CSS.escape(k.dataset.k) + '"]';
+        return el.id ? '#' + CSS.escape(el.id) : null;
+    }
+    function rimettiFuoco(sel) {
+        const n = sel && document.querySelector(sel);
+        if (!n) return false;
+        try { n.focus({ preventScroll: true }); } catch (e) { return false; }
+        return document.activeElement === n;
+    }
+    /* riscrive un contenitore solo se l'HTML e' cambiato (confronto con l'ultima stringa scritta,
+       non con innerHTML: icone() trasforma le <i> in svg e non coinciderebbe mai) */
+    const ultimoHtml = {};
+    function scrivi(id, h) {
+        if (ultimoHtml[id] === h) return false;
+        $(id).innerHTML = h;
+        ultimoHtml[id] = h;
+        icone($(id));
+        return true;
+    }
+
+    function disegna() {
+        const d = S.dati;
+        if (!d) return;
+        const tutti = d.dispositivi || [];
+        /* un filtro che non c'e' piu' (il gateway e' caduto) non puo' restare acceso di nascosto */
+        if (S.filtro === 'maisentiti' && !gwSu()) { S.filtro = ''; biscotto('Filtro tolto: il gateway non è collegato', '', 'avviso'); }
+        const att = document.activeElement;
+        const fuoco = att && $('corpo').contains(att) ? chiaveFuoco(att) : null;
+        disegnaTesta();
+        disegnaTessere(tutti);
+        disegnaFiltri(tutti);
+        document.querySelectorAll('#raggruppa button').forEach(b => b.classList.toggle('su', b.dataset.g === S.raggruppa));
+        disegnaElenco(tutti);
+        if (fuoco && !att.isConnected) rimettiFuoco(fuoco);
+    }
+    function disegnaElenco(tutti) {
+        if (!tutti.length) {
+            scrivi('elenco',
+                '<div class="vuoto">' +
+                '<div class="pila"><span style="--c:var(--c-light)"><i data-lucide="lightbulb"></i></span><span style="--c:var(--c-cover)"><i data-lucide="blinds"></i></span><span style="--c:var(--c-climate)"><i data-lucide="thermometer"></i></span></div>' +
+                '<h2>Nessun dispositivo KNX</h2>' +
+                '<p>Aggiungi il primo dispositivo, oppure importa gli indirizzi dal progetto ETS: la pagina ti proporrà nomi e indirizzi già pronti.</p>' +
+                '<div class="azioni"><button class="btn primario" type="button" onclick="KNX.nuovo()"><i data-lucide="plus"></i>Aggiungi il primo dispositivo</button>' +
+                '<button class="btn" type="button" onclick="KNX.apriEts()"><i data-lucide="file-spreadsheet"></i>Importa da ETS</button></div></div>');
+            return;
+        }
+        const visibili = tutti.filter(passaFiltri);
+        if (!visibili.length) {
+            /* il messaggio dice la causa vera: la ricerca, il filtro "da sistemare" o un altro filtro */
+            let ico = 'scan-search', colore = 'var(--fioco)', titolo, spiega = '', bottone;
+            if (S.q) {
+                titolo = 'Nessun dispositivo per questa ricerca';
+                spiega = 'Prova con un altro nome o un altro indirizzo.';
+                bottone = '<button class="btn" type="button" onclick="KNX.azzera()"><i data-lucide="rotate-ccw"></i>Mostra tutti</button>';
+            } else if (S.filtro === 'problemi' && !S.tipo) {
+                ico = 'circle-check'; colore = 'var(--verde)';
+                titolo = 'Nessun dispositivo da sistemare';
+                spiega = gwSu() ? 'Tutti i dispositivi sono caricati sul bus.' : 'I dispositivi fuori dal bus si vedono solo col gateway collegato.';
+                bottone = '<button class="btn" type="button" onclick="KNX.perFiltro(\'problemi\')"><i data-lucide="x"></i>Togli il filtro</button>';
+            } else {
+                titolo = 'Nessun dispositivo con questo filtro';
+                bottone = '<button class="btn" type="button" onclick="KNX.azzera()"><i data-lucide="rotate-ccw"></i>Mostra tutti</button>';
+            }
+            scrivi('elenco', '<div class="vuoto piccolo"><div class="pila"><span style="--c:' + colore + '"><i data-lucide="' + ico + '"></i></span></div>' +
+                '<h2>' + titolo + '</h2>' + (spiega ? '<p>' + spiega + '</p>' : '') + '<div class="azioni">' + bottone + '</div></div>');
+            const conteggio = document.querySelector('.conteggio');
+            if (conteggio) conteggio.innerHTML = '';
+            return;
+        }
+
+        const gruppi = raggruppa(visibili);
+        const cercando = !!S.q;
+        let h = '';
+        gruppi.forEach(g => {
+            const chiuso = !cercando && S.chiusi[S.raggruppa + ':' + g.chiave];
+            const conta = {};
+            g.voci.forEach(x => { conta[x.dominio] = (conta[x.dominio] || 0) + 1; });
+            const mix = ORDINE_TIPI.filter(t => conta[t]).map(t => '<i style="background:' + TIPI[t].colore + '"></i><span class="num" data-no-tr>' + conta[t] + '</span>').join('');
+            h += '<section class="gruppo' + (chiuso ? ' chiuso' : '') + '" data-chiave="' + esc(g.chiave) + '">' +
+                '<button type="button" class="gruppo-testa" aria-expanded="' + (chiuso ? 'false' : 'true') + '" onclick="KNX.apriChiudi(this)">' +
+                '<span class="ico"' + (g.colore ? ' style="background:color-mix(in srgb, ' + g.colore + ' 14%, transparent);color:' + g.colore + '"' : '') + '><i data-lucide="' + g.icona + '"></i></span>' +
+                '<span class="t"><span' + (g.noTr ? ' data-no-tr' : '') + '>' + esc(g.titolo) + '</span>' + (g.sotto ? '<span class="sotto" data-no-tr>' + esc(g.sotto) + '</span>' : '') + '</span>' +
+                '<span class="quanti" data-no-tr>' + g.voci.length + '</span>' +
+                (S.raggruppa !== 'tipo' ? '<span class="mix">' + mix + '</span>' : '<span class="mix"></span>') +
+                '<i data-lucide="chevron-down" class="freccia"></i></button><div class="righe">';
+            g.voci.forEach(x => { h += htmlRiga(x); });
+            h += '</div></section>';
+        });
+        h += '<div class="fondo-elenco"><i data-lucide="info"></i><span>Rinominare non tocca il bus. Cambiare un indirizzo ricarica i dispositivi una volta sola, senza chiudere il collegamento.</span></div>';
+        scrivi('elenco', h);
+        const n = visibili.length, t = tutti.length;
+        const conteggio = document.querySelector('.conteggio');
+        if (conteggio) conteggio.innerHTML = n === t ? '' : '<span data-no-tr>' + n + '</span> <span>di</span> <span data-no-tr>' + t + '</span>';
+        S.nuovi = {};
+    }
+
+    function htmlRiga(d) {
+        const tipo = tipoDi(d.dominio);
+        const q = S.q;
+        const p = problema(d);
+        const acceso = gwSu() && d.visto && ((d.dominio === 'light' || d.dominio === 'switch') && d.stato === 'on');
+        const scelta = S.cassetto && S.cassetto.id === d.entity_id;
+        let sotto = '<span>' + esc(d.dimmer ? 'Luce dimmerabile' : tipo.nome) + '</span>';
+        /* nei Preferiti del cliente: solo un segno, la stanza resta quella vera */
+        if (d.preferito) sotto += '<span class="preferito" title="Nei preferiti del cliente" aria-label="Nei preferiti del cliente"><i data-lucide="star"></i></span>';
+        if (d.stanza && S.raggruppa !== 'stanza') sotto += '<span class="sep"></span><span data-no-tr>' + evidenzia(d.stanza, q) + '</span>';
+        if (d.nome_cliente) sotto += '<span class="sep nascondi-tel"></span><span class="cliente nascondi-tel" title="Il nome che vede il cliente sull\'app"><i data-lucide="smartphone"></i><span data-no-tr>' + evidenzia(d.nome_cliente, q) + '</span></span>';
+        else if (d.visto && gwSu()) sotto += '<span class="sep nascondi-tel"></span><span class="cliente nascondi-tel" title="Ultimo messaggio dal bus"><i data-lucide="activity"></i><span>' + esc(quandoFa(d.visto)) + '</span></span>';
+        return '<div class="riga' + (scelta ? ' scelta' : '') + (S.nuovi[d.entity_id] ? ' nuova' : '') + (pezziGa(q) ? ' cerca-ga' : '') + '" data-id="' + esc(d.entity_id) + '" onclick="KNX.apri(this.dataset.id)" tabindex="0" role="button">' +
+            '<div class="piastra' + (acceso ? ' accesa' : '') + '" style="--c:' + tipo.colore + '"><i data-lucide="' + (d.dimmer ? 'sun-medium' : tipo.icona) + '"></i>' +
+            (p ? '<span class="segno' + (p === 'errore' ? ' rosso' : '') + '"></span>' : '') + '</div>' +
+            '<div class="chi"><b data-no-tr>' + evidenzia(d.nome, q) + '</b><small>' + sotto + '</small></div>' +
+            '<div class="indirizzi">' + chips(d, q) + '</div>' +
+            htmlPasticca(d) +
+            '<i data-lucide="chevron-right" class="vai"></i></div>';
+    }
+
+    function raggruppa(voci) {
+        const mappa = new Map();
+        const aggiungi = (chiave, fare, x) => { if (!mappa.has(chiave)) mappa.set(chiave, Object.assign({ chiave, voci: [] }, fare())); mappa.get(chiave).voci.push(x); };
+        if (S.raggruppa === 'tipo') {
+            voci.forEach(x => {
+                const t = tipoDi(x.dominio);
+                aggiungi(x.dominio, () => ({ titolo: t.plurale, icona: t.icona, colore: t.colore, ordine: ORDINE_TIPI.indexOf(x.dominio) < 0 ? 99 : ORDINE_TIPI.indexOf(x.dominio) }), x);
+            });
+        } else if (S.raggruppa === 'linea') {
+            voci.forEach(x => {
+                const i = x.indirizzi || {};
+                const primo = i.ga_command || i.ga_temperature || i.ga_setpoint || GA.map(k => i[k]).find(Boolean) || '';
+                const pezzi = primo.split('/');
+                const linea = pezzi.length === 3 ? pezzi[0] + '/' + pezzi[1] : (pezzi.length === 2 ? pezzi[0] : '');
+                const ets = S.ets.per[primo];
+                aggiungi(linea || '~', () => ({ titolo: linea ? 'Linea ' + linea : 'Senza indirizzo', icona: 'hash', sotto: ets && ets.path ? ets.path : '', ordine: linea ? gaChiave(linea) : 'zzz' }), x);
+            });
+        } else {
+            const ordineStanze = {};
+            ((S.dati && S.dati.stanze) || []).forEach((s, i) => { ordineStanze[s] = i; });
+            voci.forEach(x => {
+                const s = x.stanza || '';
+                aggiungi(s || '~', () => ({ titolo: s || 'Senza stanza', noTr: !!s, icona: s ? iconaStanza(s) : 'circle-dashed', ordine: s ? (ordineStanze[s] != null ? ordineStanze[s] : 500) : 9999 }), x);
+            });
+        }
+        const gruppi = Array.from(mappa.values());
+        gruppi.sort((a, b) => (typeof a.ordine === 'string' || typeof b.ordine === 'string') ? String(a.ordine).localeCompare(String(b.ordine)) : a.ordine - b.ordine);
+        gruppi.forEach(g => g.voci.sort((a, b) => S.raggruppa === 'linea'
+            ? gaChiave(a.indirizzi.ga_command || a.indirizzi.ga_temperature).localeCompare(gaChiave(b.indirizzi.ga_command || b.indirizzi.ga_temperature))
+            : confronto.compare(a.nome, b.nome)));
+        return gruppi;
+    }
+    /* un'icona che somigli alla stanza: e' un vezzo, ma la lista si legge prima */
+    function iconaStanza(s) {
+        const n = norm(s);
+        if (/cucin|kitchen/.test(n)) return 'cooking-pot';
+        if (/bagn|bath|wc|lavander/.test(n)) return 'bath';
+        if (/camer|letto|bed|notte/.test(n)) return 'bed-double';
+        if (/soggiorn|salott|living|sala|divan/.test(n)) return 'sofa';
+        if (/studio|uffici|office/.test(n)) return 'lamp-desk';
+        if (/giardin|estern|terrazz|balcon|portic|garden/.test(n)) return 'trees';
+        if (/garage|box|cantin|tavern/.test(n)) return 'warehouse';
+        if (/ingress|corridoi|scal|hall/.test(n)) return 'door-open';
+        return 'house';
+    }
+
+    function disegnaTesta() {
+        const g = (S.dati && S.dati.gateway) || {};
+        const el = $('gw');
+        el.className = 'gw ' + (g.stato === 'online' ? 'su' : g.stato === 'offline' ? 'giu' : '');
+        $('gw-testo').textContent = g.stato === 'online' ? 'In linea' : g.stato === 'offline' ? 'Non raggiungibile' : 'Non configurato';
+        const tot = (S.dati.dispositivi || []).length;
+        $('sotto-titolo').innerHTML = g.ip
+            ? '<span>Gateway</span> <span data-no-tr>' + esc(g.ip) + ':' + esc(g.porta || 3671) + '</span> · <span data-no-tr>' + tot + '</span> <span>' + (tot === 1 ? 'dispositivo' : 'dispositivi') + '</span>'
+            : '<span>Nessun gateway configurato</span>';
+        const box = $('striscia');
+        if (g.stato === 'offline') {
+            box.innerHTML = '<div class="striscia"><i data-lucide="wifi-off"></i><div><b>Il gateway KNX non risponde.</b> ' +
+                '<span class="spiega">Puoi aggiungere e modificare i dispositivi lo stesso: saranno caricati appena il collegamento torna, da solo. ' +
+                'Se ETS è collegato al bus in questo momento, il gateway rifiuta la seconda connessione: scollegalo e aspetta qualche secondo.</span></div></div>';
+        } else if (g.stato === 'unconfigured') {
+            box.innerHTML = '<div class="striscia grigia"><i data-lucide="cable"></i><div><b>Nessun gateway configurato.</b> ' +
+                '<span class="spiega">I dispositivi si possono preparare già adesso. Per comandarli, scrivi l\'indirizzo del gateway nella scheda KNX delle integrazioni. ' +
+                '<a href="/dashboard">Apri la dashboard</a></span></div></div>';
+        } else if (g.xknx === false) {
+            box.innerHTML = '<div class="striscia"><i data-lucide="triangle-alert"></i><div><b>La libreria KNX non è installata su questo server.</b> <span class="spiega">I dispositivi restano configurati ma nessuno li comanda.</span></div></div>';
+        } else {
+            box.innerHTML = '';
+        }
+        icone(box);
+    }
+
+    function disegnaTessere(tutti) {
+        const conta = { '': tutti.length };
+        tutti.forEach(x => { conta[x.dominio] = (conta[x.dominio] || 0) + 1; });
+        const guai = tutti.filter(problema).length;
+        const tess = [{ k: '', nome: 'Dispositivi', icona: 'network', colore: 'var(--accento)' }]
+            .concat(ORDINE_TIPI.map(t => ({ k: t, nome: TIPI[t].plurale, icona: TIPI[t].icona, colore: TIPI[t].colore })));
+        /* una tessera a zero non filtra niente: resta ferma (ma se il suo filtro e' acceso resta
+           cliccabile, per poterlo spegnere) */
+        let h = tess.map(t => {
+            const ferma = t.k && !conta[t.k] && S.tipo !== t.k;
+            return '<button type="button" class="tessera' + (t.k && S.tipo === t.k ? ' attiva' : '') + (conta[t.k] ? '' : ' vuota') + '" style="--c:' + t.colore + '" data-k="' + t.k + '"' +
+                (ferma ? ' disabled' : ' onclick="KNX.perTipo(\'' + t.k + '\')"') + '>' +
+                '<span class="icona"><i data-lucide="' + t.icona + '"></i></span><span><span class="cifra" data-no-tr>' + (conta[t.k] || 0) + '</span><span class="nome" style="display:block">' + esc(t.nome) + '</span></span></button>';
+        }).join('');
+        const ferma = !guai && S.filtro !== 'problemi';
+        h += '<button type="button" class="tessera allarme' + (guai ? '' : ' zero') + (S.filtro === 'problemi' ? ' attiva' : '') + '" style="--c:var(--ambra)" data-k="problemi"' +
+            (ferma ? ' disabled' : ' onclick="KNX.perFiltro(\'problemi\')"') + ' title="Dispositivi che il bus non ha caricato">' +
+            '<span class="icona"><i data-lucide="' + (guai ? 'triangle-alert' : 'circle-check') + '"></i></span><span><span class="cifra" data-no-tr>' + guai + '</span><span class="nome" style="display:block">' + (guai ? 'Da sistemare' : 'Tutto a posto') + '</span></span></button>';
+        scrivi('tessere', h);
+    }
+
+    function disegnaFiltri(tutti) {
+        const nStanza = tutti.filter(x => !x.stanza).length;
+        const nMai = tutti.filter(maiSentito).length;
+        const voci = [
+            { k: '', t: 'Tutti', n: tutti.length, i: 'list' },
+            { k: 'senzastanza', t: 'Senza stanza', n: nStanza, i: 'circle-dashed', avviso: nStanza > 0 },
+            { k: 'maisentiti', t: 'Mai sentiti sul bus', n: nMai, i: 'radio', avviso: nMai > 0, solo: gwSu() },
+        ];
+        let h = voci.filter(v => v.solo !== false).map(v => '<button type="button" class="filtro' + (S.filtro === v.k ? ' su' : '') + (v.avviso ? ' avviso' : '') + '" data-k="' + v.k + '" onclick="KNX.perFiltro(\'' + v.k + '\')">' +
+            '<i data-lucide="' + v.i + '"></i><span>' + esc(v.t) + '</span><span class="n" data-no-tr>' + v.n + '</span></button>').join('');
+        h += '<span class="conteggio"></span>';
+        scrivi('filtri', h);
+    }
+
+    /* =================================================================
+       6. IL CASSETTO: modifica, aggiunta, indirizzi ETS
+       ================================================================= */
+    /* Il cassetto e' modale davvero: la pagina sotto diventa inerte (niente Tab, niente Invio
+       sulle righe dietro il velo) e il fuoco entra nel cassetto. Popup, biscotti e velo stanno
+       fuori da .pagina e continuano a funzionare. */
+    let focusPrima = null, chiaveFocusPrima = null;
+    function apriCassetto() {
+        const c = $('cassetto');
+        const primaApertura = !c.classList.contains('su');
+        if (primaApertura) {
+            focusPrima = document.activeElement;
+            chiaveFocusPrima = chiaveFuoco(focusPrima);
+            document.querySelector('.pagina').inert = true;
+        }
+        c.classList.add('su'); c.setAttribute('aria-hidden', 'false');
+        $('velo').classList.add('su');
+        fuocoNelCassetto(primaApertura);
+    }
+    /* se il fuoco non e' gia' dentro (cassetto appena aperto, o il pulsante toccato e' sparito col
+       ridisegno) lo si porta dentro. Chi sta scrivendo in un campo che c'e' ancora non viene toccato. */
+    function fuocoNelCassetto(primaApertura) {
+        /* non subito: il cassetto parte da visibility:hidden e nel primo fotogramma della sua
+           transizione non accetta ancora il fuoco */
+        setTimeout(() => {
+            const cas = $('cassetto');
+            if (!cas.classList.contains('su') || cas.contains(document.activeElement) || document.querySelector('.wh-pop')) return;
+            const b = primaApertura && $('cas-testa').querySelector('button');
+            try { (b || cas).focus({ preventScroll: true }); } catch (e) {}
+        }, 60);
+    }
+    function chiudiCassetto() {
+        const c = $('cassetto');
+        const idAperto = S.cassetto && S.cassetto.id;
+        c.classList.remove('su'); c.setAttribute('aria-hidden', 'true');
+        $('velo').classList.remove('su');
+        S.cassetto = null;
+        document.querySelectorAll('.riga.scelta').forEach(r => r.classList.remove('scelta'));
+        /* prima si toglie l'inerzia: un elemento inerte non puo' ricevere il fuoco */
+        document.querySelector('.pagina').inert = false;
+        /* il fuoco torna da dove era partito; se quel nodo e' stato ridisegnato si cerca il suo
+           sostituto, poi la riga del dispositivo aperto, poi la ricerca: mai lasciato sul body */
+        let fatto = false;
+        if (focusPrima && focusPrima !== document.body && focusPrima.isConnected && focusPrima.focus) { try { focusPrima.focus({ preventScroll: true }); fatto = document.activeElement === focusPrima; } catch (e) {} }
+        if (!fatto) fatto = rimettiFuoco(chiaveFocusPrima);
+        if (!fatto && idAperto) fatto = rimettiFuoco('.riga[data-id="' + CSS.escape(idAperto) + '"]');
+        if (!fatto) rimettiFuoco('#q');
+        focusPrima = null; chiaveFocusPrima = null;
+    }
+    /* cosa dire a chi lascia un modulo modificato: la bozza si ritrova in posti diversi */
+    function testoLascia(c) {
+        return c && c.modo === 'nuovo'
+            ? 'Quello che hai scritto resta da parte: lo ritrovi in «Aggiungi», scegliendo di nuovo lo stesso tipo.'
+            : 'Le modifiche non salvate restano da parte: le ritrovi riaprendo questo dispositivo.';
+    }
+    async function chiudi() {
+        const c = S.cassetto;
+        const sotto = c && c.modo === 'scelta' ? c.torna : null;
+        const cambiato = sotto ? JSON.stringify(sotto.valoriVivi) !== JSON.stringify(sotto.orig)
+                               : (c && (c.modo === 'modifica' || c.modo === 'nuovo') && c.passo !== 1 && sporco());
+        if (cambiato) {
+            const ok = await chiedi(testoLascia(sotto || c), { titolo: 'Chiudere senza salvare?', si: 'Chiudi', no: 'Continua a modificare', icona: 'info' });
+            if (!ok) return;
+            /* la promessa va mantenuta: la bozza si scrive adesso, non solo dopo un tasto battuto */
+            scriviBozzaOra(sotto || c);
+        }
+        chiudiCassetto();
+    }
+
+    /* --- il modulo: valori di partenza, valori attuali, bozza --- */
+    function valoriDa(d) {
+        const ind = {};
+        GA.forEach(k => { ind[k] = (d.indirizzi || {})[k] || ''; });
+        return { nome: d.nome || '', note: d.note || '', stanza: d.stanza || '', indirizzi: ind };
+    }
+    function leggiModulo() {
+        const c = S.cassetto;
+        if (!c || !c.valori) return null;                 // passo 1, elenco ETS: non c'e' nessun modulo
+        const v = JSON.parse(JSON.stringify(c.valori));
+        const f = $('cas-corpo');
+        const nome = f.querySelector('[data-f=nome]'); if (nome) v.nome = nome.value;
+        const note = f.querySelector('[data-f=note]'); if (note) v.note = note.value;
+        const stanza = f.querySelector('[data-f=stanza]'); if (stanza) v.stanza = stanza.value;
+        f.querySelectorAll('[data-ga]').forEach(i => { v.indirizzi[i.dataset.ga] = i.value.trim(); });
+        /* termostato: il server tiene il comando uguale al setpoint (lo leggono le versioni vecchie):
+           se prima coincidevano, seguono insieme */
+        if (c.dominio === 'climate' && c.orig && (!c.orig.indirizzi.ga_command || c.orig.indirizzi.ga_command === c.orig.indirizzi.ga_setpoint))
+            v.indirizzi.ga_command = v.indirizzi.ga_setpoint;
+        return v;
+    }
+    function sporco() {
+        const c = S.cassetto;
+        if (!c || !c.orig) return false;
+        const v = leggiModulo();
+        return JSON.stringify(v) !== JSON.stringify(c.orig);
+    }
+    const chiaveBozzaDi = c => 'knx_bozza_' + (c.id || ('nuovo_' + c.tipoModulo));
+    const chiaveBozza = () => chiaveBozzaDi(S.cassetto);
+    let timerBozza = null;
+    /* La bozza tiene anche la 'base', cioe' i valori da cui l'installatore era partito: riprendendola
+       si rimettono solo i campi che LUI aveva cambiato, sopra i dati di adesso (vedi fondiBozza). */
+    function scriviBozzaOra(c) {
+        clearTimeout(timerBozza);
+        if (!c || !c.orig) return;
+        const v = c === S.cassetto ? leggiModulo() : c.valoriVivi;      // nel selettore ETS il modulo e' in valoriVivi
+        if (!v) return;
+        const k = chiaveBozzaDi(c);
+        if (JSON.stringify(v) !== JSON.stringify(c.orig)) memo.scrivi(k, { v, base: c.orig, nomeCliente: c.nomeCliente || '', quando: Date.now() });
+        else memo.togli(k);
+    }
+    function salvaBozza() {
+        clearTimeout(timerBozza);
+        timerBozza = setTimeout(() => { if (S.cassetto && S.cassetto.orig) scriviBozzaOra(S.cassetto); }, 400);
+    }
+    /* Fusione campo per campo: per ogni campo che nella bozza e' diverso dalla sua base vale la
+       bozza, per tutti gli altri valgono i dati di adesso (magari cambiati da un altro tablet).
+       'doppi' sono i campi cambiati da tutti e due, in modo diverso: vanno fatti ricontrollare. */
+    function fondiBozza(c, b) {
+        const ora = c.orig;
+        const base = b.base || ora;                        // bozza di prima di questa versione: niente base
+        const m = JSON.parse(JSON.stringify(ora));
+        const doppi = [];
+        ['nome', 'note', 'stanza'].forEach(k => {
+            const bv = b.v[k] || '', ba = base[k] || '', adesso = ora[k] || '';
+            if (bv !== ba) { if (adesso !== ba && adesso !== bv) doppi.push(k); m[k] = bv; }
+        });
+        GA.forEach(k => {
+            const bv = (b.v.indirizzi || {})[k] || '', ba = (base.indirizzi || {})[k] || '', adesso = ora.indirizzi[k] || '';
+            if (bv !== ba) { if (adesso !== ba && adesso !== bv) doppi.push(k); m.indirizzi[k] = bv; }
+        });
+        return { m, doppi };
+    }
+
+    /* --- apri un dispositivo esistente --- */
+    function apri(id) {
+        const d = S.perId[id];
+        if (!d) return;
+        S.cassetto = { modo: 'modifica', id, dominio: d.dominio, tipoModulo: d.dimmer ? 'dimmer' : d.dominio, orig: valoriDa(d), valori: valoriDa(d),
+                       prima: { nome: d.nome, indirizzi: valoriDa(d).indirizzi }, proposti: {}, nomeCliente: 'tieni' };
+        document.querySelectorAll('.riga').forEach(r => r.classList.toggle('scelta', r.dataset.id === id));
+        disegnaModulo();
+        apriCassetto();
+        propostaBozza();
+    }
+    /* la striscia "Avevi lasciato delle modifiche": solo se la bozza, fusa sui dati di adesso,
+       cambia ancora qualcosa (se l'altro ha gia' fatto la stessa modifica non c'e' niente da riprendere) */
+    function propostaBozza() {
+        const c = S.cassetto;
+        const bozza = memo.leggi(chiaveBozza(), null);
+        if (!bozza || !bozza.v || !bozza.v.indirizzi || !(Date.now() - bozza.quando < 7 * 86400000)) return;
+        if (JSON.stringify(fondiBozza(c, bozza).m) === JSON.stringify(c.orig)) { memo.togli(chiaveBozza()); return; }
+        mostraBozza(bozza);
+    }
+
+    function testaModulo() {
+        const c = S.cassetto;
+        const d = c.id ? S.perId[c.id] : null;
+        const passo1 = c.modo === 'nuovo' && c.passo === 1;
+        const tipo = passo1 ? { colore: 'var(--accento)', icona: 'plus' } : tipoDi(c.dominio);
+        const icona = c.tipoModulo === 'dimmer' && !passo1 ? 'sun-medium' : tipo.icona;
+        let h = '<div class="piastra" style="--c:' + tipo.colore + '"><i data-lucide="' + icona + '"></i></div><div class="t">';
+        if (c.modo === 'modifica') {
+            h += '<h2 id="cas-titolo" data-no-tr>' + esc(d ? d.nome : '') + '</h2>' +
+                 '<div class="id" title="Identificativo tecnico. Non cambia mai, nemmeno se rinomini il dispositivo: stanze, scene e automazioni restano agganciate."><i data-lucide="lock"></i><span data-no-tr>' + esc(c.id) + '</span></div>';
+        } else {
+            h += '<h2 id="cas-titolo">Nuovo dispositivo</h2><div class="passo">' + (c.passo === 1 ? 'Passo 1 di 2 · il tipo' : 'Passo 2 di 2 · ' + esc(c.tipoModulo === 'dimmer' ? 'Luce dimmerabile' : tipo.nome)) + '</div>';
+        }
+        h += '</div><button class="chiudi" type="button" onclick="KNX.chiudi()" title="Chiudi (Esc)"><i data-lucide="x"></i></button>';
+        $('cas-testa').innerHTML = h;
+        icone($('cas-testa'));
+    }
+
+    function disegnaModulo() {
+        const c = S.cassetto;
+        const d = c.id ? S.perId[c.id] : null;
+        testaModulo();
+        let h = '';
+        if (c.modo === 'modifica' && d) {
+            h += '<div id="adesso"></div>';
+            if (d.errore) h += '<div class="guasto"><i data-lucide="circle-alert"></i><div><b>Il bus non ha accettato questo dispositivo.</b><br><span>Il motivo:</span> <code data-no-tr>' + esc(d.errore) + '</code><br><span>Di solito è un indirizzo scritto male o di un tipo diverso: controlla gli indirizzi qui sotto.</span></div></div>';
+        }
+        h += '<div id="bozza"></div>';
+        h += '<div class="sezione"><h3><i data-lucide="tag"></i>Generale</h3>';
+        h += '<div class="campo" id="c-nome"><label for="f-nome">Nome <span class="obbl">*</span></label><input type="text" id="f-nome" data-f="nome" maxlength="80" placeholder="' + esc(tr('Es. Luce cucina, Tapparella camera')) + '" value="' + esc(c.valori.nome) + '" autocomplete="off" data-no-tr>' +
+             '<div class="nota-ga" id="nota-nome"></div></div>';
+        if (d && d.nome_cliente) {
+            h += '<div class="scelta-nome"><span class="q"><i data-lucide="smartphone" style="width:14px;height:14px;vertical-align:-2px;margin-right:5px"></i><span>Sull\'app il cliente lo vede come</span> <b data-no-tr>«' + esc(d.nome_cliente) + '»</b></span>' +
+                 '<div id="scelta-nome" style="display:none;flex-direction:column;gap:6px;margin-top:4px"><span class="q">Se lo rinomini:</span>' +
+                 '<label><input type="radio" name="nome-cliente" value="tieni"' + (c.nomeCliente !== 'sostituisci' ? ' checked' : '') + '> <span>Lascia al cliente il suo nome</span></label>' +
+                 '<label><input type="radio" name="nome-cliente" value="sostituisci"' + (c.nomeCliente === 'sostituisci' ? ' checked' : '') + '> <span>Usa il nuovo nome anche sull\'app</span></label></div></div>';
+        }
+        const stanze = (S.dati && S.dati.stanze) || [];
+        h += '<div class="campo" id="c-stanza"><label for="f-stanza">Stanza</label>';
+        if (stanze.length) {
+            h += '<select id="f-stanza" data-f="stanza"><option value="">Nessuna stanza</option>' +
+                 stanze.map(s => '<option value="' + esc(s) + '"' + (s === c.valori.stanza ? ' selected' : '') + ' data-no-tr>' + esc(s) + '</option>').join('') +
+                 (c.valori.stanza && stanze.indexOf(c.valori.stanza) < 0 ? '<option selected data-no-tr value="' + esc(c.valori.stanza) + '">' + esc(c.valori.stanza) + '</option>' : '') + '</select>';
+        } else {
+            h += '<select id="f-stanza" data-f="stanza" disabled><option value="">Nessuna stanza creata</option></select><div class="aiuto">Le stanze si creano dal Layout Ambienti della dashboard; poi qui basta sceglierle.</div>';
+        }
+        h += '</div></div>';
+
+        /* gli indirizzi */
+        const disp = DISPOSIZIONE[c.tipoModulo] || DISPOSIZIONE.switch;
+        const campi = campiDi(c.dominio);
+        h += '<div class="sezione"><h3><i data-lucide="hash"></i>Indirizzi di gruppo' + (S.ets.totale ? '<span class="dx"><span data-no-tr>' + S.ets.totale + '</span>&nbsp;<span>indirizzi ETS disponibili</span></span>' : '') + '</h3>';
+        disp.principali.forEach(k => { h += htmlCampoGa(k, campi[k], disp.obbligatori.indexOf(k) >= 0); });
+        if (disp.facoltativi.length) {
+            const pieni = disp.facoltativi.filter(k => c.valori.indirizzi[k]).length;
+            h += '<div class="facoltativi' + (pieni ? ' aperti' : '') + '" id="facoltativi"><button type="button" onclick="this.parentNode.classList.toggle(\'aperti\')"><i data-lucide="sliders-horizontal"></i><span>' +
+                 (c.dominio === 'climate' ? 'Caldo/freddo e modalità' : 'Regolazione della luminosità') + '</span><span class="quanti"><span data-no-tr>' + pieni + '/' + disp.facoltativi.length + '</span></span><i data-lucide="chevron-down"></i></button><div class="dentro">';
+            if (c.dominio === 'climate') h += '<div class="aiuto" style="font-size:.76rem;color:var(--fioco);line-height:1.5">Usa la coppia caldo/freddo (DPT 1.100) oppure la modalità HVAC (DPT 20.102): senza nessuna delle due il termostato regola solo la temperatura.</div>';
+            if (c.dominio === 'light') h += '<div class="aiuto" style="font-size:.76rem;color:var(--fioco);line-height:1.5">Con l\'indirizzo di luminosità la luce diventa regolabile dall\'app, con il cursore.</div>';
+            disp.facoltativi.forEach(k => { h += htmlCampoGa(k, campi[k], false); });
+            h += '</div></div>';
+        }
+        h += '</div>';
+
+        h += '<div class="sezione"><h3><i data-lucide="file-text"></i>Note per chi installa</h3><div class="campo"><textarea id="f-note" data-f="note" rows="2" maxlength="500" placeholder="' + esc(tr('Es. attuatore MTN649204, canale C3 · quadro piano terra')) + '" data-no-tr>' + esc(c.valori.note) + '</textarea></div></div>';
+
+        if (c.modo === 'modifica' && d) h += htmlUsi(d);
+        $('cas-corpo').innerHTML = h;
+        $('cas-corpo').scrollTop = 0;
+
+        /* il piede */
+        let p = '';
+        if (c.modo === 'modifica') {
+            p += '<button class="btn pericolo quadrato" type="button" onclick="KNX.elimina()" title="Elimina il dispositivo"><i data-lucide="trash-2"></i></button>' +
+                 '<button class="btn quadrato" type="button" onclick="KNX.duplica()" title="Duplica: stessi indirizzi, nome nuovo"><i data-lucide="copy"></i></button>' +
+                 '<span class="spazio"></span><button class="btn primario" type="button" id="bt-salva" onclick="KNX.salva()" disabled><i data-lucide="check"></i><span>Salva le modifiche</span></button>';
+        } else {
+            p += '<button class="btn" type="button" onclick="KNX.indietroTipo()"><i data-lucide="arrow-left"></i><span>Tipo</span></button>' +
+                 '<span class="spazio"></span><button class="btn primario" type="button" id="bt-salva" onclick="KNX.salva()"><i data-lucide="plus"></i><span>Crea il dispositivo</span></button>';
+        }
+        $('cas-piede').innerHTML = p;
+        icone($('cas-corpo')); icone($('cas-piede'));
+        if (c.modo === 'modifica') aggiornaAdesso();
+        aggiornaNoteGa();
+        controllaNome();
+        aggiornaSalva();
+    }
+
+    function htmlCampoGa(k, info, obbligatorio) {
+        const c = S.cassetto;
+        const v = c.valori.indirizzi[k] || '';
+        const proposto = c.proposti && c.proposti[k];
+        return '<div class="campo ga-campo" id="c-' + k + '">' +
+            '<label for="f-' + k + '">' + esc(info.t) + (obbligatorio ? ' <span class="obbl">*</span>' : '') +
+            (proposto ? '<span class="proposto" title="Compilato dal progetto ETS: controlla che sia giusto"><i data-lucide="sparkles"></i>ETS</span>' : '') +
+            '<span class="dpt" data-no-tr>DPT ' + esc(info.dpt) + '</span></label>' +
+            '<div class="riga-in"><input type="text" id="f-' + k + '" data-ga="' + k + '" value="' + esc(v) + '" placeholder="' + (k === 'ga_command' || k === 'ga_temperature' ? '1/1/1' : '—') + '" autocomplete="off" spellcheck="false" inputmode="text" data-no-tr>' +
+            '<button type="button" class="mini" onclick="KNX.scegliEts(\'' + k + '\')" title="Scegli fra gli indirizzi importati da ETS"' + (S.ets.totale ? '' : ' disabled') + '><i data-lucide="list"></i></button>' +
+            '<button type="button" class="mini" id="leggi-' + k + '" onclick="KNX.leggiBus(\'' + k + '\')" title="Chiedi il valore al bus (lettura: non muove niente)"><i data-lucide="radio"></i></button></div>' +
+            '<div class="nota-ga" id="nota-' + k + '"></div>' +
+            '<div class="aiuto">' + esc(info.d) + '</div></div>';
+    }
+
+    function htmlUsi(d) {
+        const u = d.usi || {};
+        const pezzi = [];
+        (u.stanze || []).forEach(s => pezzi.push(['door-open', s, 'Stanza']));
+        (u.gruppi || []).forEach(s => pezzi.push(['layers', s, 'Gruppo']));
+        (u.scene || []).forEach(s => pezzi.push(['sparkles', s, 'Scena']));
+        (u.automazioni || []).forEach(s => pezzi.push(['zap', s, 'Automazione']));
+        if (u.allarme) pezzi.push(['bell', 'Allarme', '']);
+        let h = '<div class="sezione"><h3><i data-lucide="waypoints"></i>Dove è usato</h3>';
+        if (pezzi.length) h += '<div class="usi">' + pezzi.map(p => '<span class="uso" title="' + esc(p[2]) + '"><i data-lucide="' + p[0] + '"></i><span data-no-tr>' + esc(p[1]) + '</span></span>').join('') + '</div>';
+        else h += '<div class="nessun-uso">Non è ancora in nessuna stanza, scena o automazione.</div>';
+        return h + '</div>';
+    }
+
+    /* la scheda "adesso" in cima al cassetto: lo stato vero, con le prove sul bus */
+    function aggiornaAdesso() {
+        const c = S.cassetto;
+        const box = $('adesso');
+        if (!c || !box) return;
+        const d = S.perId[c.id];
+        if (!d) return;
+        const p = pasticca(d);
+        let grande = '', dett = [], extra = '';
+        if (!gwSu()) { grande = '<span>Bus non collegato</span>'; dett.push('<span>Lo stato arriverà quando il gateway risponde</span>'); }
+        else if (d.errore) { grande = '<span style="color:var(--rosso)">Non caricato</span>'; }
+        else if (!haSorgenteStato(d)) { grande = '<span>Solo comando</span>'; dett.push('<span>Senza indirizzo di stato l\'app mostra l\'ultimo comando mandato, non lo stato vero</span>'); }
+        else if (!d.visto) { grande = '<span>In attesa</span>'; dett.push('<span>Il bus non ha ancora mandato nessun valore per questo dispositivo</span>'); }
+        else if (d.dominio === 'cover') {
+            const pos = d.posizione;
+            grande = pos == null ? '<span>—</span>' : (pos <= 0 ? '<span>Chiusa</span>' : pos >= 100 ? '<span>Aperta</span>' : '<span data-no-tr>' + pos + '%</span> <small>aperta</small>');
+            if (pos != null) extra = '<div class="barra-pos"><i style="width:' + Math.max(0, Math.min(100, pos)) + '%"></i></div>';
+        } else if (d.dominio === 'climate') {
+            const cl = d.clima || {};
+            grande = '<span data-no-tr>' + (cl.attuale != null ? Number(cl.attuale).toFixed(1) + '°' : '—') + '</span> <small><span>desiderata</span> <span data-no-tr>' + (cl.desiderata != null ? Number(cl.desiderata).toFixed(1) + '°' : '—') + '</span></small>';
+            if (cl.modo) dett.push('<span>' + esc({ heat: 'Riscaldamento', cool: 'Raffrescamento', auto: 'Automatico', off: 'Spento', fan_only: 'Solo ventola', dry: 'Deumidifica' }[cl.modo] || cl.modo) + '</span>');
+        } else {
+            grande = d.stato === 'on' ? '<span style="color:var(--verde)">Acceso</span>' + (d.dimmer && d.luminosita != null ? ' <small data-no-tr>' + d.luminosita + '%</small>' : '') : '<span>Spento</span>';
+        }
+        if (gwSu() && d.visto) dett.unshift('<i data-lucide="activity"></i><span>Ultimo messaggio dal bus:</span> <span>' + esc(quandoFa(d.visto)) + '</span>');
+        if (gwSu() && !d.sul_bus && !d.errore) dett.push('<span style="color:var(--ambra)">Non è caricato sul bus: salva di nuovo o controlla gli indirizzi</span>');
+        let prove = '';
+        if ((d.dominio === 'light' || d.dominio === 'switch') && gwSu()) {
+            prove = '<div class="prove"><button class="btn piccolo" type="button" data-azione="accendi" onclick="KNX.prova(\'accendi\')" title="Manda ACCESO all\'indirizzo di comando"><i data-lucide="power"></i><span>Accendi</span></button>' +
+                    '<button class="btn piccolo" type="button" data-azione="spegni" onclick="KNX.prova(\'spegni\')" title="Manda SPENTO all\'indirizzo di comando"><span>Spegni</span></button></div>';
+        }
+        const html = '<div class="adesso"><div class="t"><div class="grande">' + grande + '</div>' + extra + (dett.length ? '<div class="dett">' + dett.join('<span>·</span>') + '</div>' : '') + '</div>' + prove + '</div>';
+        /* si riscrive solo se e' cambiato qualcosa; se il fuoco era su Accendi/Spegni ci torna */
+        if (box._html !== html) {
+            const a = document.activeElement;
+            const azione = a && box.contains(a) ? a.dataset.azione : '';
+            box.innerHTML = html;
+            box._html = html;
+            icone(box);
+            if (azione) { const n = box.querySelector('[data-azione="' + azione + '"]'); if (n) n.focus({ preventScroll: true }); }
+        }
+        /* titolo del cassetto: se qualcuno lo ha rinominato altrove */
+        const t = $('cas-titolo');
+        if (t && !sporco()) t.textContent = d.nome;
+    }
+
+    function mostraBozza(bozza) {
+        const box = $('bozza');
+        if (!box) return;
+        const d = new Date(bozza.quando);
+        box.innerHTML = '<div class="bozza"><i data-lucide="history"></i><span class="t"><span>Avevi lasciato delle modifiche non salvate</span> <span data-no-tr>(' +
+            esc(d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })) + ')</span>.</span>' +
+            '<button type="button" onclick="KNX.riprendiBozza()">Riprendi</button><button type="button" onclick="KNX.scartaBozza()" style="color:var(--fioco)">Scarta</button></div>';
+        icone(box);
+        S.cassetto.bozza = bozza;
+    }
+
+    /* note sotto gli indirizzi: forma, nome da ETS, DPT sospetto, gia' usato da un altro */
+    function usatiDaAltri() {
+        const mappa = {};
+        const mio = S.cassetto && S.cassetto.id;
+        ((S.dati && S.dati.dispositivi) || []).forEach(d => {
+            if (d.entity_id === mio) return;
+            const campi = campiDi(d.dominio);
+            Object.keys(campi).forEach(k => { const v = (d.indirizzi || {})[k]; if (v) (mappa[v] = mappa[v] || []).push({ id: d.entity_id, nome: d.nome, ruolo: campi[k].t }); });
+        });
+        return mappa;
+    }
+    function aggiornaNoteGa() {
+        const c = S.cassetto;
+        if (!c || !c.valori || !$('cas-corpo')) return;
+        const altri = usatiDaAltri();
+        const valori = leggiModulo().indirizzi;
+        const campi = campiDi(c.dominio);
+        $('cas-corpo').querySelectorAll('[data-ga]').forEach(inp => {
+            const k = inp.dataset.ga, v = inp.value.trim();
+            const nota = $('nota-' + k), campo = $('c-' + k);
+            if (!nota) return;
+            campo.classList.remove('errore');
+            campo.classList.toggle('pieno', !!v);
+            if (!v) { nota.className = 'nota-ga'; nota.innerHTML = ''; return; }
+            if (!gaValido(v)) {
+                campo.classList.add('errore');
+                nota.className = 'nota-ga errore';
+                nota.innerHTML = '<i data-lucide="circle-alert"></i><span>Forma non valida: si scrive come 1/1/1 (principale 0–31, medio 0–7, finale 0–255)</span>';
+                icone(nota); return;
+            }
+            const pezzi = [];
+            let cls = 'ok';
+            const e = S.ets.per[v];
+            if (e) {
+                pezzi.push('<i data-lucide="file-spreadsheet"></i><span data-no-tr>' + esc(e.name || '') + (e.dpt ? ' · DPT ' + esc(e.dpt) : '') + '</span>');
+                const att = (campi[k] || {}).att;
+                if (e.dpt && att && !att.test(e.dpt)) { cls = 'avviso'; pezzi.push('<span>— il DPT non è quello tipico di questo campo (' + esc(campi[k].dpt) + ')</span>'); }
+            }
+            const doppio = Object.keys(campi).filter(x => x !== k && valori[x] === v);
+            if (doppio.length) { cls = 'avviso'; pezzi.push('<span>È scritto anche nel campo «' + esc((campi[doppio[0]] || {}).t || doppio[0]) + '»</span>'); }
+            const chi = altri[v];
+            if (chi && chi.length) {
+                cls = 'avviso';
+                pezzi.push('<i data-lucide="triangle-alert"></i><span>Già usato da</span> <button type="button" class="link" data-no-tr data-id="' + esc(chi[0].id) + '" onclick="KNX.salta(this.dataset.id)">' + esc(chi[0].nome) + '</button> <span>(' + esc(chi[0].ruolo) + ')</span>' + (chi.length > 1 ? ' <span data-no-tr>+' + (chi.length - 1) + '</span>' : ''));
+            }
+            nota.className = 'nota-ga ' + cls;
+            nota.innerHTML = pezzi.join(' ');
+            icone(nota);
+        });
+    }
+    function controllaNome() {
+        const c = S.cassetto;
+        const inp = $('f-nome'), nota = $('nota-nome');
+        if (!inp || !nota) return;
+        const v = norm(inp.value.trim());
+        const doppio = v && ((S.dati && S.dati.dispositivi) || []).find(d => d.entity_id !== c.id && norm(d.nome) === v);
+        nota.className = 'nota-ga' + (doppio ? ' avviso' : '');
+        nota.innerHTML = doppio ? '<i data-lucide="triangle-alert"></i><span>C\'è già un dispositivo con questo nome: sull\'app saranno indistinguibili.</span>' : '';
+        icone(nota);
+        const sc = $('scelta-nome');
+        if (sc) sc.style.display = (c.modo === 'modifica' && inp.value.trim() !== c.orig.nome) ? 'flex' : 'none';
+    }
+    function aggiornaSalva() {
+        const b = $('bt-salva');
+        if (!b || !S.cassetto) return;
+        if (S.cassetto.modo === 'modifica') b.disabled = !sporco();
+    }
+
+    /* un solo ascoltatore per tutto il modulo */
+    $('cas-corpo').addEventListener('input', e => {
+        const t = e.target;
+        if (t.id === 'ets-q') {
+            /* la ricerca del selettore di un campo vive nel suo cassetto; quella dell'elenco ETS e del passo 1 in S.etsQ */
+            if (S.cassetto && S.cassetto.scegliPer) S.cassetto.q = t.value; else S.etsQ = t.value;
+            disegnaListaEts();
+            return;
+        }
+        if (!S.cassetto || !S.cassetto.orig) return;
+        if (t.name === 'nome-cliente') { S.cassetto.nomeCliente = t.value; salvaBozza(); return; }
+        if (t.dataset.ga) {
+            if (S.cassetto.proposti) delete S.cassetto.proposti[t.dataset.ga];
+            aggiornaNoteGa();
+            const r = $('risposta-' + t.dataset.ga); if (r) r.remove();
+        }
+        if (t.dataset.f === 'nome') controllaNome();
+        aggiornaSalva();
+        salvaBozza();
+    });
+    $('cas-corpo').addEventListener('change', e => {
+        if (!S.cassetto || !S.cassetto.orig) return;
+        /* la scelta del nome sull'app sta nel cassetto: sopravvive ai ridisegni del modulo */
+        if (e.target.name === 'nome-cliente') S.cassetto.nomeCliente = e.target.value;
+        aggiornaSalva(); salvaBozza();
+    });
+    /* Invio in un campo = il pulsante Salva, e solo se il pulsante si puo' premere: non durante un
+       salvataggio in corso, non a modulo invariato. Il tasto tenuto giu' non ripete. */
+    $('cas-corpo').addEventListener('keydown', e => {
+        if (e.key !== 'Enter' || e.repeat || e.isComposing || e.target.tagName !== 'INPUT' || !S.cassetto || !S.cassetto.orig) return;
+        e.preventDefault();
+        const b = $('bt-salva');
+        if (b && !b.disabled) salva();
+    });
+
+    /* --- aggiunta: passo 1, il tipo --- */
+    function nuovo(tipoModulo, valori, proposti) {
+        S.cassetto = { modo: 'nuovo', passo: 1, id: null, dominio: 'switch', tipoModulo: 'switch' };
+        if (tipoModulo) return scegliTipo(tipoModulo, valori, proposti);
+        /* il passo 1 parte sempre pulito: non eredita la ricerca di "Indirizzi ETS" */
+        S.etsQ = ''; S.etsSolo = 'liberi';
+        testaModulo();
+        const tipi = [
+            ['light', 'lightbulb', 'var(--c-light)', 'Luce', 'Accesa o spenta'],
+            ['dimmer', 'sun-medium', 'var(--c-light)', 'Luce dimmerabile', 'Con la luminosità regolabile'],
+            ['cover', 'blinds', 'var(--c-cover)', 'Tapparella', 'Su, giù, stop e percentuale'],
+            ['climate', 'thermometer', 'var(--c-climate)', 'Termostato', 'Temperatura, caldo/freddo, modalità'],
+            ['switch', 'power', 'var(--c-switch)', 'Interruttore', 'Prese, pompe, carichi on/off in genere'],
+        ];
+        let h = '<div class="sezione"><h3><i data-lucide="shapes"></i>Che cosa vuoi aggiungere?</h3><div class="tipi">' +
+            tipi.map((t, i) => '<button type="button" class="tipo' + (i === 4 ? ' largo' : '') + '" style="--c:' + t[2] + '" onclick="KNX.scegliTipo(\'' + t[0] + '\')"><span class="piastra" style="--c:' + t[2] + '"><i data-lucide="' + t[1] + '"></i></span><span><b>' + t[3] + '</b><small>' + t[4] + '</small></span></button>').join('') +
+            '</div></div>';
+        if (S.ets.totale) {
+            h += '<div class="oppure">oppure</div><div class="sezione"><h3><i data-lucide="file-spreadsheet"></i>Parti da un indirizzo del progetto ETS</h3>' +
+                 '<div class="aiuto" style="font-size:.8rem;color:var(--fioco);line-height:1.5;margin-top:-4px">Tocca un indirizzo: tipo, nome e gli indirizzi fratelli (lo stato, lo stop, la luminosità…) si compilano da soli.</div>' +
+                 '<label class="ets-cerca"><i data-lucide="search"></i><input type="text" id="ets-q" placeholder="Cerca fra gli indirizzi ETS" autocomplete="off" spellcheck="false" value="' + esc(S.etsQ || '') + '"></label><div id="ets-lista"></div></div>';
+        } else {
+            h += '<div class="oppure">oppure</div><button type="button" class="deposito" onclick="KNX.apriEts()"><span class="ico"><i data-lucide="file-spreadsheet"></i></span><b>Importa il progetto ETS</b>' +
+                 '<span>Con gli indirizzi importati, la pagina ti propone nomi e indirizzi già accoppiati.</span></button>';
+        }
+        $('cas-corpo').innerHTML = h;
+        $('cas-piede').innerHTML = '<span class="spazio"></span><button class="btn" type="button" onclick="KNX.chiudi()">Annulla</button>';
+        icone($('cas-corpo')); icone($('cas-piede'));
+        if (S.ets.totale) disegnaListaEts();
+        document.querySelectorAll('.riga.scelta').forEach(r => r.classList.remove('scelta'));
+        apriCassetto();
+    }
+    function scegliTipo(tipoModulo, valori, proposti) {
+        const dominio = tipoModulo === 'dimmer' ? 'light' : tipoModulo;
+        const vuoto = { nome: '', note: '', stanza: '', indirizzi: {} };
+        GA.forEach(k => { vuoto.indirizzi[k] = ''; });
+        const v = valori ? Object.assign({}, vuoto, valori, { indirizzi: Object.assign({}, vuoto.indirizzi, valori.indirizzi || {}) }) : vuoto;
+        S.cassetto = { modo: 'nuovo', passo: 2, id: null, dominio, tipoModulo, orig: JSON.parse(JSON.stringify(vuoto)), valori: v, proposti: proposti || {}, nomeCliente: 'tieni' };
+        disegnaModulo();
+        apriCassetto();
+        if (!valori) propostaBozza();
+        /* composto da ETS: e' gia' lavoro fatto, va in bozza subito (resta anche se la pagina si
+           ricarica). Una bozza scritta a mano per lo stesso tipo pero' non si sovrascrive di nascosto. */
+        else if (!memo.leggi(chiaveBozza(), null)) scriviBozzaOra(S.cassetto);
+        setTimeout(() => { const n = $('f-nome'); if (n && !n.value && window.innerWidth > 760) n.focus(); }, 340);
+    }
+
+    /* --- salvare --- */
+    /* un salvataggio alla volta PER CASSETTO: un secondo Invio (o un doppio clic) mentre il primo e'
+       in viaggio creerebbe un doppione, o rimanderebbe la vecchia 'prima' e farebbe un falso
+       "modificato altrove". Il lucchetto sta sul cassetto e non sulla pagina: dopo il salvataggio il
+       cassetto e' gia' chiuso mentre si rileggono elenco ed ETS, e un altro dispositivo aperto nel
+       frattempo deve potersi salvare subito (su un server lento il suo Salva andava a vuoto). */
+    async function salva() {
+        const c = S.cassetto;
+        if (!c || c.salvando) return;
+        c.salvando = true;
+        try { await salvaOra(); } finally { c.salvando = false; }
+    }
+    async function salvaOra() {
+        const c = S.cassetto;
+        if (!c || !c.orig) return;
+        const v = leggiModulo();
+        if (c.modo === 'modifica' && !sporco()) return;          // niente da salvare
+        const disp = DISPOSIZIONE[c.tipoModulo] || DISPOSIZIONE.switch;
+        /* controlli gentili prima di disturbare il server */
+        if (!v.nome.trim()) return segnala('c-nome', 'f-nome', 'Serve un nome per il dispositivo.');
+        for (const k of GA) {
+            if (v.indirizzi[k] && !gaValido(v.indirizzi[k])) return segnala('c-' + k, 'f-' + k, 'C\'è un indirizzo scritto male: si scrive come 1/1/1.');
+        }
+        for (const k of disp.obbligatori) {
+            if (!v.indirizzi[k]) return segnala('c-' + k, 'f-' + k, 'Manca un indirizzo obbligatorio: «' + campiDi(c.dominio)[k].t + '».');
+        }
+        const b = $('bt-salva');
+        const html = b.innerHTML;
+        b.disabled = true; b.innerHTML = '<span class="giro"></span><span>Salvo…</span>';
+        try {
+            let r;
+            if (c.modo === 'nuovo') {
+                r = await api('/api/knx/dispositivo', { method: 'POST', corpo: { nome: v.nome.trim(), dominio: c.dominio, indirizzi: v.indirizzi, note: v.note.trim(), stanza: v.stanza } });
+            } else {
+                const corpo = { entity_id: c.id, prima: c.prima };
+                if (v.nome !== c.orig.nome) corpo.nome = v.nome.trim();
+                if (v.note !== c.orig.note) corpo.note = v.note.trim();
+                if (v.stanza !== c.orig.stanza) corpo.stanza = v.stanza;
+                const ind = {};
+                GA.forEach(k => { if (v.indirizzi[k] !== c.orig.indirizzi[k]) ind[k] = v.indirizzi[k]; });
+                if (Object.keys(ind).length) corpo.indirizzi = ind;
+                if (corpo.nome && $('scelta-nome')) corpo.nome_cliente = c.nomeCliente === 'sostituisci' ? 'sostituisci' : 'tieni';
+                r = await api('/api/knx/dispositivo', { method: 'PUT', corpo });
+                if (r._http === 409) {
+                    const ok = await chiedi('Mentre avevi aperto questo dispositivo qualcun altro ne ha cambiato il nome o gli indirizzi. Se salvi, le sue modifiche vanno perse.',
+                        { titolo: 'Modificato da un\'altra parte', si: 'Salva lo stesso', no: 'Annulla', pericolo: true });
+                    if (!ok) { b.disabled = false; b.innerHTML = html; icone(b); return; }
+                    corpo.forza = true;
+                    r = await api('/api/knx/dispositivo', { method: 'PUT', corpo });
+                }
+            }
+            if (r._http !== 200 || r.status !== 'success') {
+                b.disabled = false; b.innerHTML = html; icone(b);
+                if (r.campo && $('c-' + r.campo)) return segnala('c-' + r.campo, 'f-' + (r.campo === 'nome' ? 'nome' : r.campo), r.message || 'Dato non valido');
+                return avvisa(r.message || r.error || 'Il server non ha salvato.', { titolo: 'Non salvato' });
+            }
+            clearTimeout(timerBozza);
+            memo.togli(chiaveBozzaDi(c));
+            const salvatoAlle = Date.now();
+            const bus = { ricaricato: 'Viene applicato al bus adesso.', in_coda: 'Viene applicato al bus adesso.', offline: 'Il gateway non risponde: sarà applicato appena torna in linea.', invariato: '', assente: '' }[r.bus] || '';
+            const idNuovo = r.entity_id || c.id;
+            if (c.modo === 'nuovo') S.nuovi[idNuovo] = true;
+            chiudiCassetto();
+            await carica(true);
+            /* l'elenco ETS ("liberi", "gia' usato da") deve essere giusto prima di riaprire Aggiungi */
+            if (S.ets.totale) await caricaEts(salvatoAlle);
+            biscotto(c.modo === 'nuovo' ? 'Dispositivo creato' : 'Modifiche salvate', bus, 'bene');
+            if (r.avvisi && r.avvisi.length) setTimeout(() => biscotto(r.avvisi[0], r.avvisi.length > 1 ? '+' + (r.avvisi.length - 1) + ' altri avvisi' : '', 'avviso', 7000), 400);
+            const riga = document.querySelector('.riga[data-id="' + CSS.escape(idNuovo) + '"]');
+            if (riga && c.modo === 'nuovo') riga.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        } catch (e) {
+            b.disabled = false; b.innerHTML = html; icone(b);
+            avvisa(e.message || 'Errore', { titolo: e.tipo === 'sessione' ? 'Sessione scaduta' : 'Non salvato' });
+        }
+    }
+    function segnala(idCampo, idInput, testo) {
+        const campo = $(idCampo);
+        if (campo) {
+            campo.classList.add('errore');
+            const f = $('facoltativi');
+            if (f && f.contains(campo)) f.classList.add('aperti');
+            campo.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+        const inp = $(idInput);
+        if (inp) setTimeout(() => inp.focus(), 250);
+        biscotto(testo, '', 'male', 4200);
+    }
+
+    async function elimina() {
+        const c = S.cassetto, d = c && S.perId[c.id];
+        if (!d) return;
+        const u = d.usi || {};
+        /* una riga per cosa: si legge meglio e ognuna si traduce da sola */
+        let testo = '«' + d.nome + '» sparisce dall\'impianto.';
+        if ((u.stanze || []).length) testo += '\n' + (u.stanze.length === 1 ? 'Viene tolto dalla stanza «' + u.stanze[0] + '».' : 'Viene tolto da ' + u.stanze.length + ' stanze.');
+        if ((u.scene || []).length) testo += '\n' + (u.scene.length === 1 ? 'Viene tolto dalla scena «' + u.scene[0] + '».' : 'Viene tolto da ' + u.scene.length + ' scene.');
+        if ((u.gruppi || []).length) testo += '\n' + (u.gruppi.length === 1 ? 'Viene tolto dal gruppo «' + u.gruppi[0] + '».' : 'Viene tolto da ' + u.gruppi.length + ' gruppi.');
+        if ((u.automazioni || []).length) testo += '\n' + (u.automazioni.length === 1
+            ? 'Attenzione: l\'automazione «' + u.automazioni[0] + '» lo usa e andrà corretta a mano.'
+            : 'Attenzione: ' + u.automazioni.length + ' automazioni lo usano e andranno corrette a mano.');
+        const ok = await chiedi(testo, { titolo: 'Eliminare il dispositivo?', si: 'Elimina', no: 'Annulla', pericolo: true, icona: 'trash-2' });
+        if (!ok) return;
+        try {
+            const r = await api('/api/knx/dispositivo', { method: 'DELETE', corpo: { entity_id: d.entity_id } });
+            if (r._http !== 200) return avvisa(r.message || r.error || 'Non eliminato', { titolo: 'Non eliminato' });
+            memo.togli('knx_bozza_' + d.entity_id);
+            const eliminatoAlle = Date.now();
+            chiudiCassetto();
+            await carica(true);
+            if (S.ets.totale) await caricaEts(eliminatoAlle);
+            biscotto('Dispositivo eliminato', d.nome, 'bene');
+            if (r.avvisi && r.avvisi.length) await avvisa(r.avvisi.join('\n'), { titolo: 'Da correggere a mano' });
+        } catch (e) { avvisa(e.message || 'Errore', { titolo: 'Non eliminato' }); }
+    }
+
+    async function duplica() {
+        const c = S.cassetto, d = c && S.perId[c.id];
+        if (!d) return;
+        if (sporco()) {
+            const ok = await chiedi('Il duplicato si fa dal dispositivo com\'è salvato: le modifiche non salvate restano qui, in bozza.', { titolo: 'Duplicare adesso?', si: 'Duplica', no: 'Annulla' });
+            if (!ok) return;
+            scriviBozzaOra(c);
+        }
+        try {
+            const r = await api('/api/knx/dispositivo/duplica', { method: 'POST', corpo: { entity_id: d.entity_id } });
+            if (r._http !== 200 || !r.entity_id) return avvisa(r.message || 'Non duplicato', { titolo: 'Non duplicato' });
+            S.nuovi[r.entity_id] = true;
+            const copiatoAlle = Date.now();
+            await carica(true);
+            if (S.ets.totale) await caricaEts(copiatoAlle);
+            apri(r.entity_id);
+            biscotto('Copia creata', 'Ha gli stessi indirizzi dell\'originale: cambiali prima di usarla.', 'avviso', 6000);
+            setTimeout(() => { const n = $('f-nome'); if (n) { n.focus(); n.select(); } }, 350);
+        } catch (e) { avvisa(e.message || 'Errore', { titolo: 'Non duplicato' }); }
+    }
+
+    /* --- prove sul bus: leggere non muove niente; scrivere si fa solo chiedendo --- */
+    let provaInCorso = false;
+    async function leggiBus(k) {
+        if (provaInCorso) return;
+        const inp = $('f-' + k);
+        const ga = inp ? inp.value.trim() : '';
+        if (!ga) return biscotto('Scrivi prima l\'indirizzo da leggere', '', 'avviso');
+        if (!gaValido(ga)) return biscotto('Indirizzo scritto male', 'Si scrive come 1/1/1', 'male');
+        if (!gwSu()) return biscotto('Il gateway non è collegato', 'La lettura si può fare solo col bus in linea.', 'avviso');
+        const b = $('leggi-' + k);
+        const mio = S.cassetto;                  // la risposta vale solo per questo cassetto e questo indirizzo
+        provaInCorso = true;
+        const prima = b.innerHTML;
+        b.disabled = true; b.innerHTML = '<span class="giro"></span>';
+        try {
+            const r = await api('/api/knx/prova', { method: 'POST', corpo: { ga, azione: 'leggi' } });
+            if (r._http === 429) return biscotto('Un\'altra prova è in corso', 'Aspetta un istante', 'avviso');
+            const inpOra = $('f-' + k);
+            if (S.cassetto !== mio || !inpOra || inpOra.value.trim() !== ga) {
+                /* nel frattempo si e' passati ad altro: la risposta non va sotto il campo sbagliato,
+                   ma se c'e' un valore si dice lo stesso, con l'indirizzo accanto */
+                if (r._http === 200 && r.inviato && r.risposta != null) biscotto('Il bus risponde: ' + r.risposta, ga, 'bene');
+                return;
+            }
+            const nota = $('nota-' + k);
+            if (!nota) return;
+            let el = $('risposta-' + k);
+            if (!el) { el = document.createElement('div'); el.id = 'risposta-' + k; nota.parentNode.insertBefore(el, nota.nextSibling); }
+            if (r._http !== 200) {
+                el.className = 'nota-ga avviso';
+                el.innerHTML = '<i data-lucide="circle-alert"></i><span>' + esc(r.message || r.messaggio || 'Lettura non inviata') + '</span>';
+            } else if (r.inviato && r.risposta != null) {
+                el.className = 'nota-ga bene';
+                el.innerHTML = '<i data-lucide="circle-check"></i><span>Il bus risponde:</span> <b class="mono" data-no-tr>' + esc(r.risposta) + '</b>';
+            } else {
+                el.className = 'nota-ga avviso';
+                el.innerHTML = '<i data-lucide="circle-help"></i><span>' + esc(r.inviato ? 'Nessuna risposta: l\'indirizzo esiste ma nessun apparecchio rimanda il valore (normale per molti indirizzi di comando).' : (r.messaggio || r.message || 'Lettura non inviata')) + '</span>';
+            }
+            icone(el);
+        } catch (e) { biscotto(e.message || 'Errore', '', 'male'); }
+        finally {
+            provaInCorso = false;
+            /* il pulsante di adesso, non quello di prima: se il modulo e' stato ridisegnato il vecchio non c'e' piu' */
+            const bb = $('leggi-' + k);
+            if (bb) { bb.disabled = false; if (bb.querySelector('.giro')) { bb.innerHTML = prima; icone(bb); } }
+        }
+    }
+    async function prova(azione) {
+        if (provaInCorso) return;
+        const c = S.cassetto;
+        const inp = $('f-ga_command');
+        const ga = inp ? inp.value.trim() : '';
+        if (!ga || !gaValido(ga)) return biscotto('Serve un indirizzo di comando valido', '', 'avviso');
+        const e = S.ets.per[ga];
+        const ok = await chiedi('Mando ' + (azione === 'accendi' ? 'ACCESO (1)' : 'SPENTO (0)') + ' sull\'indirizzo ' + ga + (e && e.name ? ' · ' + e.name : '') + '.\nSul bus di casa si muove davvero quello che è collegato a questo indirizzo.',
+            { titolo: 'Prova sul bus', si: azione === 'accendi' ? 'Accendi' : 'Spegni', no: 'Annulla', icona: 'power' });
+        if (!ok) return;
+        provaInCorso = true;
+        try {
+            const r = await api('/api/knx/prova', { method: 'POST', corpo: { ga, azione } });
+            if (r._http === 429) biscotto('Un\'altra prova è in corso', 'Aspetta un istante', 'avviso');
+            else biscotto(r.inviato ? 'Comando mandato' : 'Comando non mandato', r.messaggio || '', r.inviato ? 'bene' : 'avviso');
+            setTimeout(() => carica(true), 900);
+        } catch (e2) { biscotto(e2.message || 'Errore', '', 'male'); }
+        finally { provaInCorso = false; }
+    }
+
+    /* =================================================================
+       7. ETS: import, elenco, scelta di un indirizzo, dispositivo proposto
+       ================================================================= */
+    const PAROLE_RUOLO = ['on/off', 'on off', 'onoff', 'comando', 'command', 'cmd', 'schalten', 'stato', 'state', 'status', 'feedback', 'fb', 'rm', 'ruckmeldung', 'rueckmeldung',
+        'dimming', 'dimmer relativo', 'regolazione', 'valore', 'value', 'luminosita', 'brightness', 'posizione', 'position', 'pos', 'stop', 'step', 'lamelle', 'arresto',
+        'su/giu', 'su giu', 'up/down', 'movimento', 'move', 'setpoint', 'set point', 'consegna', 'desiderata', 'impostata', 'ambiente', 'attuale', 'misurata',
+        'caldo/freddo', 'heat/cool', 'modalita', 'modo', 'mode', 'hvac', '%',
+        /* termostati: senza queste la temperatura ambiente e il setpoint non risultano fratelli */
+        'temperatura', 'temperature', 'temperatur', 'raumtemperatur', 'temp', 'sonda', 'ist', 'istwert', 'sollwert', 'comfort', 'komfort',
+        /* diciture italiane comuni per il ritorno e per l'on/off ("On / Off" diventa "on/off" prima) */
+        'ritorno', 'accesa/spenta', 'acceso/spento', 'accendi/spegni'];
+    function radice(nome) {
+        /* la barra si attacca per prima: "On / Off" e "on/off" devono dare la stessa parola */
+        let t = ' ' + norm(nome).replace(/\s*\/\s*/g, '/').replace(/[_\-–—.,;:()]+/g, ' ') + ' ';
+        PAROLE_RUOLO.slice().sort((a, b) => b.length - a.length).forEach(p => { t = t.split(' ' + p + ' ').join(' '); });
+        return t.replace(/\s+/g, ' ').trim();
+    }
+    /* il nome da proporre: quello ETS senza le parole di ruolo, con le maiuscole dell'originale */
+    function nomeProposto(nome) {
+        const parole = String(nome || '').replace(/\s*\/\s*/g, '/').replace(/[_]+/g, ' ').split(/\s+/).filter(Boolean);
+        const ruolo = new Set(PAROLE_RUOLO.map(norm));
+        const diRuolo = p => ruolo.has(norm(p).replace(/[()\-–—.,;:]/g, ''));
+        /* Si tolgono le parole di ruolo solo IN CODA, dove le mette ETS ("Luce cucina stato on/off",
+           "Termostato camera temperatura ambiente"): in mezzo o in testa fanno parte del nome
+           ("Pompa ritorno acqua", "Sonda esterna"). Una parola col trattino si guarda a pezzi:
+           "Ist-Temperatur" sparisce tutta, "Luce-stato" diventa "Luce", "Abat-jour" resta. */
+        const tenute = parole.slice();
+        while (tenute.length) {
+            const ultima = tenute[tenute.length - 1];
+            if (diRuolo(ultima)) { tenute.pop(); continue; }
+            /* ruoli di due parole: "on off", "set point", "dimmer relativo" */
+            if (tenute.length > 1 && diRuolo(tenute[tenute.length - 2] + ' ' + ultima)) { tenute.splice(-2, 2); continue; }
+            const pezzi = ultima.split(/[-–—]/);
+            if (pezzi.length > 1) {
+                while (pezzi.length && (!pezzi[pezzi.length - 1] || diRuolo(pezzi[pezzi.length - 1]))) pezzi.pop();
+                if (!pezzi.length) { tenute.pop(); continue; }
+                tenute[tenute.length - 1] = pezzi.join('-');
+            }
+            break;
+        }
+        const n = (tenute.length ? tenute : parole).join(' ').replace(/\s*[-–—:]\s*$/, '').trim();
+        return n.charAt(0).toUpperCase() + n.slice(1);
+    }
+    /* da un indirizzo ETS al campo che gli spetta (le stesse regole che stavano nella dashboard) */
+    function ruoloDa(v) {
+        const d = v.dpt || '';
+        const n = norm((v.name || '') + ' ' + (v.path || ''));
+        const nome = norm(v.name || '');
+        const stato = /\bstato\b|\bstate\b|\bstatus\b|feedback|ruckmeld|rueckmeld|\brm\b|\bfb\b|\britorno\b/.test(nome.replace(/termostat\w*|thermostat\w*/g, ' '));
+        if (d === '1.010' || /\bstop\b|lamell|\bstep\b/.test(nome)) return 'ga_stop';
+        if (d === '1.008' || d === '1.009') return 'ga_command';
+        if (d === '1.100' || /caldo.?freddo|heat.?cool/.test(nome)) return stato ? 'ga_heat_cool_state' : 'ga_heat_cool';
+        if (/^20\./.test(d)) return stato ? 'ga_mode_state' : 'ga_mode';
+        if (/^9\./.test(d) || /temperatur/.test(nome)) {
+            if (/setpoint|set point|consegna|desiderat|impostat|comfort|sollwert/.test(nome)) return stato ? 'ga_setpoint_state' : 'ga_setpoint';
+            return 'ga_temperature';
+        }
+        if (d === '5.001' || d === '5.004' || /posizion|position|luminosit|brightness|valore|%/.test(nome)) {
+            if (/tappar|serrand|tend|venezian|posizion|position|blind|shutter|rollad|persian/.test(n)) return stato ? 'ga_position_state' : 'ga_position';
+            return stato ? 'ga_brightness_state' : 'ga_brightness';
+        }
+        if (d === '1.011' || stato) return 'ga_state';
+        return 'ga_command';
+    }
+    function tipoDa(v, ruolo) {
+        if (['ga_stop', 'ga_position', 'ga_position_state'].includes(ruolo)) return 'cover';
+        if (/^ga_(temperature|setpoint|heat_cool|mode)/.test(ruolo)) return 'climate';
+        if (/^ga_brightness/.test(ruolo)) return 'dimmer';
+        const n = norm((v.name || '') + ' ' + (v.path || ''));
+        if (/tappar|serrand|tend|venezian|blind|shutter|rollad|persian/.test(n) || v.dpt === '1.008') return 'cover';
+        if (/termost|clima|temperatur|riscald|fancoil/.test(n)) return 'climate';
+        if (/\bluc[ei]\b|luce|lamp|light|farett|plafon|dimmer|applique|led|lampad/.test(n)) return 'light';
+        if (v.domain === 'cover' || v.domain === 'climate' || v.domain === 'light') return v.domain;
+        return 'switch';
+    }
+    /* parto da UN indirizzo: compongo il dispositivo intero con i suoi fratelli (stessa radice, stesso ramo) */
+    function componiDa(addr) {
+        const v = S.ets.per[addr];
+        if (!v) return;
+        const ruolo = ruoloDa(v);
+        let tipoModulo = tipoDa(v, ruolo);
+        const dominio = tipoModulo === 'dimmer' ? 'light' : tipoModulo;
+        const r0 = radice(v.name);
+        const fratelli = S.ets.voci.filter(x => x.address !== addr && !x.usato_da && !x.usato && radice(x.name) === r0 && r0 && (x.path || '') === (v.path || ''));
+        const ind = {}; GA.forEach(k => { ind[k] = ''; });
+        const proposti = {};
+        const campi = campiDi(dominio);
+        if (campi[ruolo]) ind[ruolo] = v.address;
+        fratelli.forEach(f => {
+            const rr = ruoloDa(f);
+            if (campi[rr] && !ind[rr]) { ind[rr] = f.address; proposti[rr] = true; }
+        });
+        if (dominio === 'light' && (ind.ga_brightness || ind.ga_brightness_state)) tipoModulo = 'dimmer';
+        /* se il ruolo dell'indirizzo toccato non esiste per quel tipo, lo si mette nel comando */
+        if (!campi[ruolo] && !ind.ga_command && campi.ga_command) ind.ga_command = v.address;
+        /* la stanza, se il nome o il ramo ETS la nominano ("Luce cucina on/off" -> Cucina) */
+        const testo = ' ' + norm((v.name || '') + ' ' + (v.path || '')).replace(/[^a-z0-9]+/g, ' ') + ' ';
+        const stanza = ((S.dati && S.dati.stanze) || []).slice().sort((a, b) => b.length - a.length)
+            .find(st => { const n = norm(st).replace(/[^a-z0-9]+/g, ' ').trim(); return n && testo.includes(' ' + n + ' '); }) || '';
+        nuovo(tipoModulo, { nome: nomeProposto(v.name) || v.address, indirizzi: ind, stanza }, proposti);
+        const n = Object.keys(proposti).length;
+        if (n) biscotto('Ho trovato ' + n + (n === 1 ? ' indirizzo fratello' : ' indirizzi fratelli') + ' nel progetto', 'Sono segnati con ETS: controlla che siano giusti.', 'bene', 5200);
+    }
+
+    function apriEts() {
+        S.cassetto = { modo: 'ets' };
+        S.etsQ = ''; S.etsSolo = 'tutti';                  // si parte sempre da pulito
+        document.querySelectorAll('.riga.scelta').forEach(r => r.classList.remove('scelta'));
+        disegnaEts();
+        apriCassetto();
+        if (!S.ets.caricato) caricaEts();
+    }
+    function disegnaEts() {
+        $('cas-testa').innerHTML = '<div class="piastra" style="--c:var(--accento)"><i data-lucide="file-spreadsheet"></i></div><div class="t"><h2 id="cas-titolo">Indirizzi ETS</h2>' +
+            '<div class="passo">' + (S.ets.totale ? '<span data-no-tr>' + S.ets.totale + '</span> <span>indirizzi importati dal progetto</span>' : '<span>Nessun progetto importato</span>') + '</div></div>' +
+            '<button class="chiudi" type="button" onclick="KNX.chiudi()" title="Chiudi (Esc)"><i data-lucide="x"></i></button>';
+        let h = '';
+        if (!S.ets.totale) {
+            h += '<label class="deposito" id="deposito"><span class="ico"><i data-lucide="file-up"></i></span><b>Trascina qui il file esportato da ETS</b>' +
+                 '<span>oppure tocca per sceglierlo</span><span class="percorso">ETS → Indirizzi di gruppo → Esporta · .csv .esf .xml</span></label>' +
+                 '<div class="sezione"><h3><i data-lucide="info"></i>A cosa serve</h3><div class="aiuto" style="font-size:.82rem;color:var(--fioco);line-height:1.6">' +
+                 'Gli indirizzi importati non creano niente da soli: servono a scegliere invece di battere a mano, a vedere sotto ogni casella il nome del gruppo e il suo DPT, ' +
+                 'e a comporre un dispositivo intero toccando un solo indirizzo.</div></div>';
+        } else {
+            h += '<label class="ets-cerca"><i data-lucide="search"></i><input type="text" id="ets-q" placeholder="Cerca per nome, ramo o indirizzo" autocomplete="off" spellcheck="false" value="' + esc(S.etsQ || '') + '"></label>' +
+                 '<div class="filtri" style="margin-top:-8px">' + [['tutti', 'Tutti'], ['liberi', 'Ancora liberi'], ['usati', 'Già usati']].map(f => '<button type="button" class="filtro' + (S.etsSolo === f[0] ? ' su' : '') + '" onclick="KNX.etsSolo(\'' + f[0] + '\')">' + f[1] + '</button>').join('') + '</div>' +
+                 '<div id="ets-lista"></div>';
+        }
+        $('cas-corpo').innerHTML = h;
+        $('cas-piede').innerHTML = S.ets.totale
+            ? '<button class="btn pericolo" type="button" onclick="KNX.svuotaEts()"><i data-lucide="trash-2"></i><span>Svuota</span></button><span class="spazio"></span><button class="btn" type="button" onclick="KNX.sceglifile()"><i data-lucide="file-up"></i><span>Sostituisci il file</span></button>'
+            : '<span class="spazio"></span><button class="btn" type="button" onclick="KNX.chiudi()">Chiudi</button>';
+        icone($('cas-testa')); icone($('cas-corpo')); icone($('cas-piede'));
+        const dep = $('deposito');
+        if (dep) {
+            dep.addEventListener('click', e => { e.preventDefault(); $('file-ets').click(); });
+            ['dragenter', 'dragover'].forEach(ev => dep.addEventListener(ev, e => { e.preventDefault(); dep.classList.add('sopra'); }));
+            ['dragleave', 'drop'].forEach(ev => dep.addEventListener(ev, e => { e.preventDefault(); dep.classList.remove('sopra'); }));
+            dep.addEventListener('drop', e => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) importaEts(f); });
+        }
+        if (S.ets.totale) disegnaListaEts();
+    }
+    function disegnaListaEts() {
+        const box = $('ets-lista');
+        if (!box) return;
+        const scelta = S.cassetto && S.cassetto.scegliPer;     // sto scegliendo per un campo?
+        /* il selettore di un campo ha la sua ricerca e mostra sempre tutto (anche gli usati) */
+        const q = norm((scelta ? S.cassetto.q : S.etsQ) || '');
+        const solo = scelta ? 'tutti' : (S.etsSolo || 'tutti');
+        let voci = S.ets.voci.filter(v => {
+            const usato = v.usato_da || v.usato;
+            if (solo === 'liberi' && usato) return false;
+            if (solo === 'usati' && !usato) return false;
+            if (!q) return true;
+            return norm(v.address + ' ' + (v.name || '') + ' ' + (v.path || '') + ' ' + (v.dpt || '')).includes(q);
+        });
+        let att = null;
+        if (scelta) {
+            att = (campiDi(S.cassetto.torna.dominio)[scelta] || {}).att;
+            voci.sort((a, b) => ((att && b.dpt && att.test(b.dpt)) ? 1 : 0) - ((att && a.dpt && att.test(a.dpt)) ? 1 : 0));
+        }
+        const tanti = voci.length;
+        voci = voci.slice(0, 250);
+        if (!tanti) {
+            box.innerHTML = '<div class="vuoto piccolo" style="box-shadow:none"><h2>Nessun indirizzo</h2><p>' + (q ? 'Nessun indirizzo per questa ricerca.' : 'Qui non c\'è niente da mostrare.') + '</p>' +
+                (q ? '<div class="azioni"><button class="btn" type="button" onclick="KNX.etsTutti()"><i data-lucide="rotate-ccw"></i>Mostra tutti</button></div>' : '') + '</div>';
+            icone(box);
+            return;
+        }
+        let h = '<div class="ets-lista">';
+        voci.forEach(v => {
+            const u = v.usato_da;
+            const adatto = att && v.dpt && att.test(v.dpt);
+            h += '<button type="button" class="ets-v' + (u || v.usato ? ' usato' : '') + '" data-addr="' + esc(v.address) + '" onclick="KNX.etsTocca(this.dataset.addr)">' +
+                '<span class="addr" data-no-tr>' + esc(v.address) + '</span><span class="n"><b data-no-tr>' + esc(v.name || '—') + '</b><small data-no-tr>' +
+                esc([v.path, v.dpt ? 'DPT ' + v.dpt : ''].filter(Boolean).join(' · ') || '—') + '</small></span><span class="dx">' +
+                (u ? '<span class="etichetta uso" title="Già usato"><span data-no-tr>' + esc(u.nome) + '</span></span>' : (v.usato ? '<span class="etichetta uso">già usato</span>' : '')) +
+                (adatto ? '<span class="etichetta adatto">adatto</span>' : '') +
+                (!scelta && !u && !v.usato ? '<span class="piu"><i data-lucide="plus"></i></span>' : '') + '</span></button>';
+        });
+        if (tanti > voci.length) h += '<div class="ets-altro"><span data-no-tr>' + (tanti - voci.length) + '</span> <span>altri: restringi la ricerca</span></div>';
+        box.innerHTML = h + '</div>';
+        icone(box);
+    }
+    async function etsTocca(addr) {
+        const c = S.cassetto;
+        if (c && c.scegliPer) {
+            /* torno al modulo con l'indirizzo nel campo */
+            const t = c.torna;
+            t.valori = t.valoriVivi;
+            t.valori.indirizzi[c.scegliPer] = addr;
+            if (t.proposti) delete t.proposti[c.scegliPer];
+            S.cassetto = t;
+            disegnaModulo();
+            const inp = $('f-' + c.scegliPer);
+            if (inp) { const f = $('facoltativi'); if (f && f.contains(inp)) f.classList.add('aperti'); setTimeout(() => inp.scrollIntoView({ block: 'center' }), 50); }
+            fuocoNelCassetto(false);
+            salvaBozza();
+            return;
+        }
+        let v = S.ets.per[addr];
+        if (v && v.usato_da && !S.perId[v.usato_da.entity_id]) {
+            /* l'elenco dice "usato da" un dispositivo che la pagina non conosce (eliminato, o creato da
+               un altro tablet): prima si rilegge tutto, poi si decide. Trattarlo come libero porterebbe
+               proprio al doppione, se nel frattempo l'indirizzo e' passato a un altro dispositivo. */
+            await carica(true);
+            await caricaEts();
+            if (S.cassetto !== c) return;                  // intanto e' stato chiuso o cambiato
+            v = S.ets.per[addr];
+            if (!v) return biscotto('Elenco aggiornato', 'Questo indirizzo non c\'è più nel progetto ETS.', 'avviso');
+            if (v.usato_da && !S.perId[v.usato_da.entity_id]) return biscotto('Elenco aggiornato', '', 'avviso');
+        }
+        if (v && v.usato_da) return apri(v.usato_da.entity_id);
+        componiDa(addr);
+    }
+    function scegliEts(k) {
+        const c = S.cassetto;
+        if (!c || !S.ets.totale) return;
+        c.valoriVivi = leggiModulo();
+        const quale = campiDi(c.dominio)[k] || { t: k };
+        const nome = (c.valoriVivi.nome || '').trim();
+        /* la ricerca parte dal nome del dispositivo, ma solo se trova qualcosa: un nome appena
+           cambiato ("Luce cucina nuova") non deve lasciare davanti a una lista vuota */
+        let q = nome ? radice(nome) : '';
+        if (q && !S.ets.voci.some(v => norm(v.address + ' ' + (v.name || '') + ' ' + (v.path || '') + ' ' + (v.dpt || '')).includes(norm(q)))) q = '';
+        S.cassetto = { modo: 'scelta', scegliPer: k, torna: c, q };
+        $('cas-testa').innerHTML = '<button class="chiudi" type="button" onclick="KNX.tornaModulo()" title="Torna al dispositivo"><i data-lucide="arrow-left"></i></button><div class="t"><h2 id="cas-titolo">' + esc(quale.t) + '</h2>' +
+            '<div class="passo"><span>Scegli l\'indirizzo · DPT tipico</span> <span data-no-tr>' + esc(quale.dpt || '') + '</span></div></div>';
+        $('cas-corpo').innerHTML = '<label class="ets-cerca"><i data-lucide="search"></i><input type="text" id="ets-q" placeholder="Cerca per nome, ramo o indirizzo" autocomplete="off" spellcheck="false" value="' + esc(q) + '"></label><div id="ets-lista"></div>';
+        $('cas-piede').innerHTML = '<button class="btn" type="button" onclick="KNX.tornaModulo()"><i data-lucide="arrow-left"></i><span>Indietro</span></button>';
+        icone($('cas-testa')); icone($('cas-corpo')); icone($('cas-piede'));
+        disegnaListaEts();
+        fuocoNelCassetto(false);
+        setTimeout(() => { const i = $('ets-q'); if (i && window.innerWidth > 760) { i.focus(); i.select(); } }, 60);
+    }
+    function tornaModulo() {
+        const c = S.cassetto;
+        if (!c || !c.torna) return;
+        c.torna.valori = c.torna.valoriVivi;
+        S.cassetto = c.torna;
+        disegnaModulo();
+        fuocoNelCassetto(false);
+    }
+    async function importaEts(file) {
+        if (!file) return;
+        if (S.ets.totale) {
+            const ok = await chiedi('Gli ' + S.ets.totale + ' indirizzi importati adesso vengono sostituiti da quelli del file «' + file.name + '». I dispositivi già creati non cambiano.', { titolo: 'Sostituire l\'elenco ETS?', si: 'Sostituisci', no: 'Annulla' });
+            if (!ok) return;
+        }
+        const fd = new FormData();
+        fd.append('file', file);
+        biscotto('Leggo il file…', file.name, 'bene', 1800);
+        try {
+            const r = await fetch('/api/knx/ets_import', { method: 'POST', body: fd, credentials: 'same-origin' });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || j.status !== 'success') return avvisa(j.message || 'Il file non è stato letto.', { titolo: 'Import non riuscito' });
+            S.ets.totale = j.totale || 0;
+            await caricaEts();
+            biscotto('Importati ' + (j.totale || 0) + ' indirizzi', 'Adesso puoi comporre i dispositivi toccando un indirizzo.', 'bene', 5000);
+            if (S.cassetto && S.cassetto.modo === 'ets') { S.etsSolo = 'liberi'; disegnaEts(); }
+        } catch (e) { avvisa('Il server non risponde.', { titolo: 'Import non riuscito' }); }
+    }
+    async function svuotaEts() {
+        const ok = await chiedi('Si cancella solo l\'elenco degli indirizzi importati: i dispositivi già creati restano come sono.', { titolo: 'Svuotare l\'elenco ETS?', si: 'Svuota', no: 'Annulla', pericolo: true });
+        if (!ok) return;
+        try {
+            await api('/api/knx/ets_clear', { method: 'POST', corpo: {} });
+            S.ets = { voci: [], per: {}, caricato: true, totale: 0 };
+            $('bollo-ets').classList.add('nascosto');
+            disegnaEts();
+            biscotto('Elenco ETS svuotato', '', 'bene');
+        } catch (e) { avvisa(e.message || 'Errore', { titolo: 'Non svuotato' }); }
+    }
+    $('file-ets').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) importaEts(f); });
+
+    /* =================================================================
+       8. COMANDI DELLA PAGINA, TASTIERA, TEMA
+       ================================================================= */
+    function applicaNotte(si) {
+        document.body.classList.toggle('notte', si);
+        $('meta-tema').setAttribute('content', si ? '#0D0F13' : '#EFEFF4');
+        $('bt-notte').innerHTML = '<i data-lucide="' + (si ? 'sun' : 'moon') + '"></i>';
+        icone($('bt-notte'));
+    }
+    const notteSalvata = memo.leggi('knx_notte', null);
+    applicaNotte(notteSalvata == null ? (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) : !!notteSalvata);
+
+    const q = $('q');
+    q.addEventListener('input', () => { S.q = q.value.trim(); $('cerca').classList.toggle('piena', !!q.value); disegna(); });
+    document.querySelectorAll('#raggruppa button').forEach(b => b.addEventListener('click', () => { S.raggruppa = b.dataset.g; memo.scrivi('knx_raggruppa', S.raggruppa); disegna(); }));
+    document.addEventListener('keydown', e => {
+        const scrivendo = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '');
+        const aperto = $('cassetto').classList.contains('su');
+        if (e.key === 'Escape') {
+            if (document.querySelector('.wh-pop')) return;           // la conferma si chiude da sola
+            if (aperto) { e.preventDefault(); if (S.cassetto && S.cassetto.scegliPer) tornaModulo(); else chiudi(); }
+            else if (S.q) { q.value = ''; S.q = ''; $('cerca').classList.remove('piena'); disegna(); }
+            return;
+        }
+        if (scrivendo || aperto || e.metaKey || e.ctrlKey || e.altKey) return;
+        if (e.key === '/') { e.preventDefault(); q.focus(); q.select(); }
+        else if (e.key === 'n' || e.key === 'N') { e.preventDefault(); nuovo(); }
+        /* la riga si comporta come un pulsante: Invio e Spazio (senza far scorrere la pagina) */
+        else if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('riga')) { e.preventDefault(); apri(e.target.dataset.id); }
+    });
+
+    window.KNX = {
+        apri, chiudi, salva, elimina, duplica, prova, leggiBus, scegliEts, tornaModulo, apriEts, svuotaEts,
+        /* "Aggiungi" con un modulo modificato aperto: prima si chiede, come per la chiusura */
+        nuovo: async () => {
+            const c = S.cassetto;
+            if (c && c.orig && sporco()) {
+                const ok = await chiedi(testoLascia(c), { titolo: 'Chiudere senza salvare?', si: 'Chiudi', no: 'Continua a modificare', icona: 'info' });
+                if (!ok) return;
+                scriviBozzaOra(c);
+            }
+            nuovo();
+        },
+        scegliTipo: t => scegliTipo(t),
+        indietroTipo: async () => {
+            if (sporco()) {
+                const ok = await chiedi('Tornando alla scelta del tipo quello che hai scritto resta in bozza.', { titolo: 'Cambiare tipo?', si: 'Cambia tipo', no: 'Resta qui' });
+                if (!ok) return;
+                scriviBozzaOra(S.cassetto);
+            }
+            nuovo();
+        },
+        etsTocca, etsSolo: s => { S.etsSolo = s; document.querySelectorAll('#cas-corpo .filtro').forEach(b => b.classList.toggle('su', b.getAttribute('onclick').includes("'" + s + "'"))); disegnaListaEts(); },
+        /* "Mostra tutti" sotto una ricerca ETS che non trova niente: svuota la casella */
+        etsTutti: () => {
+            if (S.cassetto && S.cassetto.scegliPer) S.cassetto.q = ''; else S.etsQ = '';
+            const i = $('ets-q'); if (i) i.value = '';
+            disegnaListaEts();
+            if (i && window.innerWidth > 760) i.focus();
+        },
+        sceglifile: () => $('file-ets').click(),
+        salta: id => {
+            if (!sporco()) return apri(id);
+            chiedi('Le modifiche di questo dispositivo restano in bozza.', { titolo: 'Aprire l\'altro dispositivo?', si: 'Apri', no: 'Resta qui' })
+                .then(ok => { if (!ok) return; scriviBozzaOra(S.cassetto); apri(id); });
+        },
+        /* si riprende la bozza fondendola coi dati di adesso: vedi fondiBozza */
+        riprendiBozza: () => {
+            const c = S.cassetto;
+            if (!c || !c.bozza) return;
+            const b = c.bozza;
+            const { m, doppi } = fondiBozza(c, b);
+            c.valori = m;
+            if (b.nomeCliente) c.nomeCliente = b.nomeCliente;
+            c.bozza = null;
+            disegnaModulo();
+            fuocoNelCassetto(false);
+            if (c.modo === 'modifica' && !b.base) {
+                avvisa('Questa bozza è di una versione precedente della pagina: ricontrolla ogni campo prima di salvare.', { titolo: 'Bozza ripresa' });
+            } else if (doppi.length) {
+                const campi = campiDi(c.dominio);
+                const nomi = { nome: 'Nome', note: 'Note per chi installa', stanza: 'Stanza' };
+                /* una riga per campo: si legge meglio e ognuna si traduce da sola */
+                avvisa('Nel frattempo qualcuno ha cambiato anche questi campi. Qui c\'è il tuo valore: controlla prima di salvare.\n' +
+                    doppi.map(k => '«' + (nomi[k] || (campi[k] || {}).t || k) + '»').join('\n'), { titolo: 'Bozza ripresa' });
+            } else biscotto('Bozza ripresa', 'Controlla e salva.', 'bene');
+        },
+        scartaBozza: () => { const c = S.cassetto; if (!c) return; memo.togli(chiaveBozza()); c.bozza = null; const b = $('bozza'); if (b) b.innerHTML = ''; fuocoNelCassetto(false); },
+        apriChiudi: el => {
+            const g = el.parentNode;
+            g.classList.toggle('chiuso');
+            el.setAttribute('aria-expanded', g.classList.contains('chiuso') ? 'false' : 'true');
+            const k = S.raggruppa + ':' + g.dataset.chiave;
+            if (g.classList.contains('chiuso')) S.chiusi[k] = 1; else delete S.chiusi[k];
+            memo.scrivi('knx_chiusi', S.chiusi);
+        },
+        perTipo: t => { S.tipo = (S.tipo === t) ? '' : t; if (t === '') { S.tipo = ''; S.filtro = ''; } disegna(); },
+        perFiltro: f => { S.filtro = (S.filtro === f) ? '' : f; disegna(); },
+        azzera: () => { S.q = ''; S.tipo = ''; S.filtro = ''; q.value = ''; $('cerca').classList.remove('piena'); disegna(); },
+        pulisciRicerca: () => { q.value = ''; S.q = ''; $('cerca').classList.remove('piena'); disegna(); q.focus(); },
+        notte: () => { const si = !document.body.classList.contains('notte'); memo.scrivi('knx_notte', si); applicaNotte(si); },
+        ricarica: () => carica(false),
+        esci: () => {
+            /* si arriva dal pulsante nella card KNX delle integrazioni: si torna li', con la card aperta */
+            window.location.href = '/dashboard?integrazione=knx';
+        },
+    };
+
+    /* =================================================================
+       9. PARTENZA: scheletro subito, dati appena arrivano
+       ================================================================= */
+    (function scheletro() {
+        let h = '';
+        [4, 3].forEach(n => {
+            h += '<section class="gruppo"><div class="gruppo-testa"><span class="ico"></span><span class="scheletro" style="width:140px"></span></div><div class="righe">';
+            for (let i = 0; i < n; i++) h += '<div class="riga" style="cursor:default"><div class="piastra" style="--c:var(--fioco-2)"></div><div class="chi"><div class="scheletro" style="width:' + (120 + i * 27 % 90) + 'px"></div><div class="scheletro" style="width:80px;height:10px;margin-top:8px"></div></div><div class="indirizzi"><div class="scheletro" style="width:170px"></div></div><div class="scheletro" style="width:70px;height:26px;border-radius:13px"></div><span></span></div>';
+            h += '</div></section>';
+        });
+        $('elenco').innerHTML = h;
+        let t = '';
+        for (let i = 0; i < 6; i++) t += '<div class="tessera" style="cursor:default"><span class="icona" style="--c:var(--fioco-2)"></span><div><div class="scheletro" style="width:34px;height:22px"></div><div class="scheletro" style="width:70px;height:10px;margin-top:8px"></div></div></div>';
+        $('tessere').innerHTML = t;
+    })();
+    icone();
+    carica(false);
+})();
+</script>
+</body>
+</html>

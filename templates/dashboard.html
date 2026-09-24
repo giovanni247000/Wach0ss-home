@@ -791,65 +791,21 @@
         .ctrl-problema.grave .ctrl-p-nome { color: var(--danger); }
         .ctrl-p-msg { font-size: 0.85rem; line-height: 1.5; color: var(--text-main); }
         .ctrl-p-meta { font-size: 0.72rem; color: var(--text-muted); }
-        /* --- Importazione ETS --- */
-        .ets-box { background: linear-gradient(180deg,#F7FAFF 0%,#F9F9FB 100%); border: 1px solid #DCE7F5; border-radius: 14px; padding: 13px; margin-bottom: 18px; }
-        .ets-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
-        .ets-ico { width: 32px; height: 32px; border-radius: 9px; background: #E5F1FF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .ets-ico i { width: 16px; height: 16px; color: var(--accent); }
-        .ets-count { font-size: 0.72rem; font-weight: 700; color: var(--accent); background: #E5F1FF; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
-        .ets-drop { border: 1.5px dashed #C9D8EC; border-radius: 12px; padding: 18px 12px; text-align: center; cursor: pointer; background: #FFF; transition: all 0.2s; }
-        .ets-drop:hover, .ets-drop.sopra { border-color: var(--accent); background: #F5FAFF; }
-        .ets-drop i { width: 22px; height: 22px; color: var(--accent); margin-bottom: 6px; }
-        .ets-drop div { font-size: 0.82rem; color: var(--text-main); }
-        .ets-formats { font-size: 0.72rem !important; color: var(--text-muted) !important; margin-top: 5px; }
-        .ets-formats code { background: #F2F2F7; padding: 1px 5px; border-radius: 4px; }
-        .ets-search { position: relative; display: flex; align-items: center; gap: 6px; margin-bottom: 9px; }
-        .ets-search > i { position: absolute; left: 11px; width: 14px; height: 14px; color: var(--text-muted); pointer-events: none; }
-        .ets-search input { flex: 1; padding: 9px 12px 9px 32px; border: 1px solid #E5E5EA; border-radius: 10px; font-size: 0.83rem; outline: none; font-family: inherit; }
-        .ets-search input:focus { border-color: var(--accent); }
-        .ets-clear { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #FFD5D5; background: #FFF; color: var(--danger); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .ets-clear:hover { background: #FFF0F0; }
-        .ets-clear i { width: 14px; height: 14px; }
-        .ets-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding-right: 2px; }
-        .ets-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #FFF; border: 1px solid #E5E5EA; border-radius: 10px; cursor: pointer; transition: all 0.15s; text-align: left; font-family: inherit; }
-        .ets-item:hover { border-color: var(--accent); background: #F5FAFF; }
-        .ets-item.usato { opacity: 0.55; }
-        .ets-tipo { width: 26px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .ets-tipo i { width: 13px; height: 13px; }
-        .ets-tipo.light { background: #FFF4D9; color: #C77700; }
-        .ets-tipo.switch { background: #E5F1FF; color: var(--accent); }
-        .ets-tipo.cover { background: #EFEAFB; color: #6B46C1; }
-        .ets-tipo.sensor { background: #E4F8EA; color: #1E7A3A; }
-        .ets-nome { font-size: 0.82rem; font-weight: 600; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .ets-sotto { font-size: 0.71rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .ets-addr { font-size: 0.76rem; font-weight: 700; color: var(--accent); background: #F2F7FF; padding: 3px 8px; border-radius: 6px; flex-shrink: 0; }
-        .ets-tip { font-size: 0.73rem; color: var(--text-muted); margin-top: 9px; display: flex; align-items: center; gap: 6px; }
-        .ets-tip i { width: 13px; height: 13px; }
-        .ets-vuoto { font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 14px; }
-        .ets-assegnato { font-size: 0.7rem; font-weight: 700; color: #1E7A3A; background: #E4F8EA; padding: 3px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; }
-        .ets-item.ets-ok { border-color: #B7E5C6; background: #FAFFFB; }
-        /* Pannello indirizzi ETS: contenitore a se', affiancato alla card */
-        .ets-panel {
-            display: none; background: #FFF; border: 1px solid #E5E5EA; border-radius: var(--radius-lg, 16px);
-            padding: 16px; box-shadow: var(--shadow-sm); align-self: start; position: sticky; top: 10px;
-            max-height: calc(100vh - 40px); overflow: hidden; flex-direction: column;
-        }
-        .ets-panel.attivo { display: flex; animation: etsPanelIn 0.35s cubic-bezier(0.2, 0.9, 0.3, 1); }
-        @keyframes etsPanelIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
-        .ets-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-        .ets-panel .ets-list { max-height: none; flex: 1 1 auto; overflow-y: auto; }
-        .ets-riepilogo { display: flex; align-items: center; gap: 9px; background: #E4F8EA; border: 1px solid #B7E5C6; border-radius: 10px; padding: 9px 11px; font-size: 0.8rem; font-weight: 600; color: #1E7A3A; }
-        .ets-riepilogo > i { width: 15px; height: 15px; flex-shrink: 0; }
-        .ets-riepilogo > span { flex: 1; }
-        /* quando il pannello e' attivo la vista dettaglio diventa a due colonne */
-        #integrations-detail-grid.con-ets { max-width: 1120px; display: grid; grid-template-columns: minmax(0, 700px) minmax(300px, 380px); gap: 18px; align-items: start; }
-        /* il pannello sta nel markup prima delle card: qui lo mandiamo a destra */
-        .ets-panel { order: 2; }
-        #integrations-detail-grid .integration-card { order: 1; }
-        @media (max-width: 1080px) {
-            #integrations-detail-grid.con-ets { grid-template-columns: 1fr; max-width: 700px; }
-            .ets-panel { position: static; max-height: 420px; }
-        }
+        /* --- Scheda KNX: lancio verso la pagina /knx dei dispositivi ---
+           Stessa famiglia del vecchio riquadro ETS (sfondo azzurro chiaro, icona
+           in un quadretto) ma e' un collegamento intero: tutta la riga e' cliccabile. */
+        .knx-lancio { display: flex; align-items: center; gap: 12px; padding: 13px 14px; background: linear-gradient(180deg,#F7FAFF 0%,#F9F9FB 100%); border: 1px solid #DCE7F5; border-radius: 14px; text-decoration: none; color: var(--text-main); transition: var(--transition-smooth); }
+        .knx-lancio:hover { border-color: var(--accent); background: #F5FAFF; box-shadow: var(--shadow-sm); transform: translateY(-1px); }
+        .knx-lancio:active { transform: translateY(1px); }
+        .knx-lancio-ico { width: 38px; height: 38px; border-radius: 11px; background: #E5F1FF; color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .knx-lancio-ico svg { width: 19px; height: 19px; }
+        .knx-lancio-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .knx-lancio-titolo { font-weight: 700; font-size: 0.9rem; }
+        .knx-lancio-sotto { font-size: 0.75rem; color: var(--text-muted); line-height: 1.35; }
+        .knx-lancio-num { font-size: 0.75rem; font-weight: 800; color: var(--accent); background: #E5F1FF; padding: 4px 10px; border-radius: 20px; flex-shrink: 0; }
+        /* lucide sostituisce l'<i> con un <svg> e ne copia la classe */
+        .knx-lancio-freccia { width: 18px; height: 18px; color: var(--text-muted); flex-shrink: 0; transition: transform 0.2s, color 0.2s; }
+        .knx-lancio:hover .knx-lancio-freccia { color: var(--accent); transform: translateX(2px); }
         .btn-sm { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 9px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; text-decoration: none; line-height: 1; }
         .btn-sm i { width: 14px; height: 14px; }
         .btn-sm.primary { background: var(--accent); color: #FFF; box-shadow: 0 2px 8px rgba(10, 132, 255, 0.25); }
@@ -1584,8 +1540,10 @@
 </div>
 {% endif %}
 {% if session.role == 'admin' %}
-    {% if '.knx_' in device.entity_id %}
-    <button class="btn-danger" style="position:absolute; right:10px; width:26px; height:26px; padding:0; display:flex; align-items:center; justify-content:center; z-index: 10;" onclick="deleteKnxEntity('{{ device.entity_id }}')" title="Elimina KNX">
+    {# '___wach' = dispositivo KNX di un hub remoto: non e' in knx_entities di questo
+       server e il cestino toglierebbe solo la card dalle stanze #}
+    {% if '.knx_' in device.entity_id and '___wach' not in device.entity_id %}
+    <button class="btn-danger" style="position:absolute; right:10px; width:26px; height:26px; padding:0; display:flex; align-items:center; justify-content:center; z-index: 10;" onclick='deleteKnxEntity({{ device.entity_id|tojson }})' title="Elimina KNX">
         <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
     </button>
     {% elif domain == 'group' %}
@@ -1896,25 +1854,6 @@
 
 <div class="settings-grid" id="integrations-detail-grid" style="display:none;">
 
-    <!-- Pannello indirizzi ETS: vive fuori dalle card e si affianca a quella KNX -->
-    <aside id="ets-panel" class="ets-panel">
-        <div class="ets-panel-head">
-            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-                <span class="ets-ico"><i data-lucide="list-tree"></i></span>
-                <div style="min-width:0;">
-                    <div style="font-weight:700; font-size:0.9rem;">Indirizzi ETS</div>
-                    <div id="ets-count" style="font-size:0.74rem; color:var(--text-muted);"></div>
-                </div>
-            </div>
-            <button type="button" class="ets-clear" onclick="svuotaETS()" title="Rimuovi la lista importata"><i data-lucide="trash-2"></i></button>
-        </div>
-        <div class="ets-search">
-            <i data-lucide="search"></i>
-            <input type="text" id="ets-q" placeholder="Cerca (es. soggiorno, tapparella, 1/1)" oninput="cercaETS()">
-        </div>
-        <div id="ets-list" class="ets-list"></div>
-        <div class="ets-tip"><i data-lucide="mouse-pointer-click"></i> Tocca un indirizzo per usarlo nel modulo</div>
-    </aside>
 
     
     <div class="integration-card bk-card" data-key="backup">
@@ -2123,134 +2062,21 @@
 
             <div style="border-top: 1px solid #E5E5EA; margin: 18px 0 14px;"></div>
 
-            <!-- IMPORTAZIONE INDIRIZZI DA ETS -->
-            <div class="ets-box">
-                <div class="ets-head">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <span class="ets-ico"><i data-lucide="file-down"></i></span>
-                        <div>
-                            <div style="font-weight:700; font-size:0.88rem;">Importa da ETS</div>
-                            <div style="font-size:0.75rem; color:var(--text-muted);">Carica la lista indirizzi e creali con un clic</div>
-                        </div>
-                    </div>
-                    <span class="ets-count" style="display:none;"></span>
-                </div>
-
-                <input type="file" id="ets-file" accept=".csv,.esf,.xml,.txt" style="display:none;" onchange="importaETS(event)">
-                <div id="ets-drop" class="ets-drop" onclick="document.getElementById('ets-file').click()">
-                    <i data-lucide="upload-cloud"></i>
-                    <div><b>Scegli il file</b> o trascinalo qui</div>
-                    <div class="ets-formats">ETS &rarr; Indirizzi di gruppo &rarr; Esporta &middot; formati <code>.csv</code> <code>.esf</code> <code>.xml</code></div>
-                </div>
-
-                <div id="ets-caricato" style="display:none;">
-                    <div class="ets-riepilogo">
-                        <i data-lucide="check-circle-2"></i>
-                        <span>Lista pronta nel pannello accanto</span>
-                        <button type="button" class="ets-clear" onclick="svuotaETS()" title="Rimuovi la lista importata"><i data-lucide="trash-2"></i></button>
-                    </div>
-                </div>
-            </div>
-
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                <i data-lucide="plus-circle" style="width: 16px; height: 16px; color: var(--accent);"></i>
-                <span style="font-size: 0.85rem; font-weight: 700;">Crea Entità KNX</span>
-            </div>
-            <div class="setup-section" style="padding: 0; background: transparent; border: none; margin: 0;">
-                <label>Nome Apparato</label>
-                <input type="text" id="knx-name" placeholder="Es. Tapparella Bagno">
-
-                <label>Dominio</label>
-                <select id="knx-domain" onchange="this.dataset.tocco='1'; toggleKnxFields()">
-                    <option value="light">Luce (On/Off)</option>
-                    <option value="switch">Interruttore (Generico)</option>
-                    <option value="cover">Tapparella (Salita/Discesa)</option>
-                    <option value="climate">Termostato (Temperatura)</option>
-                </select>
-
-                <div id="knx-standard-fields">
-                    <div class="flex-row">
-                        <div><label>Group Address (Cmd)</label><input type="text" id="knx-ga-cmd" placeholder="1/1/1"></div>
-                        <div><label>State Address (Opz.)</label><input type="text" id="knx-ga-state" placeholder="1/1/2"></div>
-                    </div>
-                </div>
-
-                <div id="knx-light-fields" style="display:none; margin-top:10px;">
-                    <div class="flex-row">
-                        <div><label>Imposta Luminosità (Opz.)</label><input type="text" id="knx-ga-brightness" placeholder="1/1/3"></div>
-                        <div><label>Stato Luminosità (Opz.)</label><input type="text" id="knx-ga-brightness-state" placeholder="1/1/4"></div>
-                    </div>
-                </div>
-
-                <div id="knx-cover-fields" style="display:none; margin-top:10px;">
-                    <div class="flex-row">
-                        <div><label>Cmd Salita/Discesa</label><input type="text" id="knx-ga-cover-updown" placeholder="2/1/1"></div>
-                        <div><label>Cmd Stop</label><input type="text" id="knx-ga-cover-stop" placeholder="2/1/2"></div>
-                    </div>
-                    <div class="flex-row" style="margin-top:8px;">
-                        <div><label>Imposta % (Opz.)</label><input type="text" id="knx-ga-cover-pos" placeholder="2/1/3"></div>
-                        <div><label>Stato % (Opz.)</label><input type="text" id="knx-ga-cover-pos-state" placeholder="2/1/4"></div>
-                    </div>
-                </div>
-                <div id="knx-climate-fields" style="display:none; margin-top:10px;">
-                    <div class="flex-row">
-                        <div><label>Temperatura Ambiente</label><input type="text" id="knx-ga-temperature" placeholder="3/1/1"></div>
-                        <div><label>Imposta Temperatura</label><input type="text" id="knx-ga-setpoint" placeholder="3/1/2"></div>
-                    </div>
-                    <div class="flex-row" style="margin-top:8px;">
-                        <div><label>Stato Temperatura Impostata (Opz.)</label><input type="text" id="knx-ga-setpoint-state" placeholder="3/1/3"></div>
-                        <div></div>
-                    </div>
-                    <div style="border-top:1px dashed #E5E5EA; margin:14px 0 10px; padding-top:10px;">
-                        <div style="font-size:0.78rem; font-weight:700; margin-bottom:6px;">Modalità (opzionale)</div>
-                        <div class="flex-row">
-                            <div><label>Caldo/Freddo &mdash; Comando</label><input type="text" id="knx-ga-heat-cool" placeholder="3/1/4"></div>
-                            <div><label>Caldo/Freddo &mdash; Stato</label><input type="text" id="knx-ga-heat-cool-state" placeholder="3/1/5"></div>
-                        </div>
-                        <div class="flex-row" style="margin-top:8px;">
-                            <div><label>Modalità HVAC &mdash; Comando</label><input type="text" id="knx-ga-mode" placeholder="3/1/6"></div>
-                            <div><label>Modalità HVAC &mdash; Stato</label><input type="text" id="knx-ga-mode-state" placeholder="3/1/7"></div>
-                        </div>
-                    </div>
-                    <div style="font-size:0.72rem; color:var(--text-muted); margin-top:8px; line-height:1.5;">
-                        <b>Temperatura Ambiente</b>: indirizzo DPT 9.001 che il termostato trasmette con la temperatura misurata.<br>
-                        <b>Imposta Temperatura</b>: indirizzo DPT 9.001 su cui scrivere la temperatura desiderata.<br>
-                        Lo <b>stato</b> serve solo se il termostato pubblica il setpoint su un indirizzo diverso da quello di comando.<br>
-                        <b>Caldo/Freddo</b>: indirizzo DPT 1.100 che commuta fra riscaldamento e raffrescamento (in app: i tasti fiamma e fiocco).<br>
-                        <b>Modalità HVAC</b>: indirizzo DPT 20.105, da usare al posto del precedente se il tuo termostato gestisce anche Auto e Spento.<br>
-                        Compila solo la coppia che il tuo impianto usa davvero: se non ne compili nessuna, il termostato regola la sola temperatura.
-                    </div>
-                </div>
-                <div class="card-actions">
-                    <button type="button" class="btn-sm primary" onclick="saveKnxEntity()"><i data-lucide="plus"></i> Crea Entità</button>
-                </div>
-            </div>
-
+            <!-- DISPOSITIVI KNX: aggiunta, modifica, elenco e import ETS stanno nella pagina /knx.
+                 Il numero conta solo i dispositivi di QUESTO impianto: quelli che arrivano
+                 dagli hub remoti hanno anch'essi '.knx_' nell'id (con il suffisso '___wach')
+                 ma si gestiscono sul loro server, non qui. -->
             {% set knx_devs = [] %}
-            {% for d in devices %}{% if '.knx_' in d.entity_id %}{% set _ = knx_devs.append(d) %}{% endif %}{% endfor %}
-            <div style="border-top: 1px solid #E5E5EA; margin: 18px 0 14px;"></div>
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="list-checks" style="width: 16px; height: 16px; color: var(--accent);"></i>
-                    <span style="font-size: 0.85rem; font-weight: 700;">Entità Configurate</span>
-                </div>
-                <div class="setup-badge" style="background:#E5F1FF; color:var(--accent);">{{ knx_devs | length }}</div>
-            </div>
-            {% for d in knx_devs %}
-            <div class="integration-list-item">
-                <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-                    <i data-lucide="{{ 'blinds' if d.entity_id.startswith('cover.') else ('lightbulb' if d.entity_id.startswith('light.') else ('thermometer' if d.entity_id.startswith('climate.') else 'power')) }}" style="width: 16px; height: 16px; color: var(--accent); flex-shrink: 0;"></i>
-                    <div style="min-width: 0;">
-                        <div style="font-weight: 600; font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ d.attributes.friendly_name }}</div>
-                        <div style="font-size: 0.72rem; color: var(--text-muted);">{{ 'Tapparella' if d.entity_id.startswith('cover.') else ('Luce' if d.entity_id.startswith('light.') else ('Termostato' if d.entity_id.startswith('climate.') else 'Interruttore')) }}{% if d.attributes.ga_command %} &middot; GA {{ d.attributes.ga_command }}{% endif %}</div>
-                    </div>
-                </div>
-                <a href="javascript:void(0)" onclick="deleteKnxEntity('{{ d.entity_id }}')" style="color: var(--danger); flex-shrink: 0;" title="Elimina entità"><i data-lucide="trash-2" style="width: 16px;"></i></a>
-            </div>
-            {% endfor %}
-            {% if not knx_devs %}
-            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">Nessuna entità KNX ancora creata: usa il modulo qui sopra.</p>
-            {% endif %}
+            {% for d in devices %}{% if '.knx_' in d.entity_id and '___wach' not in d.entity_id %}{% set _ = knx_devs.append(d) %}{% endif %}{% endfor %}
+            <a href="/knx" class="knx-lancio">
+                <span class="knx-lancio-ico"><i data-lucide="network"></i></span>
+                <span class="knx-lancio-testo">
+                    <span class="knx-lancio-titolo">Dispositivi KNX</span>
+                    <span class="knx-lancio-sotto">Aggiungi, vedi e modifica gli apparati del bus</span>
+                </span>
+                <span class="knx-lancio-num" title="Dispositivi KNX di questo impianto">{{ knx_devs | length }}</span>
+                <i data-lucide="chevron-right" class="knx-lancio-freccia"></i>
+            </a>
         </div>
     </div>
 
@@ -3979,73 +3805,6 @@
 
       
         
-function toggleKnxFields() {
-            const domain = document.getElementById('knx-domain').value;
-            document.getElementById('knx-standard-fields').style.display = 'block';
-
-            if(domain === 'cover') {
-                document.getElementById('knx-standard-fields').style.display = 'none';
-                document.getElementById('knx-cover-fields').style.display = 'block';
-                document.getElementById('knx-light-fields').style.display = 'none';
-                document.getElementById('knx-climate-fields').style.display = 'none';
-            } else if (domain === 'climate') {
-                document.getElementById('knx-standard-fields').style.display = 'none';
-                document.getElementById('knx-cover-fields').style.display = 'none';
-                document.getElementById('knx-light-fields').style.display = 'none';
-                document.getElementById('knx-climate-fields').style.display = 'block';
-            } else if (domain === 'light') {
-                document.getElementById('knx-cover-fields').style.display = 'none';
-                document.getElementById('knx-light-fields').style.display = 'block';
-                document.getElementById('knx-climate-fields').style.display = 'none';
-            } else {
-                document.getElementById('knx-cover-fields').style.display = 'none';
-                document.getElementById('knx-light-fields').style.display = 'none';
-                document.getElementById('knx-climate-fields').style.display = 'none';
-            }
-        }
-
-        async function saveKnxEntity() {
-            const domain = document.getElementById('knx-domain').value;
-            const data = { 
-                name: document.getElementById('knx-name').value, 
-                domain: domain 
-            };
-
-            if (domain === 'cover') {
-                data.ga_command = document.getElementById('knx-ga-cover-updown').value;
-                data.ga_stop = document.getElementById('knx-ga-cover-stop').value;
-                data.ga_position = document.getElementById('knx-ga-cover-pos').value;
-                data.ga_position_state = document.getElementById('knx-ga-cover-pos-state').value;
-            } else if (domain === 'climate') {
-                data.ga_temperature = document.getElementById('knx-ga-temperature').value;
-                data.ga_setpoint = document.getElementById('knx-ga-setpoint').value;
-                data.ga_setpoint_state = document.getElementById('knx-ga-setpoint-state').value;
-                data.ga_heat_cool = document.getElementById('knx-ga-heat-cool').value;
-                data.ga_heat_cool_state = document.getElementById('knx-ga-heat-cool-state').value;
-                data.ga_mode = document.getElementById('knx-ga-mode').value;
-                data.ga_mode_state = document.getElementById('knx-ga-mode-state').value;
-                data.ga_command = data.ga_setpoint;
-            } else {
-                data.ga_command = document.getElementById('knx-ga-cmd').value;
-                data.ga_state = document.getElementById('knx-ga-state').value;
-                
-                if (domain === 'light') {
-                    data.ga_brightness = document.getElementById('knx-ga-brightness').value;
-                    data.ga_brightness_state = document.getElementById('knx-ga-brightness-state').value;
-                }
-            }
-
-if(!data.name || !data.domain) return showToast("Dati mancanti (Cmd Base Obbligatorio)", "error");
-    if (domain === 'climate') {
-        if (!data.ga_setpoint) return showToast("Serve l'indirizzo per impostare la temperatura", "error");
-        if (!data.ga_temperature) return showToast("Serve l'indirizzo della temperatura ambiente", "error");
-    } else if (!data.ga_command) { return showToast("Dati mancanti (Cmd Base Obbligatorio)", "error"); } 
-    await fetch('/api/knx/entity', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-    integrationsDirty = true;
-    showToast("Indirizzo di gruppo mappato", "success"); 
-            setTimeout(() => refreshIntegrationCard(document.querySelector('.integration-card[data-key="knx"]')), 500);
-        }
-
         function openUnifiedModal() {
             document.getElementById('unified-creation-modal').classList.add('active');
             
@@ -4083,9 +3842,20 @@ if(!data.name || !data.domain) return showToast("Dati mancanti (Cmd Base Obbliga
         }
         async function deleteKnxEntity(entityId) {
             if(await chiedi("Rimuovere mapping KNX?", { titolo: "Rimuovi mapping", si: "Rimuovi", pericolo: true })) {
-                await fetch('/api/knx/entity', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({entity_id: entityId}) });
+                const r = await fetch('/api/knx/dispositivo', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({entity_id: entityId}) });
+                const esito = await r.json().catch(() => ({}));
+                // errore vero (404 gia' cancellato altrove, 500 database occupato, 403 o sessione scaduta che
+                // torna la pagina di login): niente 'rimosso' in verde. Col 404 la card e' un fantasma: si ricarica.
+                if (!r.ok || esito.status !== 'success') {
+                    showToast(r.status === 404 ? "Il dispositivo era gia' stato eliminato" : "Eliminazione non riuscita", 'error');
+                    if (r.status === 404) { integrationsDirty = true; setTimeout(() => location.reload(), 1200); }
+                    return;
+                }
                 integrationsDirty = true;
                 showToast("Mapping rimosso", "success");
+                // la cancellazione nuova ripulisce anche gruppi, scene, allarme, icone e nomi; le automazioni
+                // non si riscrivono da sole: il server dice quali lo usavano ancora
+                if (esito.avvisi && esito.avvisi.length) await avvisa(esito.avvisi.join('\n'), { titolo: "Da correggere a mano" });
                 // Dentro il pannello integrazioni: si aggiorna solo la card KNX.
                 // Dalla griglia principale: serve la ricarica per far sparire la card entita'.
                 const setupModal = document.getElementById('setup-modal');
@@ -4338,6 +4108,14 @@ if (editingType === 'room') {
 
             {% if session.role == 'admin' %}
             if(document.querySelector('.error') !== null || new URLSearchParams(window.location.search).get('setup') === 'open') openSetupModal();
+            // ritorno dalla pagina /knx (o da un'altra pagina di un'integrazione): si riapre la card da cui
+            // si era partiti. Solo lettere e trattini bassi: la chiave finisce in un selettore CSS.
+            const _integr = new URLSearchParams(window.location.search).get('integrazione');
+            if (_integr && /^[a-z_]+$/.test(_integr) && typeof openIntegrationDetail === 'function') {
+                openSetupModal();
+                openIntegrationDetail(_integr);
+                history.replaceState(null, '', window.location.pathname);   // un ricarica non la riapre
+            }
             {% endif %}
 
             checkForUpdates();
@@ -5812,9 +5590,6 @@ async function refreshIntegrationCard(card) {
         if (key === 'tv' && typeof loadTvDevices === 'function') loadTvDevices();
         if (key === 'nvr' && typeof loadNvr === 'function') loadNvr();
         if (key === 'knx' && typeof checkKnxStatus === 'function') checkKnxStatus();
-        // La lista ETS vive dentro il contenuto appena sostituito: va ricaricata,
-        // altrimenti dopo aver creato un'entita' sembrerebbe sparita.
-        if (key === 'knx' && typeof cercaETS === 'function') cercaETS();
         if (key === 'zerotier' && typeof checkZeroTierStatus === 'function') { checkZeroTierStatus(); loadZeroTierNetworks(); }
         if (key === 'cloudflare' && typeof checkCloudflareStatus === 'function') checkCloudflareStatus();
         if (key === 'ha' && typeof checkHaDocker === 'function') checkHaDocker();
@@ -5888,228 +5663,6 @@ function toggleCamManual() {
     document.getElementById('cam-manual').classList.toggle('open');
 }
 
-// --- IMPORTAZIONE INDIRIZZI ETS ---
-let ETS_VOCI = [];
-
-async function importaETS(evOrFile) {
-    const file = evOrFile.target ? evOrFile.target.files[0] : evOrFile;
-    if (!file) return;
-    const zona = document.getElementById('ets-drop');
-    const originale = zona.innerHTML;
-    zona.innerHTML = '<i data-lucide="loader-2" style="animation:spin 1s linear infinite;"></i><div>Lettura del file in corso&hellip;</div>';
-    lucide.createIcons({root: zona});
-    try {
-        const fd = new FormData();
-        fd.append('file', file);
-        const r = await fetch('/api/knx/ets_import', { method: 'POST', body: fd });
-        const d = await r.json();
-        if (d.status !== 'success') {
-            zona.innerHTML = originale;
-            lucide.createIcons({root: zona});
-            showToast(d.message || 'File non valido', 'error');
-            return;
-        }
-        showToast(`${d.totale} indirizzi importati`, 'success');
-        await cercaETS();
-    } catch (e) {
-        zona.innerHTML = originale;
-        lucide.createIcons({root: zona});
-        showToast('Errore durante la lettura del file', 'error');
-    }
-}
-
-async function cercaETS() {
-    const q = (document.getElementById('ets-q') || {}).value || '';
-    try {
-        const r = await fetch('/api/knx/ets_list?q=' + encodeURIComponent(q));
-        const d = await r.json();
-        ETS_VOCI = d.voci || [];
-
-        const caricato = document.getElementById('ets-caricato');
-        const zona = document.getElementById('ets-drop');
-        const badge = document.getElementById('ets-count');
-        const pannello = document.getElementById('ets-panel');
-        const griglia = document.getElementById('integrations-detail-grid');
-        // il pannello si affianca solo mentre si lavora sulla card KNX
-        const knxInVista = !!document.querySelector('.integration-card[data-key="knx"].detail-visible');
-
-        if (!d.totale) {
-            if (caricato) caricato.style.display = 'none';
-            if (zona) zona.style.display = 'block';
-            if (pannello) pannello.classList.remove('attivo');
-            if (griglia) griglia.classList.remove('con-ets');
-            return;
-        }
-        if (zona) zona.style.display = 'none';
-        if (caricato) caricato.style.display = 'block';
-        if (badge) badge.textContent = d.totale + ' indirizzi importati';
-        if (pannello) pannello.classList.toggle('attivo', knxInVista);
-        if (griglia) griglia.classList.toggle('con-ets', knxInVista);
-
-        const lista = document.getElementById('ets-list');
-        lista.innerHTML = '';
-        if (!ETS_VOCI.length) {
-            lista.innerHTML = '<div class="ets-vuoto">Nessun indirizzo trovato per questa ricerca.</div>';
-            return;
-        }
-        const icone = { light: 'lightbulb', switch: 'toggle-right', cover: 'blinds', sensor: 'activity' };
-        ETS_VOCI.forEach(v => {
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.className = 'ets-item' + (v.usato ? ' usato' : '');
-            b.title = v.usato ? 'Gia\u2019 usato in un\u2019entita\u2019' : 'Usa questo indirizzo';
-            b.innerHTML = `
-                <span class="ets-tipo ${v.domain}"><i data-lucide="${icone[v.domain] || 'circle'}"></i></span>
-                <span style="flex:1; min-width:0;">
-                    <span class="ets-nome" style="display:block;">${v.name || v.address}</span>
-                    <span class="ets-sotto" style="display:block;">${v.path ? v.path + ' &middot; ' : ''}${v.tipo_desc}${v.usato ? ' &middot; gi\u00e0 usato' : ''}</span>
-                </span>
-                <span class="ets-addr">${v.address}</span>`;
-            b.onclick = () => usaIndirizzoETS(v);
-            lista.appendChild(b);
-        });
-        lucide.createIcons({root: lista});
-    } catch (e) {}
-}
-
-// Porta l'indirizzo scelto nel modulo di creazione, compilando anche
-// nome e tipo quando sono deducibili.
-function usaIndirizzoETS(v) {
-    const nome = document.getElementById('knx-name');
-    const dominio = document.getElementById('knx-domain');
-
-    if (nome && !nome.value.trim()) nome.value = v.name || '';
-    if (dominio && !dominio.dataset.tocco) {
-        // una sonda di temperatura fa parte del termostato: non deve farci
-        // retrocedere al tipo generico dopo che siamo gia' su 'climate'
-        if (!(dominio.value === 'climate' && v.domain === 'sensor')) {
-            dominio.value = v.domain === 'sensor' ? 'switch' : v.domain;   // i sensori usano il tipo generico
-            if (typeof toggleKnxFields === 'function') toggleKnxFields();
-        }
-    }
-
-    // Sceglie il campo in base a COSA rappresenta l'indirizzo, non solo al
-    // primo posto libero: un indirizzo di luminosita' non deve finire nello stato.
-    const perTipo = {
-        cover:  ['knx-ga-cover-updown', 'knx-ga-cover-stop', 'knx-ga-cover-pos', 'knx-ga-cover-pos-state'],
-        light:  ['knx-ga-cmd', 'knx-ga-state', 'knx-ga-brightness', 'knx-ga-brightness-state'],
-        switch: ['knx-ga-cmd', 'knx-ga-state'],
-        sensor: ['knx-ga-cmd', 'knx-ga-state'],
-        climate: ['knx-ga-temperature', 'knx-ga-setpoint', 'knx-ga-setpoint-state',
-                  'knx-ga-heat-cool', 'knx-ga-heat-cool-state', 'knx-ga-mode', 'knx-ga-mode-state']
-    };
-    const dom = (dominio && dominio.value) || v.domain;
-    const campi = perTipo[dom] || perTipo.switch;
-
-    const testo = ((v.name || '') + ' ' + (v.tipo_desc || '')).toLowerCase();
-    // "termostato" contiene "stato": va tolto o ogni indirizzo del termostato
-    // verrebbe scambiato per un indirizzo di stato.
-    const testoStato = testo.replace(/termostat\w*|thermostat\w*/g, ' ');
-    const eStato = /stato|state|feedback|rueckmeld|ruckmeld/.test(testoStato);
-    const eLuminosita = /luminos|dimm|brightness|helligkeit/.test(testo) || v.dpt === '3.007';
-    const ePercentuale = v.dpt === '5.001' || v.dpt === '5.004' || /percentual|posizione|position/.test(testo);
-    const eStop = /stop|arresto/.test(testo) || v.dpt === '1.010';
-    const eSetpoint = /setpoint|set point|desiderat|comfort|consegna|sollwert|impostat/.test(testo);
-    const eTempAmbiente = /ambiente|attuale|misurat|reale|istwert|current/.test(testo);
-
-    const libero = id => { const el = document.getElementById(id); return el && !el.value.trim(); };
-    const esiste = id => !!document.getElementById(id);
-
-    // preferenze in ordine, poi ripiego sul primo campo libero
-    let preferiti = [];
-    if (dom === 'cover') {
-        if (eStop) preferiti = ['knx-ga-cover-stop'];
-        else if (ePercentuale) preferiti = eStato ? ['knx-ga-cover-pos-state', 'knx-ga-cover-pos'] : ['knx-ga-cover-pos', 'knx-ga-cover-pos-state'];
-        else preferiti = ['knx-ga-cover-updown'];
-    } else if (dom === 'light') {
-        if (eLuminosita || ePercentuale) preferiti = eStato ? ['knx-ga-brightness-state', 'knx-ga-brightness'] : ['knx-ga-brightness', 'knx-ga-brightness-state'];
-        else preferiti = eStato ? ['knx-ga-state'] : ['knx-ga-cmd'];
-    } else if (dom === 'climate') {
-        const eCaldoFreddo = v.dpt === '1.100' || /caldo.?freddo|heat.?cool|estate.?invern|umschalt/.test(testo);
-        const eModoHvac = v.dpt === '20.105' || v.dpt === '20.102' || /modalit|modo |hvac|betriebsart/.test(testo);
-        if (eCaldoFreddo) preferiti = eStato ? ['knx-ga-heat-cool-state', 'knx-ga-heat-cool'] : ['knx-ga-heat-cool', 'knx-ga-heat-cool-state'];
-        else if (eModoHvac) preferiti = eStato ? ['knx-ga-mode-state', 'knx-ga-mode'] : ['knx-ga-mode', 'knx-ga-mode-state'];
-        else if (eSetpoint) preferiti = eStato ? ['knx-ga-setpoint-state', 'knx-ga-setpoint'] : ['knx-ga-setpoint', 'knx-ga-setpoint-state'];
-        else if (eTempAmbiente) preferiti = ['knx-ga-temperature'];
-        else preferiti = eStato ? ['knx-ga-temperature', 'knx-ga-setpoint-state'] : ['knx-ga-temperature', 'knx-ga-setpoint'];
-    } else {
-        preferiti = eStato ? ['knx-ga-state'] : ['knx-ga-cmd'];
-    }
-
-    let scelto = preferiti.find(id => esiste(id) && libero(id))
-              || campi.find(id => esiste(id) && libero(id))
-              || preferiti.find(esiste)
-              || campi[0];
-
-    const campo = document.getElementById(scelto);
-    if (campo) {
-        campo.value = v.address;
-        campo.style.transition = 'background 0.4s';
-        campo.style.background = '#E4F8EA';
-        setTimeout(() => { campo.style.background = ''; }, 900);
-        // Niente scrollIntoView: sposterebbe la pagina a ogni clic e per una
-        // tapparella servono tre indirizzi di fila. Il riscontro lo diamo
-        // sulla riga appena toccata.
-        const etichette = {
-            'knx-ga-cmd': 'Comando', 'knx-ga-state': 'Stato',
-            'knx-ga-brightness': 'Luminosit\u00e0', 'knx-ga-brightness-state': 'Stato luminosit\u00e0',
-            'knx-ga-cover-updown': 'Su/Gi\u00f9', 'knx-ga-cover-stop': 'Stop',
-            'knx-ga-cover-pos': 'Posizione', 'knx-ga-cover-pos-state': 'Stato posizione',
-            'knx-ga-temperature': 'Temperatura', 'knx-ga-setpoint': 'Imposta temp.',
-            'knx-ga-setpoint-state': 'Stato temp. impostata',
-            'knx-ga-heat-cool': 'Caldo/Freddo', 'knx-ga-heat-cool-state': 'Stato caldo/freddo',
-            'knx-ga-mode': 'Modalit\u00e0', 'knx-ga-mode-state': 'Stato modalit\u00e0'
-        };
-        segnalaAssegnazione(v.address, etichette[scelto] || 'Comando');
-    }
-}
-
-// Mostra sulla riga dell'indirizzo a quale campo e' stato assegnato
-function segnalaAssegnazione(indirizzo, etichetta) {
-    const lista = document.getElementById('ets-list');
-    if (!lista) return;
-    lista.querySelectorAll('.ets-item').forEach(el => {
-        const addr = el.querySelector('.ets-addr');
-        if (!addr || addr.textContent.trim() !== indirizzo) return;
-        let tag = el.querySelector('.ets-assegnato');
-        if (!tag) {
-            tag = document.createElement('span');
-            tag.className = 'ets-assegnato';
-            addr.parentNode.insertBefore(tag, addr);
-        }
-        tag.textContent = '\u2192 ' + etichetta;
-        el.classList.add('ets-ok');
-    });
-}
-
-async function svuotaETS() {
-    if (!await chiedi('Rimuovere la lista di indirizzi importata?', { titolo: 'Rimuovi lista', si: 'Rimuovi', pericolo: true })) return;
-    try {
-        await fetch('/api/knx/ets_clear', { method: 'POST' });
-        document.getElementById('ets-q').value = '';
-        await cercaETS();
-        showToast('Lista rimossa', 'success');
-    } catch (e) {}
-}
-
-// trascinamento del file sulla zona
-(function attivaTrascinamentoETS() {
-    document.addEventListener('DOMContentLoaded', () => {
-        const zona = document.getElementById('ets-drop');
-        if (!zona) return;
-        ['dragenter', 'dragover'].forEach(t => zona.addEventListener(t, e => {
-            e.preventDefault(); zona.classList.add('sopra');
-        }));
-        ['dragleave', 'drop'].forEach(t => zona.addEventListener(t, e => {
-            e.preventDefault(); zona.classList.remove('sopra');
-        }));
-        zona.addEventListener('drop', e => {
-            const f = e.dataTransfer.files && e.dataTransfer.files[0];
-            if (f) importaETS(f);
-        });
-    });
-})();
-
 // --- MINI GUIDE DELLE INTEGRAZIONI ---
 // Testi in un punto solo; il bottone (?) e il pannello vengono inseriti
 // automaticamente in ogni card, senza duplicare markup.
@@ -6151,7 +5704,7 @@ const GUIDE_INTEGRAZIONI = {
         <ol>
             <li>Inserisci l'indirizzo IP del gateway e lascia la porta <code>3671</code> (quella standard).</li>
             <li>Salva: il pallino di stato diventa verde quando il tunnel &egrave; attivo.</li>
-            <li>Crea le entit&agrave; qui sotto indicando gli <b>indirizzi di gruppo</b> presi dal progetto ETS.</li>
+            <li>Apri <b>Dispositivi KNX</b> e aggiungi gli apparati indicando gli <b>indirizzi di gruppo</b> presi dal progetto ETS (puoi anche importare l'esportazione di ETS).</li>
         </ol>
         <div class="nota"><b>Attenzione:</b> i gateway accettano poche connessioni contemporanee. Se ETS &egrave; aperto sul PC, il tunnel di Wach0ss pu&ograve; venire rifiutato: chiudi ETS e attendi un minuto.</div>`
     },
@@ -8126,7 +7679,7 @@ function openIntegrationDetail(key) {
     if (key === 'sonos') loadSonosDevices();
     if (key === 'tv') loadTvDevices();
     if (key === 'nvr') loadNvr();
-    if (key === 'knx') { checkKnxStatus(); if (typeof cercaETS === 'function') cercaETS(); }
+    if (key === 'knx') checkKnxStatus();
     if (key === 'zerotier') { checkZeroTierStatus(); loadZeroTierNetworks(); }
     if (key === 'cloudflare') checkCloudflareStatus();
     if (key === 'ha') checkHaDocker();
@@ -8136,9 +7689,6 @@ function openIntegrationDetail(key) {
 }
 
 function backFromDetail() {
-    const pannelloEts = document.getElementById('ets-panel');
-    if (pannelloEts) pannelloEts.classList.remove('attivo');
-    document.getElementById('integrations-detail-grid').classList.remove('con-ets');
     document.getElementById('integrations-detail-grid').querySelectorAll('.integration-card').forEach(card => card.classList.remove('detail-visible'));
     renderInstalledGrid();
     showView('main');
