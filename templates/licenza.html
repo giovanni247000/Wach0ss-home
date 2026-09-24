@@ -412,6 +412,73 @@
     .garanzia { margin: 16px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--fioco-2); text-align: center; text-wrap: balance; }
     .garanzia svg { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -3px; color: rgba(255,200,130,0.7); }
 
+    button.btn-secondario { font-family: inherit; cursor: pointer; }
+
+    /* ---- RICHIESTA DELLA LICENZA: il riquadro dei recapiti -------------- */
+    .contatti-velo {
+        position: fixed; inset: 0; z-index: 15; display: flex; align-items: center; justify-content: center;
+        padding: calc(16px + var(--alto)) 16px calc(16px + var(--basso));
+        background: rgba(3,5,12,0.62); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+        opacity: 0; transition: opacity 0.25s ease;
+    }
+    .contatti-velo.su { opacity: 1; }
+    .contatti {
+        position: relative; width: 100%; max-width: 420px; max-height: 100%; overflow-y: auto;
+        padding: 26px 22px 20px; border-radius: 22px; text-align: center;
+        background: linear-gradient(180deg, rgba(30,25,26,0.97) 0%, rgba(13,13,21,0.97) 100%);
+        border: 1px solid rgba(255,214,160,0.16);
+        box-shadow: 0 30px 80px -20px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,236,210,0.06);
+        transform: translateY(14px) scale(0.98); transition: transform 0.35s var(--curva);
+    }
+    .contatti-velo.su .contatti { transform: none; }
+    .contatti-chiudi {
+        position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 10px; border: 0;
+        display: flex; align-items: center; justify-content: center; cursor: pointer;
+        background: rgba(255,236,210,0.06); color: var(--fioco);
+    }
+    .contatti-chiudi:hover { background: rgba(255,236,210,0.12); color: var(--testo); }
+    .contatti-chiudi svg { width: 17px; height: 17px; }
+    .contatti-icona {
+        display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; margin-bottom: 12px;
+        border-radius: 15px; color: #2A1A08; background: linear-gradient(180deg, var(--oro-1) 0%, var(--oro-2) 100%);
+        box-shadow: 0 10px 26px -8px rgba(217,162,94,0.6);
+    }
+    .contatti-icona svg { width: 22px; height: 22px; }
+    .contatti h2 { margin: 0 0 6px; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+    .contatti-intro { margin: 0 auto 18px; max-width: 34ch; font-size: 0.88rem; line-height: 1.5; color: var(--fioco); text-wrap: balance; }
+    .recapiti { list-style: none; margin: 0 0 16px; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+    .recapito {
+        display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 14px;
+        background: rgba(255,236,210,0.04); border: 1px solid rgba(255,236,210,0.10);
+    }
+    .recapito > svg { width: 18px; height: 18px; color: var(--ambra); flex-shrink: 0; }
+    .recapito-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .recapito-nome { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fioco-2); }
+    .recapito-valore {
+        font-size: 14.5px; font-weight: 600; color: var(--testo); text-decoration: none; overflow-wrap: anywhere;
+        -webkit-user-select: text; user-select: text;
+    }
+    a.recapito-valore[href]:hover { color: var(--oro-1); text-decoration: underline; text-underline-offset: 3px; }
+    .recapito-valore.codice { color: #F4D29C; letter-spacing: 0.05em; font-variant-numeric: tabular-nums slashed-zero; }
+    .recapito-copia {
+        flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 11px; border-radius: 10px;
+        border: 1px solid rgba(255,214,160,0.2); background: rgba(255,214,160,0.07); color: var(--oro-1);
+        font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .recapito-copia:hover { background: rgba(255,214,160,0.13); }
+    .recapito-copia svg { width: 14px; height: 14px; }
+    .recapito-copia .i-fatto, .recapito-copia.fatto .i-copia { display: none; }
+    .recapito-copia.fatto .i-fatto { display: block; color: var(--ok); }
+    .contatti-chiudi:focus-visible, .recapito-copia:focus-visible, .recapito-valore:focus-visible { outline: 2px solid #FFE3B8; outline-offset: 2px; }
+    /* telefono: il pulsante Copia resta solo icona, cosi' l'indirizzo sta su una riga */
+    @media (max-width: 440px) {
+        .contatti { padding: 24px 16px 18px; }
+        .recapito { gap: 10px; padding: 10px 10px 10px 12px; }
+        .recapito-valore { font-size: 13.5px; }
+        .recapito-copia { width: 36px; padding: 0; justify-content: center; }
+        .recapito-copia span { display: none; }
+    }
+
     /* ---- L'ESITO: impianto attivato ------------------------------------ */
     .glass-card > .card-header, .glass-card > .contenuto { transition: opacity 0.45s ease, transform 0.6s var(--curva), filter 0.45s ease; }
     .glass-card.attivata > .card-header, .glass-card.attivata > .contenuto { opacity: 0; transform: scale(0.97); filter: blur(4px); pointer-events: none; }
@@ -841,10 +908,9 @@
                     </form>
 
                     <div class="separatore"><span>Non hai ancora la chiave?</span></div>
-                    <a class="btn-secondario" id="btn-email"
-                       href="mailto:{{ email_licenze|default('giovanni.rocco83@gmail.com') }}?subject={{ 'Richiesta Licenza WHome'|urlencode }}&amp;body={{ ('Buongiorno, vorrei richiedere una licenza per il dispositivo con ID: ' ~ hw_id)|urlencode }}">
-                        <i data-lucide="mail"></i><span>Richiedi Licenza via Email</span>
-                    </a>
+                    <button type="button" class="btn-secondario" id="btn-contatti" aria-haspopup="dialog" aria-controls="contatti">
+                        <i data-lucide="mail"></i><span>Richiedi la licenza</span>
+                    </button>
                     <p class="garanzia"><i data-lucide="shield-check"></i><span>La chiave è firmata e vale solo per questo impianto.</span></p>
                 </div>
 
@@ -893,12 +959,62 @@
     <div class="nota-volante" id="nota-volante" role="status" aria-live="polite">
         <i class="i-ok" data-lucide="circle-check"></i><i class="i-info" data-lucide="info"></i><span id="nota-volante-testo"></span>
     </div>
+    <!-- richiesta della licenza: i recapiti dell'installatore. Nell'app i link mailto:/tel: non si
+         aprono (e portano alla schermata d'errore): li' il JavaScript li lascia come testo da copiare -->
+    {%- set email_l = email_licenze|default('giovanni.rocco83@gmail.com') %}
+    {%- set tel_l = telefono_licenze|default('+41 76 681 49 09') %}
+    <div class="contatti-velo" id="contatti" hidden>
+        <div class="contatti" role="dialog" aria-modal="true" aria-labelledby="contatti-titolo">
+            <button type="button" class="contatti-chiudi" id="contatti-chiudi" aria-label="Chiudi"><i data-lucide="x"></i></button>
+            <span class="contatti-icona" aria-hidden="true"><i data-lucide="key-round"></i></span>
+            <h2 id="contatti-titolo">Richiedi la licenza</h2>
+            <p class="contatti-intro">Scrivici o chiamaci e indica il Codice Hardware: ti mandiamo la chiave di attivazione.</p>
+            <ul class="recapiti">
+                <li class="recapito">
+                    <i data-lucide="mail"></i>
+                    <div class="recapito-testo">
+                        <span class="recapito-nome">Email</span>
+                        <a class="recapito-valore" data-no-tr translate="no"
+                           href="mailto:{{ email_l }}?subject={{ 'Richiesta Licenza WHome'|urlencode }}&amp;body={{ ('Buongiorno, vorrei richiedere una licenza per il dispositivo con ID: ' ~ hw_id)|urlencode }}">{{ email_l }}</a>
+                    </div>
+                    <button type="button" class="recapito-copia" data-valore="{{ email_l }}" data-avviso="copiato-email" aria-label="Copia l'indirizzo email">
+                        <i class="i-copia" data-lucide="copy"></i><i class="i-fatto" data-lucide="check"></i><span>Copia</span>
+                    </button>
+                </li>
+                <li class="recapito">
+                    <i data-lucide="phone"></i>
+                    <div class="recapito-testo">
+                        <span class="recapito-nome">Telefono</span>
+                        <a class="recapito-valore" data-no-tr translate="no" href="tel:{{ tel_l|replace(' ', '') }}">{{ tel_l }}</a>
+                    </div>
+                    <button type="button" class="recapito-copia" data-valore="{{ tel_l|replace(' ', '') }}" data-avviso="copiato-tel" aria-label="Copia il numero di telefono">
+                        <i class="i-copia" data-lucide="copy"></i><i class="i-fatto" data-lucide="check"></i><span>Copia</span>
+                    </button>
+                </li>
+                <li class="recapito">
+                    <i data-lucide="cpu"></i>
+                    <div class="recapito-testo">
+                        <span class="recapito-nome">Codice Hardware</span>
+                        <span class="recapito-valore codice" data-no-tr translate="no">{{ hw_id }}</span>
+                    </div>
+                    <button type="button" class="recapito-copia" data-valore="{{ hw_id }}" data-avviso="copiato" aria-label="Copia il Codice Hardware">
+                        <i class="i-copia" data-lucide="copy"></i><i class="i-fatto" data-lucide="check"></i><span>Copia</span>
+                    </button>
+                </li>
+            </ul>
+            <button type="button" class="btn-secondario" id="contatti-fine">Chiudi</button>
+        </div>
+    </div>
+
     <!-- i testi del piccolo avviso stanno qui, nell'HTML, cosi' il server li traduce con il resto -->
     <div hidden id="testi">
         <span data-t="copiato">Codice copiato negli appunti</span>
         <span data-t="selezionato">Codice selezionato: copialo con Ctrl+C o dal menu</span>
         <span data-t="incolla-no">Tieni premuto nel campo e scegli Incolla</span>
         <span data-t="rete">Il server non risponde. Riprova tra qualche istante.</span>
+        <span data-t="copiato-email">Indirizzo copiato negli appunti</span>
+        <span data-t="copiato-tel">Numero copiato negli appunti</span>
+        <span data-t="selezionato-voce">Testo selezionato: copialo con Ctrl+C o dal menu</span>
     </div>
 
 <script>
@@ -985,6 +1101,71 @@
             var sel = window.getSelection && String(window.getSelection());
             if (sel && sel.length && sel.replace(/\s/g, '') !== (codice.getAttribute('data-codice') || '')) return;
             copia();
+        });
+
+        /* ---- RICHIESTA DELLA LICENZA: il riquadro dei recapiti ------------
+           Dentro l'app (WKWebView) mailto: e tel: non aprono niente e fanno comparire
+           la schermata d'errore dell'app: li' i recapiti restano testo da copiare. */
+        var velo = document.getElementById('contatti');
+        var btnContatti = document.getElementById('btn-contatti');
+        var nellApp = !!(window.webkit && window.webkit.messageHandlers);
+        if (nellApp) {
+            Array.prototype.forEach.call(velo.querySelectorAll('a.recapito-valore'), function (a) { a.removeAttribute('href'); });
+        }
+        var timerVelo = null;
+        function apriContatti() {
+            clearTimeout(timerVelo);
+            velo.hidden = false;
+            void velo.offsetWidth;
+            velo.classList.add('su');
+            document.getElementById('contatti-chiudi').focus();
+        }
+        function chiudiContatti() {
+            if (velo.hidden) return;
+            velo.classList.remove('su');
+            clearTimeout(timerVelo);
+            timerVelo = setTimeout(function () { velo.hidden = true; }, 260);
+            btnContatti.focus();
+        }
+        btnContatti.addEventListener('click', apriContatti);
+        document.getElementById('contatti-chiudi').addEventListener('click', chiudiContatti);
+        document.getElementById('contatti-fine').addEventListener('click', chiudiContatti);
+        velo.addEventListener('click', function (e) { if (e.target === velo) chiudiContatti(); });
+        document.addEventListener('keydown', function (e) {
+            if (velo.hidden || !velo.classList.contains('su')) return;
+            if (e.key === 'Escape') { e.preventDefault(); chiudiContatti(); return; }
+            if (e.key !== 'Tab') return;
+            // il fuoco gira dentro il riquadro
+            var dentro = velo.querySelectorAll('button, a[href]');
+            var primo = dentro[0], ultimo = dentro[dentro.length - 1];
+            if (e.shiftKey && document.activeElement === primo) { e.preventDefault(); ultimo.focus(); }
+            else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primo.focus(); }
+        });
+        velo.addEventListener('click', function (e) {
+            var b = e.target.closest ? e.target.closest('.recapito-copia') : null;
+            if (!b) return;
+            var t = b.getAttribute('data-valore') || '';
+            if (!t) return;
+            var fatto = function () {
+                b.focus();
+                b.classList.add('fatto');
+                mostraNota(testo(b.getAttribute('data-avviso')), true);
+                setTimeout(function () { b.classList.remove('fatto'); }, 2000);
+            };
+            var fallito = function () {
+                if (copiaVecchioStile(t)) { fatto(); return; }
+                try {
+                    var sel = window.getSelection(), r = document.createRange();
+                    r.selectNodeContents(b.parentNode.querySelector('.recapito-valore'));
+                    sel.removeAllRanges(); sel.addRange(r);
+                } catch (err) {}
+                mostraNota(testo('selezionato-voce'));
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+                navigator.clipboard.writeText(t).then(fatto, fallito);
+            } else {
+                fallito();
+            }
         });
 
         /* ---- IL MISURATORE DELLA CHIAVE -----------------------------------
