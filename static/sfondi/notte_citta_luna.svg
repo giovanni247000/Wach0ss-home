@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Wach0ss Home - sfondo "Notte in citta'": la luna con l'alone. Disegno fermo (nessuna animazione):
+     e' lo stesso cielo delle pagine di accesso e di attivazione. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -100 400 400">
+<defs>
+<linearGradient id="lNube" x1="0" y1="0" x2="1" y2="0">
+<stop offset="0" stop-color="#8FA3D8" stop-opacity="0"/><stop offset="0.5" stop-color="#8FA3D8" stop-opacity="0.15"/><stop offset="1" stop-color="#8FA3D8" stop-opacity="0"/>
+</linearGradient>
+<radialGradient id="lAloneLuna" cx="200" cy="100" r="200" gradientUnits="userSpaceOnUse">
+<stop offset="0" stop-color="#DCE6FF" stop-opacity="0.30"/><stop offset="0.16" stop-color="#A9BEF5" stop-opacity="0.12"/><stop offset="1" stop-color="#8FA8EC" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="lDisco" cx="0.4" cy="0.38" r="0.65">
+<stop offset="0" stop-color="#FDFEFF"/><stop offset="0.7" stop-color="#E2E9FB"/><stop offset="1" stop-color="#BCC9EC"/>
+</radialGradient>
+<filter id="lSfumaL" x="-20%" y="-300%" width="140%" height="700%"><feGaussianBlur stdDeviation="3.5"/></filter>
+</defs>
+<circle cx="200" cy="100" r="200" fill="url(#lAloneLuna)"/>
+<circle cx="200" cy="100" r="14" fill="url(#lDisco)"/>
+<circle cx="195.5" cy="103.5" r="2.7" fill="#B9C6E6" opacity="0.4"/><circle cx="205" cy="94" r="1.8" fill="#B9C6E6" opacity="0.35"/><circle cx="206" cy="105" r="1.2" fill="#B9C6E6" opacity="0.3"/>
+<g filter="url(#lSfumaL)">
+<ellipse cx="160" cy="128" rx="140" ry="7" fill="url(#lNube)"/>
+<ellipse cx="270" cy="148" rx="100" ry="5" fill="url(#lNube)" opacity="0.8"/>
+</g>
+</svg>
