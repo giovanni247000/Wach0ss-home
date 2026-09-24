@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#05070D">
+    <meta name="color-scheme" content="dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="robots" content="noindex">
+    <title>Attivazione Wach0ss Home</title>
+
+    <link rel="stylesheet" href="/static/fonts/inter.css">
+    <script src="/static/vendor/lucide-1.41.0.min.js"></script>
+
+    <style>
+    /* =====================================================================
+       ATTIVAZIONE — LA CASA ASPETTA LA SUA CHIAVE
+       E' la schermata che vede il cliente quando l'impianto non e' ancora
+       attivato (o la licenza e' stata ritirata). Stessa famiglia della
+       pagina di accesso: la notte blu, la luna, la citta' all'orizzonte e
+       l'oro caldo. Fra le case della citta', tutte con qualche finestra
+       accesa, ce n'e' una sola completamente spenta: e' questa casa, pronta
+       ma chiusa. Brilla solo la sua serratura.
+       Quando la chiave e' giusta le sue finestre si accendono una dopo
+       l'altra e si passa all'accesso.
+
+       COME E' FATTA
+       - Sfondo (fisso): cielo e citta' in due SVG. Il cielo copre tutto
+         lo schermo (1600 x 1000, slice); la citta' sta sul fondo, larga
+         quanto lo schermo e alta almeno 200 px (1600 x 300, slice appoggiata
+         in basso): la casa sta nel mezzo, cosi' si vede anche dal telefono.
+       - Sopra: il racconto (titolo e i tre passi) a sinistra e il riquadro
+         a destra. Dal telefono una colonna sola: titolo, riquadro, passi.
+       - Senza JavaScript il modulo si invia normalmente e tutto funziona;
+         con JavaScript la verifica avviene senza lasciare la pagina, per
+         poter mostrare lo stato "sto verificando" e l'accensione della casa.
+       ===================================================================== */
+    :root {
+        --ambra:  #FFB865;
+        --oro-1:  #F6D6A0;
+        --oro-2:  #D9A25E;
+        --testo:  #F5F0E8;
+        --fioco:  rgba(240,228,212,0.60);
+        --fioco-2: rgba(240,228,212,0.42);
+        --notte-testo: rgba(206,215,240,0.66);
+        --danger: #FF6B5E;
+        --ok:     #7FE0A0;
+        --curva:  cubic-bezier(0.22,1,0.36,1);
+        --alto:   env(safe-area-inset-top, 0px);
+        --basso:  env(safe-area-inset-bottom, 0px);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+        margin: 0; padding: 0; min-height: 100%;
+        background: #05070D; color: var(--testo);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    }
+    body { overflow-x: hidden; }
+    button, input, textarea { font-family: inherit; }
+    [hidden] { display: none !important; }
+
+    /* ================= LA NOTTE ========================================= */
+    .scena {
+        position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+        background: linear-gradient(180deg, #040816 0%, #081030 42%, #121A3E 72%, #1B1C38 100%);
+    }
+    .scena > svg { position: absolute; display: block; }
+    .cielo { inset: 0; width: 100%; height: 100%; }
+    /* la luna: 400 x 200, il disco al centro */
+    .luna { width: 560px; height: 280px; left: calc(50% - 300px); top: -40px; overflow: visible; }
+    .citta { left: 0; bottom: 0; width: 100%; height: max(210px, 18.75vw); }
+    .cielo .sc { animation: scintilla 5.5s ease-in-out infinite; }
+    .cielo .sc:nth-child(3n) { animation-duration: 8s; animation-delay: -2.5s; }
+    .cielo .sc:nth-child(4n+1) { animation-duration: 6.5s; animation-delay: -4s; }
+    @keyframes scintilla { 0%, 100% { opacity: 0.85; } 50% { opacity: 0.15; } }
+    .citta .lv { animation: occhiolino 7s ease-in-out infinite; }
+    .citta .lv:nth-child(3n) { animation-duration: 11s; animation-delay: -3s; }
+    .citta .lv:nth-child(4n+1) { animation-duration: 9s; animation-delay: -6s; }
+    @keyframes occhiolino { 0%, 100% { opacity: 1; } 46% { opacity: 1; } 50% { opacity: 0.15; } 56% { opacity: 1; } }
+    .antenna { animation: antenna 2.6s steps(1) infinite; }
+    @keyframes antenna { 0%, 100% { opacity: 1; } 50% { opacity: 0.12; } }
+
+    /* la casa: spenta, con la sola serratura che respira */
+    .serratura-alone { animation: respiro 3.6s ease-in-out infinite; transform-origin: 805px 281px; }
+    @keyframes respiro { 0%, 100% { opacity: 0.45; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.15); } }
+    .casa .luce { opacity: 0; transition: opacity 0.9s ease; transition-delay: calc(var(--i) * 0.22s + 0.2s); }
+    .casa .spill { opacity: 0; transition: opacity 1.6s ease 0.6s; }
+    body.sveglia .casa .luce { opacity: 1; }
+    body.sveglia .casa .spill { opacity: 1; }
+    body.sveglia .serratura-alone { animation: none; opacity: 1; }
+
+    .vignetta {
+        position: absolute; inset: 0;
+        background: radial-gradient(120% 95% at 50% 40%, rgba(0,0,0,0) 55%, rgba(1,2,6,0.45) 88%, rgba(1,2,6,0.65) 100%);
+    }
+    .grana {
+        position: absolute; inset: 0; opacity: 0.045;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.9 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+        background-size: 200px 200px;
+    }
+    /* all'attivazione la notte si scalda appena */
+    .alba {
+        position: absolute; inset: 0; opacity: 0; transition: opacity 2.2s ease 0.4s;
+        background: radial-gradient(70% 55% at 50% 100%, rgba(255,176,100,0.20) 0%, rgba(255,160,90,0.06) 50%, rgba(255,160,90,0) 80%);
+    }
+    body.sveglia .alba { opacity: 1; }
+
+    /* ================= IL PALCO ======================================== */
+    .palco {
+        position: relative; z-index: 1;
+        min-height: 100vh; min-height: 100dvh;
+        display: grid;
+        grid-template-columns: minmax(0, 540px) minmax(340px, 412px);
+        grid-template-areas: "testa lato" "passi lato";
+        grid-template-rows: auto auto;
+        column-gap: clamp(40px, 6.5vw, 120px); row-gap: 34px;
+        justify-content: center; align-content: center;
+        padding: calc(64px + var(--alto)) 32px calc(56px + var(--basso));
+        /* la luce dietro il riquadro (1000 px) usciva di lato: dal telefono la pagina si poteva
+           spostare in orizzontale. clip taglia senza creare un'area che scorre; hidden per i vecchi */
+        overflow-x: hidden; overflow-x: clip;
+    }
+    .testa { grid-area: testa; align-self: end; }
+    .lato  { grid-area: lato; align-self: center; position: relative; }
+    .passi { grid-area: passi; align-self: start; }
+
+    /* ---- IL RACCONTO -------------------------------------------------- */
+    .marchio { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
+    .marchio img { width: 34px; height: 34px; border-radius: 9px; box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 6px 18px rgba(0,0,0,0.5); }
+    .marchio span { font-size: 12px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; color: rgba(214,222,245,0.64); }
+
+    .occhiello {
+        display: inline-flex; align-items: center; gap: 9px; margin-bottom: 20px;
+        padding: 7px 13px 7px 11px; border-radius: 999px;
+        font-size: 12px; font-weight: 600; letter-spacing: 0.04em; color: rgba(255,224,184,0.92);
+        background: rgba(255,190,110,0.08); border: 1px solid rgba(255,200,130,0.24);
+    }
+    .occhiello .puntino { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--ambra); box-shadow: 0 0 10px rgba(255,184,101,0.8); }
+    .occhiello .puntino::after {
+        content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 1px solid rgba(255,184,101,0.6);
+        animation: onda 2.8s cubic-bezier(0.2,0.6,0.3,1) infinite;
+    }
+    .occhiello .fatto, .titolo .fatto { display: none; }
+    body.sveglia .occhiello .da-fare, body.sveglia .titolo .da-fare { display: none; }
+    body.sveglia .occhiello .fatto { display: inline; }
+    body.sveglia .titolo .fatto { display: inline; animation: arrivoErrore 0.8s var(--curva) both; }
+    body.sveglia .occhiello { color: #C9F5D8; background: rgba(110,220,150,0.08); border-color: rgba(127,224,160,0.30); }
+    body.sveglia .occhiello .puntino { background: var(--ok); box-shadow: 0 0 10px rgba(127,224,160,0.8); }
+    body.sveglia .occhiello .puntino::after { border-color: rgba(127,224,160,0.6); }
+    @keyframes onda { 0% { opacity: 0.9; transform: scale(0.5); } 70%, 100% { opacity: 0; transform: scale(2); } }
+
+    .titolo {
+        margin: 0; font-size: clamp(36px, 3.6vw, 52px); line-height: 1.04; font-weight: 300; letter-spacing: -0.035em;
+        color: #E9EEFC; text-wrap: balance;
+    }
+    .titolo .t1 {
+        background: linear-gradient(180deg, #F2F5FF 0%, #B9C6E8 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .titolo em {
+        font-style: normal; font-weight: 600;
+        background: linear-gradient(180deg, #FBE3B6 0%, #E7B06A 100%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .sottotitolo { margin: 20px 0 0; font-size: 15.5px; line-height: 1.55; color: var(--notte-testo); max-width: 47ch; text-wrap: pretty; }
+
+    /* i tre passi */
+    .passi { list-style: none; margin: 0; padding: 0; position: relative; max-width: 440px; }
+    .passo { position: relative; display: flex; gap: 16px; align-items: flex-start; padding: 11px 0; }
+    /* il filo che li unisce: da un cerchio al successivo (centro 11 + 17.5 px dall'alto del passo),
+       cosi' non sporge sotto l'ultimo quando il testo va su piu' righe */
+    .passo:not(:last-child)::before {
+        content: ''; position: absolute; left: 17px; top: 28.5px; bottom: -28.5px; width: 1px;
+        background: linear-gradient(180deg, rgba(255,200,130,0.45), rgba(255,200,130,0.16));
+    }
+    .passo-num {
+        position: relative; flex: 0 0 35px; width: 35px; height: 35px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 13px; font-weight: 650; color: #2A1904; font-variant-numeric: tabular-nums;
+        background: linear-gradient(180deg, var(--oro-1) 0%, var(--oro-2) 100%);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 0 0 5px rgba(8,12,34,0.9), 0 0 22px rgba(255,180,100,0.28);
+    }
+    .passo:not(:first-child) .passo-num {
+        background: #0D1330; color: var(--oro-1);
+        box-shadow: inset 0 0 0 1px rgba(255,200,130,0.45), 0 0 0 5px rgba(8,12,34,0.9);
+    }
+    .passo-testo { padding-top: 6px; }
+    .passo-testo strong { display: block; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: #F2EDE4; }
+    .passo-testo span { display: block; margin-top: 4px; font-size: 13.5px; line-height: 1.5; color: var(--notte-testo); max-width: 38ch; }
+
+    /* ---- IL RIQUADRO (come quello dell'accesso) ------------------------ */
+    .lato::before {   /* la luce calda dietro il riquadro */
+        content: ''; position: absolute; left: 50%; top: 50%; width: 1000px; height: 1000px; margin: -500px 0 0 -500px;
+        pointer-events: none; z-index: -1;
+        background: radial-gradient(closest-side, rgba(255,170,96,0.20) 0%, rgba(255,150,86,0.07) 45%, rgba(255,150,86,0) 100%);
+    }
+    .glass-card {
+        position: relative;
+        background: linear-gradient(165deg, rgba(46,32,24,0.82) 0%, rgba(22,16,14,0.88) 55%, rgba(14,11,12,0.92) 100%);
+        -webkit-backdrop-filter: blur(18px) saturate(130%); backdrop-filter: blur(18px) saturate(130%);
+        border-radius: 28px; padding: 30px 28px 24px; text-align: center;
+        box-shadow: 0 40px 80px -24px rgba(0,0,0,0.85), 0 0 0 1px rgba(0,0,0,0.3),
+                    inset 0 1px 0 rgba(255,236,210,0.08);
+    }
+    .glass-card::before {
+        content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+        background: linear-gradient(120deg, rgba(255,206,140,0.62) 0%, rgba(255,206,140,0.16) 30%, rgba(255,236,210,0.06) 62%, rgba(255,236,210,0.12) 100%);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none;
+    }
+    .glass-card::after {
+        content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+        background: radial-gradient(90% 45% at 50% 0%, rgba(255,184,110,0.11) 0%, rgba(255,184,110,0) 70%);
+    }
+    .glass-card > * { position: relative; z-index: 1; }
+
+    .card-header { margin-bottom: 20px; }
+    /* l'emblema: una serratura d'oro in un anello */
+    .emblema { position: relative; width: 56px; height: 56px; margin: 0 auto 14px; }
+    .emblema svg { width: 100%; height: 100%; display: block; overflow: visible; }
+    .card-header h1 { margin: 0 0 7px; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.028em; }
+    .card-header p  { margin: 0 auto; font-size: 0.88rem; line-height: 1.45; color: var(--fioco); text-wrap: balance; max-width: 30ch; }
+
+    /* ---- LA SCHEDA DEL CODICE HARDWARE ---------------------------------- */
+    .scheda {
+        position: relative; overflow: hidden; text-align: left;
+        border-radius: 18px; padding: 14px 16px 12px;
+        background:
+            radial-gradient(120% 90% at 100% 0%, rgba(255,196,120,0.10) 0%, rgba(255,196,120,0) 55%),
+            linear-gradient(140deg, #201A14 0%, #120F0D 58%, #19140F 100%);
+        box-shadow: inset 0 1px 0 rgba(255,236,210,0.10), inset 0 0 0 1px rgba(255,206,140,0.20),
+                    0 18px 36px -20px rgba(0,0,0,0.95);
+    }
+    /* la filigrana: cerchi sottili come su una banconota */
+    .scheda::before {
+        content: ''; position: absolute; right: -70px; top: -90px; width: 260px; height: 260px; border-radius: 50%;
+        pointer-events: none; opacity: 0.55;
+        background: repeating-radial-gradient(circle at center, rgba(255,210,150,0.07) 0 1px, rgba(255,210,150,0) 1px 7px);
+        -webkit-mask: radial-gradient(closest-side, #000 40%, transparent 100%); mask: radial-gradient(closest-side, #000 40%, transparent 100%);
+    }
+    /* il riflesso che passa quando si copia */
+    .scheda::after {
+        content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 50%; pointer-events: none;
+        background: linear-gradient(100deg, rgba(255,230,190,0) 0%, rgba(255,230,190,0.14) 50%, rgba(255,230,190,0) 100%);
+        transform: skewX(-18deg); opacity: 0;
+    }
+    .scheda.lampo::after { animation: riflesso 0.9s var(--curva); }
+    @keyframes riflesso { 0% { left: -60%; opacity: 1; } 100% { left: 130%; opacity: 1; } }
+    .scheda > * { position: relative; }
+
+    .scheda-su { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .scheda-etichetta {
+        display: inline-flex; align-items: center; gap: 7px;
+        font-size: 10.5px; font-weight: 650; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255,222,180,0.72);
+    }
+    .scheda-etichetta svg { width: 14px; height: 14px; color: var(--ambra); }
+    .scheda-chip { width: 30px; height: 22px; flex-shrink: 0; opacity: 0.95; }
+    .scheda-codice {
+        /* i gruppi sono inline-block, non elementi flex: cosi' chi seleziona a mano e copia
+           ottiene il codice tutto attaccato, senza a capo in mezzo */
+        margin: 12px 0 12px; display: block; margin-right: -11px;
+        font-size: 21px; font-weight: 600; letter-spacing: 0.07em; line-height: 1.25;
+        font-variant-numeric: tabular-nums slashed-zero; font-feature-settings: "tnum" 1, "zero" 1;
+        color: #F4D29C; cursor: copy; -webkit-user-select: all; user-select: all;
+        background: linear-gradient(180deg, #FCE7C2 0%, #E3AE68 100%);
+        -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+            }
+    .scheda-codice span { display: inline-block; margin-right: 11px; }
+    .scheda-codice.lungo { font-size: 17px; }
+    .scheda-codice.lungo span { margin-right: 9px; }
+    .scheda-codice.lungo .meta { margin-right: 0; white-space: nowrap; }
+    .scheda-codice::selection, .scheda-codice span::selection { background: rgba(255,200,130,0.28); -webkit-text-fill-color: #FFF3DE; }
+    .scheda-giu {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        padding-top: 10px; border-top: 1px dashed rgba(255,206,140,0.16);
+    }
+    .scheda-nota { font-size: 12px; color: rgba(240,228,212,0.50); line-height: 1.3; }
+    .scheda-nota.ok { color: var(--ok); }
+    .btn-copia {
+        position: relative; flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px;
+        height: 34px; padding: 0 13px 0 11px; border-radius: 10px; cursor: pointer;
+        font-size: 13px; font-weight: 600; color: #FFE3BC;
+        background: rgba(255,190,110,0.10); border: 1px solid rgba(255,200,130,0.30);
+        transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+    }
+    .btn-copia:hover { background: rgba(255,190,110,0.17); border-color: rgba(255,200,130,0.5); }
+    .btn-copia:active { transform: scale(0.97); }
+    .btn-copia:focus-visible { outline: 2px solid #FFE3B8; outline-offset: 2px; }
+    .btn-copia svg { width: 15px; height: 15px; }
+    .btn-copia .i-fatto, .btn-copia .t-fatto { display: none; }
+    .btn-copia.fatto { color: #0F2A18; background: linear-gradient(180deg, #9BEBB6, #62C98A); border-color: transparent; }
+    .btn-copia.fatto .i-copia, .btn-copia.fatto .t-copia { display: none; }
+    .btn-copia.fatto .i-fatto, .btn-copia.fatto .t-fatto { display: inline; }
+
+    /* ---- L'ERRORE ------------------------------------------------------ */
+    .alert-error {
+        display: flex; align-items: flex-start; gap: 11px; text-align: left;
+        background: linear-gradient(180deg, rgba(255,96,80,0.15), rgba(255,96,80,0.09));
+        border: 1px solid rgba(255,120,100,0.36);
+        color: #FFE1DC; border-radius: 14px; padding: 12px 14px; margin: 16px 0 0;
+        font-size: 0.87rem; line-height: 1.4;
+        box-shadow: 0 8px 24px -12px rgba(255,80,60,0.5);
+        animation: arrivoErrore 0.5s var(--curva) both;
+    }
+    .alert-error svg { width: 18px; height: 18px; flex-shrink: 0; color: #FF8A7A; margin-top: 1px; }
+    .alert-error strong { display: block; font-weight: 600; text-wrap: balance; }
+    .alert-error .consiglio { display: block; margin-top: 3px; color: rgba(255,225,220,0.72); font-size: 0.82rem; text-wrap: pretty; }
+    @keyframes arrivoErrore { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    .alert-error.di-nuovo { animation: scossa 0.45s ease both; }
+    @keyframes scossa { 0%, 100% { transform: none; } 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+
+    /* ---- LA CHIAVE ------------------------------------------------------ */
+    form { margin-top: 18px; text-align: left; }
+    .campo-testa { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 2px 8px; min-height: 26px; }
+    .campo-testa label { font-size: 12.5px; font-weight: 600; color: rgba(245,240,232,0.86); letter-spacing: 0.01em; }
+    .btn-incolla {
+        display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px; border-radius: 8px; cursor: pointer;
+        font-size: 12px; font-weight: 600; color: rgba(255,222,180,0.9); background: transparent; border: 1px solid rgba(255,200,130,0.24);
+        transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-incolla:hover { background: rgba(255,190,110,0.10); border-color: rgba(255,200,130,0.45); }
+    .btn-incolla:focus-visible { outline: 2px solid #FFE3B8; outline-offset: 2px; }
+    .btn-incolla svg { width: 13px; height: 13px; }
+    .campo { position: relative; }
+    .campo textarea {
+        display: block; width: 100%; min-height: 78px; max-height: 150px; resize: none; margin: 0;
+        padding: 13px 14px 13px 44px; border-radius: 14px;
+        background: rgba(0,0,0,0.24); border: 1px solid rgba(255,236,210,0.11); color: var(--testo);
+        font-size: 14.5px; line-height: 1.5; letter-spacing: 0.04em; word-break: break-all;
+        font-variant-numeric: tabular-nums slashed-zero; font-feature-settings: "tnum" 1, "zero" 1;
+        transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+    }
+    .campo textarea::placeholder { color: rgba(240,228,212,0.36); letter-spacing: 0; }
+    .campo textarea:focus { outline: none; background: rgba(0,0,0,0.32); border-color: rgba(255,200,130,0.6); box-shadow: 0 0 0 4px rgba(255,190,120,0.12); }
+    .campo textarea[readonly] { opacity: 0.7; }
+    .campo textarea::selection { background: rgba(255,196,120,0.30); color: #FFF6E6; }
+    .campo .campo-icona { position: absolute; left: 15px; top: 14px; color: rgba(240,228,212,0.4); display: flex; pointer-events: none; transition: color 0.25s; }
+    .campo .campo-icona svg { width: 17px; height: 17px; }
+    .campo textarea:focus ~ .campo-icona { color: var(--ambra); }
+    .campo.sbagliata textarea { border-color: rgba(255,120,100,0.6); box-shadow: 0 0 0 4px rgba(255,96,80,0.10); }
+    .campo.sbagliata .campo-icona { color: #FF8A7A; }
+
+    /* il misuratore: dice subito se la chiave incollata e' intera */
+    .misura-barra {
+        position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; border-radius: 2px; overflow: hidden; pointer-events: none;
+        background: rgba(255,236,210,0.07); opacity: 1; transition: opacity 0.3s;
+    }
+    .misura-barra span { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #D9A25E, #F6D6A0); transition: width 0.35s var(--curva), background 0.3s; box-shadow: 0 0 8px rgba(255,190,110,0.6); }
+    .campo[data-stato="vuota"] .misura-barra { opacity: 0; }
+    .campo[data-stato="intera"] .misura-barra span { background: linear-gradient(90deg, #4FBF7C, #9BEBB6); box-shadow: 0 0 8px rgba(110,220,150,0.6); }
+    .campo[data-stato="strana"] .misura-barra span, .campo[data-stato="lunga"] .misura-barra span { background: #FF8A7A; box-shadow: none; }
+    .misura { display: flex; align-items: flex-start; gap: 7px; margin: 8px 2px 0; min-height: 17px; }
+    .misura svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; display: none; }
+    .misura[data-stato="intera"] .i-ok { display: block; color: var(--ok); }
+    .misura[data-stato="strana"] .i-no, .misura[data-stato="lunga"] .i-no { display: block; color: #FF9A8A; }
+    .misura-testo { font-size: 12px; line-height: 1.35; color: var(--fioco-2); transition: color 0.25s; }
+    .misura[data-stato="intera"] .misura-testo { color: var(--ok); }
+    .misura[data-stato="strana"] .misura-testo, .misura[data-stato="lunga"] .misura-testo { color: #FFB3A8; }
+    .misura[data-stato="corta"] .misura-testo { color: rgba(255,222,180,0.78); }
+    .misura [data-per] { display: none; }
+    .misura[data-stato="vuota"]  [data-per="vuota"],
+    .misura[data-stato="corta"]  [data-per="corta"],
+    .misura[data-stato="intera"] [data-per="intera"],
+    .misura[data-stato="lunga"]  [data-per="lunga"],
+    .misura[data-stato="strana"] [data-per="strana"] { display: inline; }
+
+    .btn-primary {
+        position: relative; width: 100%; height: 52px; margin-top: 14px; padding: 0 16px;
+        background: linear-gradient(180deg, var(--oro-1) 0%, var(--oro-2) 100%);
+        color: #2A1904; border: none; border-radius: 14px;
+        font-size: 15.5px; font-weight: 650; letter-spacing: 0.005em;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(120,70,20,0.35),
+                    0 12px 30px -8px rgba(255,170,80,0.45);
+        transition: transform 0.2s, box-shadow 0.2s, filter 0.2s;
+    }
+    .btn-primary svg { width: 17px; height: 17px; transition: transform 0.25s; }
+    .btn-primary:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    .btn-primary:hover .i-vai { transform: translateX(3px); }
+    .btn-primary:active { transform: translateY(0) scale(0.99); }
+    .btn-primary:focus-visible { outline: 2px solid #FFE3B8; outline-offset: 3px; }
+    .btn-primary .in-verifica, .btn-primary .i-gira { display: none; }
+    .btn-primary.verifica { cursor: progress; filter: saturate(0.85); transform: none; }
+    .btn-primary.verifica .a-riposo, .btn-primary.verifica .i-vai { display: none; }
+    .btn-primary.verifica .in-verifica { display: inline; }
+    .btn-primary.verifica .i-gira { display: inline-block; animation: gira 0.9s linear infinite; }
+    @keyframes gira { to { transform: rotate(360deg); } }
+    /* la luce che scorre sul pulsante mentre si verifica */
+    .btn-primary::after {
+        content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;
+        background: linear-gradient(100deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.35) 50%, rgba(255,255,255,0) 70%);
+        background-size: 250% 100%;
+    }
+    .btn-primary.verifica::after { opacity: 1; animation: scorre 1.3s linear infinite; }
+    @keyframes scorre { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+
+    /* ---- NIENTE CHIAVE? ------------------------------------------------ */
+    .separatore { display: flex; align-items: center; gap: 12px; margin: 18px 0 11px; font-size: 12px; color: var(--fioco-2); }
+    .separatore::before, .separatore::after { content: ''; flex: 1; height: 1px; background: rgba(255,236,210,0.10); }
+    .btn-secondario {
+        display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; height: 44px; padding: 0 14px;
+        border-radius: 13px; text-decoration: none; font-size: 14px; font-weight: 600; color: rgba(245,240,232,0.88);
+        background: rgba(255,236,210,0.04); border: 1px solid rgba(255,236,210,0.13);
+        transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-secondario:hover { background: rgba(255,236,210,0.08); border-color: rgba(255,236,210,0.24); }
+    .btn-secondario:focus-visible { outline: 2px solid #FFE3B8; outline-offset: 2px; }
+    .btn-secondario svg { width: 16px; height: 16px; color: var(--ambra); }
+    /* l'icona sta nella riga del testo: se va a capo (schermi stretti) resta attaccata alla frase */
+    .garanzia { margin: 16px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--fioco-2); text-align: center; text-wrap: balance; }
+    .garanzia svg { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: -3px; color: rgba(255,200,130,0.7); }
+
+    /* ---- L'ESITO: impianto attivato ------------------------------------ */
+    .glass-card > .card-header, .glass-card > .contenuto { transition: opacity 0.45s ease, transform 0.6s var(--curva), filter 0.45s ease; }
+    .glass-card.attivata > .card-header, .glass-card.attivata > .contenuto { opacity: 0; transform: scale(0.97); filter: blur(4px); pointer-events: none; }
+    .esito {
+        position: absolute; inset: 0; z-index: 2; padding: 30px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        opacity: 0; visibility: hidden; transform: translateY(10px);
+        transition: opacity 0.6s ease 0.35s, transform 0.8s var(--curva) 0.35s, visibility 0s linear 0.35s;
+    }
+    .glass-card.attivata .esito { opacity: 1; visibility: visible; transform: none; }
+    /* dal telefono il riquadro copre la casa: all'attivazione si stringe piano attorno al sigillo
+       (l'altezza la mette il JavaScript) e i passi sfumano, cosi' la casa che si accende si vede */
+    .glass-card.stringi { overflow: hidden; transition: height 0.9s var(--curva) 0.25s; }
+    /* il grande sigillo: l'anello si chiude e compare la spunta */
+    .sigillo { position: relative; width: 104px; height: 104px; margin-bottom: 22px; }
+    .sigillo svg { width: 100%; height: 100%; display: block; overflow: visible; }
+    .sigillo .giro { stroke-dasharray: 302; stroke-dashoffset: 302; transform: rotate(-90deg); transform-origin: 52px 52px; }
+    .sigillo .segno-ok { stroke-dasharray: 48; stroke-dashoffset: 48; }
+    .glass-card.attivata .sigillo .giro { animation: chiudi 1s var(--curva) 0.5s forwards; }
+    .glass-card.attivata .sigillo .segno-ok { animation: chiudi 0.5s ease-out 1.2s forwards; }
+    @keyframes chiudi { to { stroke-dashoffset: 0; } }
+    .sigillo::before {
+        content: ''; position: absolute; inset: -40px; border-radius: 50%; pointer-events: none; opacity: 0;
+        background: radial-gradient(closest-side, rgba(255,196,120,0.40) 0%, rgba(255,180,100,0.10) 55%, rgba(255,180,100,0) 100%);
+    }
+    .glass-card.attivata .sigillo::before { animation: bagliore 1.8s ease-out 1.1s forwards; }
+    @keyframes bagliore { 0% { opacity: 0; transform: scale(0.6); } 40% { opacity: 1; } 100% { opacity: 0.55; transform: scale(1); } }
+    .esito h2 { margin: 0 0 8px; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.028em; }
+    .esito p { margin: 0 auto; max-width: 30ch; font-size: 0.92rem; line-height: 1.5; color: var(--fioco); }
+    .esito .avanti { margin: 22px auto 0; width: 140px; height: 3px; border-radius: 3px; background: rgba(255,236,210,0.10); overflow: hidden; }
+    .esito .avanti span { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #D9A25E, #F6D6A0); }
+    .glass-card.attivata .esito .avanti span { animation: riempi 2.3s ease-in-out forwards; }
+    @keyframes riempi { to { width: 100%; } }
+
+    /* ---- il piccolo avviso in basso (copiato, selezionato...) ----------- */
+    .nota-volante {
+        position: fixed; left: 50%; bottom: calc(24px + var(--basso)); z-index: 20;
+        transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+        display: flex; align-items: center; gap: 9px; max-width: calc(100vw - 32px);
+        padding: 11px 16px; border-radius: 14px; font-size: 13.5px; font-weight: 500; line-height: 1.35; color: #FFF3E2;
+        background: rgba(30,24,20,0.94); border: 1px solid rgba(255,206,140,0.28);
+        box-shadow: 0 16px 40px -12px rgba(0,0,0,0.8);
+        transition: opacity 0.25s ease, transform 0.35s var(--curva);
+    }
+    .nota-volante.su { opacity: 1; transform: translate(-50%, 0); }
+    .nota-volante svg { width: 16px; height: 16px; color: var(--ambra); flex-shrink: 0; }
+    .nota-volante .i-ok { color: var(--ok); }
+    .nota-volante .i-ok, .nota-volante.info .i-info { display: block; }
+    .nota-volante .i-info, .nota-volante.info .i-ok { display: none; }
+
+    /* ---- la lingua: il blocco comune, coi colori di questa notte -------- */
+    .wh-lingua-angolo { position: fixed; top: calc(18px + var(--alto)); right: 18px; z-index: 5; color: #E6E9F2; }
+    .wh-lingua-angolo .wh-lingua { background: rgba(255,214,160,0.10); }
+    .wh-lingua-angolo .wh-lingua button.on { background: #E6B868; color: #2A1A08; }
+
+    /* ================= SCHERMI MEDI (1024 x 768 e simili) ============== */
+    @media (max-height: 820px) and (min-width: 861px) and (orientation: landscape) {
+        /* in alto a destra c'e' la lingua: il riquadro parte sotto */
+        .palco { padding-top: calc(64px + var(--alto)); padding-bottom: 16px; row-gap: 26px; }
+        .glass-card { padding: 22px 26px 18px; }
+        .card-header { margin-bottom: 14px; }
+        .card-header h1 { font-size: 1.4rem; margin-bottom: 5px; }
+        .emblema { width: 46px; height: 46px; margin-bottom: 10px; }
+        form { margin-top: 14px; }
+        .btn-primary { height: 48px; margin-top: 12px; }
+        .garanzia { margin-top: 12px; }
+        .marchio { margin-bottom: 22px; }
+        .passo { padding: 8px 0; }
+        .separatore { margin: 16px 0 12px; }
+        .campo textarea { min-height: 70px; }
+    }
+    /* con l'errore (e il codice lungo dei mini PC) il riquadro supera i 900 px: sugli schermi
+       larghi la lingua sta ben a destra del riquadro, quindi il riquadro puo' salire e resta intero */
+    @media (min-width: 1280px) and (max-height: 940px) and (orientation: landscape) {
+        body.con-errore .palco { padding-top: calc(24px + var(--alto)); padding-bottom: 20px; }
+    }
+    @media (max-width: 1100px) and (min-width: 861px) {
+        .titolo { font-size: 38px; }
+        .passo-testo span { font-size: 13px; }
+    }
+
+    /* =====================================================================
+       IL TELEFONO (e ogni schermo in verticale): una colonna sola.
+       Prima il titolo, poi subito il riquadro (codice e chiave), poi i passi.
+       La pagina scorre, la notte resta ferma dietro.
+       ===================================================================== */
+    @media (max-width: 860px), (orientation: portrait) {
+        .palco {
+            grid-template-columns: minmax(0, 440px);
+            grid-template-areas: "testa" "lato" "passi";
+            row-gap: 26px; align-content: start;
+            /* in fondo si lascia spazio: finiti i passi, compare la casa */
+            padding: calc(18px + var(--alto)) 16px calc(150px + var(--basso));
+        }
+        .testa { text-align: center; }
+        .marchio { justify-content: flex-start; margin: 0 0 26px; min-height: 36px; }
+        .marchio img { width: 30px; height: 30px; border-radius: 8px; }
+        .marchio span { font-size: 11px; letter-spacing: 0.2em; }
+        .occhiello { margin-bottom: 14px; }
+        .titolo { font-size: clamp(30px, 8.4vw, 40px); }
+        .sottotitolo { margin: 14px auto 0; font-size: 14.5px; text-wrap: balance; }
+        .glass-card { padding: 26px 20px 20px; border-radius: 26px; }
+        .emblema { width: 52px; height: 52px; margin-bottom: 12px; }
+        .card-header h1 { font-size: 1.35rem; }
+        .scheda-codice { font-size: 19px; }
+        .scheda-codice.lungo { font-size: 16px; }
+        .campo textarea { font-size: 16px; }   /* sotto i 16 px iOS ingrandisce la pagina al tocco */
+        .passi {
+            max-width: none; padding: 8px 18px; border-radius: 22px;
+            background: rgba(8,12,32,0.55); border: 1px solid rgba(160,180,240,0.10);
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+        }
+        .passo-testo strong { font-size: 14.5px; }
+        .passi { transition: opacity 0.6s ease 0.2s; }
+        body.sveglia .passi { opacity: 0; }
+        .passo-testo span { font-size: 13px; }
+        /* dal telefono la lingua scorre via con la testata: fissa finiva sopra il codice */
+        .wh-lingua-angolo { position: absolute; top: calc(18px + var(--alto)); right: 16px; }
+        .luna { width: 300px; height: 150px; left: auto; right: -112px; top: calc(28px + var(--alto)); }
+        .lato::before { width: 700px; height: 700px; margin: -350px 0 0 -350px; }
+    }
+    /* sotto i 400 px la citta' si taglia proprio sul palazzo dell'antenna: restava una luce rossa
+       sospesa sul bordo dello schermo, senza il palazzo sotto */
+    @media (max-width: 400px) {
+        .citta .antenna, .citta .antenna-asta { display: none; }
+    }
+    @media (max-width: 380px) {
+        .glass-card { padding: 22px 16px 18px; }
+        .scheda { padding: 13px 13px 11px; }
+        .scheda-codice { font-size: 17px; }
+        .scheda-codice span { margin-right: 9px; }
+        .scheda-nota { font-size: 11.5px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition-duration: 0.01ms !important; transition-delay: 0s !important; }
+    }
+    </style>
+    <script src="/static/popup.js"></script>
+</head>
+<body{% if error %} class="con-errore"{% endif %}>
+
+    <!-- ============ LA NOTTE: cielo, luna, citta' e la casa spenta ============ -->
+    <div class="scena" aria-hidden="true">
+        <svg class="cielo" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+            <defs>
+                <filter id="lSfuma" x="-20%" y="-300%" width="140%" height="700%"><feGaussianBlur stdDeviation="4"/></filter>
+                <linearGradient id="lNube" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#8FA3D8" stop-opacity="0"/><stop offset="0.5" stop-color="#8FA3D8" stop-opacity="0.15"/><stop offset="1" stop-color="#8FA3D8" stop-opacity="0"/>
+                </linearGradient>
+            </defs>
+            <g fill="#DDE6FF"><circle cx="1517" cy="624" r="1.2" opacity="0.85"/><circle cx="100" cy="48" r="0.6" opacity="0.85"/><circle cx="568" cy="33" r="1.2" opacity="0.55"/><circle cx="489" cy="3" r="0.7" opacity="0.55"/><circle class="sc" cx="47" cy="405" r="0.6" opacity="0.55"/><circle cx="246" cy="469" r="0.9" opacity="0.7"/><circle cx="1458" cy="487" r="0.9" opacity="0.45"/><circle cx="845" cy="68" r="0.9" opacity="0.45"/><circle cx="1050" cy="645" r="0.7" opacity="0.55"/><circle cx="1568" cy="176" r="1.2" opacity="0.7"/><circle class="sc" cx="1434" cy="176" r="0.7" opacity="0.35"/><circle cx="1164" cy="245" r="0.6" opacity="0.35"/><circle cx="1557" cy="11" r="0.6" opacity="0.45"/><circle cx="854" cy="8" r="0.8" opacity="0.55"/><circle class="sc" cx="1416" cy="210" r="1.2" opacity="0.45"/><circle cx="327" cy="123" r="0.6" opacity="0.35"/><circle cx="201" cy="46" r="0.9" opacity="0.85"/><circle cx="1018" cy="399" r="0.9" opacity="0.35"/><circle cx="1150" cy="559" r="0.7" opacity="0.7"/><circle cx="1379" cy="707" r="1.2" opacity="0.7"/><circle cx="754" cy="26" r="0.9" opacity="0.85"/><circle cx="1119" cy="492" r="0.7" opacity="0.35"/><circle cx="1260" cy="517" r="1.2" opacity="0.35"/><circle cx="1452" cy="46" r="0.6" opacity="0.35"/><circle cx="643" cy="649" r="0.7" opacity="0.35"/><circle cx="1021" cy="624" r="0.8" opacity="0.35"/><circle cx="29" cy="448" r="0.6" opacity="0.35"/><circle class="sc" cx="1291" cy="32" r="1.0" opacity="0.55"/><circle cx="1259" cy="590" r="0.6" opacity="0.35"/><circle cx="889" cy="515" r="1.0" opacity="0.85"/><circle cx="951" cy="492" r="0.6" opacity="0.35"/><circle cx="984" cy="190" r="1.2" opacity="0.35"/><circle cx="333" cy="41" r="1.0" opacity="0.7"/><circle cx="1133" cy="427" r="1.2" opacity="0.7"/><circle cx="980" cy="11" r="1.0" opacity="0.55"/><circle cx="140" cy="63" r="0.6" opacity="0.35"/><circle cx="484" cy="454" r="0.7" opacity="0.7"/><circle class="sc" cx="1565" cy="460" r="0.6" opacity="0.35"/><circle cx="181" cy="385" r="1.0" opacity="0.45"/><circle cx="728" cy="156" r="1.0" opacity="0.85"/><circle cx="1466" cy="424" r="0.6" opacity="0.35"/><circle cx="1146" cy="1" r="1.2" opacity="0.45"/><circle cx="689" cy="577" r="0.7" opacity="0.85"/><circle cx="706" cy="398" r="0.8" opacity="0.55"/><circle cx="45" cy="140" r="0.7" opacity="0.7"/><circle cx="1514" cy="351" r="0.9" opacity="0.85"/><circle class="sc" cx="1590" cy="444" r="0.8" opacity="0.45"/><circle cx="860" cy="115" r="1.0" opacity="0.55"/><circle cx="525" cy="462" r="0.7" opacity="0.55"/><circle cx="851" cy="15" r="0.8" opacity="0.7"/><circle cx="587" cy="250" r="0.9" opacity="0.45"/><circle cx="85" cy="358" r="0.7" opacity="0.7"/><circle cx="830" cy="468" r="1.2" opacity="0.35"/><circle cx="348" cy="446" r="0.6" opacity="0.55"/><circle cx="189" cy="657" r="1.0" opacity="0.7"/><circle cx="266" cy="657" r="0.8" opacity="0.7"/><circle cx="411" cy="1" r="1.2" opacity="0.45"/><circle cx="989" cy="351" r="1.2" opacity="0.85"/><circle class="sc" cx="111" cy="7" r="0.9" opacity="0.55"/><circle class="sc" cx="1167" cy="249" r="0.6" opacity="0.55"/><circle cx="891" cy="414" r="1.2" opacity="0.85"/><circle cx="437" cy="461" r="0.7" opacity="0.35"/><circle cx="631" cy="389" r="0.7" opacity="0.7"/><circle cx="1404" cy="558" r="0.9" opacity="0.55"/><circle cx="329" cy="143" r="0.7" opacity="0.35"/><circle class="sc" cx="1284" cy="365" r="0.8" opacity="0.85"/><circle cx="303" cy="607" r="0.7" opacity="0.85"/><circle cx="420" cy="3" r="0.9" opacity="0.35"/><circle cx="91" cy="70" r="0.6" opacity="0.85"/><circle cx="99" cy="90" r="0.8" opacity="0.45"/><circle cx="568" cy="254" r="0.7" opacity="0.45"/><circle cx="1179" cy="133" r="0.7" opacity="0.85"/><circle cx="1395" cy="612" r="0.7" opacity="0.55"/><circle cx="1491" cy="1" r="1.2" opacity="0.45"/><circle cx="1220" cy="549" r="0.7" opacity="0.7"/><circle cx="12" cy="14" r="0.9" opacity="0.55"/><circle cx="47" cy="177" r="0.6" opacity="0.35"/><circle cx="1138" cy="12" r="0.6" opacity="0.7"/><circle class="sc" cx="278" cy="59" r="0.9" opacity="0.35"/><circle cx="108" cy="127" r="0.9" opacity="0.45"/><circle cx="887" cy="8" r="0.7" opacity="0.7"/><circle class="sc" cx="900" cy="568" r="0.9" opacity="0.35"/><circle cx="690" cy="5" r="1.0" opacity="0.45"/><circle cx="506" cy="14" r="0.9" opacity="0.55"/><circle cx="1513" cy="477" r="0.7" opacity="0.35"/><circle class="sc" cx="1009" cy="13" r="0.8" opacity="0.55"/><circle cx="1125" cy="203" r="0.8" opacity="0.45"/><circle cx="1004" cy="504" r="0.6" opacity="0.7"/><circle cx="51" cy="344" r="0.9" opacity="0.85"/><circle cx="583" cy="143" r="0.8" opacity="0.35"/><circle class="sc" cx="588" cy="605" r="0.7" opacity="0.45"/><circle cx="733" cy="415" r="0.9" opacity="0.45"/><circle cx="456" cy="690" r="0.7" opacity="0.55"/><circle cx="933" cy="647" r="0.9" opacity="0.35"/><circle cx="20" cy="657" r="0.7" opacity="0.35"/><circle cx="818" cy="657" r="0.9" opacity="0.45"/><circle cx="346" cy="528" r="0.7" opacity="0.55"/><circle cx="730" cy="57" r="0.8" opacity="0.35"/><circle cx="549" cy="363" r="0.6" opacity="0.85"/><circle cx="259" cy="522" r="0.6" opacity="0.45"/><circle cx="412" cy="188" r="1.0" opacity="0.85"/><circle cx="220" cy="63" r="0.6" opacity="0.55"/><circle cx="238" cy="24" r="1.0" opacity="0.45"/><circle cx="1418" cy="5" r="0.7" opacity="0.7"/><circle cx="936" cy="186" r="0.9" opacity="0.55"/><circle cx="1058" cy="557" r="1.2" opacity="0.55"/><circle cx="1139" cy="13" r="0.9" opacity="0.35"/><circle cx="1446" cy="7" r="0.7" opacity="0.45"/><circle cx="847" cy="544" r="1.2" opacity="0.85"/><circle cx="714" cy="221" r="1.0" opacity="0.85"/><circle cx="591" cy="238" r="1.0" opacity="0.45"/><circle cx="947" cy="69" r="0.9" opacity="0.45"/><circle cx="1530" cy="340" r="0.9" opacity="0.55"/><circle cx="411" cy="516" r="1.2" opacity="0.35"/><circle cx="754" cy="366" r="0.6" opacity="0.7"/><circle cx="1084" cy="401" r="1.2" opacity="0.45"/><circle cx="518" cy="685" r="0.9" opacity="0.35"/><circle cx="331" cy="157" r="0.7" opacity="0.45"/><circle cx="1133" cy="139" r="0.9" opacity="0.55"/><circle class="sc" cx="356" cy="52" r="0.8" opacity="0.35"/><circle cx="217" cy="155" r="0.9" opacity="0.35"/><circle cx="726" cy="110" r="1.0" opacity="0.55"/><circle cx="1213" cy="100" r="0.9" opacity="0.35"/><circle cx="1249" cy="147" r="0.6" opacity="0.55"/><circle cx="1027" cy="332" r="1.2" opacity="0.85"/><circle cx="314" cy="457" r="0.8" opacity="0.55"/><circle class="sc" cx="103" cy="188" r="1.2" opacity="0.85"/><circle cx="1435" cy="298" r="0.9" opacity="0.85"/><circle cx="112" cy="0" r="0.7" opacity="0.35"/><circle class="sc" cx="6" cy="59" r="0.8" opacity="0.45"/></g>
+            <g filter="url(#lSfuma)">
+                <ellipse cx="420" cy="300" rx="220" ry="7" fill="url(#lNube)" opacity="0.5"/>
+                <ellipse cx="1300" cy="380" rx="200" ry="6" fill="url(#lNube)" opacity="0.45"/>
+            </g>
+        </svg>
+
+        <!-- la luna: un pezzo a parte, cosi' dal computer sta fra le due colonne e dal telefono in alto a destra -->
+        <svg class="luna" viewBox="0 0 400 200">
+            <defs>
+                <radialGradient id="lAloneLuna" cx="200" cy="100" r="200" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#DCE6FF" stop-opacity="0.30"/><stop offset="0.16" stop-color="#A9BEF5" stop-opacity="0.12"/><stop offset="1" stop-color="#8FA8EC" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="lDisco" cx="0.4" cy="0.38" r="0.65">
+                    <stop offset="0" stop-color="#FDFEFF"/><stop offset="0.7" stop-color="#E2E9FB"/><stop offset="1" stop-color="#BCC9EC"/>
+                </radialGradient>
+                <filter id="lSfumaL" x="-20%" y="-300%" width="140%" height="700%"><feGaussianBlur stdDeviation="3.5"/></filter>
+            </defs>
+            <circle cx="200" cy="100" r="200" fill="url(#lAloneLuna)"/>
+            <circle cx="200" cy="100" r="14" fill="url(#lDisco)"/>
+            <circle cx="195.5" cy="103.5" r="2.7" fill="#B9C6E6" opacity="0.4"/><circle cx="205" cy="94" r="1.8" fill="#B9C6E6" opacity="0.35"/><circle cx="206" cy="105" r="1.2" fill="#B9C6E6" opacity="0.3"/>
+            <g filter="url(#lSfumaL)">
+                <ellipse cx="160" cy="128" rx="140" ry="7" fill="url(#lNube)"/>
+                <ellipse cx="270" cy="148" rx="100" ry="5" fill="url(#lNube)" opacity="0.8"/>
+            </g>
+        </svg>
+
+        <svg class="citta" viewBox="0 0 1600 300" preserveAspectRatio="xMidYMax slice">
+            <defs>
+                <linearGradient id="lFoschia" x1="0" y1="80" x2="0" y2="300" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#FFB27A" stop-opacity="0"/><stop offset="0.55" stop-color="#FF9E6A" stop-opacity="0.11"/><stop offset="1" stop-color="#FFB27A" stop-opacity="0.18"/>
+                </linearGradient>
+                <linearGradient id="lLontani" x1="0" y1="140" x2="0" y2="300" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#1A2146"/><stop offset="1" stop-color="#101532"/>
+                </linearGradient>
+                <linearGradient id="lVicini" x1="0" y1="180" x2="0" y2="300" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#0B0F22"/><stop offset="1" stop-color="#05070F"/>
+                </linearGradient>
+                <linearGradient id="lMuro" x1="0" y1="212" x2="0" y2="300" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#0E1330"/><stop offset="1" stop-color="#070A18"/>
+                </linearGradient>
+                <linearGradient id="lLuce" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#FFE2A8"/><stop offset="1" stop-color="#F2A955"/>
+                </linearGradient>
+                <radialGradient id="lSerratura" cx="805" cy="281" r="9" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" stop-color="#FFD08A" stop-opacity="0.9"/><stop offset="0.4" stop-color="#FFB865" stop-opacity="0.35"/><stop offset="1" stop-color="#FFB865" stop-opacity="0"/>
+                </radialGradient>
+                <radialGradient id="lSpill" cx="800" cy="300" r="120" gradientUnits="userSpaceOnUse" gradientTransform="translate(0 300) scale(1 0.3) translate(0 -300)">
+                    <stop offset="0" stop-color="#FFC27A" stop-opacity="0.35"/><stop offset="1" stop-color="#FFC27A" stop-opacity="0"/>
+                </radialGradient>
+            </defs>
+            <rect y="60" width="1600" height="240" fill="url(#lFoschia)"/>
+            <path fill="url(#lLontani)" d="M0 300 V211 H46 V224 H97 V162 H127 V184 H159 V223 H222 V203 H280 V219 H308 V177 H361 V200 H391 V160 H422 V223 H475 V215 H537 V150 H577 V156 H643 V157 H672 V180 H735 V202 H764 V159 H792 V193 H826 V212 H878 V215 H938 V191 H1000 V207 H1061 V156 H1093 V206 H1155 V218 H1204 V222 H1265 V223 H1327 V204 H1392 V162 H1449 V190 H1502 V156 H1557 V184 H1600 V300 Z"/>
+            <g fill="#F2C88E" opacity="0.6"><rect x="25" y="243" width="1.8" height="2" opacity="0.65"/><rect x="78" y="288" width="1.8" height="2" opacity="0.65"/><rect x="122" y="194" width="1.8" height="2" opacity="0.65"/><rect x="101" y="218" width="1.8" height="2" opacity="0.65"/><rect x="101" y="266" width="1.8" height="2" opacity="0.5"/><rect x="122" y="274" width="1.8" height="2" opacity="0.65"/><rect x="152" y="280" width="1.8" height="2" opacity="0.65"/><rect x="163" y="255" width="1.8" height="2" opacity="0.35"/><rect x="184" y="255" width="1.8" height="2" opacity="0.35"/><rect x="198" y="263" width="1.8" height="2" opacity="0.35"/><rect x="205" y="271" width="1.8" height="2" opacity="0.35"/><rect x="240" y="211" width="1.8" height="2" opacity="0.35"/><rect x="268" y="211" width="1.8" height="2" opacity="0.65"/><rect x="275" y="227" width="1.8" height="2" opacity="0.5"/><rect x="240" y="267" width="1.8" height="2" opacity="0.65"/><rect x="275" y="267" width="1.8" height="2" opacity="0.35"/><rect x="247" y="275" width="1.8" height="2" opacity="0.35"/><rect x="268" y="275" width="1.8" height="2" opacity="0.35"/><rect x="240" y="283" width="1.8" height="2" opacity="0.65"/><rect x="268" y="291" width="1.8" height="2" opacity="0.65"/><rect x="298" y="235" width="1.8" height="2" opacity="0.35"/><rect x="354" y="209" width="1.8" height="2" opacity="0.65"/><rect x="312" y="225" width="1.8" height="2" opacity="0.35"/><rect x="333" y="233" width="1.8" height="2" opacity="0.65"/><rect x="326" y="281" width="1.8" height="2" opacity="0.5"/><rect x="386" y="264" width="1.8" height="2" opacity="0.35"/><rect x="409" y="168" width="1.8" height="2" opacity="0.5"/><rect x="402" y="184" width="1.8" height="2" opacity="0.5"/><rect x="416" y="184" width="1.8" height="2" opacity="0.5"/><rect x="409" y="208" width="1.8" height="2" opacity="0.5"/><rect x="395" y="256" width="1.8" height="2" opacity="0.35"/><rect x="433" y="255" width="1.8" height="2" opacity="0.35"/><rect x="454" y="263" width="1.8" height="2" opacity="0.65"/><rect x="426" y="271" width="1.8" height="2" opacity="0.35"/><rect x="440" y="279" width="1.8" height="2" opacity="0.65"/><rect x="479" y="255" width="1.8" height="2" opacity="0.5"/><rect x="500" y="263" width="1.8" height="2" opacity="0.5"/><rect x="507" y="263" width="1.8" height="2" opacity="0.65"/><rect x="479" y="287" width="1.8" height="2" opacity="0.5"/><rect x="507" y="287" width="1.8" height="2" opacity="0.5"/><rect x="514" y="287" width="1.8" height="2" opacity="0.35"/><rect x="555" y="166" width="1.8" height="2" opacity="0.65"/><rect x="548" y="182" width="1.8" height="2" opacity="0.35"/><rect x="555" y="190" width="1.8" height="2" opacity="0.65"/><rect x="555" y="206" width="1.8" height="2" opacity="0.5"/><rect x="541" y="222" width="1.8" height="2" opacity="0.65"/><rect x="569" y="246" width="1.8" height="2" opacity="0.65"/><rect x="569" y="270" width="1.8" height="2" opacity="0.5"/><rect x="548" y="286" width="1.8" height="2" opacity="0.5"/><rect x="581" y="164" width="1.8" height="2" opacity="0.65"/><rect x="581" y="172" width="1.8" height="2" opacity="0.35"/><rect x="595" y="180" width="1.8" height="2" opacity="0.5"/><rect x="623" y="196" width="1.8" height="2" opacity="0.5"/><rect x="595" y="228" width="1.8" height="2" opacity="0.5"/><rect x="609" y="228" width="1.8" height="2" opacity="0.35"/><rect x="616" y="236" width="1.8" height="2" opacity="0.35"/><rect x="630" y="236" width="1.8" height="2" opacity="0.35"/><rect x="595" y="244" width="1.8" height="2" opacity="0.65"/><rect x="588" y="252" width="1.8" height="2" opacity="0.35"/><rect x="609" y="252" width="1.8" height="2" opacity="0.35"/><rect x="630" y="260" width="1.8" height="2" opacity="0.65"/><rect x="581" y="268" width="1.8" height="2" opacity="0.5"/><rect x="630" y="268" width="1.8" height="2" opacity="0.5"/><rect x="595" y="276" width="1.8" height="2" opacity="0.65"/><rect x="595" y="284" width="1.8" height="2" opacity="0.5"/><rect x="647" y="165" width="1.8" height="2" opacity="0.35"/><rect x="647" y="189" width="1.8" height="2" opacity="0.35"/><rect x="654" y="197" width="1.8" height="2" opacity="0.35"/><rect x="661" y="205" width="1.8" height="2" opacity="0.65"/><rect x="654" y="237" width="1.8" height="2" opacity="0.65"/><rect x="654" y="269" width="1.8" height="2" opacity="0.5"/><rect x="661" y="285" width="1.8" height="2" opacity="0.65"/><rect x="711" y="188" width="1.8" height="2" opacity="0.35"/><rect x="725" y="188" width="1.8" height="2" opacity="0.5"/><rect x="683" y="220" width="1.8" height="2" opacity="0.35"/><rect x="704" y="228" width="1.8" height="2" opacity="0.65"/><rect x="704" y="268" width="1.8" height="2" opacity="0.5"/><rect x="683" y="276" width="1.8" height="2" opacity="0.5"/><rect x="753" y="242" width="1.8" height="2" opacity="0.65"/><rect x="753" y="266" width="1.8" height="2" opacity="0.5"/><rect x="768" y="167" width="1.8" height="2" opacity="0.5"/><rect x="775" y="167" width="1.8" height="2" opacity="0.35"/><rect x="782" y="263" width="1.8" height="2" opacity="0.65"/><rect x="858" y="228" width="1.8" height="2" opacity="0.35"/><rect x="858" y="236" width="1.8" height="2" opacity="0.65"/><rect x="837" y="252" width="1.8" height="2" opacity="0.5"/><rect x="844" y="268" width="1.8" height="2" opacity="0.65"/><rect x="830" y="276" width="1.8" height="2" opacity="0.5"/><rect x="844" y="292" width="1.8" height="2" opacity="0.35"/><rect x="882" y="231" width="1.8" height="2" opacity="0.65"/><rect x="924" y="231" width="1.8" height="2" opacity="0.65"/><rect x="882" y="247" width="1.8" height="2" opacity="0.35"/><rect x="931" y="263" width="1.8" height="2" opacity="0.35"/><rect x="882" y="271" width="1.8" height="2" opacity="0.65"/><rect x="991" y="199" width="1.8" height="2" opacity="0.35"/><rect x="949" y="215" width="1.8" height="2" opacity="0.5"/><rect x="942" y="239" width="1.8" height="2" opacity="0.5"/><rect x="949" y="263" width="1.8" height="2" opacity="0.5"/><rect x="949" y="271" width="1.8" height="2" opacity="0.35"/><rect x="949" y="287" width="1.8" height="2" opacity="0.35"/><rect x="984" y="287" width="1.8" height="2" opacity="0.65"/><rect x="1053" y="223" width="1.8" height="2" opacity="0.65"/><rect x="1011" y="231" width="1.8" height="2" opacity="0.65"/><rect x="1032" y="231" width="1.8" height="2" opacity="0.35"/><rect x="1039" y="231" width="1.8" height="2" opacity="0.35"/><rect x="1018" y="247" width="1.8" height="2" opacity="0.65"/><rect x="1046" y="255" width="1.8" height="2" opacity="0.35"/><rect x="1039" y="263" width="1.8" height="2" opacity="0.65"/><rect x="1025" y="271" width="1.8" height="2" opacity="0.65"/><rect x="1025" y="279" width="1.8" height="2" opacity="0.65"/><rect x="1065" y="188" width="1.8" height="2" opacity="0.5"/><rect x="1079" y="220" width="1.8" height="2" opacity="0.65"/><rect x="1079" y="252" width="1.8" height="2" opacity="0.65"/><rect x="1065" y="260" width="1.8" height="2" opacity="0.65"/><rect x="1086" y="284" width="1.8" height="2" opacity="0.65"/><rect x="1118" y="214" width="1.8" height="2" opacity="0.65"/><rect x="1118" y="238" width="1.8" height="2" opacity="0.65"/><rect x="1118" y="254" width="1.8" height="2" opacity="0.65"/><rect x="1097" y="262" width="1.8" height="2" opacity="0.35"/><rect x="1104" y="262" width="1.8" height="2" opacity="0.5"/><rect x="1097" y="270" width="1.8" height="2" opacity="0.35"/><rect x="1194" y="250" width="1.8" height="2" opacity="0.5"/><rect x="1159" y="266" width="1.8" height="2" opacity="0.35"/><rect x="1166" y="266" width="1.8" height="2" opacity="0.5"/><rect x="1173" y="266" width="1.8" height="2" opacity="0.5"/><rect x="1236" y="246" width="1.8" height="2" opacity="0.65"/><rect x="1243" y="262" width="1.8" height="2" opacity="0.35"/><rect x="1208" y="278" width="1.8" height="2" opacity="0.65"/><rect x="1276" y="255" width="1.8" height="2" opacity="0.5"/><rect x="1283" y="255" width="1.8" height="2" opacity="0.65"/><rect x="1290" y="255" width="1.8" height="2" opacity="0.5"/><rect x="1304" y="255" width="1.8" height="2" opacity="0.35"/><rect x="1269" y="279" width="1.8" height="2" opacity="0.35"/><rect x="1304" y="279" width="1.8" height="2" opacity="0.65"/><rect x="1290" y="287" width="1.8" height="2" opacity="0.5"/><rect x="1331" y="212" width="1.8" height="2" opacity="0.65"/><rect x="1338" y="236" width="1.8" height="2" opacity="0.35"/><rect x="1331" y="244" width="1.8" height="2" opacity="0.35"/><rect x="1380" y="268" width="1.8" height="2" opacity="0.65"/><rect x="1345" y="284" width="1.8" height="2" opacity="0.5"/><rect x="1396" y="170" width="1.8" height="2" opacity="0.65"/><rect x="1417" y="178" width="1.8" height="2" opacity="0.35"/><rect x="1396" y="210" width="1.8" height="2" opacity="0.5"/><rect x="1424" y="226" width="1.8" height="2" opacity="0.65"/><rect x="1396" y="258" width="1.8" height="2" opacity="0.65"/><rect x="1396" y="282" width="1.8" height="2" opacity="0.5"/><rect x="1410" y="290" width="1.8" height="2" opacity="0.5"/><rect x="1495" y="198" width="1.8" height="2" opacity="0.35"/><rect x="1495" y="206" width="1.8" height="2" opacity="0.5"/><rect x="1481" y="230" width="1.8" height="2" opacity="0.65"/><rect x="1460" y="238" width="1.8" height="2" opacity="0.35"/><rect x="1488" y="246" width="1.8" height="2" opacity="0.5"/><rect x="1460" y="254" width="1.8" height="2" opacity="0.65"/><rect x="1460" y="286" width="1.8" height="2" opacity="0.65"/><rect x="1541" y="220" width="1.8" height="2" opacity="0.35"/><rect x="1506" y="252" width="1.8" height="2" opacity="0.65"/><rect x="1534" y="252" width="1.8" height="2" opacity="0.65"/><rect x="1506" y="260" width="1.8" height="2" opacity="0.65"/><rect x="1520" y="276" width="1.8" height="2" opacity="0.35"/><rect x="1534" y="276" width="1.8" height="2" opacity="0.35"/><rect x="1568" y="216" width="1.8" height="2" opacity="0.5"/></g>
+            <path fill="url(#lVicini)" d="M0 300 V235 H53 V243 H137 V235 H215 V193 H254 V199 H307 V223 H372 V209 H452 V189 H504 V257 H600 V201 H641 V276 H701 V273 H744 V276 H780 V271 H835 V284 H906 V255 H993 V232 H1087 V258 H1151 V227 H1188 V193 H1263 V209 H1340 V217 H1392 V222 H1482 V207 H1517 V245 H1573 V252 H1600 V300 Z"/>
+            <g fill="#FFD59A"><rect x="6" y="243" width="2.6" height="3.2" opacity="0.6"/><rect x="15" y="243" width="2.6" height="3.2" opacity="0.6"/><rect x="15" y="276" width="2.6" height="3.2" opacity="0.45"/><rect x="59" y="251" width="2.6" height="3.2" opacity="0.75"/><rect x="68" y="251" width="2.6" height="3.2" opacity="0.75"/><rect x="95" y="262" width="2.6" height="3.2" opacity="0.9"/><rect x="104" y="262" width="2.6" height="3.2" opacity="0.75"/><rect x="77" y="273" width="2.6" height="3.2" opacity="0.75"/><rect x="95" y="273" width="2.6" height="3.2" opacity="0.75"/><rect x="104" y="273" width="2.6" height="3.2" opacity="0.6"/><rect x="122" y="273" width="2.6" height="3.2" opacity="0.75"/><rect x="161" y="254" width="2.6" height="3.2" opacity="0.45"/><rect x="170" y="254" width="2.6" height="3.2" opacity="0.75"/><rect x="152" y="265" width="2.6" height="3.2" opacity="0.6"/><rect x="188" y="265" width="2.6" height="3.2" opacity="0.6"/><rect class="lv" x="170" y="287" width="2.6" height="3.2" opacity="0.45"/><rect x="206" y="287" width="2.6" height="3.2" opacity="0.9"/><rect x="221" y="256" width="2.6" height="3.2" opacity="0.75"/><rect x="230" y="256" width="2.6" height="3.2" opacity="0.75"/><rect x="239" y="267" width="2.6" height="3.2" opacity="0.9"/><rect x="221" y="278" width="2.6" height="3.2" opacity="0.6"/><rect x="239" y="278" width="2.6" height="3.2" opacity="0.9"/><rect x="260" y="207" width="2.6" height="3.2" opacity="0.45"/><rect x="278" y="207" width="2.6" height="3.2" opacity="0.75"/><rect x="296" y="207" width="2.6" height="3.2" opacity="0.6"/><rect x="260" y="240" width="2.6" height="3.2" opacity="0.6"/><rect class="lv" x="287" y="240" width="2.6" height="3.2" opacity="0.45"/><rect x="260" y="251" width="2.6" height="3.2" opacity="0.45"/><rect class="lv" x="278" y="251" width="2.6" height="3.2" opacity="0.9"/><rect x="269" y="273" width="2.6" height="3.2" opacity="0.6"/><rect class="lv" x="296" y="273" width="2.6" height="3.2" opacity="0.6"/><rect x="287" y="284" width="2.6" height="3.2" opacity="0.75"/><rect x="313" y="231" width="2.6" height="3.2" opacity="0.9"/><rect x="322" y="253" width="2.6" height="3.2" opacity="0.45"/><rect x="340" y="264" width="2.6" height="3.2" opacity="0.45"/><rect x="349" y="264" width="2.6" height="3.2" opacity="0.75"/><rect x="387" y="217" width="2.6" height="3.2" opacity="0.75"/><rect x="441" y="228" width="2.6" height="3.2" opacity="0.75"/><rect x="396" y="250" width="2.6" height="3.2" opacity="0.9"/><rect x="378" y="272" width="2.6" height="3.2" opacity="0.9"/><rect x="405" y="272" width="2.6" height="3.2" opacity="0.6"/><rect class="lv" x="387" y="283" width="2.6" height="3.2" opacity="0.6"/><rect x="494" y="197" width="2.6" height="3.2" opacity="0.6"/><rect x="485" y="208" width="2.6" height="3.2" opacity="0.9"/><rect x="494" y="208" width="2.6" height="3.2" opacity="0.75"/><rect x="458" y="230" width="2.6" height="3.2" opacity="0.6"/><rect x="485" y="230" width="2.6" height="3.2" opacity="0.6"/><rect x="494" y="230" width="2.6" height="3.2" opacity="0.9"/><rect x="494" y="241" width="2.6" height="3.2" opacity="0.9"/><rect x="494" y="252" width="2.6" height="3.2" opacity="0.9"/><rect x="458" y="274" width="2.6" height="3.2" opacity="0.75"/><rect x="485" y="274" width="2.6" height="3.2" opacity="0.6"/><rect class="lv" x="458" y="285" width="2.6" height="3.2" opacity="0.9"/><rect x="485" y="285" width="2.6" height="3.2" opacity="0.6"/><rect x="510" y="265" width="2.6" height="3.2" opacity="0.9"/><rect x="519" y="265" width="2.6" height="3.2" opacity="0.9"/><rect x="537" y="265" width="2.6" height="3.2" opacity="0.75"/><rect x="582" y="265" width="2.6" height="3.2" opacity="0.9"/><rect x="537" y="276" width="2.6" height="3.2" opacity="0.75"/><rect x="582" y="276" width="2.6" height="3.2" opacity="0.6"/><rect class="lv" x="582" y="287" width="2.6" height="3.2" opacity="0.75"/><rect class="lv" x="591" y="287" width="2.6" height="3.2" opacity="0.75"/><rect x="606" y="242" width="2.6" height="3.2" opacity="0.6"/><rect x="615" y="242" width="2.6" height="3.2" opacity="0.9"/><rect x="633" y="264" width="2.6" height="3.2" opacity="0.6"/><rect x="624" y="275" width="2.6" height="3.2" opacity="0.45"/><rect x="633" y="286" width="2.6" height="3.2" opacity="0.45"/><rect x="647" y="284" width="2.6" height="3.2" opacity="0.6"/><rect x="912" y="263" width="2.6" height="3.2" opacity="0.75"/><rect x="930" y="263" width="2.6" height="3.2" opacity="0.6"/><rect x="939" y="263" width="2.6" height="3.2" opacity="0.9"/><rect x="984" y="263" width="2.6" height="3.2" opacity="0.6"/><rect x="921" y="274" width="2.6" height="3.2" opacity="0.75"/><rect x="930" y="285" width="2.6" height="3.2" opacity="0.9"/><rect x="1044" y="240" width="2.6" height="3.2" opacity="0.45"/><rect x="1071" y="240" width="2.6" height="3.2" opacity="0.75"/><rect x="1026" y="251" width="2.6" height="3.2" opacity="0.75"/><rect x="1062" y="251" width="2.6" height="3.2" opacity="0.6"/><rect x="999" y="262" width="2.6" height="3.2" opacity="0.45"/><rect x="1035" y="262" width="2.6" height="3.2" opacity="0.6"/><rect x="1053" y="262" width="2.6" height="3.2" opacity="0.45"/><rect class="lv" x="999" y="273" width="2.6" height="3.2" opacity="0.45"/><rect x="1017" y="273" width="2.6" height="3.2" opacity="0.75"/><rect x="1026" y="273" width="2.6" height="3.2" opacity="0.9"/><rect x="1044" y="273" width="2.6" height="3.2" opacity="0.75"/><rect x="999" y="284" width="2.6" height="3.2" opacity="0.6"/><rect x="1026" y="284" width="2.6" height="3.2" opacity="0.45"/><rect x="1102" y="266" width="2.6" height="3.2" opacity="0.75"/><rect class="lv" x="1129" y="266" width="2.6" height="3.2" opacity="0.45"/><rect class="lv" x="1129" y="277" width="2.6" height="3.2" opacity="0.6"/><rect x="1093" y="288" width="2.6" height="3.2" opacity="0.6"/><rect x="1166" y="235" width="2.6" height="3.2" opacity="0.9"/><rect x="1175" y="235" width="2.6" height="3.2" opacity="0.6"/><rect x="1166" y="246" width="2.6" height="3.2" opacity="0.75"/><rect x="1157" y="268" width="2.6" height="3.2" opacity="0.45"/><rect x="1212" y="201" width="2.6" height="3.2" opacity="0.75"/><rect x="1221" y="212" width="2.6" height="3.2" opacity="0.9"/><rect x="1194" y="234" width="2.6" height="3.2" opacity="0.75"/><rect x="1212" y="245" width="2.6" height="3.2" opacity="0.9"/><rect x="1194" y="256" width="2.6" height="3.2" opacity="0.75"/><rect class="lv" x="1230" y="267" width="2.6" height="3.2" opacity="0.6"/><rect class="lv" x="1194" y="278" width="2.6" height="3.2" opacity="0.75"/><rect x="1248" y="278" width="2.6" height="3.2" opacity="0.45"/><rect x="1221" y="289" width="2.6" height="3.2" opacity="0.6"/><rect class="lv" x="1332" y="217" width="2.6" height="3.2" opacity="0.45"/><rect x="1323" y="228" width="2.6" height="3.2" opacity="0.9"/><rect x="1296" y="250" width="2.6" height="3.2" opacity="0.9"/><rect x="1314" y="250" width="2.6" height="3.2" opacity="0.45"/><rect x="1296" y="261" width="2.6" height="3.2" opacity="0.75"/><rect x="1305" y="261" width="2.6" height="3.2" opacity="0.75"/><rect x="1332" y="261" width="2.6" height="3.2" opacity="0.9"/><rect x="1314" y="272" width="2.6" height="3.2" opacity="0.9"/><rect x="1314" y="283" width="2.6" height="3.2" opacity="0.9"/><rect x="1346" y="225" width="2.6" height="3.2" opacity="0.45"/><rect x="1382" y="225" width="2.6" height="3.2" opacity="0.75"/><rect x="1382" y="258" width="2.6" height="3.2" opacity="0.9"/><rect class="lv" x="1355" y="269" width="2.6" height="3.2" opacity="0.75"/><rect x="1364" y="280" width="2.6" height="3.2" opacity="0.9"/><rect x="1382" y="291" width="2.6" height="3.2" opacity="0.75"/><rect x="1425" y="230" width="2.6" height="3.2" opacity="0.45"/><rect x="1461" y="230" width="2.6" height="3.2" opacity="0.75"/><rect x="1416" y="241" width="2.6" height="3.2" opacity="0.9"/><rect x="1452" y="252" width="2.6" height="3.2" opacity="0.75"/><rect x="1470" y="252" width="2.6" height="3.2" opacity="0.45"/><rect x="1470" y="263" width="2.6" height="3.2" opacity="0.6"/><rect x="1452" y="274" width="2.6" height="3.2" opacity="0.9"/><rect x="1470" y="274" width="2.6" height="3.2" opacity="0.75"/><rect x="1443" y="285" width="2.6" height="3.2" opacity="0.45"/><rect x="1452" y="285" width="2.6" height="3.2" opacity="0.75"/><rect class="lv" x="1506" y="226" width="2.6" height="3.2" opacity="0.9"/><rect class="lv" x="1506" y="270" width="2.6" height="3.2" opacity="0.6"/><rect x="1506" y="281" width="2.6" height="3.2" opacity="0.75"/><rect x="1550" y="264" width="2.6" height="3.2" opacity="0.9"/><rect x="1523" y="286" width="2.6" height="3.2" opacity="0.6"/></g>
+
+            <!-- LA CASA: l'unica tutta spenta. Brilla solo la serratura. -->
+            <g class="casa">
+                <ellipse class="spill" cx="800" cy="300" rx="150" ry="36" fill="url(#lSpill)"/>
+                <!-- la siepe e l'albero -->
+                <path fill="#04060F" d="M676 300 C672 290 680 281 690 284 C694 274 708 273 713 281 C719 276 731 280 731 290 C737 291 739 297 738 300 Z"/>
+                <path fill="#04060F" d="M866 300 C864 293 870 287 877 289 C881 282 891 283 893 290 C899 290 902 296 900 300 Z"/>
+                <rect x="918" y="262" width="3" height="38" fill="#04060F"/>
+                <path fill="#05081A" d="M919.5 206 C933 208 942 222 940 238 C946 246 943 262 930 266 C922 270 914 268 909 264 C897 262 893 248 899 238 C896 222 906 208 919.5 206 Z"/>
+                <path fill="none" stroke="#A9BEF5" stroke-opacity="0.16" stroke-width="1" d="M912 212 C918 207 928 208 934 214"/>
+                <!-- il camino, il corpo e il tetto -->
+                <rect x="836" y="170" width="13" height="34" fill="#0A0D20"/>
+                <rect x="834" y="168" width="17" height="4" fill="#0C1024"/>
+                <rect x="738" y="210" width="124" height="90" fill="url(#lMuro)"/>
+                <path d="M724 214 L800 162 L876 214 Z" fill="#0A0E22"/>
+                <path d="M724 214 L800 162 L876 214" fill="none" stroke="#B4C6F8" stroke-opacity="0.30" stroke-width="1.3" stroke-linejoin="round"/>
+                <rect x="738" y="214" width="124" height="3" fill="#05070F" opacity="0.8"/>
+                <!-- l'occhio di bue nel timpano -->
+                <circle cx="800" cy="193" r="6.5" fill="#131A38"/>
+                <circle class="luce" style="--i:5" cx="800" cy="193" r="6.5" fill="url(#lLuce)"/>
+                <path d="M793.5 193 H806.5 M800 186.5 V199.5" stroke="#070A18" stroke-width="1.2"/>
+                <!-- le finestre: vetro spento (blu), poi la luce -->
+                <g>
+                    <rect x="752" y="226" width="17" height="21" rx="1" fill="#131A38"/>
+                    <rect x="791.5" y="226" width="17" height="21" rx="1" fill="#131A38"/>
+                    <rect x="831" y="226" width="17" height="21" rx="1" fill="#131A38"/>
+                    <rect x="750" y="262" width="21" height="25" rx="1" fill="#131A38"/>
+                    <rect x="829" y="262" width="21" height="25" rx="1" fill="#131A38"/>
+                </g>
+                <g>
+                    <rect class="luce" style="--i:1" x="750" y="262" width="21" height="25" rx="1" fill="url(#lLuce)"/>
+                    <rect class="luce" style="--i:2" x="829" y="262" width="21" height="25" rx="1" fill="url(#lLuce)"/>
+                    <rect class="luce" style="--i:3" x="791.5" y="226" width="17" height="21" rx="1" fill="url(#lLuce)"/>
+                    <rect class="luce" style="--i:4" x="752" y="226" width="17" height="21" rx="1" fill="url(#lLuce)"/>
+                    <rect class="luce" style="--i:4.5" x="831" y="226" width="17" height="21" rx="1" fill="url(#lLuce)"/>
+                </g>
+                <!-- i riflessi della luna sui vetri e le croci dei telai -->
+                <g fill="#C9D6FF" opacity="0.10">
+                    <path d="M752 226 h6 l-6 8 z"/><path d="M791.5 226 h6 l-6 8 z"/><path d="M831 226 h6 l-6 8 z"/>
+                    <path d="M750 262 h7 l-7 9 z"/><path d="M829 262 h7 l-7 9 z"/>
+                </g>
+                <path stroke="#070A18" stroke-width="1.3" d="M760.5 226 V247 M752 236.5 H769 M800 226 V247 M791.5 236.5 H808.5 M839.5 226 V247 M831 236.5 H848 M760.5 262 V287 M750 274.5 H771 M839.5 262 V287 M829 274.5 H850"/>
+                <!-- la porta, il gradino, la serratura -->
+                <rect x="789" y="258" width="22" height="42" rx="2" fill="#080B1C"/>
+                <rect x="789" y="258" width="22" height="42" rx="2" fill="none" stroke="#1C2550" stroke-width="1"/>
+                <rect x="783" y="298" width="34" height="2" fill="#10152E"/>
+                <circle class="serratura-alone" cx="805" cy="281" r="9" fill="url(#lSerratura)"/>
+                <circle cx="805" cy="280" r="1.5" fill="#FFD9A0"/>
+                <path d="M804.2 280.6 L805.8 280.6 L806.3 284 L803.7 284 Z" fill="#FFD9A0"/>
+            </g>
+
+            <rect class="antenna-asta" x="1076.3" y="138" width="1.4" height="18" fill="#1A2146"/>
+            <circle class="antenna" cx="1077" cy="137.5" r="1.1" fill="#FF5A4E"/>
+            <circle class="antenna" cx="1077" cy="137.5" r="3.4" fill="#FF5A4E" opacity="0.2"/>
+        </svg>
+        <div class="alba"></div>
+        <div class="vignetta"></div>
+        <div class="grana"></div>
+    </div>
+
+    <div class="wh-lingua-angolo">
+<!-- ===== LINGUA: INIZIO =====
+     Selettore della lingua. Autonomo: porta con sé stile e comportamento, non tocca il resto
+     della pagina. Il colore acceso è il blu di Wach0ss, che si legge sia su fondo chiaro sia scuro.
+     Per toglierlo: cancellare da "LINGUA: INIZIO" a "LINGUA: FINE". -->
+<div class="wh-lingua" role="group" aria-label="Lingua / Language">
+    <button type="button" data-l="it" title="Italiano" lang="it">IT</button>
+    <button type="button" data-l="en" title="English" lang="en">EN</button>
+</div>
+<style>
+.wh-lingua { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: rgba(127,127,127,0.16);
+             font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; vertical-align: middle; }
+.wh-lingua button { border: 0; background: transparent; color: inherit; opacity: 0.6; padding: 7px 11px; border-radius: 8px;
+                    cursor: pointer; font: inherit; letter-spacing: 0.05em; min-width: 38px; min-height: 30px; }
+.wh-lingua button:hover { opacity: 0.85; }
+.wh-lingua button.on { background: #0A84FF; color: #fff; opacity: 1; }
+.wh-lingua button:focus-visible { outline: 2px solid #0A84FF; outline-offset: 2px; }
+</style>
+<script>
+(function () {
+    // la lingua vera e' quella con cui il server ha servito la pagina (<html lang>), non il
+    // cookie: se l'impianto e' in inglese e il telefono non ha ancora il cookie, il cookie mente
+    var attuale = (document.documentElement.getAttribute('lang') || 'it').slice(0, 2).toLowerCase();
+    document.querySelectorAll('.wh-lingua').forEach(function (box) {
+        box.querySelectorAll('button').forEach(function (b) {
+            if (b.dataset.l === attuale) b.classList.add('on');
+            b.addEventListener('click', function () {
+                if (b.dataset.l === attuale) return;
+                var fine = function () { location.reload(); };
+                fetch('/api/lingua', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                       body: JSON.stringify({ lingua: b.dataset.l }) }).then(function (r) {
+                    // se il server non ha potuto salvarla (per esempio quando le API sono chiuse)
+                    // la lingua si segna lo stesso su questo dispositivo
+                    if (!r || !r.ok) document.cookie = 'wh_lang=' + b.dataset.l + ';path=/;max-age=157680000';
+                    fine();
+                }).catch(function () {
+                    document.cookie = 'wh_lang=' + b.dataset.l + ';path=/;max-age=157680000'; fine();
+                });
+            });
+        });
+    });
+})();
+</script>
+<!-- ===== LINGUA: FINE ===== -->
+    </div>
+
+    <main class="palco">
+
+        <!-- il racconto: cosa succede e perche' -->
+        <header class="testa">
+            <div class="marchio"><img src="{{ url_for('static', filename='logo.png') }}" alt=""><span>Wach0ss Home</span></div>
+            <div class="occhiello"><span class="puntino" aria-hidden="true"></span><span class="da-fare">Impianto da attivare</span><span class="fatto">Impianto attivato</span></div>
+            <h2 class="titolo"><span class="t1">La casa è pronta.</span><br><em class="da-fare">Manca solo la chiave.</em><em class="fatto">Ora si accende.</em></h2>
+            <p class="sottotitolo">Ogni impianto si attiva con una chiave personale, legata a questo dispositivo. La rilascia il tuo installatore.</p>
+        </header>
+
+        <!-- il riquadro: il codice da comunicare e la chiave da incollare -->
+        <section class="lato" aria-labelledby="titolo-attivazione">
+            <div class="glass-card" id="riquadro">
+                <div class="card-header">
+                    <div class="emblema" aria-hidden="true">
+                        <svg viewBox="0 0 60 60">
+                            <defs>
+                                <linearGradient id="eAnello" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0" stop-color="#FCE3B4"/><stop offset="0.5" stop-color="#D9A25E"/><stop offset="1" stop-color="#8E6230"/>
+                                </linearGradient>
+                                <radialGradient id="eFondo" cx="0.5" cy="0.4" r="0.6">
+                                    <stop offset="0" stop-color="#3A2A1C"/><stop offset="1" stop-color="#140F0C"/>
+                                </radialGradient>
+                                <linearGradient id="eOro" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#FFF0D2"/><stop offset="1" stop-color="#E7AF66"/>
+                                </linearGradient>
+                                <radialGradient id="eAlone" cx="0.5" cy="0.5" r="0.5">
+                                    <stop offset="0" stop-color="#FFB865" stop-opacity="0.45"/><stop offset="1" stop-color="#FFB865" stop-opacity="0"/>
+                                </radialGradient>
+                            </defs>
+                            <circle cx="30" cy="30" r="40" fill="url(#eAlone)"/>
+                            <circle cx="30" cy="30" r="28" fill="url(#eFondo)"/>
+                            <circle cx="30" cy="30" r="27.25" fill="none" stroke="url(#eAnello)" stroke-width="1.5"/>
+                            <circle cx="30" cy="30" r="22" fill="none" stroke="#FFD8A0" stroke-opacity="0.14" stroke-width="1" stroke-dasharray="1.5 3.2"/>
+                            <g class="foro">
+                                <circle cx="30" cy="25.5" r="5.2" fill="url(#eOro)"/>
+                                <path d="M27.6 28.5 L32.4 28.5 L34 39.5 Q30 41 26 39.5 Z" fill="url(#eOro)"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <div class="contenuto">
+                        <h1 id="titolo-attivazione">Attivazione Richiesta</h1>
+                        <p>Comunica questo Codice Hardware per ottenere la chiave di sblocco:</p>
+                    </div>
+                </div>
+
+                <div class="contenuto">
+                    <!-- la scheda: il codice di QUESTO impianto. Si seleziona tutto con un tocco;
+                         i gruppi da quattro sono solo spazio visivo (margini), non spazi veri:
+                         copiato a mano o col pulsante, il codice resta identico all'originale -->
+                    <div class="scheda" id="scheda">
+                        <div class="scheda-su">
+                            <span class="scheda-etichetta"><i data-lucide="cpu"></i><span>Codice Hardware</span></span>
+                            <svg class="scheda-chip" viewBox="0 0 30 22" aria-hidden="true">
+                                <defs><linearGradient id="sChip" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7DDAE"/><stop offset="0.55" stop-color="#C99452"/><stop offset="1" stop-color="#9A6A34"/></linearGradient></defs>
+                                <rect x="0.5" y="0.5" width="29" height="21" rx="4.5" fill="url(#sChip)"/>
+                                <path d="M0.5 7.5 H9 M0.5 14.5 H9 M21 7.5 H29.5 M21 14.5 H29.5 M9 4 V18 H21 V4 Z M15 0.5 V4 M15 18 V21.5" fill="none" stroke="#6B4A22" stroke-opacity="0.55" stroke-width="0.9"/>
+                            </svg>
+                        </div>
+                        <div class="scheda-codice{% if hw_id|length > 20 %} lungo{% endif %}" id="hw-codice" data-no-tr translate="no"
+                             data-codice="{{ hw_id }}" title="Premi per copiare" data-titolo-copia="Premi per copiare">
+                            {%- if hw_id|length > 20 -%}
+                                {#- codice lungo (mini PC: 32 caratteri): due meta' che vanno a capo intere, 4 gruppi + 4 gruppi -#}
+                                {%- set meta = (((hw_id|length + 3) // 4 + 1) // 2) * 4 -%}
+                                <span class="meta">{% for i in range(0, meta, 4) %}<span>{{ hw_id[i:i+4] }}</span>{% endfor %}</span>
+                                {%- if hw_id|length > meta %}<span class="meta">{% for i in range(meta, hw_id|length, 4) %}<span>{{ hw_id[i:i+4] }}</span>{% endfor %}</span>{% endif -%}
+                            {%- else -%}
+                                {%- for i in range(0, hw_id|length, 4) %}<span>{{ hw_id[i:i+4] }}</span>{% endfor -%}
+                            {%- endif -%}
+                        </div>
+                        <div class="scheda-giu">
+                            <span class="scheda-nota" id="scheda-nota">Da comunicare all'installatore</span>
+                            <button type="button" class="btn-copia" id="btn-copia" aria-label="Copia il Codice Hardware">
+                                <i class="i-copia" data-lucide="copy"></i><i class="i-fatto" data-lucide="check"></i>
+                                <span class="t-copia">Copia</span><span class="t-fatto">Copiato</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {% if error %}
+                    <div class="alert-error" id="errore" role="alert">
+                        <i data-lucide="circle-alert"></i>
+                        <div><strong>{{ error }}</strong><span class="consiglio">Controlla di averla incollata per intero: ogni chiave vale solo per il codice qui sopra.</span></div>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('enter_license') }}" id="modulo" novalidate>
+                        <div class="campo-testa">
+                            <label for="license_key">Chiave di attivazione</label>
+                            <button type="button" class="btn-incolla" id="btn-incolla" hidden><i data-lucide="clipboard-paste"></i><span>Incolla</span></button>
+                        </div>
+                        <div class="campo{% if error %} sbagliata{% endif %}" id="campo" data-stato="vuota">
+                            <textarea id="license_key" name="license_key" rows="3" required
+                                      autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+                                      placeholder="Incolla la chiave qui..." aria-describedby="misura-testo">{{ chiave or '' }}</textarea>
+                            <span class="campo-icona" aria-hidden="true"><i data-lucide="key-round"></i></span>
+                            <div class="misura-barra" aria-hidden="true"><span id="misura-pieno"></span></div>
+                        </div>
+                        <div class="misura" id="misura" data-stato="vuota">
+                            <i class="i-ok" data-lucide="circle-check"></i><i class="i-no" data-lucide="circle-alert"></i>
+                            <span class="misura-testo" id="misura-testo" aria-live="polite">
+                                <span data-per="vuota">Spazi, trattini e a capo non contano.</span>
+                                <span data-per="corta">Sembra incompleta: manca ancora qualche carattere.</span>
+                                <span data-per="intera">Lunghezza giusta: puoi attivare.</span>
+                                <span data-per="lunga">Troppo lunga: forse è stata incollata due volte.</span>
+                                <span data-per="strana">Contiene caratteri che una chiave non ha.</span>
+                            </span>
+                        </div>
+                        <button type="submit" class="btn-primary" id="btn-attiva">
+                            <i class="i-gira" data-lucide="loader-circle"></i>
+                            <span class="a-riposo">Attiva Sistema</span><span class="in-verifica">Verifica della chiave...</span>
+                            <i class="i-vai" data-lucide="arrow-right"></i>
+                        </button>
+                    </form>
+
+                    <div class="separatore"><span>Non hai ancora la chiave?</span></div>
+                    <a class="btn-secondario" id="btn-email"
+                       href="mailto:{{ email_licenze|default('giovanni.rocco83@gmail.com') }}?subject={{ 'Richiesta Licenza WHome'|urlencode }}&amp;body={{ ('Buongiorno, vorrei richiedere una licenza per il dispositivo con ID: ' ~ hw_id)|urlencode }}">
+                        <i data-lucide="mail"></i><span>Richiedi Licenza via Email</span>
+                    </a>
+                    <p class="garanzia"><i data-lucide="shield-check"></i><span>La chiave è firmata e vale solo per questo impianto.</span></p>
+                </div>
+
+                <!-- l'esito: si vede solo quando la chiave e' giusta -->
+                <div class="esito" aria-live="polite">
+                    <div class="sigillo" aria-hidden="true">
+                        <svg viewBox="0 0 104 104">
+                            <defs>
+                                <linearGradient id="gSigillo" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0" stop-color="#FFF0D2"/><stop offset="0.55" stop-color="#E7B06A"/><stop offset="1" stop-color="#B98547"/>
+                                </linearGradient>
+                                <radialGradient id="gSigilloFondo" cx="0.5" cy="0.4" r="0.6">
+                                    <stop offset="0" stop-color="#3A2A1C"/><stop offset="1" stop-color="#140F0C"/>
+                                </radialGradient>
+                            </defs>
+                            <circle cx="52" cy="52" r="46" fill="url(#gSigilloFondo)"/>
+                            <circle cx="52" cy="52" r="48" fill="none" stroke="rgba(255,220,170,0.12)" stroke-width="2"/>
+                            <circle class="giro" cx="52" cy="52" r="48" fill="none" stroke="url(#gSigillo)" stroke-width="2.5" stroke-linecap="round"/>
+                            <path class="segno-ok" d="M36 53 L47 64 L69 41" fill="none" stroke="url(#gSigillo)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h2>Impianto attivato</h2>
+                    <p>La casa si sta svegliando. Tra un attimo si passa all'accesso.</p>
+                    <div class="avanti" aria-hidden="true"><span></span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- i tre passi -->
+        <ol class="passi" id="passi" aria-label="Come si attiva">
+            <li class="passo">
+                <span class="passo-num" aria-hidden="true">1</span>
+                <div class="passo-testo"><strong>Copia il Codice Hardware</strong><span>È l'impronta di questo impianto: lo trovi nella scheda dorata.</span></div>
+            </li>
+            <li class="passo">
+                <span class="passo-num" aria-hidden="true">2</span>
+                <div class="passo-testo"><strong>Mandalo al tuo installatore</strong><span>Per email o con un messaggio. Ti risponderà con la chiave di attivazione.</span></div>
+            </li>
+            <li class="passo">
+                <span class="passo-num" aria-hidden="true">3</span>
+                <div class="passo-testo"><strong>Incolla la chiave e attiva</strong><span>Pochi secondi di verifica, poi la casa si sveglia e puoi accedere.</span></div>
+            </li>
+        </ol>
+    </main>
+
+    <div class="nota-volante" id="nota-volante" role="status" aria-live="polite">
+        <i class="i-ok" data-lucide="circle-check"></i><i class="i-info" data-lucide="info"></i><span id="nota-volante-testo"></span>
+    </div>
+    <!-- i testi del piccolo avviso stanno qui, nell'HTML, cosi' il server li traduce con il resto -->
+    <div hidden id="testi">
+        <span data-t="copiato">Codice copiato negli appunti</span>
+        <span data-t="selezionato">Codice selezionato: copialo con Ctrl+C o dal menu</span>
+        <span data-t="incolla-no">Tieni premuto nel campo e scegli Incolla</span>
+        <span data-t="rete">Il server non risponde. Riprova tra qualche istante.</span>
+    </div>
+
+<script>
+    // se le icone non si caricassero la pagina deve funzionare lo stesso
+    try { lucide.createIcons(); } catch (e) {}
+
+    (function () {
+        'use strict';
+        var corpo    = document.body;
+        var riquadro = document.getElementById('riquadro');
+        var codice   = document.getElementById('hw-codice');
+        var scheda   = document.getElementById('scheda');
+        var btnCopia = document.getElementById('btn-copia');
+        var modulo   = document.getElementById('modulo');
+        var campo    = document.getElementById('campo');
+        var chiave   = document.getElementById('license_key');
+        var misura   = document.getElementById('misura');
+        var pieno    = document.getElementById('misura-pieno');
+        var btnAttiva = document.getElementById('btn-attiva');
+        var btnIncolla = document.getElementById('btn-incolla');
+        var nota     = document.getElementById('nota-volante');
+        var notaTesto = document.getElementById('nota-volante-testo');
+        var TOUCH    = window.matchMedia('(hover: none)').matches;
+
+        function testo(k) {
+            var el = document.querySelector('#testi [data-t="' + k + '"]');
+            return el ? el.textContent.trim() : '';
+        }
+
+        /* ---- il piccolo avviso in basso ---------------------------------- */
+        var timerNota = null;
+        function mostraNota(msg, riuscito) {
+            notaTesto.textContent = msg;
+            nota.classList.toggle('info', !riuscito);
+            nota.classList.add('su');
+            clearTimeout(timerNota);
+            timerNota = setTimeout(function () { nota.classList.remove('su'); }, 2600);
+        }
+
+        /* ---- COPIA DEL CODICE ---------------------------------------------
+           1) l'API degli appunti (solo in https o su localhost);
+           2) il vecchio execCommand('copy') su un campo nascosto (va anche in http);
+           3) se proprio non si puo', il codice resta SELEZIONATO e si dice come copiarlo. */
+        function copiaVecchioStile(t) {
+            var ta = document.createElement('textarea');
+            ta.value = t; ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px;';
+            document.body.appendChild(ta);
+            var ok = false;
+            try { ta.focus(); ta.select(); ta.setSelectionRange(0, t.length); ok = document.execCommand('copy'); } catch (e) { ok = false; }
+            document.body.removeChild(ta);
+            return ok;
+        }
+        function selezionaCodice() {
+            try {
+                var sel = window.getSelection(), r = document.createRange();
+                r.selectNodeContents(codice); sel.removeAllRanges(); sel.addRange(r);
+            } catch (e) {}
+        }
+        var timerCopia = null;
+        function copiato() {
+            btnCopia.classList.add('fatto');
+            scheda.classList.remove('lampo'); void scheda.offsetWidth; scheda.classList.add('lampo');
+            mostraNota(testo('copiato'), true);
+            clearTimeout(timerCopia);
+            timerCopia = setTimeout(function () { btnCopia.classList.remove('fatto'); }, 2400);
+        }
+        function copia() {
+            var t = codice.getAttribute('data-codice') || '';
+            if (!t) return;
+            var fallito = function () {
+                if (copiaVecchioStile(t)) { copiato(); return; }
+                selezionaCodice(); mostraNota(testo('selezionato'));
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+                navigator.clipboard.writeText(t).then(copiato, fallito);
+            } else {
+                fallito();
+            }
+        }
+        btnCopia.addEventListener('click', copia);
+        codice.addEventListener('click', function () {
+            // un tocco sul codice lo copia; se l'utente sta trascinando per selezionarne un pezzo, no
+            var sel = window.getSelection && String(window.getSelection());
+            if (sel && sel.length && sel.replace(/\s/g, '') !== (codice.getAttribute('data-codice') || '')) return;
+            copia();
+        });
+
+        /* ---- IL MISURATORE DELLA CHIAVE -----------------------------------
+           La chiave e' una firma di 64 byte scritta in base32: 103 caratteri
+           (A-Z e 2-7), di solito a gruppi separati da trattini. Qui si guarda
+           solo la FORMA, per aiutare: la verifica vera la fa il server. */
+        var LUNGA = 103;
+        function misuraChiave() {
+            // il '=' finale e' il riempimento del base32: qualcuno lo lascia, il server lo accetta
+            var v = (chiave.value || '').replace(/[\s-]+/g, '').replace(/=+$/, '').toUpperCase();
+            var stato;
+            if (!v.length) stato = 'vuota';
+            else if (!/^[A-Z2-7]+$/.test(v)) stato = 'strana';
+            else if (v.length < LUNGA) stato = 'corta';
+            else if (v.length === LUNGA) stato = 'intera';
+            else stato = 'lunga';
+            misura.setAttribute('data-stato', stato);
+            campo.setAttribute('data-stato', stato);
+            pieno.style.width = Math.min(100, Math.round(v.length / LUNGA * 100)) + '%';
+            return stato;
+        }
+        function adatta() {   // il campo cresce con la chiave, fino a un massimo
+            chiave.style.height = 'auto';
+            chiave.style.height = Math.min(chiave.scrollHeight + 2, 150) + 'px';
+        }
+        chiave.addEventListener('input', function () {
+            campo.classList.remove('sbagliata');
+            misuraChiave(); adatta();
+        });
+        // Invio attiva (una chiave non ha a capo); Maiuscole+Invio resta un a capo
+        chiave.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                e.preventDefault();
+                if (modulo.requestSubmit) modulo.requestSubmit(); else modulo.dispatchEvent(new Event('submit', { cancelable: true }));
+            }
+        });
+        misuraChiave(); adatta();
+
+        /* ---- INCOLLA (dove il browser lo permette) ------------------------ */
+        if (navigator.clipboard && navigator.clipboard.readText && window.isSecureContext) {
+            btnIncolla.hidden = false;
+            btnIncolla.addEventListener('click', function () {
+                navigator.clipboard.readText().then(function (t) {
+                    t = (t || '').trim();
+                    if (!t) { chiave.focus(); return; }
+                    chiave.value = t;
+                    chiave.dispatchEvent(new Event('input'));
+                    chiave.focus();
+                }, function () { chiave.focus(); mostraNota(testo('incolla-no')); });
+            });
+        }
+
+        /* ---- L'INVIO ------------------------------------------------------
+           Con JavaScript la chiave si verifica senza lasciare la pagina: si vede
+           "Verifica della chiave..." e, se e' giusta, la casa si accende prima di
+           passare all'accesso. Se qualcosa va storto si ripiega sull'invio normale. */
+        var inVolo = false;
+        function riposo() {
+            inVolo = false;
+            btnAttiva.classList.remove('verifica'); btnAttiva.disabled = false;
+            chiave.readOnly = false; riquadro.setAttribute('aria-busy', 'false');
+        }
+        function mettiErrore(nuovo) {
+            var vecchio = document.getElementById('errore');
+            if (vecchio) {
+                vecchio.replaceWith(nuovo);
+                nuovo.classList.add('di-nuovo');
+            } else {
+                modulo.parentNode.insertBefore(nuovo, modulo);
+            }
+            nuovo.id = 'errore';
+            try { lucide.createIcons(); } catch (e) {}
+            campo.classList.add('sbagliata');
+            corpo.classList.add('con-errore');
+        }
+        function attivato(indirizzo) {
+            // dal telefono (una colonna) il riquadro e' piu' alto dello schermo e copre la casa:
+            // si stringe attorno al sigillo e si torna in cima, cosi' si vedono l'esito E la casa
+            var colonna = window.matchMedia('(max-width: 860px), (orientation: portrait)').matches;
+            if (colonna) {
+                try {
+                    var esito = riquadro.querySelector('.esito'), cs = getComputedStyle(esito);
+                    var serve = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+                    Array.prototype.forEach.call(esito.children, function (el) {
+                        var s = getComputedStyle(el);
+                        serve += el.offsetHeight + parseFloat(s.marginTop) + parseFloat(s.marginBottom);
+                    });
+                    riquadro.style.height = riquadro.offsetHeight + 'px';
+                    void riquadro.offsetHeight;
+                    riquadro.classList.add('stringi');
+                    riquadro.style.height = Math.ceil(Math.max(serve + 40, 300)) + 'px';
+                } catch (e) {}
+            }
+            riquadro.classList.add('attivata');
+            corpo.classList.add('sveglia');
+            if (colonna) { try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); } }
+            setTimeout(function () { location.replace(indirizzo); }, 2400);
+        }
+        function invioNormale() { inVolo = true; HTMLFormElement.prototype.submit.call(modulo); }
+
+        modulo.addEventListener('submit', function (e) {
+            e.preventDefault();
+            if (inVolo) return;
+            var valore = (chiave.value || '').replace(/\s+/g, '');
+            if (!valore) {
+                chiave.focus();
+                campo.classList.remove('sbagliata'); void campo.offsetWidth; campo.classList.add('sbagliata');
+                return;
+            }
+            if (!window.fetch || !window.DOMParser) { invioNormale(); return; }
+            inVolo = true;
+            btnAttiva.classList.add('verifica'); btnAttiva.disabled = true;
+            chiave.readOnly = true; riquadro.setAttribute('aria-busy', 'true');
+            var corpoRichiesta = new URLSearchParams(); corpoRichiesta.append('license_key', valore);
+            var attesa = new Promise(function (ok) { setTimeout(ok, 750); });   // la verifica si deve vedere
+            var richiesta = fetch(modulo.action, {
+                method: 'POST', body: corpoRichiesta, credentials: 'same-origin', redirect: 'follow',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            });
+            Promise.all([richiesta, attesa]).then(function (v) {
+                var r = v[0];
+                var dove = '';
+                try { dove = new URL(r.url, location.href).pathname; } catch (x) {}
+                if (r.ok && dove && dove.indexOf('/license') !== 0) { attivato(r.url); return; }
+                return r.text().then(function (html) {
+                    var doc = new DOMParser().parseFromString(html, 'text/html');
+                    var err = doc.getElementById('errore');
+                    if (!err) { invioNormale(); return; }
+                    riposo();
+                    mettiErrore(document.importNode(err, true));
+                    if (!TOUCH) { chiave.focus(); chiave.select(); }
+                });
+            }).catch(function () {
+                riposo();
+                mostraNota(testo('rete'));
+            });
+        });
+
+        /* dopo un errore il fuoco va sulla chiave, gia' selezionata per essere sostituita
+           (non sul telefono: aprirebbe la tastiera sopra il messaggio) */
+        if (document.getElementById('errore') && !TOUCH) { chiave.focus(); chiave.select(); }
+    })();
+</script>
+<script>
+/* il codice e' data-no-tr (non si traduce), quindi il traduttore salta anche il suo title: lo si
+   traduce qui, con il dizionario della pagina */
+(function () {
+    var el = document.querySelector('[data-titolo-copia]');
+    if (el && window.WH_T) { try { el.title = window.WH_T(el.getAttribute('data-titolo-copia')); } catch (e) {} }
+})();
+</script>
+</body>
+</html>

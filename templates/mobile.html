@@ -2754,6 +2754,223 @@
                 </button>
             </div>
 
+            <!-- ===== AVVISO AGGIORNAMENTI: INIZIO (24/09/2026) =====
+                 Interruttore per ricevere sull'app iOS una notifica quando esce una versione nuova.
+                 Il controllo lo fa il server in sottofondo (app.py, "AVVISO AGGIORNAMENTI"): qui si
+                 sceglie, si vedono i telefoni su cui arriva e si manda una notifica di prova. -->
+            <style>
+            #agg-av { position: relative; margin-bottom: 24px; border-radius: 20px; overflow: hidden;
+                background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025));
+                border: 1px solid rgba(255,255,255,0.08); transition: border-color .35s ease, box-shadow .35s ease; }
+            #agg-av::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .45s ease;
+                background: radial-gradient(120% 70% at 12% 0%, rgba(255,69,58,0.16), transparent 62%); }
+            #agg-av.acceso { border-color: rgba(255,99,88,0.28); box-shadow: 0 14px 34px rgba(255,59,48,0.10); }
+            #agg-av.acceso::before { opacity: 1; }
+            .agg-av-testa { position: relative; display: flex; align-items: center; gap: 13px; padding: 16px 16px 15px; }
+            .agg-av-ico { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(180deg, #FF6961, #E5352B);
+                box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), 0 4px 12px rgba(229,53,43,0.35); }
+            .agg-av-ico svg { width: 20px; height: 20px; color: #FFF; transform-origin: 50% 12%; }
+            #agg-av.suona .agg-av-ico svg { animation: aggAvSuona 0.9s cubic-bezier(.36,.07,.19,.97); }
+            @keyframes aggAvSuona { 0%,100% { transform: rotate(0); } 15% { transform: rotate(16deg); } 30% { transform: rotate(-14deg); }
+                45% { transform: rotate(10deg); } 60% { transform: rotate(-7deg); } 75% { transform: rotate(3deg); } }
+            .agg-av-titolo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
+            .agg-av-titolo b { color: #FFF; font-size: 0.95rem; font-weight: 650; letter-spacing: -0.015em; line-height: 1.25; }
+            .agg-av-titolo small { color: rgba(255,255,255,0.5); font-size: 0.76rem; line-height: 1.35; }
+            .agg-av-corpo { position: relative; border-top: 1px solid rgba(255,255,255,0.06); padding: 13px 16px 15px; }
+            .agg-av-etichetta { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+                color: rgba(255,255,255,0.38); margin: 0 0 9px 2px; }
+            .agg-av-lista { display: flex; flex-direction: column; gap: 7px; }
+            .agg-av-tel { display: flex; align-items: center; gap: 11px; padding: 9px 12px 9px 9px; border-radius: 13px;
+                background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.05); transition: opacity .3s ease; }
+            #agg-av:not(.acceso) .agg-av-tel { opacity: 0.55; }
+            .agg-av-tel-ico { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+                background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.75); }
+            .agg-av-tel-ico svg { width: 17px; height: 17px; }
+            .agg-av-tel.pronto  .agg-av-tel-ico { background: rgba(48,209,88,0.15); color: #30D158; }
+            .agg-av-tel.spente  .agg-av-tel-ico { background: rgba(255,159,10,0.15); color: #FF9F0A; }
+            .agg-av-tel-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; text-align: left; }
+            .agg-av-tel-testo b { color: #FFF; font-size: 0.87rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .agg-av-tel-testo small { font-size: 0.72rem; color: rgba(255,255,255,0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .agg-av-tel.pronto .agg-av-tel-testo small { color: rgba(48,209,88,0.9); }
+            .agg-av-tel.spente .agg-av-tel-testo small { color: rgba(255,159,10,0.9); }
+            .agg-av-punto { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: rgba(255,255,255,0.22); }
+            .agg-av-tel.pronto .agg-av-punto { background: #30D158; box-shadow: 0 0 0 3px rgba(48,209,88,0.18), 0 0 10px rgba(48,209,88,0.6); }
+            .agg-av-tel.spente .agg-av-punto { background: #FF9F0A; }
+            .agg-av-vuoto { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 14px; text-align: left;
+                background: rgba(10,132,255,0.07); border: 1px dashed rgba(10,132,255,0.3); }
+            .agg-av-vuoto .agg-av-tel-ico { background: rgba(10,132,255,0.16); color: #64B0FF; }
+            .agg-av-vuoto b { display: block; color: #FFF; font-size: 0.85rem; font-weight: 650; margin-bottom: 3px; }
+            .agg-av-vuoto span { color: rgba(255,255,255,0.55); font-size: 0.76rem; line-height: 1.4; }
+            .agg-av-carica { height: 48px; border-radius: 13px; background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.09), rgba(255,255,255,0.04));
+                background-size: 200% 100%; animation: aggAvLuce 1.4s ease-in-out infinite; }
+            @keyframes aggAvLuce { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+            .agg-av-prova { margin-top: 12px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+                padding: 12px 14px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.08);
+                color: #FFF; font-family: inherit; font-size: 0.88rem; font-weight: 650; cursor: pointer;
+                transition: background .2s ease, color .2s ease, border-color .2s ease, transform .15s ease, opacity .2s ease; }
+            .agg-av-prova svg { width: 16px; height: 16px; }
+            .agg-av-prova:active:not(:disabled) { transform: scale(0.97); background: rgba(255,255,255,0.12); }
+            .agg-av-prova:disabled { opacity: 0.4; cursor: default; }
+            .agg-av-prova.invio svg { animation: spin 1s linear infinite; }
+            .agg-av-prova.fatto { color: #30D158; background: rgba(48,209,88,0.12); border-color: rgba(48,209,88,0.3); opacity: 1; }
+            .agg-av-nota { display: flex; align-items: flex-start; gap: 7px; margin: 11px 2px 0; text-align: left;
+                color: rgba(255,255,255,0.42); font-size: 0.72rem; line-height: 1.4; }
+            .agg-av-nota svg { width: 13px; height: 13px; flex-shrink: 0; margin-top: 1px; }
+            .agg-av-nota.errore { color: #FF6961; }
+            .wh-leggera #agg-av::before { display: none; }
+            </style>
+            <div class="section-title">AVVISI</div>
+            <div id="agg-av">
+                <div class="agg-av-testa">
+                    <span class="acc-ico agg-av-ico"><i data-lucide="bell-ring"></i></span>
+                    <span class="agg-av-titolo">
+                        <b>Avvisami quando c'è un aggiornamento</b>
+                        <small>Una notifica sul telefono appena esce una versione nuova.</small>
+                    </span>
+                    <label class="switch-ios">
+                        <input type="checkbox" id="agg-av-interruttore" aria-label="Avvisami quando c'è un aggiornamento" onchange="aggAvvisoCambia(this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="agg-av-corpo">
+                    <div class="agg-av-etichetta">Arriva su</div>
+                    <div class="agg-av-lista" id="agg-av-lista"><div class="agg-av-carica"></div></div>
+                    <button type="button" class="agg-av-prova" id="agg-av-prova" onclick="aggAvvisoProva()" disabled>
+                        <i data-lucide="send"></i><span>Mandami una notifica di prova</span>
+                    </button>
+                    <div class="agg-av-nota" id="agg-av-nota"></div>
+                </div>
+            </div>
+            <script>
+            (function () {
+                const API = '/api/aggiornamenti/avviso';
+                const STATI = { pronto: 'Riceve le notifiche', spente: 'Notifiche spente: attivale nell\'app', lontano: 'Non si collega da più di 3 giorni' };
+                let stato = null, occupato = false, provaTimer = null, provaFino = 0;   // provaFino: il server ne accetta una ogni 8 secondi
+                const el = id => document.getElementById(id);
+                const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+                const icone = root => { if (typeof lucide !== 'undefined') lucide.createIcons({ root: root }); };
+
+                // "oggi alle 21:16", "ieri alle 08:02", "22/09 alle 14:30"
+                function quando(iso) {
+                    const d = new Date(iso);
+                    if (isNaN(d)) return '';
+                    const ora = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+                    const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+                    const giorno = new Date(d); giorno.setHours(0, 0, 0, 0);
+                    const diff = Math.round((oggi - giorno) / 86400000);
+                    if (diff === 0) return 'oggi alle ' + ora;
+                    if (diff === 1) return 'ieri alle ' + ora;
+                    return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' alle ' + ora;
+                }
+
+                function nota(icona, testo, errore) {
+                    const n = el('agg-av-nota');
+                    if (!n) return;
+                    n.className = 'agg-av-nota' + (errore ? ' errore' : '');
+                    n.innerHTML = testo ? '<i data-lucide="' + icona + '"></i><span>' + esc(testo) + '</span>' : '';
+                    icone(n);
+                }
+
+                function disegna() {
+                    const box = el('agg-av'), lista = el('agg-av-lista'), prova = el('agg-av-prova');
+                    if (!box || !stato) return;
+                    el('agg-av-interruttore').checked = !!stato.attivo;
+                    box.classList.toggle('acceso', !!stato.attivo);
+                    const tel = stato.telefoni || [];
+                    if (!tel.length) {
+                        lista.innerHTML = '<div class="agg-av-vuoto"><span class="agg-av-tel-ico"><i data-lucide="smartphone"></i></span>' +
+                            '<div><b>Nessun telefono collegato</b><span>La notifica arriva sull\'app Wach0ss Home: aprila una volta con questo account e consenti le notifiche.</span></div></div>';
+                    } else {
+                        lista.innerHTML = tel.map(t => '<div class="agg-av-tel ' + esc(t.stato) + '">' +
+                            '<span class="agg-av-tel-ico"><i data-lucide="' + (/ipad/i.test(t.nome || '') ? 'tablet' : 'smartphone') + '"></i></span>' +
+                            '<span class="agg-av-tel-testo"><b>' + esc(t.nome || 'Telefono') + '</b><small>' + esc(STATI[t.stato] || '') + '</small></span>' +
+                            '<span class="agg-av-punto"></span></div>').join('');
+                    }
+                    icone(lista);
+                    if (!prova.classList.contains('invio') && !prova.classList.contains('fatto')) prova.disabled = !stato.pronti || Date.now() < provaFino;
+                    if (!stato.attivo) nota('bell-off', 'Spento: gli aggiornamenti li vedi solo aprendo questa pagina.');
+                    else if (!stato.pronti) nota('circle-alert', tel.length ? 'Acceso, ma nessuno dei tuoi telefoni può riceverla adesso.' : 'Acceso: la riceverai appena colleghi l\'app.');
+                    else if (stato.esito === 'rete') nota('wifi-off', 'Il server ora non raggiunge internet: riproverà da solo più tardi.', true);
+                    else if (stato.ultimo_controllo) nota('clock', 'Il server controlla da solo ogni 3 ore · ultimo controllo ' + quando(stato.ultimo_controllo) + '.');
+                    else nota('clock', 'Il server controlla da solo ogni 3 ore, anche con l\'app chiusa.');
+                }
+
+                async function carica() {
+                    if (occupato || !el('agg-av')) return;
+                    try {
+                        const r = await fetch(API, { cache: 'no-store' });
+                        if (!r.ok) throw new Error();
+                        stato = await r.json();
+                        disegna();
+                    } catch (e) {
+                        if (!stato) { el('agg-av-lista').innerHTML = ''; nota('circle-alert', 'Non riesco a leggere l\'impostazione: riprova tra poco.', true); }
+                    }
+                }
+
+                window.aggAvvisoCambia = async function (casella) {
+                    const acceso = casella.checked;
+                    occupato = true;
+                    casella.disabled = true;   // due tocchi rapidi = due salvataggi che possono arrivare al contrario
+                    const box = el('agg-av');
+                    box.classList.toggle('acceso', acceso);
+                    if (acceso) { box.classList.remove('suona'); void box.offsetWidth; box.classList.add('suona'); }
+                    if (navigator.vibrate) navigator.vibrate(20);
+                    try {
+                        // la versione che la pagina sta gia' mostrando non va annunciata di nuovo
+                        const giaVista = (typeof systemUpdateAvailable !== 'undefined' && systemUpdateAvailable && latestUpdateName) ? latestUpdateName : '';
+                        const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                                     body: JSON.stringify({ attivo: acceso, gia_vista: giaVista }) });
+                        const d = await r.json().catch(() => ({}));
+                        if (!r.ok) throw new Error(d.error || '');
+                        stato = d;
+                    } catch (e) {
+                        casella.checked = !acceso;
+                        box.classList.toggle('acceso', !acceso);
+                        occupato = false;
+                        casella.disabled = false;
+                        nota('circle-alert', 'Non sono riuscito a salvare la scelta: riprova.', true);
+                        return;
+                    }
+                    occupato = false;
+                    casella.disabled = false;
+                    disegna();
+                    if (acceso) setTimeout(carica, 2500);   // il server fa subito un controllo: poi se ne mostra l'ora
+                };
+
+                window.aggAvvisoProva = async function () {
+                    const b = el('agg-av-prova');
+                    if (!b || b.disabled) return;
+                    const scrivi = (classe, icona, testo) => {
+                        b.className = 'agg-av-prova' + (classe ? ' ' + classe : '');
+                        b.innerHTML = '<i data-lucide="' + icona + '"></i><span>' + esc(testo) + '</span>';
+                        icone(b);
+                    };
+                    clearTimeout(provaTimer);
+                    b.disabled = true;
+                    scrivi('invio', 'loader-circle', 'Invio in corso…');
+                    let errore = '';
+                    try {
+                        const r = await fetch(API + '/prova', { method: 'POST' });
+                        const d = await r.json().catch(() => ({}));
+                        if (!r.ok) errore = d.error || 'Invio non riuscito.';
+                        else { provaFino = Date.now() + 8500; scrivi('fatto', 'check', d.inviate > 1 ? 'Inviata a ' + d.inviate + ' telefoni' : 'Inviata: guarda il telefono'); }
+                    } catch (e) {
+                        errore = 'Il server non risponde: riprova tra poco.';
+                    }
+                    if (errore) { scrivi('', 'send', 'Mandami una notifica di prova'); nota('circle-alert', errore, true); }
+                    provaTimer = setTimeout(() => {
+                        scrivi('', 'send', 'Mandami una notifica di prova'); disegna();
+                        if (Date.now() < provaFino) provaTimer = setTimeout(disegna, provaFino - Date.now());
+                    }, errore ? 4000 : 3500);
+                    if (errore) b.disabled = !(stato && stato.pronti);
+                };
+
+                window.addEventListener('load', carica);
+                document.addEventListener('visibilitychange', () => { if (!document.hidden) carica(); });
+            })();
+            </script>
+            <!-- ===== AVVISO AGGIORNAMENTI: FINE ===== -->
+
             <div class="section-title">ALIMENTAZIONE SERVER</div>
             <div style="display: flex; gap: 12px;">
                 <button onclick="restartServerMachine()" style="flex: 1; padding: 14px; background: rgba(255, 159, 10, 0.15); border: 1px solid rgba(255, 159, 10, 0.3); color: #FF9F0A; border-radius: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">

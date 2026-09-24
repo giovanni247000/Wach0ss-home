@@ -2,514 +2,1855 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitor Log Sistema - Wach0ss Enterprise</title>
-    
-    <!-- Icone e Libreria Grafici -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <style>
-        /* === PALETTE SCADA / GRAFANA STYLE === */
-        :root {
-            --bg-base: #0f172a; 
-            --bg-panel: #1e293b; 
-            --bg-input: #0f172a;
-            
-            --border: #334155; 
-            --border-hover: #475569;
-            
-            --text-main: #f8fafc; 
-            --text-sec: #94a3b8; 
-            
-            --accent: #3b82f6; 
-            --accent-hover: #2563eb;
-            --accent-glow: rgba(59, 130, 246, 0.2);
-            
-            --success: #10b981;
-            --success-bg: rgba(16, 185, 129, 0.15);
-            --danger: #ef4444;
-            --danger-bg: rgba(239, 68, 68, 0.15);
-            --warning: #f59e0b;
-            --warning-bg: rgba(245, 158, 11, 0.15);
-            
-            --font-ui: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
-            --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: var(--bg-base); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
-
-        body { 
-            font-family: var(--font-ui); 
-            background: var(--bg-base); 
-            color: var(--text-main); 
-            padding: 24px; 
-            -webkit-font-smoothing: antialiased;
-            min-height: 100vh;
-        }
-
-        .container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px;}
-
-        /* --- HEADER --- */
-        .header { 
-            display: flex; justify-content: space-between; align-items: center; 
-            background: var(--bg-panel); padding: 20px 24px; border-radius: 16px; border: 1px solid var(--border);
-        }
-        .header-title { display: flex; align-items: center; gap: 16px; }
-        .header-title h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; margin: 0; }
-        .live-badge { display: flex; align-items: center; gap: 8px; background: var(--success-bg); color: var(--success); padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; border: 1px solid rgba(16, 185, 129, 0.3);}
-        .live-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; }
-        
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-
-        .btn-back { 
-            display: inline-flex; align-items: center; gap: 8px; text-decoration: none; 
-            color: var(--text-main); background: var(--bg-input); padding: 10px 20px;
-            border-radius: 8px; font-weight: 600; font-size: 0.9rem; transition: 0.2s; border: 1px solid var(--border);
-        }
-        .btn-back:hover { background: var(--border); }
-
-        /* --- KPI GRID --- */
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; }
-        .kpi-card { 
-            background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; 
-            padding: 24px; display: flex; flex-direction: column; gap: 8px; position: relative; overflow: hidden;
-        }
-        .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent); }
-        .kpi-title { color: var(--text-sec); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;}
-        .kpi-value { font-size: 2rem; font-weight: 800; color: var(--text-main); font-family: var(--font-mono); }
-        .kpi-sub { font-size: 0.8rem; color: var(--text-sec); }
-
-        /* --- CHART SECTION --- */
-        .chart-container { 
-            background: var(--bg-panel); border: 1px solid var(--border); border-radius: 16px; 
-            padding: 24px; height: 300px; width: 100%; position: relative;
-        }
-
-        /* --- TOOLBAR FILTRI --- */
-        .toolbar { 
-            display: flex; gap: 16px; flex-wrap: wrap; background: var(--bg-panel); 
-            padding: 20px; border-radius: 16px; border: 1px solid var(--border); align-items: flex-end;
-        }
-        .input-group { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 180px; }
-        .input-group label { font-size: 0.8rem; font-weight: 600; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; }
-        .input-control {
-            background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
-            padding: 12px 16px; color: var(--text-main); font-size: 0.95rem; font-family: var(--font-ui);
-            transition: 0.2s; outline: none; width: 100%;
-        }
-        .input-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-        
-        ::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.5; cursor: pointer; }
-
-        .btn-group { display: flex; gap: 12px; height: 44px; }
-        .btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            padding: 0 20px; border-radius: 8px; border: none; font-size: 0.9rem; font-weight: 700; 
-            cursor: pointer; transition: 0.2s; height: 100%;
-        }
-        .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); }
-        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
-        .btn-secondary { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border); }
-        .btn-secondary:hover { background: var(--border); }
-        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-left: auto; }
-        .btn-danger:hover { background: var(--danger-bg); }
-
-        /* --- TABELLA LOGS --- */
-        .table-wrapper {
-            background: var(--bg-panel); border-radius: 16px; border: 1px solid var(--border);
-            overflow-x: auto; max-height: 600px;
-        }
-        table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
-        th { 
-            background: rgba(30, 41, 59, 0.95); color: var(--text-sec); font-weight: 700; 
-            font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; padding: 16px 24px;
-            position: sticky; top: 0; backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); z-index: 10;
-        }
-        td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: rgba(255, 255, 255, 0.02); }
-
-        .time-col { color: var(--text-sec); font-family: var(--font-mono); font-size: 0.9rem; white-space: nowrap; }
-        .entity-col { display: flex; align-items: center; gap: 16px; }
-        .entity-icon { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: var(--bg-input); border-radius: 8px; border: 1px solid var(--border); color: var(--text-sec); flex-shrink: 0;}
-        
-        .badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); }
-        .badge.on { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); box-shadow: 0 0 10px rgba(16, 185, 129, 0.1); }
-        .badge.off { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
-        .badge.neutral { background: var(--bg-input); color: var(--text-sec); border: 1px solid var(--border); }
-
-        .empty-state { text-align: center; padding: 60px; color: var(--text-sec); display: flex; flex-direction: column; align-items: center; gap: 16px; }
-
-        @media (max-width: 1024px) {
-            .toolbar { flex-direction: column; align-items: stretch; }
-            .btn-danger { margin-left: 0; width: 100%; }
-            .btn-group { width: 100%; }
-            .btn-group .btn { flex: 1; }
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#EFEFF4" id="meta-tema">
+    <meta name="color-scheme" content="light dark">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Wach0ss Home | Monitor log</title>
+    <!-- MONITOR LOG: il registro dei cambi di stato di tutti i dispositivi (tabella system_logs,
+         scritta dal motore delle automazioni ogni volta che un'entita' cambia). Solo amministratore.
+         Stessa famiglia di /knx. Tutto servito dal server, niente CDN. -->
+    <script src="/static/vendor/lucide-1.41.0.min.js"></script>
     <script src="/static/popup.js"></script>
+<style>
+@import url('/static/fonts/inter.css');
+
+/* =====================================================================
+   COLORI: giorno e notte, come /knx. La notte cambia solo la vernice.
+   ===================================================================== */
+:root {
+    --sfondo: #EFEFF4;
+    --pannello: rgba(255,255,255,0.82);
+    --pieno: #FFFFFF;
+    --incavo: #F4F4F8;
+    --testo: #1C1C1E;
+    --fioco: #6E6E73;
+    --fioco-2: rgba(60,60,67,0.45);
+    --accento: #0A84FF;
+    --accento-velo: rgba(10,132,255,0.10);
+    --verde: #1FA64A;
+    --verde-velo: rgba(31,166,74,0.12);
+    --ambra: #D97F00;
+    --ambra-velo: rgba(255,159,10,0.13);
+    --rosso: #DC3545;
+    --rosso-velo: rgba(220,53,69,0.10);
+    --viola: #7D4FD6;
+    --viola-velo: rgba(142,92,230,0.12);
+    --bordo: rgba(0,0,0,0.075);
+    --bordo-forte: rgba(0,0,0,0.13);
+    --riga: rgba(120,120,128,0.07);
+    --riga-su: rgba(120,120,128,0.13);
+    --ombra: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.05);
+    --ombra-su: 0 2px 4px rgba(0,0,0,0.05), 0 12px 28px rgba(0,0,0,0.09);
+    --ombra-f: 0 24px 70px rgba(0,0,0,0.22);
+    --r-s: 10px; --r-m: 14px; --r-l: 20px; --r-xl: 26px;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --curva: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --alto: env(safe-area-inset-top, 0px);
+    --basso: env(safe-area-inset-bottom, 0px);
+    /* un colore per famiglia di dispositivi: la fonte si riconosce prima di leggerla */
+    --c-light: #FF9F0A; --c-switch: #0A84FF; --c-cover: #5E5CE6; --c-climate: #FF6B5E; --c-sensor: #14A3BD;
+    --c-binary: #F2385A; --c-media: #AF52DE; --c-camera: #5B7089; --c-group: #34A7A0; --c-scene: #E0A800;
+    --c-alarm: #DC3545; --c-altro: #8E8E93;
+    /* altezze del registro (le legge anche il JavaScript: righe virtuali) */
+    --h-ev: 40px; --h-giorno: 40px;
+}
+body.notte {
+    --sfondo: #0D0F13;
+    --pannello: rgba(22,24,30,0.80);
+    --pieno: #16181E;
+    --incavo: #0F1116;
+    --testo: #F2F3F5;
+    --fioco: #9AA0AB;
+    --fioco-2: rgba(235,235,245,0.38);
+    --accento-velo: rgba(10,132,255,0.16);
+    --verde: #34D269;
+    --verde-velo: rgba(52,210,105,0.14);
+    --ambra: #FFB340;
+    --ambra-velo: rgba(255,179,64,0.14);
+    --rosso: #FF5A5F;
+    --rosso-velo: rgba(255,90,95,0.13);
+    --viola: #B69CFF;
+    --viola-velo: rgba(182,156,255,0.15);
+    --bordo: rgba(255,255,255,0.08);
+    --bordo-forte: rgba(255,255,255,0.15);
+    --riga: rgba(255,255,255,0.045);
+    --riga-su: rgba(255,255,255,0.09);
+    --ombra: 0 1px 2px rgba(0,0,0,0.3), 0 4px 18px rgba(0,0,0,0.28);
+    --ombra-su: 0 2px 6px rgba(0,0,0,0.35), 0 14px 32px rgba(0,0,0,0.4);
+    --ombra-f: 0 24px 70px rgba(0,0,0,0.6);
+    --c-sensor: #3CC6DE; --c-camera: #8FA3BA; --c-scene: #FFD23F;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; height: 100%; background: var(--sfondo); color: var(--testo);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none; font-feature-settings: 'cv11', 'ss01'; }
+button, input, select, textarea { font-family: inherit; color: inherit; }
+button { -webkit-appearance: none; appearance: none; }
+[data-lucide] { width: 18px; height: 18px; }
+.mono { font-family: var(--mono); }
+.nascosto { display: none !important; }
+mark { background: rgba(255,214,10,0.5); color: inherit; border-radius: 3px; padding: 0 1px; }
+body.notte mark { background: rgba(255,214,10,0.32); }
+
+/* =====================================================================
+   IMPIANTO: testata ferma, sotto il riepilogo e il registro che riempie lo schermo
+   ===================================================================== */
+.pagina { position: fixed; inset: 0; display: flex; flex-direction: column;
+    background:
+        radial-gradient(1100px 520px at 12% -12%, rgba(10,132,255,0.11), transparent 62%),
+        radial-gradient(900px 480px at 100% 0%, rgba(94,92,230,0.07), transparent 60%),
+        var(--sfondo); }
+body.notte .pagina { background:
+        radial-gradient(1100px 520px at 12% -12%, rgba(10,132,255,0.16), transparent 62%),
+        radial-gradient(900px 480px at 100% 0%, rgba(94,92,230,0.12), transparent 60%),
+        var(--sfondo); }
+
+.testa { flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+    padding: calc(10px + var(--alto)) 18px 10px 8px; position: relative; z-index: 30;
+    background: var(--pannello); border-bottom: 1px solid var(--bordo);
+    backdrop-filter: blur(26px) saturate(180%); -webkit-backdrop-filter: blur(26px) saturate(180%); }
+.indietro { display: inline-flex; align-items: center; gap: 1px; background: transparent; border: none; text-decoration: none;
+    color: var(--accento); font-size: 0.95rem; font-weight: 500; padding: 7px 10px 7px 4px; cursor: pointer;
+    border-radius: var(--r-s); flex-shrink: 0; transition: background .15s; }
+.indietro [data-lucide] { width: 22px; height: 22px; }
+.indietro:hover { background: var(--accento-velo); }
+.titolo { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+.titolo .logo { width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    color: #FFF; background: linear-gradient(135deg, #0A84FF 0%, #5E5CE6 100%); box-shadow: 0 4px 12px rgba(10,132,255,0.3); }
+.titolo .logo [data-lucide] { width: 19px; height: 19px; }
+.titolo h1 { margin: 0; font-size: 1.08rem; font-weight: 700; letter-spacing: -0.022em; line-height: 1.2; white-space: nowrap; }
+.titolo small { display: block; font-size: 0.74rem; color: var(--fioco); font-weight: 500; margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.azioni-testa { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* lo stato dal vivo: e' anche il pulsante pausa/riprendi */
+.vivo { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 13px 0 12px; border-radius: 18px; cursor: pointer;
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.01em; white-space: nowrap; border: 1px solid var(--bordo);
+    background: var(--riga); color: var(--fioco); transition: background .2s, color .2s, box-shadow .2s; }
+.vivo .punto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.vivo .pp { width: 15px; height: 15px; opacity: .0; margin-left: -2px; margin-right: -5px; width: 0; transition: opacity .15s, width .15s; }
+.vivo:hover .pp { opacity: .8; width: 15px; margin-right: 0; }
+.vivo.su { background: var(--verde-velo); color: var(--verde); border-color: transparent; }
+.vivo.su .punto { animation: battito 2.4s ease-in-out infinite; }
+.vivo.giu { background: var(--rosso-velo); color: var(--rosso); border-color: transparent; }
+.vivo.storico { background: var(--accento-velo); color: var(--accento); border-color: transparent; cursor: default; }
+.vivo.storico .punto { display: none; }
+.vivo:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+@keyframes battito { 0%, 100% { box-shadow: 0 0 0 0 rgba(31,166,74,0.45); } 60% { box-shadow: 0 0 0 6px rgba(31,166,74,0); } }
+
+.tb { height: 36px; min-width: 36px; padding: 0 10px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center;
+    gap: 7px; cursor: pointer; background: var(--pieno); color: var(--testo); border: 1px solid var(--bordo);
+    font-size: 0.84rem; font-weight: 600; position: relative; transition: background .15s, transform .1s, box-shadow .15s, color .15s; box-shadow: var(--ombra); }
+.tb:hover { background: var(--incavo); }
+.tb:active { transform: scale(0.95); }
+.tb [data-lucide] { width: 17px; height: 17px; }
+.tb.pericolo { color: var(--rosso); }
+.tb.pericolo:hover { background: var(--rosso-velo); }
+.tb.su { background: var(--testo); color: var(--sfondo); border-color: var(--testo); }
+.tb:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+.tb:disabled { opacity: .42; cursor: default; transform: none; }
+
+.corpo { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.interno { max-width: 1360px; height: 100%; margin: 0 auto; padding: 18px 24px calc(20px + var(--basso)); display: flex; flex-direction: column; gap: 12px; }
+.interno > * { flex-shrink: 0; }
+
+/* =====================================================================
+   RIEPILOGO: a sinistra i livelli (sono anche i filtri), a destra l'attivita' nel tempo
+   ===================================================================== */
+.riepilogo { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 12px; }
+.interno.compatto .riepilogo { display: none; }
+/* registro irraggiungibile: il riepilogo di zeri non deve sembrare un dato vero */
+.interno.guasto .riepilogo, .interno.guasto .fila { opacity: .38; filter: grayscale(1); pointer-events: none; transition: opacity .2s; }
+.tessere { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tessera { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-l); cursor: pointer; text-align: left; min-width: 0;
+    background: var(--pieno); border: 1px solid var(--bordo); box-shadow: var(--ombra); position: relative; overflow: hidden;
+    transition: transform .18s var(--curva), box-shadow .18s, border-color .18s; }
+.tessera:hover { transform: translateY(-2px); box-shadow: var(--ombra-su); }
+.tessera .icona { width: 34px; height: 34px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.tessera .icona [data-lucide] { width: 17px; height: 17px; }
+.tessera .t { min-width: 0; }
+.tessera .cifra { display: block; font-size: 1.42rem; font-weight: 750; letter-spacing: -0.035em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.tessera .nome { display: block; font-size: 0.74rem; font-weight: 600; color: var(--fioco); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tessera .quota { position: absolute; left: 14px; right: 14px; bottom: 7px; height: 3px; border-radius: 2px; background: var(--riga); overflow: hidden; }
+.tessera .quota i { display: block; height: 100%; border-radius: 2px; background: var(--c); opacity: .55; transition: width .5s var(--curva); }
+.tessera.attiva { border-color: var(--c); box-shadow: 0 0 0 1px var(--c), var(--ombra-su); }
+.tessera.attiva::after { content: ''; position: absolute; inset: 0; background: color-mix(in srgb, var(--c) 6%, transparent); pointer-events: none; }
+.tessera.vuota .cifra { color: var(--fioco-2); }
+.tessera.allarme:not(.vuota) .cifra { color: var(--ambra); }
+.tessera:disabled { cursor: default; }
+.tessera:disabled:hover { transform: none; box-shadow: var(--ombra); }
+.tessera:focus-visible, .filtro:focus-visible, .segmenti button:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+
+.grafico { display: flex; flex-direction: column; padding: 12px 16px 10px; border-radius: var(--r-l); background: var(--pieno); border: 1px solid var(--bordo);
+    box-shadow: var(--ombra); min-width: 0; position: relative; }
+.grafico-testa { display: flex; align-items: baseline; gap: 10px; }
+.grafico-testa b { font-size: 0.86rem; font-weight: 700; letter-spacing: -0.01em; }
+.grafico-testa .unita { font-size: 0.74rem; color: var(--fioco); font-weight: 500; }
+.grafico-testa { min-width: 0; }
+.grafico-testa > b, .grafico-testa .unita { flex-shrink: 0; white-space: nowrap; }
+.grafico-testa .dati { margin-left: auto; display: flex; align-items: baseline; gap: 14px; font-size: 0.74rem; color: var(--fioco); white-space: nowrap; min-width: 0; }
+.grafico-testa .dati > span { flex-shrink: 0; }
+.grafico-testa .dati b { font-size: 0.76rem; color: var(--testo); font-variant-numeric: tabular-nums; font-weight: 700; }
+/* il dispositivo con piu' eventi (era il riquadro 'Nodo piu' attivo' della pagina di prima): un tocco lo isola */
+.primo { display: inline-flex; align-items: baseline; gap: 5px; min-width: 0; max-width: 260px; padding: 0; border: none; background: none; cursor: pointer;
+    font-size: 0.74rem; color: var(--fioco); white-space: nowrap; border-radius: 6px; }
+.primo [data-lucide] { width: 12px; height: 12px; align-self: center; color: var(--ambra); flex-shrink: 0; }
+.primo .etichetta-primo { flex-shrink: 0; }
+.grafico-testa .primo b { color: var(--accento); font-weight: 650; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.primo .n { flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.primo:hover b { text-decoration: underline; text-underline-offset: 2px; }
+.primo:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+.barre { flex: 1; min-height: 64px; margin-top: 10px; display: flex; align-items: flex-end; gap: 2px; position: relative; cursor: pointer; }
+.barre .b { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; position: relative; }
+.barre .b i { display: block; width: 100%; border-radius: 4px 4px 0 0; background: var(--accento); opacity: .78; transition: height .4s var(--curva), opacity .12s; min-height: 0; }
+.barre .b.zero i { background: var(--riga-su); opacity: 1; height: 2px !important; border-radius: 1px; }
+.barre .b.futuro i { background: transparent; }
+.barre .b.sopra i, .barre .b.sopra.zero i { opacity: 1; background: var(--accento); }
+.barre .b.sopra.zero i { height: 3px !important; }
+.barre .base { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--bordo); pointer-events: none; }
+.assi { display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.68rem; color: var(--fioco-2); font-variant-numeric: tabular-nums; font-weight: 500; }
+.suggerimento { position: absolute; z-index: 20; pointer-events: none; padding: 9px 12px; border-radius: 12px; background: rgba(28,28,30,0.95); color: #FFF;
+    font-size: 0.76rem; line-height: 1.45; box-shadow: 0 10px 30px rgba(0,0,0,0.28); white-space: nowrap; transform: translate(-50%, calc(-100% - 10px));
+    opacity: 0; transition: opacity .12s; }
+body.notte .suggerimento { background: rgba(58,58,62,0.97); }
+.suggerimento.su { opacity: 1; }
+.suggerimento b { font-weight: 700; display: block; margin-bottom: 2px; }
+.suggerimento .r { display: flex; align-items: center; gap: 7px; opacity: .88; }
+.suggerimento .r i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.suggerimento .r span { margin-left: auto; padding-left: 14px; font-variant-numeric: tabular-nums; font-weight: 600; }
+.suggerimento small { display: block; margin-top: 5px; opacity: .6; font-size: 0.7rem; }
+
+/* =====================================================================
+   BARRA: ricerca, periodo, riepilogo si/no
+   ===================================================================== */
+.barra { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; position: relative; }
+.cerca { flex: 1 1 320px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px 0 14px; border-radius: var(--r-m);
+    background: var(--pieno); border: 1px solid var(--bordo); box-shadow: var(--ombra); transition: border-color .15s, box-shadow .15s; }
+.cerca:focus-within { border-color: var(--accento); box-shadow: 0 0 0 4px var(--accento-velo); }
+.cerca > [data-lucide] { color: var(--fioco); flex-shrink: 0; }
+.cerca input { flex: 1; min-width: 0; border: none; background: transparent; font-size: 0.92rem; outline: none; height: 100%; }
+.cerca input::placeholder { color: var(--fioco-2); }
+.cerca .trovati { font-size: 0.74rem; color: var(--fioco); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; display: none; }
+.cerca.piena .trovati { display: inline; }
+.kbd { font-family: var(--mono); font-size: 0.7rem; font-weight: 600; color: var(--fioco); padding: 3px 7px; border-radius: 6px;
+    border: 1px solid var(--bordo-forte); background: var(--incavo); }
+.cerca .pulisci { width: 28px; height: 28px; border-radius: 8px; border: none; background: var(--riga); cursor: pointer; display: none;
+    align-items: center; justify-content: center; color: var(--fioco); flex-shrink: 0; }
+.cerca .pulisci [data-lucide] { width: 15px; height: 15px; }
+.cerca.piena .pulisci { display: inline-flex; }
+.cerca.piena .kbd { display: none; }
+.segmenti { display: inline-flex; padding: 3px; border-radius: 12px; background: var(--riga-su); gap: 2px; height: 44px; align-items: center; }
+.segmenti button { height: 38px; padding: 0 12px; border-radius: 9px; border: none; background: transparent; cursor: pointer; white-space: nowrap;
+    font-size: 0.82rem; font-weight: 600; color: var(--fioco); display: inline-flex; align-items: center; gap: 7px; transition: all .16s; }
+.segmenti button [data-lucide] { width: 16px; height: 16px; }
+.segmenti button:hover { color: var(--testo); }
+.segmenti button.su { background: var(--pieno); color: var(--testo); box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.04); }
+.segmenti button .date { font-variant-numeric: tabular-nums; }
+.btn-quadro { width: 44px; height: 44px; border-radius: 13px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+    background: var(--pieno); border: 1px solid var(--bordo); color: var(--fioco); box-shadow: var(--ombra); transition: color .15s, background .15s; }
+.btn-quadro:hover { color: var(--testo); background: var(--incavo); }
+.btn-quadro [data-lucide] { width: 18px; height: 18px; }
+
+/* periodo a scelta: foglietto sotto il segmento */
+.foglietto { position: absolute; z-index: 40; top: calc(100% + 8px); right: 54px; width: 300px; padding: 16px; border-radius: var(--r-l);
+    background: var(--pieno); border: 1px solid var(--bordo-forte); box-shadow: var(--ombra-f); display: flex; flex-direction: column; gap: 12px;
+    opacity: 0; visibility: hidden; transform: translateY(-6px); transition: opacity .18s, transform .18s var(--curva), visibility .18s; }
+.foglietto.su { opacity: 1; visibility: visible; transform: none; }
+.foglietto h4 { margin: 0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fioco); }
+.foglietto .coppia { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.foglietto label { display: flex; flex-direction: column; gap: 6px; font-size: 0.76rem; font-weight: 650; }
+.foglietto input[type=date] { height: 40px; border-radius: 11px; border: 1px solid var(--bordo-forte); background: var(--incavo); padding: 0 10px;
+    font-size: 0.84rem; outline: none; width: 100%; min-width: 0; font-variant-numeric: tabular-nums; }
+.foglietto input[type=date]:focus { border-color: var(--accento); box-shadow: 0 0 0 4px var(--accento-velo); }
+body.notte .foglietto input[type=date] { color-scheme: dark; }
+.foglietto .azioni { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* =====================================================================
+   FONTI (famiglie di dispositivi) come filtri
+   ===================================================================== */
+.fila { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.filtri { flex: 1; min-width: 0; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 1px 28px 1px 1px; margin: -1px; }
+.filtri.lunghi { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent); }
+.filtri::-webkit-scrollbar { display: none; }
+.filtro { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 13px 0 11px; border-radius: 17px; cursor: pointer;
+    background: transparent; border: 1px solid var(--bordo-forte); color: var(--fioco); font-size: 0.8rem; font-weight: 600; transition: all .15s; }
+.filtro [data-lucide] { width: 15px; height: 15px; color: var(--c, currentColor); }
+.filtro:hover { color: var(--testo); background: var(--riga); }
+.filtro .n { font-variant-numeric: tabular-nums; opacity: .7; }
+.filtro.su { background: var(--testo); color: var(--sfondo); border-color: var(--testo); }
+.filtro.su [data-lucide] { color: inherit; }
+.filtro.zero { opacity: .45; }
+.filtro.entita { background: var(--accento-velo); color: var(--accento); border-color: transparent; padding-right: 6px; max-width: 320px; }
+.filtro.entita span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filtro.entita .via { width: 22px; height: 22px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center; background: rgba(10,132,255,0.14); flex-shrink: 0; }
+.filtro.entita .via [data-lucide] { width: 13px; height: 13px; }
+.conteggio { flex-shrink: 0; font-size: 0.78rem; color: var(--fioco); font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.conteggio b { color: var(--testo); font-weight: 700; }
+.azzera { border: none; background: none; color: var(--accento); font-weight: 650; font-size: 0.78rem; cursor: pointer; padding: 6px 8px; border-radius: 8px; flex-shrink: 0; }
+.azzera:hover { background: var(--accento-velo); }
+
+/* =====================================================================
+   IL REGISTRO: righe virtuali (ne esistono solo quelle a schermo)
+   ===================================================================== */
+.registro { flex: 1 1 0; min-height: 320px; display: flex; flex-direction: column; background: var(--pieno); border: 1px solid var(--bordo);
+    border-radius: var(--r-l); box-shadow: var(--ombra); overflow: hidden; position: relative; }
+.colonne, .ev { display: grid; grid-template-columns: 92px 150px 158px minmax(0, 1fr) 210px 18px; align-items: center; column-gap: 14px; padding: 0 16px 0 18px; }
+.colonne { flex-shrink: 0; height: 34px; border-bottom: 1px solid var(--bordo); background: var(--incavo);
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--fioco); }
+.colonne span:nth-child(5) { text-align: right; }
+.scorri { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; position: relative; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    scrollbar-width: thin; scrollbar-color: var(--riga-su) transparent; }
+.scorri::-webkit-scrollbar { width: 10px; }
+.scorri::-webkit-scrollbar-thumb { background: var(--riga-su); border-radius: 5px; border: 2px solid var(--pieno); }
+.finestra { position: relative; width: 100%; }
+.voce { position: absolute; left: 0; right: 0; top: 0; will-change: transform; contain: layout style; }
+
+.ev { height: var(--h-ev); cursor: pointer; border-bottom: 1px solid var(--bordo); position: relative; transition: background .12s; outline: none; }
+.ev:hover { background: var(--riga); }
+.ev:focus-visible { box-shadow: inset 0 0 0 2px var(--accento); }
+.ev.anomalia { background: color-mix(in srgb, var(--ambra) 5%, transparent); }
+.ev.anomalia:hover { background: color-mix(in srgb, var(--ambra) 9%, transparent); }
+.ev.anomalia::before, .ev.errore::before { content: ''; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 0 3px 3px 0; background: var(--ambra); }
+.ev.errore { background: var(--rosso-velo); }
+.ev.errore::before { background: var(--rosso); }
+.voce.aperta .ev { background: var(--accento-velo); border-bottom-color: transparent; }
+.voce.aperta .ev::before { content: ''; position: absolute; left: 0; top: 7px; bottom: 7px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accento); }
+.ev.nuova { animation: lampo 2s var(--curva); }
+@keyframes lampo { 0% { background: rgba(10,132,255,0.22); } 100% { background: transparent; } }
+
+.ora { font-family: var(--mono); font-size: 0.8rem; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; white-space: nowrap; }
+.ora i { font-style: normal; color: var(--fioco); font-weight: 500; }
+.lv { justify-self: start; display: inline-flex; align-items: center; gap: 6px; height: 23px; padding: 0 9px 0 8px; border-radius: 7px; max-width: 100%;
+    font-size: 0.72rem; font-weight: 650; white-space: nowrap; overflow: hidden; color: var(--lc); background: color-mix(in srgb, var(--lc) 12%, transparent); }
+.lv > i { width: 6px; height: 6px; border-radius: 50%; background: var(--lc); flex-shrink: 0; }
+.lv span { overflow: hidden; text-overflow: ellipsis; }
+.lv.spento { color: var(--fioco); background: var(--riga-su); }
+.lv.spento > i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--fioco); }
+.fonte { display: inline-flex; align-items: center; gap: 7px; min-width: 0; font-size: 0.78rem; font-weight: 550; color: var(--fioco); }
+.fonte .q { width: 22px; height: 22px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+.fonte .q [data-lucide] { width: 13px; height: 13px; }
+.fonte span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chi { min-width: 0; display: flex; align-items: baseline; gap: 10px; white-space: nowrap; overflow: hidden; }
+.chi b { font-size: 0.86rem; font-weight: 620; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 40px; }
+.chi code { font-family: var(--mono); font-size: 0.72rem; color: var(--fioco-2); overflow: hidden; text-overflow: ellipsis; flex-shrink: 100; min-width: 0; }
+.val { justify-self: end; display: inline-flex; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; max-width: 100%; }
+.val .v { font-family: var(--mono); font-size: 0.78rem; font-weight: 650; padding: 3px 8px; border-radius: 7px; background: var(--incavo); border: 1px solid var(--bordo);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex-shrink: 1; font-variant-numeric: tabular-nums; }
+.val .d { flex-shrink: 0; font-family: var(--mono); font-size: 0.72rem; font-weight: 600; color: var(--fioco); white-space: nowrap; display: inline-flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums; }
+.val .d [data-lucide] { width: 12px; height: 12px; }
+.ev > .freccia { width: 16px; height: 16px; color: var(--fioco-2); transition: transform .2s var(--curva); }
+.voce.aperta .ev > .freccia { transform: rotate(90deg); color: var(--accento); }
+
+.giorno { height: var(--h-giorno); display: flex; align-items: center; gap: 10px; padding: 0 18px; font-size: 0.78rem;
+    background: color-mix(in srgb, var(--incavo) 92%, transparent); border-bottom: 1px solid var(--bordo);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.giorno .cal { width: 22px; height: 22px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; background: var(--riga-su); color: var(--fioco); }
+.giorno .cal [data-lucide] { width: 13px; height: 13px; }
+.giorno b { font-weight: 750; letter-spacing: -0.005em; }
+.giorno .data { color: var(--fioco); font-weight: 500; }
+.giorno .mix { margin-left: auto; display: inline-flex; align-items: center; gap: 12px; color: var(--fioco); font-weight: 600; font-variant-numeric: tabular-nums; }
+.giorno .mix .an { color: var(--ambra); display: inline-flex; align-items: center; gap: 4px; }
+.giorno .mix .an [data-lucide] { width: 13px; height: 13px; }
+.giorno-fisso { position: absolute; left: 0; right: 0; top: 34px; z-index: 6; pointer-events: none; }
+.giorno-fisso .giorno { box-shadow: 0 6px 14px -10px rgba(0,0,0,0.25); }
+
+.piu { height: 64px; display: flex; align-items: center; justify-content: center; gap: 10px; border-bottom: 1px solid var(--bordo); color: var(--fioco); font-size: 0.78rem; }
+.piu button { height: 34px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--bordo-forte); background: var(--pieno); cursor: pointer;
+    font-size: 0.8rem; font-weight: 650; display: inline-flex; align-items: center; gap: 7px; color: var(--testo); }
+.piu button:hover { background: var(--incavo); }
+.piu button [data-lucide] { width: 15px; height: 15px; }
+.piu .giro { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: gira .7s linear infinite; }
+.piu.inizio { color: var(--fioco-2); gap: 8px; }
+.piu.inizio [data-lucide] { width: 15px; height: 15px; }
+@keyframes gira { to { transform: rotate(360deg); } }
+
+/* dettaglio che si apre sotto la riga */
+.dett { display: grid; grid-template-columns: 1.05fr 1.35fr 1.25fr auto; gap: 18px; padding: 14px 18px 16px 18px; background: var(--accento-velo);
+    border-bottom: 1px solid var(--bordo); position: relative; }
+.dett::before { content: ''; position: absolute; left: 0; top: 0; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accento); }
+.dett .blocco { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.dett h5 { margin: 0; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fioco); }
+.dett .grande { font-size: 0.9rem; font-weight: 650; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dett .sotto { font-size: 0.76rem; color: var(--fioco); line-height: 1.5; }
+.dett .sotto .mono { font-size: 0.74rem; }
+.dett .cambio { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dett .cambio .v { font-family: var(--mono); font-size: 0.8rem; font-weight: 650; padding: 3px 9px; border-radius: 7px; background: var(--pieno); border: 1px solid var(--bordo);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 42%; }
+.dett .cambio .v.prima { color: var(--fioco); }
+.dett .cambio [data-lucide] { width: 15px; height: 15px; color: var(--fioco); flex-shrink: 0; }
+.dett .storia { height: 30px; width: 100%; display: block; overflow: visible; }
+.dett .scala { display: flex; gap: 12px; font-size: 0.7rem; color: var(--fioco); font-variant-numeric: tabular-nums; }
+.dett .scala b { font-family: var(--mono); font-weight: 650; color: var(--testo); }
+.dett .scala span:last-child { margin-left: auto; }
+.dett .nastro { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 1px; background: var(--riga); margin-top: 4px; }
+.dett .nastro i { display: block; height: 100%; min-width: 2px; }
+.dett .id { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.dett .id code { font-family: var(--mono); font-size: 0.74rem; color: var(--fioco); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini { width: 26px; height: 26px; border-radius: 8px; border: 1px solid var(--bordo); background: var(--pieno); cursor: pointer; display: inline-flex;
+    align-items: center; justify-content: center; color: var(--fioco); flex-shrink: 0; transition: color .15s, border-color .15s; }
+.mini:hover { color: var(--accento); border-color: var(--accento); }
+.mini [data-lucide] { width: 13px; height: 13px; }
+.dett .comandi { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 12px; cursor: pointer;
+    font-size: 0.84rem; font-weight: 650; border: 1px solid var(--bordo-forte); background: var(--pieno); color: var(--testo);
+    transition: background .15s, transform .1s, filter .15s, box-shadow .15s; white-space: nowrap; }
+.btn:hover { background: var(--incavo); }
+.btn:active { transform: scale(0.97); }
+.btn [data-lucide] { width: 16px; height: 16px; }
+.btn.primario { background: linear-gradient(135deg, #0A84FF 0%, #0063D1 100%); color: #FFF; border-color: transparent; box-shadow: 0 4px 14px rgba(10,132,255,0.3); }
+.btn.primario:hover { filter: brightness(1.07); }
+.btn.piccolo { height: 34px; padding: 0 12px; border-radius: 10px; font-size: 0.8rem; }
+
+/* torna al vivo: compare appena si scorre in su */
+.torna { position: absolute; left: 50%; bottom: 16px; z-index: 8; transform: translate(-50%, 16px); opacity: 0; visibility: hidden;
+    display: inline-flex; align-items: center; gap: 9px; height: 40px; padding: 0 16px 0 12px; border-radius: 20px; border: none; cursor: pointer;
+    background: var(--testo); color: var(--sfondo); font-size: 0.82rem; font-weight: 700; box-shadow: 0 10px 28px rgba(0,0,0,0.28);
+    transition: opacity .2s, transform .25s var(--curva), visibility .2s; white-space: nowrap; }
+.torna.su { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+.torna [data-lucide] { width: 16px; height: 16px; }
+.torna .nuovi { background: var(--accento); color: #FFF; border-radius: 10px; padding: 2px 8px; font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+.torna .nuovi:empty { display: none; }
+
+/* caricamento, vuoto, errore dentro il registro */
+.stato-reg { position: absolute; inset: 34px 0 0 0; z-index: 7; background: var(--pieno); display: flex; flex-direction: column; overflow: hidden; }
+.stato-reg:empty { display: none; }
+.scheletro { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--riga) 0%, var(--riga-su) 50%, var(--riga) 100%);
+    background-size: 200% 100%; animation: brilla 1.3s linear infinite; }
+@keyframes brilla { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.vuoto { margin: auto; text-align: center; padding: 40px 24px; max-width: 520px; }
+.vuoto .pila { display: flex; justify-content: center; gap: 10px; margin-bottom: 22px; }
+.vuoto .pila span { width: 48px; height: 48px; border-radius: 15px; display: flex; align-items: center; justify-content: center;
+    color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.vuoto .pila span:nth-child(2) { transform: translateY(-8px); }
+.vuoto .pila span:nth-child(3) { transform: translateY(-4px); }
+.vuoto .pila [data-lucide] { width: 22px; height: 22px; }
+.vuoto h2 { margin: 0 0 8px; font-size: 1.22rem; font-weight: 750; letter-spacing: -0.025em; }
+.vuoto p { margin: 0 auto; max-width: 440px; font-size: 0.88rem; line-height: 1.6; color: var(--fioco); }
+.vuoto .azioni { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 22px; }
+.vuoto .ascolto { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; font-size: 0.76rem; font-weight: 650; color: var(--verde);
+    padding: 6px 12px; border-radius: 14px; background: var(--verde-velo); }
+.vuoto .ascolto i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: battito 2.4s ease-in-out infinite; }
+.vuoto code { font-family: var(--mono); font-size: 0.78rem; background: var(--incavo); padding: 2px 6px; border-radius: 5px; }
+
+/* menu Esporta */
+.menu { position: fixed; z-index: 60; width: 290px; padding: 6px; border-radius: 16px; background: var(--pieno); border: 1px solid var(--bordo-forte);
+    box-shadow: var(--ombra-f); opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.98); transform-origin: top right;
+    transition: opacity .16s, transform .18s var(--curva), visibility .16s; }
+.menu.su { opacity: 1; visibility: visible; transform: none; }
+.menu .intesta { padding: 10px 12px 8px; font-size: 0.74rem; color: var(--fioco); line-height: 1.45; border-bottom: 1px solid var(--bordo); margin-bottom: 4px; }
+.menu .intesta b { color: var(--testo); font-variant-numeric: tabular-nums; }
+.menu button { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: none; background: none; border-radius: 10px; cursor: pointer; text-align: left; }
+.menu button:hover, .menu button:focus-visible { background: var(--riga-su); outline: none; }
+.menu button .ic { width: 32px; height: 32px; border-radius: 10px; background: var(--accento-velo); color: var(--accento); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.menu button .ic [data-lucide] { width: 16px; height: 16px; }
+.menu button b { display: block; font-size: 0.86rem; font-weight: 650; }
+.menu button small { display: block; font-size: 0.72rem; color: var(--fioco); margin-top: 1px; }
+.menu button:disabled { opacity: .4; cursor: default; }
+.menu button:disabled:hover { background: none; }
+
+/* avvisi a comparsa */
+.biscotti { position: fixed; left: 50%; bottom: calc(24px + var(--basso)); transform: translateX(-50%); z-index: 90; display: flex; flex-direction: column; gap: 8px;
+    align-items: center; pointer-events: none; width: max-content; max-width: calc(100vw - 32px); }
+.biscotto { display: flex; align-items: flex-start; gap: 10px; padding: 12px 16px; border-radius: 14px; background: rgba(28,28,30,0.94); color: #FFF;
+    font-size: 0.85rem; font-weight: 550; line-height: 1.45; box-shadow: 0 12px 34px rgba(0,0,0,0.3); pointer-events: auto; max-width: 520px;
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); animation: entra .3s var(--curva); }
+body.notte .biscotto { background: rgba(58,58,62,0.96); }
+.biscotto [data-lucide] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+.biscotto.bene [data-lucide] { color: #4CD964; }
+.biscotto.male [data-lucide] { color: #FF6B6B; }
+.biscotto.avviso [data-lucide] { color: #FFC24A; }
+.biscotto small { display: block; font-weight: 450; opacity: .72; margin-top: 2px; font-size: 0.78rem; }
+.biscotto.via { animation: esce .25s var(--curva) forwards; }
+@keyframes entra { from { opacity: 0; transform: translateY(12px) scale(.97); } }
+@keyframes esce { to { opacity: 0; transform: translateY(8px) scale(.97); } }
+
+/* =====================================================================
+   SCHERMI MEDI E TELEFONO
+   ===================================================================== */
+@media (max-width: 1240px) {
+    .colonne, .ev { grid-template-columns: 84px 138px 26px minmax(0, 1fr) 170px 16px; column-gap: 12px; }
+    .fonte span { display: none; }
+    .colonne .t-fonte { visibility: hidden; }
+    .dett { grid-template-columns: 1fr 1.3fr 1.2fr; }
+    .dett .comandi { grid-column: 1 / -1; flex-direction: row; justify-content: flex-start; }
+}
+@media (max-width: 1100px) {
+    .riepilogo { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+    .tessera { padding: 11px 12px; gap: 10px; }
+    .tessera .icona { width: 30px; height: 30px; }
+    .tessera .cifra { font-size: 1.25rem; }
+    .grafico-testa .dati .picco { display: none; }
+    .primo .etichetta-primo { display: none; }
+    .segmenti button { padding: 0 10px; }
+    .chi code { display: none; }
+}
+@media (max-width: 760px) {
+    :root { --h-ev: 60px; --h-giorno: 38px; }
+    .testa { padding: calc(8px + var(--alto)) 12px 8px 4px; gap: 6px; }
+    .indietro span, .titolo .logo, .tb .etichetta, .vivo .etichetta-lunga { display: none; }
+    .titolo small { display: none; }
+    .interno { padding: 12px 12px calc(12px + var(--basso)); gap: 10px; }
+    .riepilogo { grid-template-columns: minmax(0, 1fr); }
+    .vivo { width: 36px; padding: 0; justify-content: center; }
+    .vivo .pp, .vivo .scritta { display: none; }
+    .vivo.storico .punto { display: block; }
+    .tessere { display: flex; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 2px 12px 4px; gap: 8px; scroll-snap-type: x mandatory; scroll-padding: 0 12px; }
+    .tessere::-webkit-scrollbar { display: none; }
+    .tessera { flex: 0 0 auto; scroll-snap-align: start; padding: 9px 13px 9px 9px; border-radius: var(--r-m); }
+    .tessera .quota { display: none; }
+    .grafico { padding: 10px 12px 8px; }
+    .grafico-testa { flex-wrap: wrap; row-gap: 3px; }
+    .barre { min-height: 46px; }
+    .grafico-testa .dati .picco { display: none; }
+    .cerca { flex-basis: 100%; }
+    .cerca .kbd { display: none; }
+    .segmenti { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+    .segmenti button { flex: 1 0 auto; justify-content: center; padding: 0 9px; }
+    .conteggio { display: none; }
+    .foglietto { left: 0; right: 0; width: auto; }
+    .colonne { display: none; }
+    .stato-reg { inset: 0; }
+    .giorno-fisso { top: 0; }
+    .interno { height: auto; min-height: 100%; }
+    .registro { flex: none; height: 74vh; min-height: 0; }
+    .ev { grid-template-columns: auto auto minmax(0, 1fr) auto; grid-template-rows: 22px 20px; grid-template-areas: "ora lv lv val" "chi chi chi chi";
+        row-gap: 3px; column-gap: 8px; padding: 8px 14px; align-content: center; }
+    .ev .ora { grid-area: ora; }
+    .ev .lv { grid-area: lv; }
+    .ev .fonte { display: none; }
+    .ev .chi { grid-area: chi; }
+    .ev .val { grid-area: val; }
+    .ev > .freccia { display: none; }
+    .val .d { display: none; }
+    .dett { grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px; }
+    .dett .blocco.disp { grid-column: 1 / -1; }
+    .dett .comandi { grid-column: 1 / -1; flex-direction: row; }
+    .dett .comandi .btn { flex: 1; }
+    .giorno { padding: 0 14px; }
+    .giorno .data-lunga { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
 </head>
 <body>
-
-    <div class="container">
-        
-        <!-- HEADER -->
-        <div class="header">
-            <div class="header-title">
-                <div class="live-badge"><div class="live-dot"></div> MONITOR LIVE</div>
-                <h2>Terminale Log di Sistema</h2>
-            </div>
-            <a href="/dashboard" class="btn-back"><i data-lucide="layout-grid" style="width:18px;"></i> Dashboard</a>
-        </div>
-
-        <!-- KPI GRID -->
-        <div class="kpi-grid">
-            <div class="kpi-card" style="border-left-color: var(--accent);">
-                <div class="kpi-title"><i data-lucide="activity" style="width:16px;"></i> Eventi Registrati</div>
-                <div class="kpi-value" id="kpi-total">0</div>
-                <div class="kpi-sub">Nel periodo selezionato</div>
-            </div>
-            <div class="kpi-card" style="border-left-color: var(--warning);">
-                <div class="kpi-title"><i data-lucide="zap" style="width:16px;"></i> Nodo più Attivo</div>
-                <div class="kpi-value" id="kpi-top" style="font-size: 1.2rem; line-height: 2.2rem; word-break: break-word;">-</div>
-                <div class="kpi-sub" id="kpi-top-count">0 attivazioni</div>
-            </div>
-            <div class="kpi-card" style="border-left-color: var(--success);">
-                <div class="kpi-title"><i data-lucide="clock" style="width:16px;"></i> Ultimo Evento</div>
-                <div class="kpi-value" id="kpi-last" style="font-size: 1.2rem; line-height: 2.2rem;">-</div>
-                <div class="kpi-sub">Timestamp sistema</div>
+<div class="pagina">
+    <header class="testa">
+        <a class="indietro" href="/dashboard" title="Torna alla dashboard"><i data-lucide="chevron-left"></i><span>Dashboard</span></a>
+        <div class="titolo">
+            <div class="logo"><i data-lucide="scroll-text"></i></div>
+            <div style="min-width:0">
+                <h1>Monitor log</h1>
+                <small id="sotto-titolo">Cambi di stato di tutti i dispositivi</small>
             </div>
         </div>
-
-        <!-- GRAFICO -->
-        <div class="chart-container">
-            <canvas id="sysChart"></canvas>
+        <div class="azioni-testa">
+            <button class="vivo" id="vivo" type="button" onclick="MON.pausa()" title="Metti in pausa l'aggiornamento dal vivo (P)">
+                <span class="punto"></span><i data-lucide="pause" class="pp"></i><span id="vivo-testo">Dal vivo</span>
+            </button>
+            <button class="tb" id="bt-esporta" type="button" onclick="MON.menu(event)" title="Copia o scarica gli eventi che vedi" aria-haspopup="menu"><i data-lucide="download"></i><span class="etichetta">Esporta</span></button>
+            <button class="tb" type="button" onclick="MON.notte()" title="Giorno e notte" id="bt-notte"><i data-lucide="moon"></i></button>
+            <button class="tb pericolo" id="bt-svuota" type="button" onclick="MON.svuota()" title="Cancella tutti gli eventi registrati"><i data-lucide="trash-2"></i><span class="etichetta">Svuota</span></button>
         </div>
+    </header>
 
-        <!-- TOOLBAR -->
-        <div class="toolbar">
-            <div class="input-group">
-                <label>Da Data</label>
-                <input type="date" id="date_from" class="input-control">
+    <main class="corpo" id="corpo">
+        <div class="interno" id="interno">
+            <section class="riepilogo" aria-label="Riepilogo">
+                <div class="tessere" id="tessere"></div>
+                <div class="grafico" id="grafico">
+                    <div class="grafico-testa">
+                        <b>Attività</b><span class="unita" id="g-unita">eventi per ora</span>
+                        <span class="dati"><span>Ultima ora <b id="g-ora" data-no-tr>–</b></span><span class="picco" id="picco">Picco <b id="g-picco" data-no-tr>–</b></span><button type="button" class="primo nascosto" id="g-primo" onclick="MON.primo()" title="Solo questo dispositivo"><i data-lucide="flame"></i><span class="etichetta-primo">Più attivo</span><b id="g-primo-nome" data-no-tr></b><span class="n" id="g-primo-n" data-no-tr></span></button></span>
+                    </div>
+                    <div class="barre" id="barre" role="img" aria-label="Eventi nel tempo"></div>
+                    <div class="assi" id="assi" data-no-tr></div>
+                    <div class="suggerimento" id="sugg"></div>
+                </div>
+            </section>
+
+            <div class="barra">
+                <label class="cerca" id="cerca">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="q" placeholder="Cerca un dispositivo, un id o un valore" autocomplete="off" spellcheck="false" aria-label="Cerca negli eventi">
+                    <span class="trovati" id="trovati" data-no-tr></span>
+                    <span class="kbd">/</span>
+                    <button type="button" class="pulisci" onclick="MON.pulisciRicerca()" title="Cancella la ricerca"><i data-lucide="x"></i></button>
+                </label>
+                <div class="segmenti" id="periodo" role="tablist" aria-label="Periodo">
+                    <button type="button" data-p="oggi">Oggi</button>
+                    <button type="button" data-p="7">7 giorni</button>
+                    <button type="button" data-p="30">30 giorni</button>
+                    <button type="button" data-p="tutto">Tutto</button>
+                    <button type="button" data-p="scelto" id="bt-scelto" title="Scegli le date"><i data-lucide="calendar-days"></i><span class="date" id="date-scelte" data-no-tr></span></button>
+                </div>
+                <button class="btn-quadro" type="button" id="bt-compatto" onclick="MON.compatto()" title="Nascondi il riepilogo"><i data-lucide="panel-top-close"></i></button>
+                <div class="foglietto" id="foglietto" role="dialog" aria-label="Scegli le date">
+                    <h4>Periodo a scelta</h4>
+                    <div class="coppia">
+                        <label>Dal<input type="date" id="data-da"></label>
+                        <label>Al<input type="date" id="data-a"></label>
+                    </div>
+                    <div class="azioni">
+                        <button class="btn piccolo" type="button" onclick="MON.chiudiDate()">Annulla</button>
+                        <button class="btn piccolo primario" type="button" onclick="MON.applicaDate()">Applica</button>
+                    </div>
+                </div>
             </div>
-            <div class="input-group">
-                <label>A Data</label>
-                <input type="date" id="date_to" class="input-control">
+
+            <div class="fila">
+                <div class="filtri" id="filtri"></div>
+                <button class="azzera nascosto" id="azzera" type="button" onclick="MON.azzera()">Azzera filtri</button>
+                <span class="conteggio" id="conteggio"></span>
             </div>
-            <div class="input-group" style="flex: 2;">
-                <label>Ricerca Diretta (Live Filter)</label>
-                <!-- Aggiunto oninput="applyFilters()" per filtrare istantaneamente -->
-                <input type="text" id="entity_search" class="input-control" placeholder="Cerca: Luce Soggiorno, ON, OFF..." oninput="applyFilters()">
-            </div>
-            <div class="btn-group">
-                <!-- Il tasto Applica ora serve solo se cambi le date -->
-                <button class="btn btn-primary" onclick="loadLogs()"><i data-lucide="refresh-cw" style="width:16px;"></i> Ricarica DB</button>
-                <button class="btn btn-secondary" onclick="clearFilters()"><i data-lucide="rotate-ccw" style="width:16px;"></i> Reset</button>
-            </div>
-            <button class="btn btn-danger" onclick="clearAllLogs()"><i data-lucide="trash-2" style="width:16px;"></i> Svuota Buffer</button>
+
+            <section class="registro" id="registro" aria-label="Eventi">
+                <div class="colonne" aria-hidden="true"><span>Ora</span><span>Evento</span><span class="t-fonte">Fonte</span><span>Dispositivo</span><span>Valore</span><span></span></div>
+                <div class="scorri" id="scorri" tabindex="-1">
+                    <div class="finestra" id="finestra"></div>
+                </div>
+                <div class="giorno-fisso" id="giorno-fisso"></div>
+                <div class="stato-reg" id="stato-reg"></div>
+                <button class="torna" id="torna" type="button" onclick="MON.alVivo()"><i data-lucide="arrow-down-to-line"></i><span>Torna al vivo</span><span class="nuovi" id="nuovi" data-no-tr></span></button>
+            </section>
         </div>
+    </main>
+</div>
 
-        <!-- TABELLA -->
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 20%;">Timestamp</th>
-                        <th style="width: 50%;">Nodo Hardware (Nome & ID)</th>
-                        <th style="width: 30%;">Stato Logico</th>
-                    </tr>
-                </thead>
-                <tbody id="logs_body">
-                    <tr>
-                        <td colspan="3" class="empty-state">
-                            <i data-lucide="loader-2" style="width: 48px; height: 48px; color: var(--accent); animation: spin 1s linear infinite;"></i>
-                            <span style="font-weight: 600;">Sincronizzazione dati dal Broker...</span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+<div class="menu" id="menu" role="menu">
+    <div class="intesta" id="menu-intesta"></div>
+    <button type="button" role="menuitem" onclick="MON.copia()"><span class="ic"><i data-lucide="copy"></i></span><span><b>Copia gli eventi</b><small>Testo a colonne, da incollare dove vuoi</small></span></button>
+    <button type="button" role="menuitem" onclick="MON.scarica()"><span class="ic"><i data-lucide="file-down"></i></span><span><b>Scarica in CSV</b><small>Si apre con Excel o Numbers</small></span></button>
+</div>
+<div class="biscotti" id="biscotti" aria-live="polite"></div>
 
-    </div>
+<script>
+(function () {
+    'use strict';
 
-    <script>
-        lucide.createIcons();
+    /* =================================================================
+       1. ATTREZZI
+       ================================================================= */
+    const $ = id => document.getElementById(id);
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const icone = el => { if (window.lucide) window.lucide.createIcons({ root: el || document }); };
+    /* i testi scritti dal JavaScript passano comunque nel DOM e i18n.js li traduce; tr() serve
+       solo dove il testo non finisce in un nodo (titoli, file, appunti). In italiano resta com'e'. */
+    const tr = t => { try { return window.WH_T ? window.WH_T(t) : t; } catch (e) { return t; } };
+    const memo = {
+        leggi(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+        scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    };
+    const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const LINGUA = (document.documentElement.lang || 'it').slice(0, 2);
+    const LOC = LINGUA === 'it' ? 'it-IT' : LINGUA;
+    const nf = new Intl.NumberFormat(LOC);
+    const num = n => nf.format(n);
+    const due = n => (n < 10 ? '0' : '') + n;
+    /* numeri delle misure scritti come arrivano dai sensori (col punto), niente code di virgola mobile */
+    const cifra = x => String(Math.round(x * 1000) / 1000);
+    const chiaveData = d => d.getFullYear() + '-' + due(d.getMonth() + 1) + '-' + due(d.getDate());
+    const oggiChiave = () => chiaveData(new Date());
+    const spostaGiorno = (k, n) => { const [y, m, d] = k.split('-').map(Number); return chiaveData(new Date(y, m - 1, d + n)); };
+    const dataDaChiave = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
 
-        let activityChart = null;
-        let customNamesCache = {}; 
-        let globalLogs = []; // Memoria cache per il Live Filter
+    async function api(url, opzioni) {
+        let r;
+        try { r = await fetch(url, Object.assign({ credentials: 'same-origin', cache: 'no-store' }, opzioni || {})); }
+        catch (e) { throw { tipo: 'rete', message: 'Il server non risponde. Controlla la connessione.' }; }
+        if (r.status === 403) throw { tipo: 'permessi', message: 'Il registro lo vede solo un amministratore.' };
+        const tipo = r.headers.get('content-type') || '';
+        if (!tipo.includes('json')) throw { tipo: 'sessione', message: 'La sessione è scaduta: rientra per continuare.' };
+        let j;
+        try { j = await r.json(); } catch (e) { throw { tipo: 'server', message: 'Risposta non valida dal server.' }; }
+        if (!r.ok) throw { tipo: 'server', message: (j && (j.message || j.error)) || ('Errore del server (' + r.status + ')') };
+        return j;
+    }
 
-        function clearFilters() {
-            document.getElementById('date_from').value = '';
-            document.getElementById('date_to').value = '';
-            document.getElementById('entity_search').value = '';
-            loadLogs();
+    function biscotto(testo, sotto, tipo, durata) {
+        const box = $('biscotti');
+        const el = document.createElement('div');
+        const ico = { bene: 'circle-check', male: 'circle-alert', avviso: 'triangle-alert' }[tipo || 'bene'] || 'info';
+        el.className = 'biscotto ' + (tipo || 'bene');
+        el.innerHTML = '<i data-lucide="' + ico + '"></i><div><span></span>' + (sotto ? '<small></small>' : '') + '</div>';
+        el.querySelector('span').textContent = testo;
+        if (sotto) el.querySelector('small').textContent = sotto;
+        box.appendChild(el);
+        icone(el);
+        while (box.children.length > 3) box.firstChild.remove();
+        setTimeout(() => { el.classList.add('via'); setTimeout(() => el.remove(), 260); }, durata || 3200);
+    }
+
+    function quandoFa(ms) {
+        const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+        if (s < 10) return 'adesso';
+        if (s < 60) return s + ' s fa';
+        if (s < 3600) return Math.floor(s / 60) + ' min fa';
+        if (s < 86400) return Math.floor(s / 3600) + ' h fa';
+        return Math.floor(s / 86400) + ' g fa';
+    }
+    function durata(ms) {
+        const s = Math.max(0, Math.round(ms / 1000));
+        if (s < 60) return s + ' s';
+        const m = Math.floor(s / 60);
+        if (m < 60) return m + ' min';
+        const h = Math.floor(m / 60);
+        if (h < 24) return h + ' h' + (m % 60 ? ' ' + (m % 60) + ' min' : '');
+        const g = Math.floor(h / 24);
+        return g + ' g' + (h % 24 ? ' ' + (h % 24) + ' h' : '');
+    }
+
+    /* =================================================================
+       2. CHE COSA DICE UN EVENTO
+       Nel registro arrivano solo tre cose: quando, quale entita', il nuovo stato
+       (vedi log_event in app.py). Livello e fonte si ricavano da li'.
+       ================================================================= */
+    const LIVELLI = {
+        acceso:   { nome: 'Accensioni',  breve: 'Acceso',      icona: 'power',          c: 'var(--verde)' },
+        spento:   { nome: 'Spegnimenti', breve: 'Spento',      icona: 'power-off',      c: 'var(--fioco)' },
+        misura:   { nome: 'Misure',      breve: 'Misura',      icona: 'gauge',          c: 'var(--accento)' },
+        stato:    { nome: 'Altri stati', breve: 'Stato',       icona: 'shuffle',        c: 'var(--viola)' },
+        anomalia: { nome: 'Anomalie',    breve: 'Anomalia',    icona: 'triangle-alert', c: 'var(--ambra)' },
+    };
+    const ORDINE_LIV = ['acceso', 'spento', 'misura', 'stato', 'anomalia'];
+    /* stessi insiemi di normalize_state() in app.py: e' cosi' che il motore decide se loggare */
+    const ACCESI = new Set(['on', 'open', 'true', '1', 'playing', 'streaming']);
+    const SPENTI = new Set(['off', 'closed', 'false', '0', 'paused', 'idle', 'stopped', 'standby']);
+    const ANOMALI = new Set(['unavailable', 'unknown', 'none', 'null', 'offline', 'sconosciuto', 'error', 'errore', 'fault', 'problem', 'jammed', 'triggered']);
+    const GRAVI = new Set(['error', 'errore', 'fault', 'problem', 'jammed', 'triggered']);
+
+    const FAMIGLIE = {
+        light:         { nome: 'Luci',          icona: 'lightbulb',    c: 'var(--c-light)' },
+        switch:        { nome: 'Interruttori',  icona: 'toggle-right', c: 'var(--c-switch)' },
+        input_boolean: { nome: 'Interruttori',  icona: 'toggle-right', c: 'var(--c-switch)', come: 'switch' },
+        cover:         { nome: 'Tapparelle',    icona: 'blinds',       c: 'var(--c-cover)' },
+        climate:       { nome: 'Clima',         icona: 'thermometer',  c: 'var(--c-climate)' },
+        water_heater:  { nome: 'Clima',         icona: 'thermometer',  c: 'var(--c-climate)', come: 'climate' },
+        fan:           { nome: 'Clima',         icona: 'fan',          c: 'var(--c-climate)', come: 'climate' },
+        sensor:        { nome: 'Sensori',       icona: 'gauge',        c: 'var(--c-sensor)' },
+        binary_sensor: { nome: 'Rilevatori',    icona: 'radio',        c: 'var(--c-binary)' },
+        media_player:  { nome: 'Multimedia',    icona: 'speaker',      c: 'var(--c-media)' },
+        camera:        { nome: 'Telecamere',    icona: 'cctv',         c: 'var(--c-camera)' },
+        group:         { nome: 'Gruppi',        icona: 'layers',       c: 'var(--c-group)' },
+        scene:         { nome: 'Scene',         icona: 'sparkles',     c: 'var(--c-scene)' },
+        script:        { nome: 'Scene',         icona: 'sparkles',     c: 'var(--c-scene)', come: 'scene' },
+        automation:    { nome: 'Scene',         icona: 'sparkles',     c: 'var(--c-scene)', come: 'scene' },
+        alarm_control_panel: { nome: 'Allarme', icona: 'siren',       c: 'var(--c-alarm)' },
+        lock:          { nome: 'Allarme',       icona: 'siren',        c: 'var(--c-alarm)', come: 'alarm_control_panel' },
+    };
+    const ORDINE_FAM = ['light', 'switch', 'cover', 'climate', 'sensor', 'binary_sensor', 'media_player', 'camera', 'group', 'scene', 'alarm_control_panel', 'altro'];
+    const ALTRO = { nome: 'Altro', icona: 'cpu', c: 'var(--c-altro)' };
+    const famiglia = dom => { const f = FAMIGLIE[dom]; return f ? (f.come || dom) : 'altro'; };
+    const famigliaInfo = k => (k === 'altro' ? ALTRO : FAMIGLIE[k]) || ALTRO;
+
+    function livelloDi(dom, s) {
+        if (ANOMALI.has(s)) return 'anomalia';
+        const n = s !== '' && isFinite(Number(s));
+        if (dom === 'sensor') return n ? 'misura' : 'stato';
+        if (ACCESI.has(s)) return 'acceso';
+        if (SPENTI.has(s)) return 'spento';
+        return n ? 'misura' : 'stato';
+    }
+    /* come si chiama quel cambio per quel tipo di dispositivo (la luce si accende, la tapparella si apre) */
+    const PAROLE = {
+        'light:acceso': 'Accesa', 'light:spento': 'Spenta',
+        'cover:acceso': 'Aperta', 'cover:spento': 'Chiusa',
+        'binary_sensor:acceso': 'Rilevato', 'binary_sensor:spento': 'A riposo',
+        'media_player:acceso': 'In riproduzione',
+    };
+    const STATI = {
+        paused: 'In pausa', idle: 'Inattivo', stopped: 'Fermo', standby: 'In attesa',
+        heat: 'Riscalda', cool: 'Raffresca', heat_cool: 'Automatico', auto: 'Automatico', dry: 'Deumidifica', fan_only: 'Solo ventola',
+        opening: 'In apertura', closing: 'In chiusura', locked: 'Chiusa a chiave', unlocked: 'Aperta',
+        armed_away: 'Inserito', armed_home: 'Inserito in casa', armed_night: 'Inserito notte', disarmed: 'Disinserito', arming: 'In inserimento', pending: 'In attesa',
+        home: 'In casa', not_home: 'Fuori casa', dentro: 'Dentro', fuori: 'Fuori',
+        unavailable: 'Non disponibile', unknown: 'Sconosciuto', offline: 'Non raggiungibile', none: 'Sconosciuto', null: 'Sconosciuto', sconosciuto: 'Sconosciuto',
+        error: 'Errore', errore: 'Errore', fault: 'Guasto', problem: 'Problema', jammed: 'Bloccata', triggered: 'Allarme scattato',
+    };
+    function parolaDi(ev) {
+        if (ev.liv === 'misura') return 'Misura';
+        return STATI[ev.s] || PAROLE[ev.dom + ':' + ev.liv] || (ev.liv === 'stato' ? 'Cambio di stato' : LIVELLI[ev.liv].breve);
+    }
+
+    /* da dove viene l'entita' (lo dice il suo id: vedi i get_*_entities in app.py) */
+    function integrazioneDi(eid) {
+        let m = eid.match(/___wach(\d+)$/);
+        if (m) return 'Hub remoto ' + m[1];
+        m = eid.match(/___ha(\d+)$/);
+        if (m) return 'Home Assistant ' + m[1];
+        if (eid.startsWith('media_player.tv_')) return 'Smart TV';
+        if (eid.includes('.knx_')) return 'KNX';
+        if (eid.includes('.virtual_')) return 'Entità virtuale';
+        if (eid.includes('.sonos_')) return 'Sonos';
+        if (eid.includes('.shelly_')) return 'Shelly';
+        if (eid.includes('.tapo_')) return 'Tapo';
+        return '';
+    }
+    function nomeDaId(eid) {
+        const base = eid.split('___')[0];
+        let p = base.includes('.') ? base.slice(base.indexOf('.') + 1) : base;
+        const senza = p.replace(/^(knx|virtual|shelly|sonos|tapo|tv)_/, '');
+        p = (/^\d+$/.test(senza) ? p : senza).replace(/_/g, ' ').trim();          // 'tapo_2' resta 'Tapo 2', non '2'
+        if (/^tv \d+$/i.test(p)) p = 'TV ' + p.slice(3);
+        return p ? p.charAt(0).toUpperCase() + p.slice(1) : eid;
+    }
+
+    /* =================================================================
+       3. STATO DELLA PAGINA
+       ================================================================= */
+    const PASSO = 2000;            // eventi per pagina
+    const S = {
+        ev: [],                    // eventi, dal piu' vecchio al piu' nuovo
+        vis: [],                   // quelli che passano i filtri
+        nomi: {},                  // entity_id -> nome dato dal cliente
+        conId: null,               // il server manda id/ts (API nuova)? null = non ancora saputo
+        limite: PASSO,
+        forsePiu: false,           // il server ne ha altri piu' vecchi
+        periodo: memo.leggi('monitor_periodo', 'tutto'),
+        da: memo.leggi('monitor_da', ''), a: memo.leggi('monitor_a', ''),
+        q: '', parole: [], liv: '', fam: '', entita: '',
+        vivo: true,                // aggiornamento dal vivo acceso
+        rete: true,                // l'ultimo giro col server e' andato bene
+        segui: true,               // la vista sta in fondo e segue i nuovi
+        nuovi: 0,
+        aperti: new Map(),         // n evento -> altezza misurata del dettaglio aperto
+        caricando: false, prime: true, errore: null,
+        seq: 0,
+    };
+
+    /* =================================================================
+       4. DAL SERVER
+       ================================================================= */
+    function intervallo() {
+        const oggi = oggiChiave();
+        if (S.periodo === 'oggi') return { da: oggi, a: oggi };
+        if (S.periodo === '7') return { da: spostaGiorno(oggi, -6), a: oggi };
+        if (S.periodo === '30') return { da: spostaGiorno(oggi, -29), a: oggi };
+        if (S.periodo === 'scelto' && (S.da || S.a)) return { da: S.da || '', a: S.a || '' };
+        return { da: '', a: '' };
+    }
+    /* il periodo arriva fino a oggi? allora ha senso restare in ascolto */
+    const periodoVivo = () => { const r = intervallo(); return !r.a || r.a >= oggiChiave(); };
+
+    function urlLog(extra) {
+        const p = new URLSearchParams();
+        const r = intervallo();
+        /* Il server vecchio confronta le date con l'ora UTC del database: si chiede un giorno in
+           piu' per parte e si ritaglia qui, sull'ora di casa. Con l'API nuova non serve. */
+        if (r.da) p.set('date_from', S.conId ? r.da : spostaGiorno(r.da, -1));
+        if (r.a) p.set('date_to', S.conId ? r.a : spostaGiorno(r.a, 1));
+        Object.keys(extra || {}).forEach(k => p.set(k, extra[k]));
+        return '/api/logs?' + p.toString();
+    }
+
+    function leggiRiga(r) {
+        const t = String(r.timestamp || '');
+        const m = t.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}):(\d{2})$/);
+        if (!m) return null;
+        const eid = String(r.entity_id || '');
+        const st = r.state == null ? '' : String(r.state);
+        const dom = eid.includes('.') ? eid.split('.')[0] : '';
+        const s = st.trim().toLowerCase();
+        const ev = {
+            n: ++S.seq, id: (typeof r.id === 'number') ? r.id : null,
+            raw: t, d: m[3] + '-' + m[2] + '-' + m[1], ora: m[4] + ':' + m[5], sec: m[6],
+            ms: (typeof r.ts === 'number') ? r.ts * 1000 : new Date(+m[3], +m[2] - 1, +m[1], +m[4], +m[5], +m[6]).getTime(),
+            eid, st, s, dom, fam: famiglia(dom), p: null, k: null, nuovo: 0,
+        };
+        ev.liv = livelloDi(dom, s);
+        ev.grave = GRAVI.has(s);
+        ev.num = ev.liv === 'misura' ? Number(s) : NaN;
+        return ev;
+    }
+    const chiaveEv = ev => ev.raw + '|' + ev.eid + '|' + ev.st;
+    function dentroPeriodo(ev) { const r = intervallo(); return (!r.da || ev.d >= r.da) && (!r.a || ev.d <= r.a); }
+
+    /* collega ogni evento al precedente della stessa entita' (per durate, differenze e storia) */
+    function collega() {
+        const ultimo = new Map();
+        for (const ev of S.ev) { ev.p = ultimo.get(ev.eid) || null; ultimo.set(ev.eid, ev); }
+    }
+
+    async function carica(opz) {
+        opz = opz || {};
+        if (S.caricando) return;
+        S.caricando = true;
+        if (!opz.mantieni) { S.aperti.clear(); mostraCaricamento(); }
+        try {
+            const righe = await api(urlLog({ limit: S.limite }));
+            if (!Array.isArray(righe)) throw { tipo: 'server', message: 'Risposta non valida dal server.' };
+            if (righe.length) S.conId = typeof righe[0].id === 'number';
+            const prima = V.altezzaTotale;
+            const evs = [];
+            for (let i = righe.length - 1; i >= 0; i--) { const ev = leggiRiga(righe[i]); if (ev && dentroPeriodo(ev)) evs.push(ev); }
+            S.ev = evs;
+            S.forsePiu = righe.length >= S.limite;
+            S.errore = null; S.rete = true;
+            collega();
+            ricalcola();
+            if (opz.mantieni && !S.segui) V.scorriDi(V.altezzaTotale - prima);        // i piu' vecchi arrivano sopra: la vista resta ferma
+            else vaiInFondo();
+            if (S.prime) { S.prime = false; caricaNomi(); }
+            else if (!Object.keys(S.nomi).length) caricaNomi();
+        } catch (e) {
+            S.errore = e; S.rete = false;
+            if (!S.ev.length || !opz.mantieni) { S.ev = []; ricalcola(); }
+            else biscotto(e.message || 'Errore', '', 'male');
+        } finally {
+            S.caricando = false;
+            aggiornaVivo();
         }
+    }
 
-        function getIcon(entityId) {
-            if(!entityId) return 'cpu';
-            if(entityId.includes('light.')) return 'lightbulb';
-            if(entityId.includes('cover.')) return 'layout-template';
-            if(entityId.includes('sensor.')) return 'activity';
-            if(entityId.includes('media_player.') || entityId.includes('sonos')) return 'speaker';
-            return 'zap';
-        }
+    /* nomi dati dal cliente: arrivano dopo (la lista tocca anche Home Assistant e gli hub) */
+    async function caricaNomi() {
+        try {
+            const l = await api('/api/entities_for_automations');
+            const nomi = {};
+            (Array.isArray(l) ? l : []).forEach(e => { if (e && e.entity_id) nomi[e.entity_id] = String(e.name || '').replace(/^🎬\s*/, ''); });
+            S.nomi = nomi;
+            S.ev.forEach(ev => { ev.k = null; });
+            ricalcola();
+        } catch (e) { /* senza nomi si leggono gli id: il registro funziona lo stesso */ }
+    }
+    const nomeDi = eid => S.nomi[eid] || nomeDaId(eid);
 
-        // CARICAMENTO DAL SERVER (Incluso Recupero Nomi Completi)
-        async function loadLogs() {
-            const dateFrom = document.getElementById('date_from').value;
-            const dateTo = document.getElementById('date_to').value;
-
-            // Mostriamo il loader
-            document.getElementById('logs_body').innerHTML = `
-                <tr><td colspan="3" class="empty-state">
-                    <i data-lucide="loader-2" style="width: 48px; height: 48px; color: var(--accent); animation: spin 1s linear infinite;"></i>
-                    <span style="font-weight: 600;">Sincronizzazione dati dal Broker...</span>
-                </td></tr>`;
-            lucide.createIcons();
-
-            // Richiediamo un buffer più grande dal server visto che ora il filtro lavora nel browser
-            let url = '/api/logs?limit=800'; 
-            if (dateFrom) url += `&date_from=${dateFrom}`;
-            if (dateTo) url += `&date_to=${dateTo}`;
-
+    /* gli eventi piu' vecchi: con l'API nuova si chiede solo il pezzo che manca */
+    async function piuVecchi() {
+        if (S.caricando) return;
+        const bottone = document.querySelector('.piu button');
+        if (bottone) { bottone.disabled = true; bottone.innerHTML = '<span class="giro"></span>Carico…'; }
+        if (S.conId && S.ev.length && S.ev[0].id != null) {
+            S.caricando = true;
             try {
-                // CHIAMATA DOPPIA: Prendiamo sia i Log che l'intero Dizionario dei Nomi risolti!
-                const [logsRes, namesRes] = await Promise.all([
-                    fetch(url),
-                    fetch('/api/entities_for_automations')
-                ]);
-                
-                globalLogs = await logsRes.json();
-                const entitiesArray = await namesRes.json();
-                
-                // Popola la cache dei nomi combinando nativi e custom
-                customNamesCache = {};
-                entitiesArray.forEach(e => {
-                    customNamesCache[e.entity_id] = e.name;
-                });
-                
-                // Invia alla visualizzazione passando per il filtro live
-                applyFilters();
-
-            } catch (error) {
-                console.error("Errore di Rete:", error);
-                document.getElementById('logs_body').innerHTML = `
-                    <tr><td colspan="3" class="empty-state" style="color: var(--danger);">
-                        <i data-lucide="wifi-off" style="width: 48px; height: 48px;"></i>
-                        <span style="font-weight: 600;">System Halt: Impossibile recuperare i dati.</span>
-                    </td></tr>`;
-                lucide.createIcons();
-            }
+                const righe = await api(urlLog({ limit: PASSO, prima: S.ev[0].id }));
+                const prima = V.altezzaTotale;
+                const evs = [];
+                for (let i = righe.length - 1; i >= 0; i--) { const ev = leggiRiga(righe[i]); if (ev && dentroPeriodo(ev) && ev.id < S.ev[0].id) evs.push(ev); }
+                S.ev = evs.concat(S.ev);
+                S.limite += PASSO;
+                S.forsePiu = righe.length >= PASSO;
+                collega();
+                ricalcola();
+                V.scorriDi(V.altezzaTotale - prima);
+            } catch (e) { biscotto(e.message || 'Errore', '', 'male'); V.disegna(true); }
+            finally { S.caricando = false; }
+        } else {
+            S.limite += PASSO;
+            S.segui = false;
+            await carica({ mantieni: true });
         }
+    }
 
-        // FILTRO LIVE NEL BROWSER (Ultra-veloce)
-        function applyFilters() {
-            const searchTerm = document.getElementById('entity_search').value.toLowerCase();
-            let filteredLogs = globalLogs;
-
-            if (searchTerm) {
-                filteredLogs = globalLogs.filter(log => {
-                    const customName = (customNamesCache[log.entity_id] || "").toLowerCase();
-                    const entityId = log.entity_id.toLowerCase();
-                    const state = log.state.toLowerCase();
-                    // Cerca il testo nel Nome, nell'ID originale, o perfino nello Stato (on/off)
-                    return customName.includes(searchTerm) || entityId.includes(searchTerm) || state.includes(searchTerm);
-                });
-            }
-            
-            updateDashboard(filteredLogs);
+    /* il giro dal vivo: solo i nuovi. Il motore scrive al massimo un giro ogni 3 secondi. */
+    let giroInCorso = false, erroriDiFila = 0;
+    async function giro() {
+        /* primo caricamento fallito (server spento, rete): si riprova da soli, senza schermate che lampeggiano */
+        if (S.errore && !S.ev.length) {
+            if (S.vivo && !document.hidden && !S.caricando && S.errore.tipo !== 'sessione' && S.errore.tipo !== 'permessi') await carica({ mantieni: true });
+            return;
         }
-
-        // COSTRUZIONE GRAFICA (Tabella, Grafici e KPI)
-       function updateDashboard(logs) {
-            const tbody = document.getElementById('logs_body');
-            tbody.innerHTML = '';
-
-            if(logs.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="3" class="empty-state">
-                            <i data-lucide="database" style="width: 48px; height: 48px; opacity: 0.5;"></i>
-                            <span style="font-weight: 600;">Nessun pacchetto dati trovato per i criteri di ricerca.</span>
-                        </td>
-                    </tr>`;
-                lucide.createIcons();
-                updateKPIs([], 0, "-", "Nessun dato");
-                drawChart({});
-                return;
-            }
-
-            // --- 1. POPOLAZIONE TABELLA CON NOMI CUSTOM (PULITA) ---
-            logs.forEach(log => {
-                const row = document.createElement('tr');
-                
-                const stateStr = log.state.toLowerCase();
-                let badgeClass = 'neutral';
-                if(['on', 'open', 'playing', 'true', '1'].includes(stateStr)) badgeClass = 'on';
-                if(['off', 'closed', 'paused', 'false', '0'].includes(stateStr)) badgeClass = 'off';
-
-                const iconName = getIcon(log.entity_id);
-                
-                // Pesca il nome dalla Cache globale
-                let displayName = customNamesCache[log.entity_id] || log.entity_id;
-                let subtitleHtml = '';
-                
-                // Mostra l'ID tecnico in piccolo SOTTO solo se hai impostato un nome personalizzato, 
-                // altrimenti lascia la grafica super pulita senza doppioni.
-                if (customNamesCache[log.entity_id] && customNamesCache[log.entity_id] !== log.entity_id) {
-                    subtitleHtml = `<span style="font-size: 0.75rem; color: var(--text-sec); font-family: var(--font-mono);">${log.entity_id}</span>`;
-                }
-
-                row.innerHTML = `
-                    <td class="time-col">${log.timestamp}</td>
-                    <td>
-                        <div class="entity-col">
-                            <div class="entity-icon"><i data-lucide="${iconName}" style="width:20px;"></i></div>
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <span style="font-weight: 700; font-family: var(--font-ui); font-size: 1rem;">${displayName}</span>
-                                ${subtitleHtml}
-                            </div>
-                        </div>
-                    </td>
-                    <td><span class="badge ${badgeClass}">${log.state}</span></td>
-                `;
-                tbody.appendChild(row);
-            });
-            lucide.createIcons({ root: tbody });
-
-            // --- 2. CALCOLO KPIs ---
-            const entityCounts = {};
-            const timeDistribution = {};
-
-            logs.forEach(log => {
-                entityCounts[log.entity_id] = (entityCounts[log.entity_id] || 0) + 1;
-                
-                if(log.timestamp && log.timestamp.length >= 13) {
-                    let timeKey = log.timestamp.substring(0, 13) + ":00"; 
-                    timeDistribution[timeKey] = (timeDistribution[timeKey] || 0) + 1;
-                }
-            });
-
-            let topEntity = "-";
-            let maxCount = 0;
-            for(let e in entityCounts) {
-                if(entityCounts[e] > maxCount) { maxCount = entityCounts[e]; topEntity = e; }
-            }
-            
-            const lastEventTime = logs.length > 0 ? logs[0].timestamp.split(' ')[1] : "-";
-
-            updateKPIs(logs.length, maxCount, topEntity, lastEventTime);
-            drawChart(timeDistribution);
-        }
-
-        function updateKPIs(total, topCount, topEntity, lastTime) {
-            document.getElementById('kpi-total').innerText = total;
-            document.getElementById('kpi-top-count').innerText = `${topCount} registrazioni`;
-            
-            // Per la KPI convertiamo il nome al volo
-            let displayTopEntity = customNamesCache[topEntity] || topEntity;
-            if(!customNamesCache[topEntity] && displayTopEntity.includes('.')) {
-                displayTopEntity = displayTopEntity.split('.')[1];
-            }
-            document.getElementById('kpi-top').innerText = displayTopEntity;
-            
-            document.getElementById('kpi-last').innerText = lastTime;
-        }
-
-        function drawChart(timeData) {
-            const ctx = document.getElementById('sysChart').getContext('2d');
-            
-            if(activityChart) {
-                activityChart.destroy();
-            }
-
-            const labels = Object.keys(timeData).sort();
-            const data = labels.map(l => timeData[l]);
-
-            let gradient = ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.8)'); 
-            gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
-
-            Chart.defaults.color = '#94a3b8';
-            Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Inter", sans-serif';
-
-            activityChart = new Chart(ctx, {
-                type: 'line', 
-                data: {
-                    labels: labels.map(l => l.substring(5, 16)),
-                    datasets: [{
-                        label: (window.WH_T ? window.WH_T('Volume Eventi') : 'Volume Eventi'),
-                        data: data,
-                        borderColor: '#3b82f6',
-                        backgroundColor: gradient,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#0f172a',
-                        pointBorderColor: '#3b82f6',
-                        pointBorderWidth: 2,
-                        pointRadius: 3,
-                        pointHoverRadius: 6,
-                        fill: true,
-                        tension: 0.3 
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { 
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                            titleColor: '#f8fafc',
-                            bodyColor: '#3b82f6',
-                            borderColor: '#334155',
-                            borderWidth: 1,
-                            padding: 12,
-                            displayColors: false
+        if (!S.vivo || !periodoVivo() || document.hidden || S.caricando || giroInCorso || S.prime) return;
+        giroInCorso = true;
+        try {
+            const ultimo = S.ev[S.ev.length - 1];
+            const extra = { limit: 300 };
+            if (S.conId && ultimo && ultimo.id != null) extra.dopo = ultimo.id;
+            const righe = await api(urlLog(extra));
+            if (!Array.isArray(righe)) throw { tipo: 'server', message: 'Risposta non valida dal server.' };
+            if (righe.length && S.conId === null) S.conId = typeof righe[0].id === 'number';
+            let nuove = [];
+            if (!ultimo) {
+                nuove = righe.slice().reverse();
+            } else if (S.conId && ultimo.id != null) {
+                nuove = righe.filter(r => r.id > ultimo.id).reverse();
+            } else {
+                /* API vecchia: si cerca nella risposta l'ultimo evento che abbiamo gia'. Gli eventi dello
+                   stesso secondo (una scena che accende dieci luci) il server li puo' mettere in un ordine
+                   qualsiasi: di quel secondo sono nuovi solo quelli che non abbiamo ancora. */
+                const k = chiaveEv(ultimo);
+                const chiaveR = r => r.timestamp + '|' + r.entity_id + '|' + r.state;
+                const idx = righe.findIndex(r => chiaveR(r) === k);
+                if (idx >= 0) {
+                    const gia = new Map();
+                    for (let i = S.ev.length - 1; i >= 0 && S.ev[i].raw === ultimo.raw; i--) { const c = chiaveEv(S.ev[i]); gia.set(c, (gia.get(c) || 0) + 1); }
+                    for (let i = 0; i < righe.length; i++) {
+                        const r = righe[i];
+                        if (i > idx && r.timestamp !== ultimo.raw) break;
+                        if (r.timestamp === ultimo.raw) {
+                            const c = chiaveR(r), g = gia.get(c) || 0;
+                            if (g) { gia.set(c, g - 1); continue; }
                         }
-                    },
-                    scales: {
-                        y: { 
-                            beginAtZero: true, 
-                            grid: { color: '#1e293b', drawBorder: false },
-                            ticks: { precision: 0 }
-                        },
-                        x: { 
-                            grid: { display: false, drawBorder: false }
-                        }
+                        nuove.push(r);
                     }
-                }
-            });
-        }
-
-        async function clearAllLogs() {
-            if (!await chiedi("CRITICAL WARNING: Stai per svuotare il buffer del database log. Tutti i dati storici andranno persi. Procedere?", { titolo: "Svuota log", si: "Svuota", pericolo: true })) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/logs', { method: 'DELETE' });
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    clearFilters(); // Ricarica tutto svuotando
+                    nuove.reverse();
                 } else {
-                    avvisa("Errore del Server: " + result.message, { titolo: "Errore", icona: "alert-circle" });
+                    /* troppi nuovi in 3 secondi, o il registro e' stato svuotato altrove: si ricarica */
+                    giroInCorso = false;
+                    if (righe.length || S.ev.length) await carica({ mantieni: true });
+                    erroriDiFila = 0; S.rete = true; aggiornaVivo();
+                    return;
                 }
-            } catch (error) {
-                console.error("Errore:", error);
-                avvisa("Timeout: Impossibile comunicare con il server.", { titolo: "Errore", icona: "alert-circle" });
             }
-        }
+            if (!S.rete) { S.rete = true; if (erroriDiFila > 1) biscotto('Di nuovo collegato', '', 'bene'); }
+            erroriDiFila = 0;
+            if (nuove.length) aggiungi(nuove);
+            aggiornaVivo();
+        } catch (e) {
+            erroriDiFila++;
+            if (e && e.tipo === 'sessione') { S.vivo = false; biscotto('La sessione è scaduta', 'Ricarica la pagina per rientrare.', 'avviso', 6000); }
+            if (S.rete && erroriDiFila > 1) S.rete = false;
+            aggiornaVivo();
+        } finally { giroInCorso = false; }
+    }
 
-        // Accensione Sistema
-        document.addEventListener('DOMContentLoaded', loadLogs);
-    </script>
+    function aggiungi(righe) {
+        const ultimoPer = new Map();
+        for (let i = S.ev.length - 1; i >= 0 && ultimoPer.size < 5000; i--) { const e = S.ev[i]; if (!ultimoPer.has(e.eid)) ultimoPer.set(e.eid, e); }
+        const adesso = performance.now();
+        let visibiliNuovi = 0;
+        for (const r of righe) {
+            const ev = leggiRiga(r);
+            if (!ev || !dentroPeriodo(ev)) continue;
+            ev.p = ultimoPer.get(ev.eid) || null;
+            ultimoPer.set(ev.eid, ev);
+            ev.nuovo = adesso;
+            S.ev.push(ev);
+            if (passa(ev)) visibiliNuovi++;
+        }
+        /* una sessione lasciata aperta giorni non deve crescere senza fine */
+        const tetto = S.limite + 5000;
+        if (S.ev.length > tetto) { S.ev.splice(0, S.ev.length - tetto); S.ev[0].p = null; S.forsePiu = true; }
+        const eraInFondo = S.segui;
+        ricalcola(true);
+        if (eraInFondo) vaiInFondo();
+        else if (visibiliNuovi) { S.nuovi += visibiliNuovi; aggiornaTorna(); }
+    }
+
+    /* =================================================================
+       5. FILTRI E CONTEGGI
+       ================================================================= */
+    function testoRicerca(ev) {
+        if (ev.k == null) ev.k = norm(nomeDi(ev.eid) + ' ' + ev.eid + ' ' + ev.st + ' ' + tr(parolaDi(ev)) + ' ' + integrazioneDi(ev.eid));
+        return ev.k;
+    }
+    function passaTesto(ev) {
+        if (S.entita && ev.eid !== S.entita) return false;
+        if (!S.parole.length) return true;
+        const t = testoRicerca(ev);
+        for (const p of S.parole) if (!t.includes(p)) return false;
+        return true;
+    }
+    const passa = ev => passaTesto(ev) && (!S.liv || ev.liv === S.liv) && (!S.fam || ev.fam === S.fam);
+
+    const conti = { liv: {}, fam: {}, totLiv: 0 };
+    function ricalcola(morbido) {
+        const cl = {}, cf = {};
+        ORDINE_LIV.forEach(k => cl[k] = 0);
+        const vis = [];
+        let totLiv = 0;
+        for (const ev of S.ev) {
+            if (!passaTesto(ev)) continue;
+            const okL = !S.liv || ev.liv === S.liv, okF = !S.fam || ev.fam === S.fam;
+            if (okF) { cl[ev.liv]++; totLiv++; }
+            if (okL) cf[ev.fam] = (cf[ev.fam] || 0) + 1;
+            if (okL && okF) vis.push(ev);
+        }
+        conti.liv = cl; conti.fam = cf; conti.totLiv = totLiv;
+        S.vis = vis;
+        disegnaTessere();
+        disegnaFiltri();
+        disegnaGrafico();
+        disegnaTesta();
+        V.costruisci(morbido);
+        disegnaStato();
+    }
+
+    /* =================================================================
+       6. RIEPILOGO: tessere, fonti, grafico, testata
+       ================================================================= */
+    /* Le tessere si costruiscono una volta sola, poi si aggiornano al loro posto: rifarle a ogni
+       giro dal vivo toglieva il fuoco della tastiera e faceva sobbalzare quella sotto il mouse. */
+    function disegnaTessere() {
+        const box = $('tessere');
+        const tot = conti.totLiv;
+        if (!box.children.length) {
+            let h = tessera('', 'Tutti gli eventi', 'list', 'var(--accento)');
+            ORDINE_LIV.forEach(k => { const L = LIVELLI[k]; h += tessera(k, L.nome, L.icona, L.c); });
+            box.innerHTML = h;
+            icone(box);
+        }
+        box.querySelectorAll('.tessera').forEach(b => {
+            const k = b.dataset.k, n = k ? (conti.liv[k] || 0) : tot;
+            const attiva = k ? S.liv === k : !S.liv;
+            b.classList.toggle('attiva', attiva);
+            b.classList.toggle('vuota', !n);
+            b.setAttribute('aria-pressed', attiva);
+            b.disabled = !!(!n && !attiva && k);
+            const c = b.querySelector('.cifra'), testo = num(n);
+            if (c.textContent !== testo) c.textContent = testo;
+            const q = b.querySelector('.quota i');
+            if (q) q.style.width = (tot ? Math.round(n / tot * 100) : 0) + '%';
+        });
+    }
+    function tessera(k, nome, icona, c) {
+        return '<button type="button" class="tessera' + (k === 'anomalia' ? ' allarme' : '') + '" data-k="' + k + '" style="--c:' + c + '" onclick="MON.perLivello(\'' + k + '\')">' +
+            '<span class="icona"><i data-lucide="' + icona + '"></i></span>' +
+            '<span class="t"><span class="cifra" data-no-tr></span><span class="nome">' + esc(nome) + '</span></span>' +
+            (k ? '<span class="quota"><i style="width:0%"></i></span>' : '') + '</button>';
+    }
+
+    function disegnaFiltri() {
+        const fl = $('filtri');
+        const presenti = new Set(S.ev.map(e => e.fam));
+        const chiavi = ORDINE_FAM.filter(k => presenti.has(k) || S.fam === k);
+        /* stessi pulsanti di prima (succede a ogni giro dal vivo): si aggiornano solo i numeri */
+        const firma = (S.entita ? S.entita + '|' + nomeDi(S.entita) : '') + '#' + chiavi.join(',');
+        if (fl.dataset.firma === firma) {
+            fl.querySelectorAll('.filtro[data-k]').forEach(b => {
+                const k = b.dataset.k, n = k ? (conti.fam[k] || 0) : Object.values(conti.fam).reduce((a, x) => a + x, 0);
+                b.classList.toggle('su', S.fam === k);
+                if (k) b.classList.toggle('zero', !n);
+                const el = b.querySelector('.n'), testo = num(n);
+                if (el.textContent !== testo) el.textContent = testo;
+            });
+        } else {
+            fl.dataset.firma = firma;
+            fl.innerHTML = htmlFiltri(chiavi);
+            icone(fl);
+        }
+        fl.classList.toggle('lunghi', fl.scrollWidth > fl.clientWidth + 2 && fl.scrollLeft + fl.clientWidth < fl.scrollWidth - 4);
+        const filtrato = S.q || S.liv || S.fam || S.entita;
+        $('azzera').classList.toggle('nascosto', !filtrato);
+        $('conteggio').innerHTML = filtrato
+            ? '<b data-no-tr>' + num(S.vis.length) + '</b><span data-no-tr> / ' + num(S.ev.length) + '</span>'
+            : '<b data-no-tr>' + num(S.ev.length) + '</b> <span>' + (S.ev.length === 1 ? 'evento' : 'eventi') + '</span>';
+        $('trovati').textContent = S.q ? num(S.vis.length) : '';
+    }
+    function htmlFiltri(chiavi) {
+        let h = '';
+        if (S.entita) {
+            h += '<button type="button" class="filtro entita" onclick="MON.soloEntita(\'\')" title="Mostra tutti i dispositivi"><i data-lucide="crosshair"></i>' +
+                '<span data-no-tr>' + esc(nomeDi(S.entita)) + '</span><span class="via"><i data-lucide="x"></i></span></button>';
+        }
+        const tutte = Object.values(conti.fam).reduce((a, b) => a + b, 0);
+        h += '<button type="button" class="filtro' + (!S.fam ? ' su' : '') + '" data-k="" onclick="MON.perFamiglia(\'\')"><i data-lucide="layers"></i>Tutte le fonti <span class="n" data-no-tr>' + num(tutte) + '</span></button>';
+        chiavi.forEach(k => {
+            const F = famigliaInfo(k), n = conti.fam[k] || 0;
+            h += '<button type="button" class="filtro' + (S.fam === k ? ' su' : '') + (!n ? ' zero' : '') + '" data-k="' + k + '" style="--c:' + F.c + '" onclick="MON.perFamiglia(\'' + k + '\')">' +
+                '<i data-lucide="' + F.icona + '"></i>' + esc(F.nome) + ' <span class="n" data-no-tr>' + num(n) + '</span></button>';
+        });
+        return h;
+    }
+
+    /* GRAFICO: quanti eventi per fascia di tempo (una sola serie, niente legenda) */
+    const FASCE = [5 * 60e3, 10 * 60e3, 15 * 60e3, 30 * 60e3, 3600e3, 3 * 3600e3, 6 * 3600e3, 12 * 3600e3, 86400e3, 7 * 86400e3];
+    let G = null, sopraI = -1;
+    function disegnaGrafico() {
+        const box = $('barre');
+        const vis = S.vis;
+        const adesso = Date.now();
+        const r = intervallo();
+        let inizio, fine;
+        if (S.periodo === 'oggi') { inizio = dataDaChiave(oggiChiave()).getTime(); fine = inizio + 86400e3; }
+        else if (r.da) { inizio = dataDaChiave(r.da).getTime(); fine = r.a ? dataDaChiave(r.a).getTime() + 86400e3 : adesso; }
+        else if (vis.length) { inizio = vis[0].ms; fine = Math.max(adesso, vis[vis.length - 1].ms + 1); }
+        else { inizio = adesso - 86400e3; fine = adesso; }
+        if (fine - inizio < 2 * 3600e3) inizio = fine - 2 * 3600e3;
+        let passo = FASCE.find(f => (fine - inizio) / f <= 72) || FASCE[FASCE.length - 1];
+        /* le fasce partono dall'ora (o dal giorno) intera, nell'ora di casa */
+        const d0 = new Date(inizio);
+        if (passo >= 86400e3) d0.setHours(0, 0, 0, 0);
+        else if (passo >= 3600e3) d0.setHours(Math.floor(d0.getHours() / (passo / 3600e3)) * (passo / 3600e3), 0, 0, 0);
+        else d0.setMinutes(Math.floor(d0.getMinutes() / (passo / 60e3)) * (passo / 60e3), 0, 0);
+        inizio = d0.getTime();
+        const nb = Math.max(1, Math.ceil((fine - inizio) / passo));
+        const conta = new Array(nb).fill(0), perLiv = [];
+        for (let i = 0; i < nb; i++) perLiv.push({});
+        for (const ev of vis) {
+            const i = Math.floor((ev.ms - inizio) / passo);
+            if (i < 0 || i >= nb) continue;
+            conta[i]++;
+            perLiv[i][ev.liv] = (perLiv[i][ev.liv] || 0) + 1;
+        }
+        const max = Math.max(1, ...conta);
+        let h = '';
+        for (let i = 0; i < nb; i++) {
+            const futuro = inizio + i * passo > adesso;
+            const cls = 'b' + (!conta[i] ? ' zero' : '') + (futuro ? ' futuro' : '');
+            h += '<div class="' + cls + '" data-i="' + i + '"><i style="height:' + (conta[i] ? Math.max(6, conta[i] / max * 100) : 0) + '%"></i></div>';
+        }
+        box.innerHTML = h + '<span class="base"></span>';
+        G = { inizio, passo, nb, conta, perLiv };
+        const unita = { 300e3: 'eventi ogni 5 minuti', 600e3: 'eventi ogni 10 minuti', 900e3: 'eventi ogni 15 minuti', 1800e3: 'eventi ogni 30 minuti', 3600e3: 'eventi per ora', 10800e3: 'eventi ogni 3 ore', 21600e3: 'eventi ogni 6 ore', 43200e3: 'eventi ogni 12 ore', 86400e3: 'eventi per giorno', 604800e3: 'eventi per settimana' }[passo];
+        $('g-unita').textContent = unita;
+        const fmt = (t, soloGiorno) => {
+            const d = new Date(t);
+            const hm = due(d.getHours()) + ':' + due(d.getMinutes());
+            if (passo < 86400e3 && (fine - inizio) <= 86400e3 + 1) return hm;
+            if (soloGiorno) return d.toLocaleDateString(LOC, { day: 'numeric', month: 'short' });
+            return d.toLocaleDateString(LOC, { day: 'numeric', month: 'short' }) + (passo < 86400e3 ? ' ' + hm : '');
+        };
+        /* etichette sui confini delle fasce; su piu' giorni basta la data */
+        const giorni = (fine - inizio) > 2 * 86400e3;
+        /* l'ultima etichetta e' la fine vera (adesso, o la fine dell'ultimo giorno): non il confine
+           della fascia, che su piu' giorni leggeva la data di domani */
+        const fineAsse = Math.min(inizio + nb * passo, fine);
+        $('assi').innerHTML = [inizio, inizio + Math.floor(nb / 2) * passo, giorni ? fineAsse - 1 : fineAsse].map(t => '<span>' + esc(fmt(t, giorni)) + '</span>').join('');
+        let ultimaOra = 0;
+        for (let i = vis.length - 1; i >= 0 && vis[i].ms > adesso - 3600e3; i--) ultimaOra++;
+        $('g-ora').textContent = num(ultimaOra);
+        const ip = conta.indexOf(Math.max(...conta));
+        $('g-picco').textContent = conta[ip] ? num(conta[ip]) : '–';
+        $('picco').title = conta[ip] ? fasciaTesto(ip) : '';
+        /* il dispositivo con piu' eventi fra quelli che si vedono */
+        const perEnt = new Map();
+        let primo = '', volte = 0;
+        for (const ev of vis) { const n = (perEnt.get(ev.eid) || 0) + 1; perEnt.set(ev.eid, n); if (n > volte) { volte = n; primo = ev.eid; } }
+        const bp = $('g-primo');
+        bp.classList.toggle('nascosto', volte < 2 || S.entita === primo);
+        bp.dataset.eid = primo;
+        $('g-primo-nome').textContent = primo ? nomeDi(primo) : '';
+        $('g-primo-n').textContent = primo ? num(volte) : '';
+        if (sopraI >= 0 && box.children[sopraI]) box.children[sopraI].classList.add('sopra');
+    }
+    function fasciaTesto(i) {
+        const a = new Date(G.inizio + i * G.passo), b = new Date(G.inizio + (i + 1) * G.passo);
+        const giorno = a.toLocaleDateString(LOC, { weekday: 'short', day: 'numeric', month: 'short' });
+        if (G.passo >= 86400e3) return G.passo === 86400e3 ? giorno : giorno + ' – ' + new Date(b - 1).toLocaleDateString(LOC, { day: 'numeric', month: 'short' });
+        return giorno + ', ' + due(a.getHours()) + ':' + due(a.getMinutes()) + '–' + due(b.getHours()) + ':' + due(b.getMinutes());
+    }
+    (function grafico() {
+        const box = $('barre'), sugg = $('sugg');
+        let sopra = null;
+        const fascia = e => {
+            if (!G) return -1;
+            const rc = box.getBoundingClientRect();
+            return Math.min(G.nb - 1, Math.max(0, Math.floor((e.clientX - rc.left) / rc.width * G.nb)));
+        };
+        box.addEventListener('mousemove', e => {
+            const i = fascia(e);
+            if (i < 0) return;
+            box.querySelectorAll('.sopra').forEach(x => { if (x !== box.children[i]) x.classList.remove('sopra'); });
+            sopra = box.children[i]; sopraI = i; if (sopra) sopra.classList.add('sopra');
+            let righe = '';
+            ORDINE_LIV.forEach(k => { const n = G.perLiv[i][k]; if (n) righe += '<div class="r"><i style="background:' + LIVELLI[k].c + '"></i>' + esc(LIVELLI[k].nome) + '<span data-no-tr>' + num(n) + '</span></div>'; });
+            sugg.innerHTML = '<b data-no-tr>' + esc(fasciaTesto(i)) + '</b>' +
+                (G.conta[i] ? righe + '<small>Tocca per andare a questi eventi</small>' : '<div class="r">Nessun evento</div>');
+            const rg = $('grafico').getBoundingClientRect(), rb = box.children[i].getBoundingClientRect();
+            let x = rb.left + rb.width / 2 - rg.left;
+            x = Math.max(110, Math.min(rg.width - 110, x));
+            sugg.style.left = x + 'px'; sugg.style.top = (box.offsetTop) + 'px';
+            sugg.classList.add('su');
+        });
+        box.addEventListener('mouseleave', () => { sugg.classList.remove('su'); box.querySelectorAll('.sopra').forEach(b => b.classList.remove('sopra')); sopra = null; sopraI = -1; });
+        box.addEventListener('click', e => {
+            const i = fascia(e);
+            if (i < 0 || !G.conta[i]) return;
+            const t0 = G.inizio + i * G.passo;
+            const idx = V.voci.findIndex(v => v.t === 'e' && v.ev.ms >= t0);
+            if (idx >= 0) { V.vaiA(idx); sugg.classList.remove('su'); }
+        });
+    })();
+
+    function disegnaTesta() {
+        const ultimo = S.ev[S.ev.length - 1];
+        /* un pezzo per nodo: i18n.js traduce ogni frase per conto suo */
+        $('sotto-titolo').innerHTML = '<span>Cambi di stato di tutti i dispositivi</span>' +
+            (ultimo ? ' · <span>ultimo evento</span> <span>' + esc(quandoFa(ultimo.ms)) + '</span>' : '');
+        document.querySelectorAll('#periodo button').forEach(b => { b.classList.toggle('su', b.dataset.p === S.periodo); b.setAttribute('aria-selected', b.dataset.p === S.periodo); });
+        const ds = S.periodo === 'scelto' && (S.da || S.a)
+            ? [S.da, S.a].map(k => k ? dataDaChiave(k).toLocaleDateString(LOC, { day: 'numeric', month: 'short' }) : '…').join(' – ') : '';
+        $('date-scelte').textContent = ds;
+    }
+
+    function aggiornaVivo() {
+        const b = $('vivo');
+        let cls = 'vivo', testo, titolo, ico = 'pause';
+        if (!periodoVivo()) { cls += ' storico'; testo = 'Storico'; titolo = 'Periodo passato: niente aggiornamenti dal vivo'; }
+        else if (!S.vivo) { testo = 'In pausa'; titolo = 'Riprendi l\'aggiornamento dal vivo (P)'; ico = 'play'; }
+        else if (!S.rete) { cls += ' giu'; testo = 'Non collegato'; titolo = 'Il server non risponde: riprovo da solo'; }
+        else { cls += ' su'; testo = 'Dal vivo'; titolo = 'Metti in pausa l\'aggiornamento dal vivo (P)'; }
+        b.className = cls;
+        b.title = titolo;
+        b.innerHTML = '<span class="punto"></span><i data-lucide="' + ico + '" class="pp"></i><span class="scritta">' + esc(testo) + '</span>';
+        b.setAttribute('aria-label', testo);
+        icone(b);
+    }
+
+    /* =================================================================
+       7. IL REGISTRO: righe virtuali
+       A schermo esistono solo le righe che si vedono (piu' un margine): migliaia di
+       eventi scorrono lisci anche sul telefono. Ogni voce e' messa al suo posto con
+       translateY; le altezze sono fisse (CSS --h-ev / --h-giorno) tranne i dettagli
+       aperti, che si misurano.
+       ================================================================= */
+    const V = {
+        voci: [], cime: new Float64Array(0), altezzaTotale: 0, vive: new Map(), hEv: 40, hGiorno: 40, hPiu: 64,
+        misuraCss() {
+            const cs = getComputedStyle(document.documentElement);
+            this.hEv = parseFloat(cs.getPropertyValue('--h-ev')) || 40;
+            this.hGiorno = parseFloat(cs.getPropertyValue('--h-giorno')) || 40;
+        },
+        costruisci(morbido) {
+            const voci = [];
+            if (S.vis.length) {
+                voci.push({ t: 'p', key: 'p' + (S.forsePiu ? 1 : 0) });
+                let giorno = null, gv = null;
+                for (const ev of S.vis) {
+                    if (ev.d !== giorno) {
+                        giorno = ev.d;
+                        gv = { t: 'g', key: '', d: ev.d, n: 0, an: 0 };
+                        voci.push(gv);
+                    }
+                    gv.n++; if (ev.liv === 'anomalia') gv.an++;
+                    voci.push({ t: 'e', key: 'e' + ev.n, ev, g: gv });
+                }
+                /* nella chiave del giorno anche i conteggi: se cambiano, l'intestazione si rifa' da sola */
+                for (const v of voci) if (v.t === 'g') v.key = 'g' + v.d + ':' + v.n + ':' + v.an;
+            }
+            this.voci = voci;
+            this.misura();
+            /* morbido (giro dal vivo): le righe gia' a schermo non si toccano, cosi' non si perdono
+               il fuoco della tastiera, il testo selezionato e il passaggio del mouse */
+            this.disegna(!morbido);
+        },
+        altezza(v) {
+            if (v.t === 'g') return this.hGiorno;
+            if (v.t === 'p') return this.hPiu;
+            const a = S.aperti.get(v.ev.n);
+            return a === undefined ? this.hEv : this.hEv + (a || 150);
+        },
+        misura() {
+            const n = this.voci.length;
+            if (this.cime.length < n + 1) this.cime = new Float64Array(Math.max(n + 1, this.cime.length * 2));
+            let y = 0;
+            for (let i = 0; i < n; i++) { this.cime[i] = y; y += this.altezza(this.voci[i]); }
+            this.cime[n] = y;
+            this.altezzaTotale = y;
+            $('finestra').style.height = y + 'px';
+        },
+        indiceA(y) {        // prima voce che finisce dopo y
+            let lo = 0, hi = this.voci.length - 1;
+            while (lo < hi) { const m = (lo + hi) >> 1; if (this.cime[m + 1] <= y) lo = m + 1; else hi = m; }
+            return lo;
+        },
+        disegna(tutto) {
+            const sc = $('scorri'), fin = $('finestra');
+            if (tutto) { this.vive.forEach(el => el.remove()); this.vive.clear(); }
+            if (!this.voci.length) { this.giornoFisso(); return; }
+            const y0 = sc.scrollTop, h = sc.clientHeight || 600, margine = 400;
+            const i0 = this.indiceA(Math.max(0, y0 - margine)), i1 = this.indiceA(y0 + h + margine);
+            const servono = new Set();
+            let rimisura = false;
+            for (let i = i0; i <= i1; i++) {
+                const v = this.voci[i];
+                servono.add(v.key);
+                let el = this.vive.get(v.key);
+                if (!el) {
+                    el = document.createElement('div');
+                    el.className = 'voce' + (v.t === 'e' && S.aperti.has(v.ev.n) ? ' aperta' : '');
+                    el.innerHTML = htmlVoce(v);
+                    fin.appendChild(el);
+                    this.vive.set(v.key, el);
+                    if (v.t === 'e' && S.aperti.has(v.ev.n)) {
+                        const d = el.querySelector('.dett');
+                        const a = d ? d.offsetHeight : 0;
+                        if (a && a !== S.aperti.get(v.ev.n)) { S.aperti.set(v.ev.n, a); rimisura = true; }
+                    }
+                    icone(el);
+                }
+                el.style.transform = 'translateY(' + this.cime[i] + 'px)';
+            }
+            this.vive.forEach((el, k) => { if (!servono.has(k)) { el.remove(); this.vive.delete(k); } });
+            if (rimisura) { this.misura(); this.vive.forEach(el => el.remove()); this.vive.clear(); this.disegna(false); return; }
+            this.giornoFisso();
+        },
+        /* l'intestazione del giorno resta ferma in cima; la successiva la spinge via */
+        giornoFisso() {
+            const box = $('giorno-fisso');
+            const sc = $('scorri');
+            box.style.right = Math.max(0, sc.offsetWidth - sc.clientWidth) + 'px';
+            if (!this.voci.length || sc.scrollTop <= 0) { box.innerHTML = ''; box.dataset.k = ''; return; }
+            const i = this.indiceA(sc.scrollTop);
+            const v = this.voci[i];
+            const g = v.t === 'g' ? v : (v.t === 'e' ? v.g : null);
+            if (!g) { box.innerHTML = ''; box.dataset.k = ''; return; }
+            if (box.dataset.k !== g.key + g.n) { box.innerHTML = htmlGiorno(g); box.dataset.k = g.key + g.n; icone(box); }
+            let prossimo = -1;
+            for (let j = i + 1; j < Math.min(this.voci.length, i + 60); j++) if (this.voci[j].t === 'g') { prossimo = j; break; }
+            const spinta = prossimo >= 0 ? Math.min(0, this.cime[prossimo] - sc.scrollTop - this.hGiorno) : 0;
+            box.style.transform = 'translateY(' + spinta + 'px)';
+        },
+        vaiA(i) {
+            const sc = $('scorri');
+            sc.scrollTop = Math.max(0, this.cime[i] - this.hGiorno - 4);
+            S.segui = false;
+            this.disegna(false);
+            aggiornaTorna();
+        },
+        scorriDi(dy) { const sc = $('scorri'); sc.scrollTop += dy; this.disegna(false); },
+    };
+
+    function vaiInFondo() {
+        const sc = $('scorri');
+        sc.scrollTop = sc.scrollHeight;
+        S.segui = true; S.nuovi = 0;
+        V.disegna(false);
+        aggiornaTorna();
+    }
+    function aggiornaTorna() {
+        const sc = $('scorri');
+        const si = !S.segui && V.voci.length && sc.scrollHeight > sc.clientHeight + 8;
+        $('torna').classList.toggle('su', !!si);
+        $('nuovi').textContent = S.nuovi ? '+' + num(S.nuovi) : '';
+    }
+
+    /* --- le voci --- */
+    function evidenzia(testo) {
+        const t = String(testo);
+        if (!S.parole.length) return esc(t);
+        const basso = norm(t);
+        if (basso.length !== t.length) return esc(t);      // lettere composte: niente evidenza, meglio che sbagliata
+        const segni = new Array(t.length).fill(false);
+        S.parole.forEach(p => { let i = basso.indexOf(p); while (p && i >= 0) { for (let j = i; j < i + p.length; j++) segni[j] = true; i = basso.indexOf(p, i + p.length); } });
+        let h = '', dentro = false;
+        for (let i = 0; i < t.length; i++) {
+            if (segni[i] && !dentro) { h += '<mark>'; dentro = true; }
+            if (!segni[i] && dentro) { h += '</mark>'; dentro = false; }
+            h += esc(t[i]);
+        }
+        return h + (dentro ? '</mark>' : '');
+    }
+    function etichettaGiorno(k) {
+        const oggi = oggiChiave();
+        if (k === oggi) return 'Oggi';
+        if (k === spostaGiorno(oggi, -1)) return 'Ieri';
+        const d = dataDaChiave(k).toLocaleDateString(LOC, { weekday: 'long' });
+        return d.charAt(0).toUpperCase() + d.slice(1);
+    }
+    function htmlGiorno(g) {
+        const d = dataDaChiave(g.d);
+        const etichetta = etichettaGiorno(g.d);
+        const vicino = etichetta === 'Oggi' || etichetta === 'Ieri';
+        const data = d.toLocaleDateString(LOC, vicino ? { weekday: 'long', day: 'numeric', month: 'long' } : { day: 'numeric', month: 'long', year: 'numeric' });
+        return '<div class="giorno"><span class="cal"><i data-lucide="calendar"></i></span>' +
+            '<b' + (vicino ? '' : ' data-no-tr') + '>' + esc(etichetta) + '</b><span class="data data-lunga" data-no-tr>' + esc(data) + '</span>' +
+            '<span class="mix">' + (g.an ? '<span class="an"><i data-lucide="triangle-alert"></i><span data-no-tr>' + num(g.an) + '</span></span>' : '') +
+            '<span><span data-no-tr>' + num(g.n) + '</span> ' + (g.n === 1 ? 'evento' : 'eventi') + '</span></span></div>';
+    }
+    function htmlVoce(v) {
+        if (v.t === 'g') return htmlGiorno(v);
+        if (v.t === 'p') {
+            return S.forsePiu
+                ? '<div class="piu"><button type="button" onclick="MON.piuVecchi()"><i data-lucide="history"></i>Carica eventi più vecchi</button></div>'
+                : '<div class="piu inizio"><i data-lucide="flag"></i>Inizio del registro in questo periodo</div>';
+        }
+        const ev = v.ev;
+        const L = LIVELLI[ev.liv], F = famigliaInfo(ev.fam);
+        const aperta = S.aperti.has(ev.n);
+        const cls = 'ev' + (ev.liv === 'anomalia' ? (ev.grave ? ' errore' : ' anomalia') : '') + (ev.nuovo && performance.now() - ev.nuovo < 1800 ? ' nuova' : '');
+        let delta = '';
+        if (ev.liv === 'misura' && ev.p && ev.p.liv === 'misura') {
+            const dd = Math.round((ev.num - ev.p.num) * 1000) / 1000;
+            if (dd) delta = '<span class="d" title="Differenza dalla misura precedente"><i data-lucide="' + (dd > 0 ? 'arrow-up' : 'arrow-down') + '"></i>' + esc(cifra(Math.abs(dd))) + '</span>';
+        } else if (ev.p && ev.liv !== 'misura') {
+            delta = '<span class="d" title="Durata dello stato precedente"><i data-lucide="timer"></i>' + esc(durata(ev.ms - ev.p.ms)) + '</span>';
+        }
+        const lc = ev.grave ? 'var(--rosso)' : L.c;
+        return '<div class="' + cls + '" tabindex="0" role="button" aria-expanded="' + aperta + '" data-n="' + ev.n + '">' +
+            '<span class="ora">' + ev.ora + '<i>:' + ev.sec + '</i></span>' +
+            '<span class="lv ' + ev.liv + '" style="--lc:' + lc + '"><i></i><span>' + esc(parolaDi(ev)) + '</span></span>' +
+            '<span class="fonte" title="' + esc(F.nome) + '" style="--c:' + F.c + '"><span class="q"><i data-lucide="' + (ev.eid.startsWith('media_player.tv_') ? 'tv' : F.icona) + '"></i></span><span>' + esc(F.nome) + '</span></span>' +
+            '<span class="chi" data-no-tr><b>' + evidenzia(nomeDi(ev.eid)) + '</b><code>' + evidenzia(ev.eid) + '</code></span>' +
+            '<span class="val"><span class="v" data-no-tr title="' + esc(ev.st) + '">' + evidenzia(ev.st || '—') + '</span>' + delta + '</span>' +
+            '<i data-lucide="chevron-right" class="freccia"></i></div>' +
+            (aperta ? htmlDettaglio(ev) : '');
+    }
+
+    function htmlDettaglio(ev) {
+        const F = famigliaInfo(ev.fam);
+        const d = new Date(ev.ms);
+        const quando = dataDaChiave(ev.d).toLocaleDateString(LOC, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        const integ = integrazioneDi(ev.eid);
+        let cambio, sotto;
+        if (ev.p) {
+            cambio = '<div class="cambio" data-no-tr><span class="v prima">' + esc(ev.p.st || '—') + '</span><i data-lucide="arrow-right"></i><span class="v">' + esc(ev.st || '—') + '</span></div>';
+            sotto = '<div class="sotto">' + (ev.liv === 'misura' && ev.p.liv === 'misura'
+                ? 'Differenza' + ' <b class="mono" data-no-tr>' + esc((ev.num - ev.p.num > 0 ? '+' : '') + cifra(ev.num - ev.p.num)) + '</b> · '
+                : 'Stato precedente durato' + ' <b data-no-tr>' + esc(durata(ev.ms - ev.p.ms)) + '</b> · ') +
+                'dalle' + ' <span class="mono" data-no-tr>' + esc(ev.p.ora + ':' + ev.p.sec) + '</span></div>';
+        } else {
+            cambio = '<div class="cambio" data-no-tr><span class="v">' + esc(ev.st || '—') + '</span></div>';
+            sotto = '<div class="sotto">Primo evento di questo dispositivo fra quelli caricati</div>';
+        }
+        return '<div class="dett">' +
+            '<div class="blocco"><h5>Quando</h5><div class="grande mono" data-no-tr>' + ev.ora + ':' + ev.sec + '</div>' +
+                '<div class="sotto"><span data-no-tr>' + esc(quando) + '</span><br>' + esc(quandoFa(ev.ms)) + '</div></div>' +
+            '<div class="blocco"><h5>Cambio di stato</h5>' + cambio + sotto + storia(ev) + '</div>' +
+            '<div class="blocco disp"><h5>Dispositivo</h5><div class="grande" data-no-tr>' + esc(nomeDi(ev.eid)) + '</div>' +
+                '<div class="id"><code data-no-tr>' + esc(ev.eid) + '</code><button class="mini" type="button" title="Copia l\'id" onclick="MON.copiaId(event, ' + ev.n + ')"><i data-lucide="copy"></i></button></div>' +
+                '<div class="sotto">' + esc(F.nome) + (integ ? ' · ' + esc(integ) : '') + '</div></div>' +
+            '<div class="comandi">' +
+                (S.entita === ev.eid
+                    ? '<button class="btn piccolo" type="button" onclick="MON.soloEntita(\'\')"><i data-lucide="layers"></i>Tutti i dispositivi</button>'
+                    : '<button class="btn piccolo" type="button" onclick="MON.soloEntitaN(' + ev.n + ')"><i data-lucide="crosshair"></i>Solo questo dispositivo</button>') +
+                '<button class="btn piccolo" type="button" onclick="MON.copiaRiga(' + ev.n + ')"><i data-lucide="clipboard-copy"></i>Copia la riga</button>' +
+            '</div></div>';
+    }
+
+    /* la storia recente dell'entita': una linea per le misure, un nastro acceso/spento per il resto */
+    function storia(ev) {
+        const serie = [];
+        for (let e = ev; e && serie.length < 40; e = e.p) serie.push(e);
+        serie.reverse();
+        if (serie.length < 2) return '';
+        if (ev.liv === 'misura') {
+            const pts = serie.filter(e => e.liv === 'misura');
+            if (pts.length < 2) return '';
+            const min = Math.min(...pts.map(e => e.num)), max = Math.max(...pts.map(e => e.num));
+            const t0 = pts[0].ms, t1 = pts[pts.length - 1].ms || t0 + 1;
+            const W = 240, H = 30;
+            const x = e => (t1 === t0 ? 0 : (e.ms - t0) / (t1 - t0) * W), y = e => (max === min ? H / 2 : H - 3 - (e.num - min) / (max - min) * (H - 6));
+            const linea = pts.map((e, i) => (i ? 'L' : 'M') + x(e).toFixed(1) + ' ' + y(e).toFixed(1)).join(' ');
+            const u = pts[pts.length - 1];
+            return '<svg class="storia" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-label="Andamento recente">' +
+                '<path d="' + linea + '" fill="none" stroke="var(--accento)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>' +
+                '<circle cx="' + x(u).toFixed(1) + '" cy="' + y(u).toFixed(1) + '" r="3" fill="var(--accento)" stroke="var(--pieno)" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>' +
+                '<div class="scala"><span>min <b data-no-tr>' + esc(cifra(min)) + '</b></span><span>max <b data-no-tr>' + esc(cifra(max)) + '</b></span><span><b data-no-tr>' + pts.length + '</b> ' + (pts.length === 1 ? 'valore' : 'valori') + '</span></div>';
+        }
+        const t0 = serie[0].ms, t1 = ev.ms;
+        if (t1 <= t0) return '';
+        let h = '';
+        for (let i = 0; i < serie.length - 1; i++) {
+            const e = serie[i], w = (serie[i + 1].ms - e.ms) / (t1 - t0) * 100;
+            const c = e.grave ? 'var(--rosso)' : e.liv === 'spento' ? 'var(--riga-su)' : LIVELLI[e.liv].c;
+            h += '<i style="flex:' + Math.max(w, 0.4).toFixed(2) + ' 0 0;background:' + c + '" title="' + esc(e.st) + ' · ' + esc(durata(serie[i + 1].ms - e.ms)) + '"></i>';
+        }
+        return '<div class="nastro" aria-label="Storia recente">' + h + '</div>';
+    }
+
+    function apriChiudi(n) {
+        if (S.aperti.has(n)) S.aperti.delete(n); else S.aperti.set(n, 0);
+        const idx = V.voci.findIndex(v => v.t === 'e' && v.ev.n === n);
+        const vecchio = V.vive.get('e' + n);
+        if (vecchio) { vecchio.remove(); V.vive.delete('e' + n); }
+        V.misura();
+        V.disegna(false);
+        /* un dettaglio aperto in fondo si deve vedere tutto */
+        if (idx >= 0 && S.aperti.has(n)) {
+            const sc = $('scorri');
+            const fondo = V.cime[idx + 1];
+            /* 64: sopra al pulsante 'Torna al vivo', che compare appena la vista non e' piu' in fondo */
+            if (fondo > sc.scrollTop + sc.clientHeight - 64) { sc.scrollTop = fondo - sc.clientHeight + 64; V.disegna(false); }
+        }
+        const el = V.vive.get('e' + n);
+        if (el) { const r = el.querySelector('.ev'); if (r) r.focus({ preventScroll: true }); }
+        aggiornaTorna();
+    }
+
+    /* =================================================================
+       8. STATI: caricamento, vuoto, errore
+       ================================================================= */
+    function mostraCaricamento() {
+        let h = '<div>';
+        for (let i = 0; i < 12; i++) {
+            h += '<div class="ev" style="cursor:default"><div class="scheletro" style="width:62px"></div><div class="scheletro" style="width:' + (70 + (i * 23) % 50) + 'px;height:20px"></div>' +
+                '<div class="scheletro" style="width:22px;height:22px;border-radius:7px"></div><div class="scheletro" style="width:' + (130 + (i * 47) % 160) + 'px"></div>' +
+                '<div class="scheletro" style="width:54px;height:20px;justify-self:end"></div><span></span></div>';
+        }
+        $('stato-reg').innerHTML = h + '</div>';
+    }
+    function disegnaStato() {
+        const box = $('stato-reg');
+        let h = '';
+        if (S.errore && !S.ev.length) {
+            const sess = S.errore.tipo === 'sessione';
+            h = vuoto(['circle-alert', sess ? 'lock' : 'wifi-off', 'server'], 'var(--rosso)',
+                sess ? 'La sessione è scaduta' : 'Il registro non risponde',
+                S.errore.message || '',
+                sess ? '<a class="btn primario" href="/login"><i data-lucide="log-in"></i>Accedi di nuovo</a>'
+                     : '<button class="btn primario" type="button" onclick="MON.ricarica()"><i data-lucide="refresh-cw"></i>Riprova</button>');
+        } else if (!S.ev.length) {
+            if (S.periodo !== 'tutto') {
+                h = vuoto(['calendar-days', 'inbox', 'history'], 'var(--accento)', 'Nessun evento in questo periodo',
+                    'In questi giorni nessun dispositivo ha cambiato stato. Prova un periodo più ampio.',
+                    '<button class="btn primario" type="button" onclick="MON.periodo(\'tutto\')"><i data-lucide="history"></i>Mostra tutto</button>', periodoVivo());
+            } else {
+                h = vuoto(['lightbulb', 'scroll-text', 'thermometer'], 'var(--accento)', 'Il registro è vuoto',
+                    'Qui compare ogni cambio di stato dei dispositivi: luci, tapparelle, sensori, clima. La pagina è in ascolto e il primo evento arriverà da solo.', '', true);
+            }
+        } else if (!S.vis.length) {
+            h = vuoto(['search', 'filter', 'list'], 'var(--fioco)', 'Nessun evento corrisponde',
+                S.q ? 'Nessun evento contiene «' + S.q + '» con i filtri scelti.' : 'Con i filtri scelti non resta nessun evento.',
+                '<button class="btn primario" type="button" onclick="MON.azzera()"><i data-lucide="rotate-ccw"></i>Azzera i filtri</button>');
+        }
+        box.innerHTML = h;
+        if (h) icone(box);
+        $('interno').classList.toggle('guasto', !!(S.errore && !S.ev.length));
+        aggiornaTorna();
+    }
+    function vuoto(ic, c, titolo, testo, azioni, ascolto) {
+        return '<div class="vuoto"><div class="pila">' + ic.map(i => '<span style="--c:' + c + '"><i data-lucide="' + i + '"></i></span>').join('') + '</div>' +
+            '<h2>' + esc(titolo) + '</h2><p>' + esc(testo) + '</p>' + (azioni ? '<div class="azioni">' + azioni + '</div>' : '') +
+            (ascolto && S.vivo ? '<div class="ascolto"><i></i>In ascolto</div>' : '') + '</div>';
+    }
+
+    /* =================================================================
+       9. ESPORTA E COPIA (quello che si vede, filtri compresi)
+       ================================================================= */
+    function righeTesto(evs, sep) {
+        const q = v => { const s = String(v == null ? '' : v); return sep === ';' && /[";\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s.replace(/\t/g, ' '); };
+        const testa = [tr('Data'), tr('Ora'), tr('Evento'), tr('Fonte'), tr('Dispositivo'), 'entity_id', tr('Valore')];
+        const righe = [testa.map(q).join(sep)];
+        for (const ev of evs) {
+            const [y, m, d] = ev.d.split('-');
+            righe.push([d + '/' + m + '/' + y, ev.ora + ':' + ev.sec, tr(parolaDi(ev)), tr(famigliaInfo(ev.fam).nome), nomeDi(ev.eid), ev.eid, ev.st].map(q).join(sep));
+        }
+        return righe.join('\r\n');
+    }
+    async function negliAppunti(testo) {
+        try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(testo); return true; } } catch (e) {}
+        /* sulla rete di casa (http) navigator.clipboard non c'e': si passa da un campo nascosto */
+        const ta = document.createElement('textarea');
+        ta.value = testo; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;top:-1000px;left:0;opacity:0';
+        document.body.appendChild(ta); ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) {}
+        ta.remove();
+        return ok;
+    }
+    function apriMenu(e) {
+        const m = $('menu');
+        if (m.classList.contains('su')) return chiudiMenu();
+        const filtrato = S.q || S.liv || S.fam || S.entita || S.periodo !== 'tutto';
+        $('menu-intesta').innerHTML = '<b data-no-tr>' + num(S.vis.length) + '</b> ' + (S.vis.length === 1 ? 'evento' : 'eventi') + ' ' +
+            (filtrato ? 'con i filtri e il periodo scelti' : 'caricati');
+        m.querySelectorAll('button').forEach(b => b.disabled = !S.vis.length);
+        const r = $('bt-esporta').getBoundingClientRect();
+        m.style.top = (r.bottom + 8) + 'px';
+        m.style.left = Math.max(12, Math.min(window.innerWidth - 302, r.right - 290)) + 'px';
+        m.classList.add('su');
+        e && e.stopPropagation();
+        const primo = m.querySelector('button:not(:disabled)'); if (primo) primo.focus();
+    }
+    function chiudiMenu() { $('menu').classList.remove('su'); }
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#menu')) chiudiMenu();
+        if (!e.target.closest('#foglietto') && !e.target.closest('#bt-scelto')) $('foglietto').classList.remove('su');
+    });
+
+    /* =================================================================
+       10. COMANDI, TASTIERA, TEMA
+       ================================================================= */
+    function applicaNotte(si) {
+        document.body.classList.toggle('notte', si);
+        $('meta-tema').setAttribute('content', si ? '#0D0F13' : '#EFEFF4');
+        $('bt-notte').innerHTML = '<i data-lucide="' + (si ? 'sun' : 'moon') + '"></i>';
+        icone($('bt-notte'));
+    }
+    const notteSalvata = memo.leggi('monitor_notte', null);
+    applicaNotte(notteSalvata == null ? !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) : !!notteSalvata);
+
+    function applicaCompatto(si) {
+        $('interno').classList.toggle('compatto', si);
+        const b = $('bt-compatto');
+        b.title = si ? 'Mostra il riepilogo' : 'Nascondi il riepilogo';
+        b.innerHTML = '<i data-lucide="' + (si ? 'panel-top-open' : 'panel-top-close') + '"></i>';
+        icone(b);
+    }
+    applicaCompatto(!!memo.leggi('monitor_compatto', false));
+
+    const q = $('q');
+    let tempoQ = null;
+    q.addEventListener('input', () => {
+        $('cerca').classList.toggle('piena', !!q.value);
+        clearTimeout(tempoQ);
+        tempoQ = setTimeout(() => {
+            S.q = q.value.trim();
+            S.parole = norm(S.q).split(/\s+/).filter(Boolean);
+            S.aperti.clear();
+            ricalcola();
+            vaiInFondo();
+        }, S.ev.length > 4000 ? 120 : 40);
+    });
+    document.querySelectorAll('#periodo button').forEach(b => b.addEventListener('click', e => {
+        if (b.dataset.p === 'scelto') {
+            e.stopPropagation();
+            const f = $('foglietto');
+            if (f.classList.contains('su')) { f.classList.remove('su'); return; }
+            const r = intervallo();
+            $('data-da').value = S.da || r.da || spostaGiorno(oggiChiave(), -6);
+            $('data-a').value = S.a || r.a || oggiChiave();
+            $('data-da').max = $('data-a').max = oggiChiave();
+            f.classList.add('su');
+            return;
+        }
+        cambiaPeriodo(b.dataset.p);
+    }));
+    function cambiaPeriodo(p) {
+        S.periodo = p; S.limite = PASSO; S.nuovi = 0;
+        memo.scrivi('monitor_periodo', p);
+        disegnaTesta();
+        carica({});
+    }
+
+    $('filtri').addEventListener('scroll', () => { const fl = $('filtri'); fl.classList.toggle('lunghi', fl.scrollLeft + fl.clientWidth < fl.scrollWidth - 4); }, { passive: true });
+
+    const scorri = $('scorri');
+    let rafScorri = 0;
+    scorri.addEventListener('scroll', () => {
+        if (rafScorri) return;
+        rafScorri = requestAnimationFrame(() => {
+            rafScorri = 0;
+            V.disegna(false);
+            const inFondo = scorri.scrollTop + scorri.clientHeight >= scorri.scrollHeight - 30;
+            if (inFondo !== S.segui) { S.segui = inFondo; if (inFondo) S.nuovi = 0; }
+            else if (inFondo && S.nuovi) S.nuovi = 0;
+            aggiornaTorna();
+        });
+    }, { passive: true });
+    scorri.addEventListener('click', e => {
+        const r = e.target.closest('.ev[data-n]');
+        if (!r || e.target.closest('button, a, .dett')) return;
+        if (window.getSelection && String(window.getSelection()).length) return;   // si stava selezionando del testo
+        apriChiudi(+r.dataset.n);
+    });
+    let tempoRes = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(tempoRes);
+        tempoRes = setTimeout(() => {
+            const eraInFondo = S.segui;
+            V.misuraCss();
+            S.aperti.forEach((v, k) => S.aperti.set(k, 0));
+            V.misura(); V.disegna(true);
+            if (eraInFondo) vaiInFondo();
+            chiudiMenu();
+        }, 120);
+    });
+
+    document.addEventListener('keydown', e => {
+        const scrivendo = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '');
+        if (e.key === 'Escape') {
+            if (document.querySelector('.wh-pop')) return;
+            if ($('menu').classList.contains('su')) { chiudiMenu(); $('bt-esporta').focus(); return; }
+            if ($('foglietto').classList.contains('su')) { $('foglietto').classList.remove('su'); return; }
+            if (S.q) { MON.pulisciRicerca(); q.blur(); return; }
+            if (S.aperti.size) { S.aperti.clear(); V.misura(); V.disegna(true); return; }
+            return;
+        }
+        if (scrivendo || e.metaKey || e.ctrlKey || e.altKey || document.querySelector('.wh-pop')) return;
+        if (e.key === '/') { e.preventDefault(); q.focus(); q.select(); }
+        else if (e.key === 'p' || e.key === 'P') { e.preventDefault(); MON.pausa(); }
+        else if (e.key === 'End' || e.key === 'g' || e.key === 'G') { e.preventDefault(); MON.alVivo(); }
+        else if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('ev') && e.target.dataset.n) { e.preventDefault(); apriChiudi(+e.target.dataset.n); }
+        else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'j' || e.key === 'k') && e.target.classList && e.target.classList.contains('ev')) {
+            e.preventDefault();
+            const giu = e.key === 'ArrowDown' || e.key === 'j';
+            const n = +e.target.dataset.n;
+            let i = V.voci.findIndex(v => v.t === 'e' && v.ev.n === n);
+            do { i += giu ? 1 : -1; } while (i >= 0 && i < V.voci.length && V.voci[i].t !== 'e');
+            if (i < 0 || i >= V.voci.length) return;
+            const sc = $('scorri');
+            if (V.cime[i] < sc.scrollTop + V.hGiorno) sc.scrollTop = V.cime[i] - V.hGiorno;
+            else if (V.cime[i] + V.hEv > sc.scrollTop + sc.clientHeight) sc.scrollTop = V.cime[i] + V.hEv - sc.clientHeight;
+            V.disegna(false);
+            const el = V.vive.get(V.voci[i].key);
+            if (el) el.querySelector('.ev').focus({ preventScroll: true });
+        }
+    });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) giro(); });
+
+    const trovaEv = n => S.ev.find(e => e.n === n);
+    window.MON = {
+        pausa: () => {
+            if (!periodoVivo()) return;
+            S.vivo = !S.vivo;
+            aggiornaVivo();
+            biscotto(S.vivo ? 'Aggiornamento dal vivo ripreso' : 'Aggiornamento dal vivo in pausa', S.vivo ? '' : 'Premi P o il pulsante per riprendere.', 'bene', 2200);
+            if (S.vivo) giro();
+            disegnaStato();
+        },
+        alVivo: () => {
+            const sc = $('scorri');
+            const lontano = sc.scrollHeight - sc.scrollTop - sc.clientHeight > 5000;
+            if (lontano) vaiInFondo();
+            else { sc.scrollTo({ top: sc.scrollHeight, behavior: 'smooth' }); S.nuovi = 0; aggiornaTorna(); }
+        },
+        perLivello: k => { S.liv = S.liv === k ? '' : k; S.aperti.clear(); ricalcola(); vaiInFondo(); },
+        perFamiglia: k => { S.fam = S.fam === k ? '' : k; S.aperti.clear(); ricalcola(); vaiInFondo(); },
+        soloEntita: eid => { S.entita = eid; S.aperti.clear(); ricalcola(); vaiInFondo(); },
+        primo: () => { const eid = $('g-primo').dataset.eid; if (eid) MON.soloEntita(eid); },
+        soloEntitaN: n => { const ev = trovaEv(n); if (!ev) return; S.entita = ev.eid; ricalcola(); vaiInFondo(); },
+        azzera: () => { S.q = ''; S.parole = []; S.liv = ''; S.fam = ''; S.entita = ''; q.value = ''; $('cerca').classList.remove('piena'); S.aperti.clear(); ricalcola(); vaiInFondo(); },
+        pulisciRicerca: () => { q.value = ''; S.q = ''; S.parole = []; $('cerca').classList.remove('piena'); ricalcola(); vaiInFondo(); q.focus(); },
+        periodo: p => cambiaPeriodo(p),
+        applicaDate: () => {
+            let da = $('data-da').value, a = $('data-a').value;
+            if (da && a && da > a) [da, a] = [a, da];
+            S.da = da; S.a = a;
+            memo.scrivi('monitor_da', da); memo.scrivi('monitor_a', a);
+            $('foglietto').classList.remove('su');
+            cambiaPeriodo(da || a ? 'scelto' : 'tutto');
+        },
+        chiudiDate: () => $('foglietto').classList.remove('su'),
+        piuVecchi,
+        ricarica: () => carica({}),
+        compatto: () => { const si = !$('interno').classList.contains('compatto'); memo.scrivi('monitor_compatto', si); applicaCompatto(si); const eraInFondo = S.segui; V.disegna(false); if (eraInFondo) vaiInFondo(); },
+        notte: () => { const si = !document.body.classList.contains('notte'); memo.scrivi('monitor_notte', si); applicaNotte(si); },
+        menu: apriMenu,
+        copia: async () => {
+            chiudiMenu();
+            const ok = await negliAppunti(righeTesto(S.vis, '\t'));
+            if (ok) biscotto(S.vis.length === 1 ? 'Copiato 1 evento' : 'Copiati ' + num(S.vis.length) + ' eventi', 'Incollali in un foglio di calcolo o in un messaggio.', 'bene');
+            else avvisa('Il browser non ha permesso di copiare. Usa «Scarica in CSV».', { titolo: 'Copia non riuscita', icona: 'alert-circle' });
+        },
+        scarica: () => {
+            chiudiMenu();
+            const blob = new Blob(['﻿' + righeTesto(S.vis, ';')], { type: 'text/csv;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = tr('registro-eventi') + '-' + oggiChiave() + '.csv';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+            biscotto('File CSV pronto', num(S.vis.length) + ' ' + (S.vis.length === 1 ? 'evento' : 'eventi'), 'bene');
+        },
+        copiaId: async (e, n) => { e.stopPropagation(); const ev = trovaEv(n); if (ev && await negliAppunti(ev.eid)) biscotto('Id copiato', ev.eid, 'bene', 2000); },
+        copiaRiga: async n => { const ev = trovaEv(n); if (ev && await negliAppunti(righeTesto([ev], '\t').split('\r\n')[1])) biscotto('Riga copiata', '', 'bene', 2000); },
+        svuota: async () => {
+            const ok = await chiedi('Verranno cancellati tutti gli eventi registrati finora, anche quelli fuori dal periodo che stai guardando. L\'operazione non si può annullare.',
+                { titolo: 'Svuotare il registro?', si: 'Svuota il registro', no: 'Annulla', pericolo: true, icona: 'trash-2' });
+            if (!ok) return;
+            const b = $('bt-svuota');
+            b.disabled = true;
+            try {
+                const r = await api('/api/logs', { method: 'DELETE' });
+                if (r && r.status && r.status !== 'success') throw { message: r.message || 'Errore del server' };
+                S.ev = []; S.nuovi = 0; S.aperti.clear(); S.forsePiu = false;
+                ricalcola();
+                biscotto('Registro svuotato', 'I nuovi eventi compariranno qui man mano.', 'bene');
+            } catch (e) {
+                avvisa((e && e.message) || 'Il server non ha risposto.', { titolo: 'Registro non svuotato', icona: 'alert-circle' });
+            } finally { b.disabled = false; }
+        },
+    };
+
+    /* =================================================================
+       11. PARTENZA
+       ================================================================= */
+    V.misuraCss();
+    disegnaTesta();
+    aggiornaVivo();
+    icone();
+    carica({});
+    setInterval(giro, 3000);
+    /* "ultimo evento 12 s fa" e le ore del grafico restano giusti anche senza eventi nuovi */
+    setInterval(() => { if (!document.hidden) { disegnaTesta(); if (!S.caricando) disegnaGrafico(); } }, 30000);
+})();
+</script>
 </body>
 </html>

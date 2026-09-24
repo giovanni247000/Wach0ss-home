@@ -2278,7 +2278,15 @@ body.notte .biscotto { background: rgba(58,58,62,0.96); }
         $('tessere').innerHTML = t;
     })();
     icone();
-    carica(false);
+    /* /knx?apri=<entity_id> (dal monitor del bus): appena arrivano i dati si apre quel dispositivo.
+       Il parametro si toglie dall'indirizzo, cosi' un ricarica non riapre il cassetto. */
+    const daAprire = (() => { try { return new URLSearchParams(location.search).get('apri'); } catch (e) { return null; } })();
+    carica(false).then(() => {
+        if (!daAprire) return;
+        try { history.replaceState(null, '', location.pathname); } catch (e) {}
+        if (S.perId[daAprire]) apri(daAprire);
+        else biscotto('Dispositivo non trovato', 'Forse è stato eliminato, oppure è di un altro impianto.', 'avviso', 5000);
+    });
 })();
 </script>
 </body>
