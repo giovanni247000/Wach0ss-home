@@ -56,7 +56,8 @@ html, body {
 }
 
 /* ================= LA MAPPA ========================================= */
-#map { position: absolute; inset: 0; background: var(--sfondo); }
+/* z-index 0: i segni sulla mappa (che hanno un loro z-index, per non coprirsi fra loro) restano sotto i pannelli */
+#map { position: absolute; inset: 0; z-index: 0; background: var(--sfondo); }
 .maplibregl-ctrl-attrib {
     font-size: 10px; background: rgba(255,255,255,0.7) !important;
     border-radius: 8px 0 0 0;
@@ -242,6 +243,9 @@ body.notte .velo { opacity: 0.9; }
 
 /* ================= SEGNAPOSTI SULLA MAPPA =========================== */
 .segno { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+/* MapLibre posa i segni con position:absolute; il 'relative' qui sopra (che viene dopo il suo CSS)
+   li rimetteva uno sotto l'altro: dal secondo in poi ognuno scivolava in basso dell'altezza dei precedenti */
+.segno.maplibregl-marker { position: absolute; }
 .segno .bolla {
     position: relative; width: 40px; height: 40px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
@@ -325,6 +329,172 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
 }
 .segno-zona.fermo { cursor: default; }
 
+/* ================= LA LINEA DEL TEMPO =============================== */
+/* l'invito nella sezione Percorsi */
+.rivedi {
+    width: 100%; min-height: 44px; margin-bottom: 12px; padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px; text-align: left;
+    border: 1px solid rgba(10,132,255,0.22); border-radius: var(--r-m);
+    background: rgba(10,132,255,0.08); color: var(--accento);
+    font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    transition: background 0.16s, border-color 0.16s;
+}
+.rivedi:hover { background: rgba(10,132,255,0.15); border-color: rgba(10,132,255,0.4); }
+.rivedi span { flex: 1; }
+.rivedi i, .rivedi svg { width: 16px; height: 16px; flex-shrink: 0; }
+.rivedi .avanti { opacity: 0.55; }
+
+/* la barra: in basso sulla mappa, fra il pannello e i comandi dello zoom */
+.tempo {
+    position: absolute; z-index: 6;
+    left: 372px; right: 64px; bottom: calc(26px + var(--sicuro-basso));
+    margin: 0 auto; max-width: 940px;
+    padding: 12px 18px 12px 16px;
+    background: var(--pannello);
+    backdrop-filter: blur(26px) saturate(180%); -webkit-backdrop-filter: blur(26px) saturate(180%);
+    border: 1px solid var(--bordo); border-radius: var(--r-xl); box-shadow: var(--ombra-f);
+    color: var(--testo); touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
+    transition: opacity 0.22s, transform 0.3s cubic-bezier(0.22,1,0.36,1), visibility 0.3s;
+}
+.tempo[hidden] { display: none; }
+.tempo.entra { opacity: 0; transform: translateY(14px); }
+.tempo.attesa .t-binario { opacity: 0.45; transition: opacity 0.2s; }
+
+.t-testa { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.t-play {
+    width: 46px; height: 46px; border-radius: 50%; border: none; flex-shrink: 0; padding: 0;
+    background: var(--accento); color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 16px -6px rgba(10,132,255,0.7); transition: transform 0.12s, filter 0.16s;
+}
+.t-play:hover { filter: brightness(1.08); }
+.t-play:active { transform: scale(0.94); }
+.t-play svg { width: 19px; height: 19px; fill: currentColor; }
+.t-play .ico-play { margin-left: 3px; }
+.t-play .ico-pausa, .t-play.va .ico-play { display: none; }
+.t-play.va .ico-pausa { display: block; }
+.t-quando { display: flex; flex-direction: column; min-width: 0; padding-left: 16px; }
+.t-ora {
+    font-size: 1.72rem; font-weight: 700; letter-spacing: -0.045em; line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+.t-giorno {
+    display: flex; align-items: center; gap: 8px; margin: 4px 0 0 -5px;
+    font-size: 0.74rem; font-weight: 600; color: var(--accento); white-space: nowrap;
+}
+.t-giorno #t-data, .t-giorno #t-data-corto { overflow: hidden; text-overflow: ellipsis; }
+.t-giorno #t-data-corto { display: none; }
+.t-freccia {
+    position: relative; width: 22px; height: 22px; padding: 0; flex-shrink: 0;
+    border: none; border-radius: 7px; background: transparent; color: var(--fioco); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.t-freccia::before { content: ''; position: absolute; inset: -11px; }   /* il bersaglio per il dito e' di 44 px */
+.t-freccia:hover:not(:disabled) { background: rgba(127,127,127,0.14); color: var(--testo); }
+.t-freccia:disabled { opacity: 0.28; cursor: default; }
+.t-freccia svg { width: 15px; height: 15px; }
+.t-spazio { flex: 1; }
+.t-vel, .t-adesso {
+    height: 44px; padding: 0 12px; flex-shrink: 0; border-radius: 12px;
+    border: 1px solid var(--bordo); background: rgba(127,127,127,0.10); color: var(--testo);
+    font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    transition: background 0.16s;
+}
+.t-vel { min-width: 58px; font-variant-numeric: tabular-nums; }
+.t-vel:hover, .t-adesso:hover { background: rgba(127,127,127,0.18); }
+.t-adesso .t-live {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--rosso);
+    box-shadow: 0 0 0 3px rgba(220,53,69,0.2);
+}
+.t-chiudi {
+    width: 44px; height: 44px; flex-shrink: 0; padding: 0; border-radius: 12px; border: none;
+    background: transparent; color: var(--fioco); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.t-chiudi:hover { background: rgba(127,127,127,0.12); color: var(--testo); }
+.t-chiudi svg { width: 19px; height: 19px; }
+.tempo button:focus-visible { outline: 3px solid rgba(10,132,255,0.55); outline-offset: 2px; }
+
+/* la traccia della giornata: ore, corsie delle persone, testina */
+.t-pista { position: relative; padding: 0 2px 2px 24px; outline: none; touch-action: none; cursor: pointer; }
+.t-binario { position: relative; }
+.t-ore { position: relative; height: 24px; }
+/* le tacche hanno il colore pieno e trasparente sullo sfondo: l'opacita' sull'elemento la erediterebbero anche le ore scritte */
+.t-ore .h {
+    position: absolute; bottom: 0; width: 1px; height: 4px; margin-left: -0.5px;
+    background: rgba(127,127,127,0.35);
+}
+.t-ore .h.grande { height: 7px; background: rgba(127,127,127,0.7); }
+.t-ore .h b {
+    position: absolute; bottom: 9px; left: 0; transform: translateX(-50%);
+    font-size: 0.68rem; font-weight: 600; color: var(--fioco); letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.t-corsie { position: relative; display: flex; flex-direction: column; gap: 5px; padding: 8px 0 3px; }
+.t-corsia { position: relative; height: 8px; border-radius: 4px; background: rgba(127,127,127,0.13); }
+.t-corsia i { position: absolute; top: 0; bottom: 0; min-width: 2px; border-radius: 4px; background: var(--c); }
+.t-corsia i.ferma { opacity: 0.3; }
+.t-corsia i.punto { width: 8px !important; margin-left: -4px; border-radius: 50%; opacity: 0.75; }   /* un punto isolato: c'e' un dato */
+/* la sigla nel colore della persona ma scurita (o schiarita di notte) verso il testo: si legge su tutti e due i fondi */
+.t-corsia .sigla {
+    position: absolute; left: -24px; top: 50%; width: 18px; margin-top: -7px;
+    font-size: 0.64rem; font-weight: 800; line-height: 14px; text-align: center;
+    color: var(--c); color: color-mix(in srgb, var(--c) 55%, var(--testo));
+}
+.t-nessuno { font-size: 0.72rem; color: var(--fioco); padding: 2px 0 1px; }
+.t-futuro {
+    position: absolute; top: 24px; bottom: 0; right: 0; pointer-events: none; border-radius: 0 6px 6px 0;
+    background: repeating-linear-gradient(135deg, rgba(127,127,127,0.13) 0 3px, transparent 3px 7px);
+}
+.t-testina { position: absolute; top: 15px; bottom: -3px; width: 0; pointer-events: none; }
+.t-testina::before {
+    content: ''; position: absolute; left: -1px; top: 9px; bottom: 0; width: 2px;
+    border-radius: 1px; background: var(--accento);
+}
+.t-pomello {
+    position: absolute; left: -9px; top: 0; width: 18px; height: 18px; border-radius: 50%;
+    background: var(--pannello-pieno); border: 3px solid var(--accento);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25); transition: transform 0.12s;
+}
+.t-pista.presa .t-pomello { transform: scale(1.22); }
+/* il dito salito sopra la traccia va piano (come nei lettori di iOS): il pomello si fa piccolo e l'ora si colora */
+.t-pista.lento .t-pomello { transform: scale(0.8); }
+.tempo.lento .t-ora { color: var(--accento); }
+.t-pista:focus-visible .t-pomello { box-shadow: 0 0 0 5px rgba(10,132,255,0.3), 0 2px 8px rgba(0,0,0,0.25); }
+
+/* il segno "di quell'ora": come quello dal vivo, con lo stato sotto il nome */
+body.tempo-aperto .segno:not(.fantasma) { visibility: hidden; }
+.segno.fantasma .cartellino {
+    display: flex; flex-direction: column; align-items: center; line-height: 1.25; padding: 4px 10px 5px; border-radius: 12px;
+    max-width: 220px; transform: translate(var(--g-dx, 0px), var(--g-dy, 0px));   /* spostato se copriva qualcun altro */
+}
+.segno.fantasma .cartellino b { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.segno.fantasma .cartellino small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 0.7rem; font-weight: 600; color: var(--fioco); }
+.segno.fantasma .cartellino small:empty { display: none; }
+/* in una pila (piu' persone nello stesso posto) il cartellino sta su una riga sola: la pila resta bassa */
+.segno.fantasma.in-pila .cartellino { flex-direction: row; align-items: baseline; gap: 6px; padding: 3px 10px 4px; border-radius: 10px; max-width: 300px; }
+.segno.fantasma.in-pila .cartellino b { flex-shrink: 0; }
+/* "Ultima posizione": tondo pieno ma spento, e un anello tratteggiato nel colore della persona (dov'era, non dov'e') */
+.segno.fantasma.sbiadito .bolla { background: color-mix(in srgb, var(--c) 35%, #8E939B) !important; }
+.segno.fantasma.sbiadito .bolla::before {
+    content: ''; position: absolute; inset: -8px; border-radius: 50%;
+    border: 2px dashed var(--c); opacity: 0.85;
+}
+.segno.fantasma.sbiadito .cartellino { opacity: 0.9; }
+/* con la barra aperta l'orologio in testa (l'ora di adesso) fa un passo indietro: l'ora della mappa e' quella della barra */
+body.tempo-aperto .testa .ora, body.tempo-aperto .testa .data { opacity: 0.35; transition: opacity 0.3s; }
+.segno .rotta { position: absolute; inset: -11px; pointer-events: none; display: none; transform: rotate(var(--rotta, 0deg)); }
+.segno .rotta::before {
+    content: ''; position: absolute; left: 50%; top: 0; margin-left: -5px;
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 7px solid var(--c);
+}
+.segno.fantasma.muove .rotta { display: block; }
+/* l'onda attorno al segno solo mentre la giornata scorre: da ferma, niente che gira a vuoto */
+.segno.fantasma .bolla::after { animation: none; opacity: 0; }
+body.tempo-va .segno.fantasma.muove .bolla::after { animation: onda 2.2s ease-out infinite; opacity: 1; }
+
 /* ================= IL TELEFONO ====================================== */
 .maniglia { display: none; }
 @media (max-width: 860px) {
@@ -348,6 +518,42 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
     body.chiuso .maniglia i { transform: rotate(180deg); }
     .piede .voce span { display: none; }
     .numeri { gap: 6px; }
+    /* la linea del tempo sta sopra la maniglia del foglio; se il foglio si apre, si fa da parte */
+    .tempo {
+        left: 10px; right: 10px; max-width: none; padding: 10px 12px 10px 12px; border-radius: 22px;
+        bottom: calc(80px + var(--sicuro-basso));
+    }
+    /* col foglio aperto la barra non sparisce: sale in alto, sotto i comandi, ridotta alla sua testa
+       (play, ora, giorno, chiudi), cosi' si vede sempre che la mappa mostra un'altra ora */
+    body.tempo-aperto:not(.chiuso) .tempo { top: calc(64px + var(--sicuro-alto)); bottom: auto; padding: 6px 10px; }
+    body.tempo-aperto:not(.chiuso) .t-pista, body.tempo-aperto:not(.chiuso) .t-vel { display: none; }
+    body.tempo-aperto:not(.chiuso) .t-testa { margin-bottom: 0; }
+    body.tempo-aperto:not(.chiuso) .t-play { width: 44px; height: 44px; }
+    body.tempo-aperto.chiuso .maplibregl-ctrl-bottom-right { transform: translateY(calc(-1 * (var(--alto-tempo, 150px) + 80px + var(--sicuro-basso)))); }
+    .t-ora { font-size: 1.55rem; }
+    .t-ore .h.solo3 b { display: none; }
+}
+/* poca altezza (telefono in orizzontale): barra compatta; sul telefono il foglio e lo zoom si tolgono di mezzo */
+@media (max-height: 500px) {
+    .tempo { padding: 6px 14px 6px; }
+    .t-play { width: 44px; height: 44px; }
+    .t-ora { font-size: 1.3rem; }
+    .t-ore { height: 20px; }
+    .t-corsie { gap: 3px; padding: 5px 0 2px; }
+    .t-corsia { height: 6px; }
+    .t-corsia .sigla { font-size: 0.56rem; line-height: 10px; margin-top: -5px; }
+}
+@media (max-width: 860px) and (max-height: 500px) {
+    .tempo { bottom: calc(8px + var(--sicuro-basso)); left: calc(10px + env(safe-area-inset-left, 0px)); right: calc(10px + env(safe-area-inset-right, 0px)); }
+    body.tempo-aperto .pannello { transform: translateY(calc(100% + 40px + var(--sicuro-basso))); }
+    /* lo zoom si toglie (si zooma con le dita); l'attribuzione della mappa no: e' obbligatoria, sale sopra la barra */
+    body.tempo-aperto .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group { display: none; }
+    body.tempo-aperto.chiuso .maplibregl-ctrl-bottom-right { transform: translateY(calc(-1 * (var(--alto-tempo, 110px) + 12px + var(--sicuro-basso)))); }
+}
+@media (max-width: 520px) {
+    .t-adesso { display: none; }
+    .t-giorno #t-data { display: none; }
+    .t-giorno #t-data-corto { display: block; }
 }
 </style>
     <script src="/static/popup.js"></script>
@@ -419,6 +625,10 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
                 <div class="percorsi">
                     <div class="giorni" id="giorni"></div>
 
+                    <button class="rivedi" id="btn-rivedi" type="button">
+                        <i data-lucide="history"></i><span>Rivedi la giornata ora per ora</span><i data-lucide="chevron-right" class="avanti"></i>
+                    </button>
+
                     <div class="numeri">
                         <div class="numero"><b id="n-strada">0</b><span>Percorso</span></div>
                         <div class="numero"><b id="n-soste">0</b><span>Soste</span></div>
@@ -459,6 +669,13 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         <span id="fr-scarta-modifiche">Chiudere la zona che stai disegnando senza salvarla?</span>
         <span id="fr-non-eliminata">Zona non eliminata</span>
         <span id="fr-non-salvata">Zona non salvata</span>
+        <!-- linea del tempo -->
+        <span id="fr-t-sosta">In sosta dalle</span>
+        <span id="fr-t-muove">In movimento</span>
+        <span id="fr-t-ultima">Ultima posizione alle</span>
+        <span id="fr-t-nessuno">Nessun percorso in questo giorno</span>
+        <span id="fr-t-riproduci">Riproduci</span>
+        <span id="fr-t-pausa">Pausa</span>
     </div>
 
     <div class="comandi">
@@ -466,7 +683,39 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         <button class="comando" id="btn-casa" title="Casa" aria-label="Casa"><i data-lucide="home"></i></button>
         <button class="comando" id="btn-notte" title="Giorno e notte" aria-label="Giorno e notte"><i data-lucide="moon"></i></button>
         <button class="comando" id="btn-inclina" title="Inclina la vista" aria-label="Inclina la vista"><i data-lucide="box"></i></button>
+        <button class="comando" id="btn-tempo" title="Linea del tempo" aria-label="Linea del tempo" aria-controls="tempo" aria-expanded="false"><i data-lucide="history"></i></button>
     </div>
+
+    <!-- LA LINEA DEL TEMPO: si sceglie un'ora del giorno e sulla mappa ognuno compare dov'era -->
+    <section class="tempo" id="tempo" aria-label="Linea del tempo" hidden>
+        <div class="t-testa">
+            <button type="button" class="t-play" id="t-play" title="Riproduci" aria-label="Riproduci">
+                <svg class="ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.2v15.6a1 1 0 0 0 1.5.86l13-7.8a1 1 0 0 0 0-1.72l-13-7.8A1 1 0 0 0 7 4.2Z"/></svg>
+                <svg class="ico-pausa" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="4" width="4.5" height="16" rx="1.3"/><rect x="14" y="4" width="4.5" height="16" rx="1.3"/></svg>
+            </button>
+            <div class="t-quando">
+                <div class="t-ora" id="t-ora" data-no-tr>--:--</div>
+                <div class="t-giorno">
+                    <button type="button" class="t-freccia" id="t-prima" title="Giorno prima" aria-label="Giorno prima"><i data-lucide="chevron-left"></i></button>
+                    <span id="t-data" data-no-tr></span><span id="t-data-corto" data-no-tr></span>
+                    <button type="button" class="t-freccia" id="t-dopo" title="Giorno dopo" aria-label="Giorno dopo"><i data-lucide="chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="t-spazio"></div>
+            <button type="button" class="t-vel" id="t-vel" title="Velocità di riproduzione" aria-label="Velocità di riproduzione"><span id="t-vel-testo" data-no-tr>5 min/s</span></button>
+            <button type="button" class="t-adesso" id="t-adesso" title="Torna alla mappa dal vivo"><span class="t-live"></span>Adesso</button>
+            <button type="button" class="t-chiudi" id="t-chiudi" title="Chiudi" aria-label="Chiudi"><i data-lucide="x"></i></button>
+        </div>
+        <div class="t-pista" id="t-pista" role="slider" tabindex="0" aria-label="Ora della giornata"
+             aria-valuemin="0" aria-valuemax="1440" aria-valuenow="0" aria-valuetext="">
+            <div class="t-binario" id="t-binario">
+                <div class="t-ore" id="t-ore" aria-hidden="true" data-no-tr></div>
+                <div class="t-corsie" id="t-corsie" aria-hidden="true" data-no-tr></div>
+                <div class="t-futuro" id="t-futuro" hidden></div>
+                <div class="t-testina" id="t-testina"><span class="t-pomello"></span></div>
+            </div>
+        </div>
+    </section>
 
 <script src="/static/vendor/maplibre-gl-5.24.0.min.js"></script>
 <script>
@@ -491,13 +740,30 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         var giorni_ = [];            /* giorni che hanno qualcosa, dal piu' recente */
         var giorniTenuti = 30;
         var cache = {};              /* giorno -> {persona: [[ts, lat, lon, fermo], ...]} */
+        var limiti = {};             /* giorno -> {inizio, fine}: la mezzanotte di CASA, dal server */
 
         function nomeGiorno(d) {
             return d.getFullYear() + '-' +
                    String(d.getMonth() + 1).padStart(2, '0') + '-' +
                    String(d.getDate()).padStart(2, '0');
         }
-        function oggi() { return nomeGiorno(new Date()); }
+        /* "oggi" e' il giorno di CASA (lo stesso dei giorni del server), non quello del browser:
+           un telefono in viaggio in un altro fuso vedrebbe il giorno sbagliato vicino alla mezzanotte */
+        var giornoCasa = null;
+        function fuso(nome) {
+            giornoCasa = null;
+            if (!nome || !window.Intl) return;
+            try {
+                var f = new Intl.DateTimeFormat('en-US', { timeZone: nome, year: 'numeric', month: '2-digit', day: '2-digit' });
+                giornoCasa = function (d) {
+                    var x = {};
+                    f.formatToParts(d).forEach(function (p) { x[p.type] = p.value; });
+                    return x.year + '-' + x.month + '-' + x.day;
+                };
+                giornoCasa(new Date());
+            } catch (e) { giornoCasa = null; }
+        }
+        function oggi() { return giornoCasa ? giornoCasa(new Date()) : nomeGiorno(new Date()); }
         function leggi(g) { return cache[g] || {}; }
         function giorni() { return giorni_.slice(); }
         function puntiDi(g) {
@@ -513,6 +779,7 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
                 .then(function (d) {
                     if (!d || d.error) return false;
                     cache[g] = d.persone || {};
+                    if (d.inizio && d.fine) limiti[g] = { inizio: +d.inizio, fine: +d.fine };
                     giorni_ = d.giorni || [];
                     if (d.giorni_tenuti) giorniTenuti = d.giorni_tenuti;
                     return true;
@@ -521,8 +788,9 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         }
         function scorda(g) { if (g) delete cache[g]; else cache = {}; }
 
-        return { oggi: oggi, nomeGiorno: nomeGiorno, leggi: leggi, giorni: giorni,
+        return { oggi: oggi, nomeGiorno: nomeGiorno, leggi: leggi, giorni: giorni, fuso: fuso,
                  carica: carica, scorda: scorda, puntiDi: puntiDi,
+                 limiti: function (g) { return limiti[g] || null; },
                  tenuti: function () { return giorniTenuti; } };
     })();
 
@@ -575,7 +843,9 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
        mezzanotte: con i secondi da mezzanotte, una pagina lasciata aperta a
        cavallo della notte calcola distanze e durate all'indietro. */
     function adesso() { return Math.floor(Date.now() / 1000); }
+    var orologioCasa = null;      /* HH:MM nel fuso di casa, quando /api/location lo dice: tutte le ore della pagina sono di casa */
     function comeOra(t) {
+        if (orologioCasa) return orologioCasa(t);
         var d = new Date(t * 1000);
         return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
     }
@@ -689,6 +959,30 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
             }
         });
 
+        /* la linea del tempo: la parte di giornata gia' passata all'ora scelta, piena */
+        map.addSource('tempo-fatto', { type: 'geojson', data: vuoto() });
+        map.addSource('tempo-coda', { type: 'geojson', data: vuoto() });
+        map.addLayer({
+            id: 'tempo-fatto-alone', type: 'line', source: 'tempo-fatto',
+            layout: { 'line-cap': 'round', 'line-join': 'round', visibility: 'none' },
+            paint: {
+                'line-color': ['get', 'colore'],
+                'line-width': ['interpolate', ['linear'], ['zoom'], 8, 6, 16, 16],
+                'line-opacity': 0.18, 'line-blur': 6
+            }
+        }, 'soste-cerchio');
+        ['tempo-fatto', 'tempo-coda'].forEach(function (id) {
+            map.addLayer({
+                id: id, type: 'line', source: id,
+                layout: { 'line-cap': 'round', 'line-join': 'round', visibility: 'none' },
+                paint: {
+                    'line-color': ['get', 'colore'],
+                    'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2, 16, 4.5],
+                    'line-opacity': 0.95
+                }
+            }, 'soste-cerchio');
+        });
+
         /* le zone: poligoni in METRI veri (un cerchio a 64 lati), sotto le scie */
         map.addSource('zone', { type: 'geojson', data: vuoto() });
         map.addLayer({
@@ -704,7 +998,7 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         /* il nome sta su un PUNTO al centro: su un poligono MapLibre lo ripeterebbe a ogni piastrella */
         map.addLayer({
             id: 'zone-nome', type: 'symbol', source: 'zone',
-            filter: ['==', ['geometry-type'], 'Point'],
+            filter: FILTRO_ZONE_NOME,
             minzoom: 11,
             layout: {
                 'text-field': ['get', 'etichetta'], 'text-font': ['Noto Sans Regular'],
@@ -751,7 +1045,9 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         if (casa) mostraCasa();
         disegnaZone();
         aggiornaSegni();
-        if (primoGiro && elenco.length) { primoGiro = false; inquadraTutti(); }
+        tempoStile();                 /* i livelli sono nuovi: la linea del tempo li rimette come le servono */
+        if (TP.aperto) programma();
+        if (primoGiro && elenco.length && !TP.aperto) { primoGiro = false; inquadraTutti(); }
     });
 
     /* =================================================================
@@ -861,7 +1157,7 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
                 soste.features.push({
                     type: 'Feature',
                     properties: {
-                        colore: colore, nome: nome,
+                        colore: colore, nome: nome, ts: pt[0],
                         quanto: (tagliata ? 'almeno ' : '') + comeDurata(fermo),
                         orario: comeOra(pt[0]) + ' \u2013 ' + comeOra(pt[0] + fermo)
                     },
@@ -876,6 +1172,7 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         document.getElementById('n-strada').textContent = comeStrada(strada);
         document.getElementById('n-soste').textContent  = quanteSoste;
         document.getElementById('n-punti').textContent = quantiPunti;
+        tempoDati();                  /* la linea del tempo, se e' aperta, segue dati e filtri */
     }
 
     /* =================================================================
@@ -944,6 +1241,8 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         if (scelto) centraSu(scelto);
     }
     function centraSu(nome) {
+        var f = TP.aperto && TP.fantasmi[nome];      /* con la linea del tempo aperta conta dov'era, non dov'e' */
+        if (f) { map.flyTo({ center: [f.lon, f.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200, essential: true }); return; }
         var p = elenco.filter(function (x) { return x.name === nome; })[0];
         if (p) map.flyTo({ center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 15), duration: 1200, essential: true });
     }
@@ -1056,12 +1355,13 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
                 disegnaElenco();
                 aggiornaSegni();
 
-                if (primoGiro && elenco.length) { primoGiro = false; inquadraTutti(); }
+                if (primoGiro && elenco.length && !TP.aperto) { primoGiro = false; inquadraTutti(); }
             })
             .catch(function (e) { console.warn('[mappa] giro delle posizioni non riuscito:', e); });
     }
 
     function inquadraTutti() {
+        if (TP.aperto) { tInquadraOra(); return; }   /* con la linea del tempo: tutti dov'erano a quell'ora */
         var punti = elenco.map(function (p) { return [p.lon, p.lat]; });
         if (casa) punti.push([casa.lon, casa.lat]);
         if (!punti.length) return;
@@ -1103,6 +1403,7 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         conservaScelta('wh_mappa_notte', notte ? '1' : '0');
         this.innerHTML = '<i data-lucide="' + (notte ? 'sun' : 'moon') + '"></i>';   /* lucide ha gia' trasformato la <i> in <svg>: si rifa' da capo */
         if (window.lucide) lucide.createIcons();
+        if (segnoCasa) segnoCasa.remove();    /* senza, a ogni giro giorno/notte ne restava uno in piu' sotto */
         segnoCasa = null;                     /* il segno di casa viene ricreato con lo stile */
         map.setStyle(notte ? STILI.notte : STILI.giorno);
     });
@@ -1152,7 +1453,7 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         var cont = document.getElementById('giorni');
         var g = MEM.giorni();
         var oggi = MEM.oggi();
-        var ieri = MEM.nomeGiorno(new Date(Date.now() - 86400000));
+        var ieri = tGiornoAccanto(oggi, -1);
         if (g.indexOf(oggi) === -1) g.unshift(oggi);
         if (giornoScelto && g.indexOf(giornoScelto) === -1) giornoScelto = oggi;
         if (!sceltoAMano && giornoScelto !== oggi) giornoScelto = oggi;   /* e' passata la mezzanotte */
@@ -1164,14 +1465,17 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         var ng = document.getElementById('n-giorni');
         if (ng) ng.textContent = MEM.tenuti();
     }
-    document.getElementById('giorni').addEventListener('click', function (e) {
-        var b = e.target.closest('.giorno');
-        if (!b) return;
-        giornoScelto = b.getAttribute('data-g');
+    function scegliGiorno(g) {
+        giornoScelto = g;
         sceltoAMano = giornoScelto !== MEM.oggi();
         disegnaGiorni();
         disegnaScie();
         aggiornaPercorso(true);           /* il giorno scelto si scarica adesso */
+    }
+    document.getElementById('giorni').addEventListener('click', function (e) {
+        var b = e.target.closest('.giorno');
+        if (!b) return;
+        scegliGiorno(b.getAttribute('data-g'));
     });
 
     /* --- il palloncino delle soste --- */
@@ -1248,6 +1552,10 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
                 disegnaZone();
                 disegnaElencoZone();
                 disegnaElenco();
+                if (TP.aperto) {              /* i cartellini della linea del tempo dicono in che zona si era */
+                    Object.keys(TP.fantasmi).forEach(function (n) { TP.fantasmi[n].chiave = ''; });
+                    programma();
+                }
             })
             .catch(function (e) { console.warn('[mappa] zone non lette:', e); });
     }
@@ -1413,11 +1721,13 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
        10. OROLOGIO
        ================================================================= */
     function orologio() {
-        var d = new Date();
-        document.getElementById('ora').textContent =
-            String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-        document.getElementById('data').textContent =
-            d.toLocaleDateString(document.documentElement.lang || 'it', { weekday: 'long', day: 'numeric', month: 'long' });
+        var d = new Date(), lingua = document.documentElement.lang || 'it', data = null;
+        document.getElementById('ora').textContent = comeOra(d.getTime() / 1000);      /* l'ora di casa, come tutto il resto */
+        if (TP.fuso) {
+            try { data = d.toLocaleDateString(lingua, { timeZone: TP.fuso, weekday: 'long', day: 'numeric', month: 'long' }); } catch (e) {}
+        }
+        document.getElementById('data').textContent = data || d.toLocaleDateString(lingua, { weekday: 'long', day: 'numeric', month: 'long' });
+        if (TP.aperto && TP.oggi && !TP.play && !TP.presa && TP.alBordo) tempoVai(tLimite());
     }
 
     /* =================================================================
@@ -1429,7 +1739,1098 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
        ================================================================= */
 
     /* =================================================================
-       12. AVVIO
+       12. LA LINEA DEL TEMPO
+       Una barra in basso, come quella di un video: si sceglie un'ora del
+       giorno guardato e sulla mappa ognuno compare dov'era in quel momento.
+       I punti sono quelli dello storico ([ts, lat, lon, fermo]). Le ore sono
+       quelle di CASA: l'inizio e la fine del giorno li da' il server (un
+       giorno puo' durare 23 o 25 ore, al cambio dell'ora) e il fuso arriva
+       da /api/location. Il browser puo' stare in un altro fuso.
+       ================================================================= */
+
+    /* TEMPO-PURO-INIZIO: funzioni senza stato (le prova da sole prova_tempo.py) */
+    var T_BUCO        = 900;   /* come _STORICO_BUCO sul server: oltre, non sappiamo dov'era */
+    var T_STESSO_M    = 25;    /* come _STORICO_PASSO_M: piu' vicini di cosi' e' lo stesso posto */
+    var T_VEL_MAX     = 90;    /* come _STORICO_VEL_MAX: i salti piu' veloci il server li scarta */
+    var T_SOSTA_CORTA = 180;   /* una fermata piu' breve (un semaforo, chi cammina e manda ogni 20 s) e' tragitto */
+    var T_BALLO_M     = 80;    /* il GPS di un telefono fermo ogni tanto "salta" di qualche decina di metri... */
+    var T_BALLO_S     = 300;   /* ...per poco: entro questo raggio e questo tempo non e' un viaggio */
+
+    /* l'ultimo punto con orario <= t (ricerca binaria), -1 se non ce n'e' */
+    function tIndice(punti, t) {
+        var lo = 0, hi = punti.length - 1, r = -1;
+        while (lo <= hi) {
+            var m = (lo + hi) >> 1;
+            if (punti[m][0] <= t) { r = m; lo = m + 1; } else hi = m - 1;
+        }
+        return r;
+    }
+    function tStessoPosto(a, b) { return distanza(a[1], a[2], b[1], b[2]) < T_STESSO_M; }
+
+    /* Il server unisce i punti per NOME: due dispositivi con lo stesso nome (l'iPad a muro e l'iPhone
+       in tasca) arrivano mescolati e il segno salterebbe dall'uno all'altro. Un dispositivo solo, per
+       come il server scrive i punti, non ha mai due punti che si accavallano nel tempo, ne' un salto
+       oltre i 90 m/s, ne' un punto nuovo a meno di 25 m dal suo ultimo prima di un'ora (lo allunga).
+       Se nella lista capita, i punti si dividono in tracce, una per dispositivo. */
+    function tSegue(u, p) {                          /* p puo' venire dopo u sullo stesso dispositivo? */
+        var fine = u[0] + (u[3] || 0);
+        if (p[0] < fine - 2) return false;
+        var vuoto = p[0] - fine;
+        if (vuoto > T_BUCO) return true;
+        var d = distanza(u[1], u[2], p[1], p[2]);
+        if (d < T_STESSO_M - 4) return p[0] - u[0] >= 3600 - 5;          /* solo la sosta spezzata a un'ora */
+        return d / Math.max(vuoto, 1) <= T_VEL_MAX * 1.1;
+    }
+    function tTracce(punti) {
+        var strani = 0;
+        for (var i = 1; i < punti.length; i++) {
+            var u = punti[i - 1], p = punti[i], fine = u[0] + (u[3] || 0), vuoto = p[0] - fine;
+            if (p[0] < fine - 2 || (vuoto <= T_BUCO && distanza(u[1], u[2], p[1], p[2]) / Math.max(vuoto, 1) > T_VEL_MAX * 1.1)) strani++;
+        }
+        if (!strani) return [punti];                 /* il caso di tutti i giorni: un telefono solo */
+        var tracce = [];
+        punti.forEach(function (p) {
+            var scelta = -1, voto = Infinity;
+            tracce.forEach(function (tr, k) {
+                var u = tr[tr.length - 1];
+                if (!tSegue(u, p)) return;
+                var vuoto = p[0] - (u[0] + (u[3] || 0)), d = distanza(u[1], u[2], p[1], p[2]);
+                var v = vuoto > T_BUCO ? 1e9 + d : Math.max(0, vuoto) + d / 50;      /* la piu' vicina nel tempo, poi nello spazio */
+                if (v < voto) { voto = v; scelta = k; }
+            });
+            if (scelta < 0) tracce.push([p]); else tracce[scelta].push(p);
+        });
+        return tracce;
+    }
+
+    /* Il GPS di un telefono fermo ogni tanto mette la posizione 30-40 m piu' in la' per un minuto:
+       il server apre un punto nuovo e poi un altro al ritorno. Non e' un viaggio: la sosta continua
+       e i punti dell'escursione non si disegnano. Una traccia alla volta; i dati non si toccano. */
+    function tPulisci(punti) {
+        var q = punti.map(function (p) { return p.slice(); }), via = {}, tolti = 0, n = q.length;
+        for (var i = 0; i < n; i++) {
+            var a = q[i];
+            if ((a[3] || 0) < T_SOSTA_CORTA) continue;
+            var fineA = a[0] + a[3], j = i + 1;
+            while (j < n && (q[j][3] || 0) < T_SOSTA_CORTA && q[j][0] - fineA <= T_BALLO_S &&
+                   distanza(a[1], a[2], q[j][1], q[j][2]) <= T_BALLO_M) j++;
+            if (j >= n) continue;
+            var b = q[j];
+            if (b[0] - fineA > T_BALLO_S || distanza(a[1], a[2], b[1], b[2]) > T_BALLO_M) continue;
+            if (j === i + 1 && tStessoPosto(a, b)) continue;          /* la sosta spezzata a un'ora: va gia' bene */
+            for (var k = i + 1; k < j; k++) { via[k] = true; tolti++; }
+            a[3] = b[0] - a[0];                                        /* la sosta arriva fino al ritorno... */
+            b[1] = a[1]; b[2] = a[2];                                  /* ...e il ritorno e' nello stesso posto */
+            i = j - 1;
+        }
+        return q.filter(function (p, k) { return !via[k]; });
+    }
+
+    /* il server spezza una sosta lunga ogni ora: per dire "dalle" si risale al suo inizio vero */
+    function tInizioSosta(punti, i) {
+        var k = i;
+        while (k > 0) {
+            var p = punti[k - 1];
+            if (punti[k][0] - (p[0] + (p[3] || 0)) > T_BUCO || !tStessoPosto(p, punti[k])) break;
+            k--;
+        }
+        return punti[k][0];
+    }
+    function tRotta(a, b) {                          /* gradi da nord, verso b */
+        var r = Math.PI / 180, dl = (b[2] - a[2]) * r;
+        var y = Math.sin(dl) * Math.cos(b[1] * r);
+        var x = Math.cos(a[1] * r) * Math.sin(b[1] * r) - Math.sin(a[1] * r) * Math.cos(b[1] * r) * Math.cos(dl);
+        return (Math.atan2(y, x) / r + 360) % 360;
+    }
+    function tFerma(punti, i) {
+        return { stato: 'ferma', lat: punti[i][1], lon: punti[i][2], da: tInizioSosta(punti, i), i: i };
+    }
+    /* Dov'era all'ora t. Stati:
+       nessuna (prima del primo punto) | ferma (dentro una sosta: da = inizio) |
+       muove (fra due punti vicini nel tempo: posizione interpolata) |
+       buco (vuoto oltre T_BUCO: ultima posizione nota, alle = quando) |
+       ultima (dopo l'ultimo punto, da poco: si sa solo dov'era alle 'alle') */
+    function tPosizione(punti, t) {
+        var n = punti ? punti.length : 0;
+        var i = n ? tIndice(punti, t) : -1;
+        if (i < 0) return { stato: 'nessuna', i: -1 };
+        var p = punti[i], fermo = p[3] || 0, fine = p[0] + fermo, q = i < n - 1 ? punti[i + 1] : null;
+        var vuoto = q ? q[0] - fine : Infinity;
+        /* una fermata breve seguita subito da un altro punto e' tragitto: dal punto al successivo si va
+           a velocita' costante (chi cammina e manda ogni 20 s non "si ferma" ogni 20 s) */
+        var dritto = !!q && vuoto <= T_BUCO && fermo < T_SOSTA_CORTA && !tStessoPosto(p, q);
+        if (fermo > 0 && t <= fine && !dritto) {
+            /* pochi secondi fermo e poi piu' niente (o un buco): non e' ancora una sosta */
+            if (fermo < T_SOSTA_CORTA && !(q && vuoto <= T_BUCO)) return { stato: 'ultima', lat: p[1], lon: p[2], alle: p[0], i: i };
+            return tFerma(punti, i);
+        }
+        if (q && vuoto <= T_BUCO) {
+            if (tStessoPosto(p, q)) return tFerma(punti, i);
+            var da = dritto ? p[0] : fine, dur = q[0] - da;
+            var f = dur > 0 ? Math.min(1, Math.max(0, (t - da) / dur)) : 1;
+            return { stato: 'muove', lat: p[1] + (q[1] - p[1]) * f, lon: p[2] + (q[2] - p[2]) * f, i: i,
+                     rotta: tRotta(p, q), kmh: distanza(p[1], p[2], q[1], q[2]) / Math.max(dur, 1) * 3.6 };
+        }
+        if (q || t - fine > T_BUCO) return { stato: 'buco', lat: p[1], lon: p[2], alle: fine, i: i };
+        if (fermo >= T_SOSTA_CORTA) return tFerma(punti, i);
+        return { stato: 'ultima', lat: p[1], lon: p[2], alle: fine, i: i };
+    }
+    /* fra le tracce di una persona, quella da mostrare: chi si muove; se nessuno, chi si e' mosso per ultimo */
+    var T_RANGO = { muove: 4, ferma: 3, ultima: 2, buco: 1, nessuna: 0 };
+    function tMossa(punti, i) {                      /* l'orario dell'ultimo spostamento fino al punto i */
+        for (var k = i; k > 0; k--) if (!tStessoPosto(punti[k - 1], punti[k])) return punti[k][0];
+        return -Infinity;
+    }
+    function tScegli(pos, tracce) {
+        var s = 0;
+        for (var k = 1; k < pos.length; k++) {
+            var ra = T_RANGO[pos[k].stato], rs = T_RANGO[pos[s].stato];
+            if (ra > rs || (ra === rs && ra > 0 && tMossa(tracce[k], pos[k].i) > tMossa(tracce[s], pos[s].i))) s = k;
+        }
+        return s;
+    }
+    /* le fermate brevi fra due tratti di strada sono strada */
+    function tSalda(s) {
+        for (var k = s.length - 2; k >= 1; k--) {
+            if (s[k].tipo === 'ferma' && s[k].b - s[k].a < T_SOSTA_CORTA &&
+                s[k - 1].tipo === 'muove' && s[k + 1].tipo === 'muove' &&
+                s[k].a - s[k - 1].b < 1 && s[k + 1].a - s[k].b < 1) {
+                s[k - 1].b = s[k + 1].b;
+                s.splice(k, 2);
+            }
+        }
+        return s;
+    }
+    /* La corsia di una traccia fra 'da' e 'a': [{a, b, tipo: 'muove'|'ferma'|'punto'}]; i buchi restano
+       vuoti; un punto isolato (niente prima e dopo) e' un 'punto', perche' si veda che li' c'e' un dato */
+    function tSegmenti(punti, da, a) {
+        var s = [];
+        function metti(x, y, tipo) {
+            x = Math.max(x, da); y = Math.min(y, a);
+            if (y <= x) return;
+            var u = s[s.length - 1];
+            if (u && u.tipo === tipo && x - u.b < 1) { if (y > u.b) u.b = y; return; }
+            s.push({ a: x, b: y, tipo: tipo });
+        }
+        for (var i = 0; i < punti.length; i++) {
+            var p = punti[i], fine = p[0] + (p[3] || 0), q = punti[i + 1], r = punti[i - 1];
+            var legato = q && q[0] - fine <= T_BUCO;
+            if (p[3] > 0) metti(p[0], fine, 'ferma');
+            if (legato) metti(fine, q[0], tStessoPosto(p, q) ? 'ferma' : 'muove');
+            else if (!(p[3] > 0) && !(r && p[0] - (r[0] + (r[3] || 0)) <= T_BUCO) && p[0] >= da && p[0] <= a) {
+                s.push({ a: p[0], b: p[0], tipo: 'punto' });
+            }
+        }
+        return tSalda(s);
+    }
+    /* la corsia di chi ha piu' tracce: dove una si muove la persona si muove, se no dove una e' ferma */
+    function tUnisci(liste) {
+        if (liste.length === 1) return liste[0];
+        var PESO = { muove: 3, ferma: 2 }, bordi = [], punti = [], out = [];
+        liste.forEach(function (s) { s.forEach(function (g) { if (g.tipo === 'punto') punti.push(g); else bordi.push(g.a, g.b); }); });
+        bordi.sort(function (x, y) { return x - y; });
+        for (var k = 0; k < bordi.length - 1; k++) {
+            var x = bordi[k], y = bordi[k + 1], m = (x + y) / 2, tipo = null;
+            if (y <= x) continue;
+            liste.forEach(function (s) {
+                s.forEach(function (g) { if (g.tipo !== 'punto' && g.a <= m && m < g.b && (!tipo || PESO[g.tipo] > PESO[tipo])) tipo = g.tipo; });
+            });
+            if (!tipo) continue;
+            var u = out[out.length - 1];
+            if (u && u.tipo === tipo && x - u.b < 1) u.b = y; else out.push({ a: x, b: y, tipo: tipo });
+        }
+        out = tSalda(out);
+        punti.forEach(function (g) {
+            if (!out.some(function (o) { return g.a >= o.a && g.a <= o.b; })) out.push(g);
+        });
+        return out.sort(function (x, y) { return x.a - y.a; });
+    }
+    /* dal giorno prima serve la fine: di ogni traccia l'ultimo punto e, se era ferma, tutta la sosta
+       (per dire "dalle" giusto); dal giorno dopo l'inizio: il primo punto di ogni traccia */
+    function tCoda(lista) {
+        var out = [];
+        tTracce(lista || []).forEach(function (tr) {
+            var k = tr.length - 1;
+            while (k > 0 && tr[k][0] - (tr[k - 1][0] + (tr[k - 1][3] || 0)) <= T_BUCO &&
+                   distanza(tr[k - 1][1], tr[k - 1][2], tr[k][1], tr[k][2]) <= T_BALLO_M) k--;
+            out = out.concat(tr.slice(k));
+        });
+        return out.sort(function (x, y) { return x[0] - y[0]; });
+    }
+    function tTesta(lista) {
+        return tTracce(lista || []).map(function (tr) { return tr[0]; }).sort(function (x, y) { return x[0] - y[0]; });
+    }
+    /* le tacche delle ore fra inizio e fine: nei giorni del cambio d'ora un'ora manca o si ripete */
+    function tOre(inizio, fine, orologio) {
+        var out = [];
+        for (var t = inizio; t <= fine + 1; t += 3600) {
+            var h = t >= fine ? 24 : parseInt(orologio(t).slice(0, 2), 10);
+            out.push({ t: t, ora: h });
+        }
+        return out;
+    }
+    /* l'ora di casa, HH:MM. Senza fuso: null (chi chiama ripiega) */
+    function tCreaOrologio(fuso) {
+        if (!fuso || !window.Intl) return null;
+        try {
+            var f = new Intl.DateTimeFormat('en-GB', { timeZone: fuso, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+            f.format(new Date(0));
+            return function (ts) { return f.format(new Date(ts * 1000)).replace(/^24/, '00'); };
+        } catch (e) { return null; }
+    }
+    function tGiornoAccanto(g, d) {                  /* 'AAAA-MM-GG' +/- d giorni, senza fusi di mezzo */
+        var p = g.split('-');
+        return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] + d)).toISOString().slice(0, 10);
+    }
+    /* cambiando giorno si resta alla stessa ora DELL'OROLOGIO, anche se uno dei due giorni ha 23 o 25 ore:
+       t = l'orario nel giorno nuovo a pari distanza dalla mezzanotte, orologio = l'ora di casa di un orario */
+    function tStessaOra(t, voluta, orologio) {
+        function minuti(s) { return parseInt(s.slice(0, 2), 10) * 60 + parseInt(s.slice(3, 5), 10); }
+        var diff = minuti(voluta) - minuti(orologio(t));
+        if (diff > 720) diff -= 1440; else if (diff < -720) diff += 1440;
+        if (!diff || Math.abs(diff) > 120) return t;
+        var c = t + diff * 60;
+        return orologio(c) === voluta ? c : t;       /* un'ora che quel giorno non esiste (29 marzo, 02:30): si resta */
+    }
+    /* TEMPO-PURO-FINE */
+
+    var VELOCITA = [60, 300, 1200];
+    var TP = {
+        aperto: false, T: null, play: false, vel: 300,
+        giorno: null, inizio: 0, fine: 86400, oggi: false,
+        fuso: '', orologio: null, localeOk: false, dataTesto: '',
+        persone: [],          /* visibili: [{nome, colore, tracce: [[punti]], seg}] (piu' tracce = piu' dispositivi con quel nome) */
+        fantasmi: {},         /* nome -> {marker, el, small, lat, lon, chiave, misura, off, gcart} */
+        vicini: {},           /* giorno -> {prima: {nome: [punti]}, dopo: {nome: [punti]}, quando, carica} */
+        sosteTs: [], sosteN: -1, zoneOcc: null,
+        raf: 0, ultimoFrame: 0, presa: false, eraInPlay: false, rect: null, fineX: null, fineT: 0, fineLento: 1,
+        alBordo: false, minuto: null, chiaveFatto: '', codaPiena: false, pila: 1, altezzaPila: 0, mezzoCartellino: 0,
+        manoUtente: 0, ultimoSegui: 0, foglioChiusoPrima: true, rientra: 0
+    };
+    var FILTRO_ZONE_NOME = ['==', ['geometry-type'], 'Point'];     /* quello di preparaLivelli() */
+    (function () {
+        var v = parseInt(ricordaScelta('wh_mappa_tempo_vel', '300'), 10);
+        if (VELOCITA.indexOf(v) >= 0) TP.vel = v;
+    })();
+
+    var elTempo = document.getElementById('tempo');
+    var elPista = document.getElementById('t-pista');
+    var elBinario = document.getElementById('t-binario');
+    var elTestina = document.getElementById('t-testina');
+    var elOra = document.getElementById('t-ora');
+    var elPlay = document.getElementById('t-play');
+    var elFuturo = document.getElementById('t-futuro');
+
+    function telefono() { return window.matchMedia('(max-width: 860px)').matches; }
+    function due(n) { return String(n).padStart(2, '0'); }
+    function tOra(ts) {
+        if (TP.orologio) return TP.orologio(ts);
+        if (TP.localeOk) return comeOra(ts);
+        var m = Math.floor((ts - TP.inizio) / 60);
+        m = ((m % 1440) + 1440) % 1440;
+        return due(Math.floor(m / 60)) + ':' + due(m % 60);
+    }
+    function tLimite() {                             /* oggi non si va oltre l'adesso; un giorno passato finisce alle 23:59 */
+        return Math.max(TP.inizio, Math.min(TP.fine - 60, Date.now() / 1000));
+    }
+    function tPct(t) { return (t - TP.inizio) / Math.max(1, TP.fine - TP.inizio) * 100; }
+
+    /* --- aprire e chiudere --- */
+    function tempoApri() {
+        if (TP.aperto) { elPista.focus({ preventScroll: true }); return; }
+        TP.aperto = true;
+        TP.T = null; TP.giorno = null; TP.minuto = null; TP.sosteN = -1; TP.chiaveFatto = '';
+        document.body.classList.add('tempo-aperto');
+        if (telefono()) {
+            TP.foglioChiusoPrima = document.body.classList.contains('chiuso');
+            document.body.classList.add('chiuso');
+        }
+        elTempo.hidden = false;
+        elTempo.classList.add('entra');
+        requestAnimationFrame(function () { requestAnimationFrame(function () { elTempo.classList.remove('entra'); }); });
+        var b = document.getElementById('btn-tempo');
+        b.classList.add('acceso'); b.setAttribute('aria-expanded', 'true');
+        tAltezza();
+        tempoStile();
+        tempoDati();
+        elPista.focus({ preventScroll: true });
+    }
+    function tempoChiudi() {
+        if (!TP.aperto) return;
+        tempoPausa();
+        TP.aperto = false;
+        if (TP.raf) { cancelAnimationFrame(TP.raf); TP.raf = 0; }
+        Object.keys(TP.fantasmi).forEach(function (n) { TP.fantasmi[n].marker.remove(); });
+        TP.fantasmi = {};
+        elTempo.hidden = true;
+        document.body.classList.remove('tempo-aperto');
+        if (telefono() && !TP.foglioChiusoPrima) document.body.classList.remove('chiuso');
+        var b = document.getElementById('btn-tempo');
+        b.classList.remove('acceso'); b.setAttribute('aria-expanded', 'false');
+        tempoStile();
+        if (mappaPronta && map.getSource('tempo-fatto')) {
+            map.getSource('tempo-fatto').setData(vuoto());
+            map.getSource('tempo-coda').setData(vuoto());
+        }
+        b.focus({ preventScroll: true });
+    }
+
+    /* i livelli delle scie: con la barra aperta la giornata intera si fa tenue e
+       quello che e' gia' successo all'ora scelta si ridisegna pieno sopra */
+    function tempoStile() {
+        if (!mappaPronta || !map.getLayer('scie-linea') || !map.getLayer('tempo-fatto')) return;
+        var a = TP.aperto;
+        /* i valori da chiusa sono gli stessi di preparaLivelli() */
+        map.setPaintProperty('scie-linea', 'line-opacity', a ? 0.22 : ['case', ['==', ['get', 'recente'], 1], 0.95, 0.42]);
+        map.setPaintProperty('scie-alone', 'line-opacity', a ? 0.05 : 0.16);
+        map.setPaintProperty('scie-buchi', 'line-opacity', a ? 0.22 : 0.35);
+        /* le durate delle soste ("41 min") finivano sotto i segni, che stanno proprio li': la durata
+           resta nel palloncino del cerchio, e il cartellino dice "dalle" */
+        map.setPaintProperty('soste-scritta', 'text-opacity', a ? 0 : 1);
+        if (!a) {
+            map.setPaintProperty('soste-cerchio', 'circle-opacity', 0.9);
+            map.setPaintProperty('soste-cerchio', 'circle-stroke-opacity', 1);
+            if (map.getLayer('zone-nome')) map.setFilter('zone-nome', FILTRO_ZONE_NOME);
+        }
+        ['tempo-fatto-alone', 'tempo-fatto', 'tempo-coda'].forEach(function (id) {
+            map.setLayoutProperty(id, 'visibility', a ? 'visible' : 'none');
+        });
+        TP.sosteN = -1; TP.chiaveFatto = ''; TP.zoneOcc = null;
+    }
+
+    function tAltezza() {
+        if (!TP.aperto) return;
+        document.body.style.setProperty('--alto-tempo', elTempo.offsetHeight + 'px');
+    }
+
+    /* --- i dati: si rifanno quando arrivano i punti, cambia il giorno o un filtro --- */
+    function tempoDati() {
+        if (!TP.aperto) return;
+        var lim = MEM.limiti(giornoScelto);
+        if (!lim) { elTempo.classList.add('attesa'); return; }
+        elTempo.classList.remove('attesa');
+
+        var cambio = TP.giorno !== giornoScelto;
+        if (cambio) {
+            var offset = (TP.giorno && TP.T !== null) ? TP.T - TP.inizio : null;
+            var voluta = offset === null ? null : tOra(TP.T);        /* l'ora dell'orologio da ritrovare nell'altro giorno */
+            TP.giorno = giornoScelto;
+            TP.inizio = lim.inizio; TP.fine = lim.fine;
+            var a = new Date(lim.inizio * 1000), b = new Date(lim.fine * 1000);
+            TP.localeOk = a.getHours() === 0 && a.getMinutes() === 0 && b.getHours() === 0 && b.getMinutes() === 0;
+            var p = TP.giorno.split('-');
+            var lingua = document.documentElement.lang || 'it', mezzodi = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12)), corto;
+            try {
+                TP.dataTesto = mezzodi.toLocaleDateString(lingua, { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' });
+                corto = mezzodi.toLocaleDateString(lingua, { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' });
+            } catch (e) { TP.dataTesto = corto = p[2] + '/' + p[1]; }
+            document.getElementById('t-data').textContent = TP.dataTesto;
+            document.getElementById('t-data-corto').textContent = corto;
+            elPista.setAttribute('aria-valuemax', Math.round((TP.fine - TP.inizio) / 60));
+            tDisegnaOre();
+            /* stessa ora dell'orologio nell'altro giorno (anche se uno dei due ha 23 o 25 ore) */
+            TP.T = offset === null ? null : tStessaOra(TP.inizio + offset, voluta, tOra);
+            TP.minuto = null; TP.chiaveFatto = '';
+        }
+        tVicini(TP.giorno);                           /* una volta per giorno; per oggi e ieri si rileggono ogni 10 minuti */
+        TP.oggi = TP.fine > Date.now() / 1000 && TP.inizio <= Date.now() / 1000;
+        TP.minuto = null;                             /* ora, testo e tratteggio del futuro si rifanno al prossimo fotogramma */
+
+        var dati = MEM.leggi(TP.giorno), vic = TP.vicini[TP.giorno] || {};
+        var limite = tLimite();
+        TP.persone = Object.keys(dati).filter(function (nome) {
+            return dati[nome] && dati[nome].length && !nascosti[nome] && !(scelto && scelto !== nome);
+        }).sort(function (x, y) { return x.localeCompare(y); }).map(function (nome) {
+            /* la fine del giorno prima e l'inizio del giorno dopo: chi guida a cavallo della
+               mezzanotte non sparisce e non ricompare dal nulla, e una sosta di ieri sera dice "dalle" giusto */
+            var punti = dati[nome];
+            if (vic.prima && vic.prima[nome]) punti = vic.prima[nome].concat(punti);
+            if (vic.dopo && vic.dopo[nome]) punti = punti.concat(vic.dopo[nome]);
+            /* una traccia per dispositivo (di solito una sola), senza i salti del GPS di chi sta fermo */
+            var tracce = tTracce(punti).map(tPulisci);
+            var seg = tUnisci(tracce.map(function (tr) { return tSegmenti(tr, TP.inizio, limite); }));
+            return { nome: nome, colore: coloreDi(nome), tracce: tracce, seg: seg, pos: [], k: 0 };
+        });
+        TP.sosteTs = [];                              /* [[ts]]: si cerca con tIndice come i punti */
+        TP.persone.forEach(function (p) {
+            (dati[p.nome] || []).forEach(function (pt) { if ((pt[3] || 0) >= SOSTA_SECONDI) TP.sosteTs.push([pt[0]]); });
+        });
+        TP.sosteTs.sort(function (x, y) { return x[0] - y[0]; });
+        TP.sosteN = -1; TP.chiaveFatto = '';
+
+        /* via i segni di chi non si vede piu' (filtro, giorno senza dati) */
+        var vivi = {};
+        TP.persone.forEach(function (p) { vivi[p.nome] = true; });
+        Object.keys(TP.fantasmi).forEach(function (n) {
+            if (!vivi[n]) { TP.fantasmi[n].marker.remove(); delete TP.fantasmi[n]; }
+        });
+
+        tDisegnaCorsie();
+        tFrecceGiorno();
+
+        if (TP.T === null) {
+            TP.T = TP.oggi ? limite : tPrimoMovimento();
+            TP.alBordo = TP.oggi;
+        } else if (cambio) {
+            TP.T = Math.min(limite, TP.T);
+            TP.alBordo = TP.oggi && TP.T >= limite - 2;          /* oggi, piu' avanti dell'adesso: si segue l'adesso */
+        }
+        if (cambio) tInquadra();
+        if (TP.alBordo && TP.oggi && !TP.play && !TP.presa) TP.T = limite;   /* resta attaccata all'adesso */
+        TP.T = Math.max(TP.inizio, Math.min(limite, TP.T));
+        tAltezza();
+        programma();
+    }
+
+    /* Il giorno prima (la sua fine) e il giorno dopo (il suo inizio). Per oggi e per ieri si rileggono
+       ogni 10 minuti: una sosta cominciata ieri sera si allunga ancora dopo la mezzanotte, e il "dopo"
+       di ieri e' oggi, che si sta riempiendo. Quelli vecchi restano finche' non arrivano i nuovi. */
+    function tVicini(g) {
+        var v = TP.vicini[g], ora = Date.now();
+        var recente = TP.fine > ora / 1000 - 86400;
+        if (v && (v.carica || !recente || ora - v.quando < 600000)) return;
+        if (!v) v = TP.vicini[g] = { prima: {}, dopo: {}, quando: 0 };
+        v.carica = true;
+        var nuovo = { prima: {}, dopo: {}, quando: ora, carica: false };
+        function leggi(giorno, dove) {
+            return fetch('/api/location/storico?giorno=' + encodeURIComponent(giorno), { cache: 'no-store' })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (!d || d.error) throw new Error('storico');
+                    var per = d.persone || {};
+                    Object.keys(per).forEach(function (n) {
+                        if (per[n] && per[n].length) nuovo[dove][n] = dove === 'prima' ? tCoda(per[n]) : tTesta(per[n]);
+                    });
+                });
+        }
+        var lavori = [leggi(tGiornoAccanto(g, -1), 'prima')];
+        if (TP.fine <= ora / 1000) lavori.push(leggi(tGiornoAccanto(g, 1), 'dopo'));    /* oggi: il domani non c'e' ancora */
+        Promise.all(lavori).then(function () {
+            TP.vicini[g] = nuovo;
+            if (TP.aperto && TP.giorno === g) tempoDati();
+        }, function () { v.carica = false; v.quando = ora; });                         /* si riprova fra 10 minuti */
+    }
+
+    function tPrimoMovimento() {
+        var t = null;
+        TP.persone.forEach(function (p) {
+            /* il primo tragitto vero: non i pochi secondi di un GPS che salta */
+            p.seg.forEach(function (s) { if (s.tipo === 'muove' && s.b - s.a >= 120 && (t === null || s.a < t)) t = s.a; });
+        });
+        if (t === null) return TP.inizio + (TP.fine - TP.inizio) / 2;
+        return Math.max(TP.inizio, t - 300);
+    }
+
+    function tDisegnaOre() {
+        var html = '';
+        tOre(TP.inizio, TP.fine, tOra).forEach(function (h) {
+            var grande = h.ora % 3 === 0;
+            html += '<span class="h' + (grande ? ' grande' : '') + (h.ora % 6 ? ' solo3' : '') + '" style="left:' + tPct(h.t).toFixed(3) + '%">' +
+                    (grande ? '<b>' + due(h.ora) + '</b>' : '') + '</span>';
+        });
+        document.getElementById('t-ore').innerHTML = html;
+    }
+
+    function tDisegnaCorsie() {
+        var cont = document.getElementById('t-corsie');
+        if (!TP.persone.length) {
+            cont.innerHTML = '<div class="t-nessuno">' + pulito(frase('fr-t-nessuno')) + '</div>';
+            return;
+        }
+        cont.innerHTML = TP.persone.map(function (p) {
+            return '<div class="t-corsia" style="--c:' + p.colore + '"><span class="sigla">' + pulito(iniziale(p.nome)) + '</span>' +
+                p.seg.map(function (s) {
+                    var a = tPct(s.a), b = tPct(s.b);
+                    return '<i class="' + s.tipo + '" style="left:' + a.toFixed(3) + '%;width:' + (b - a).toFixed(3) + '%"></i>';
+                }).join('') + '</div>';
+        }).join('');
+    }
+
+    function tElencoGiorni() {
+        var g = MEM.giorni(), o = MEM.oggi();
+        if (g.indexOf(o) === -1) g.push(o);
+        return g.sort();
+    }
+    function tFrecceGiorno() {
+        var g = tElencoGiorni(), i = g.indexOf(TP.giorno);
+        var prima = null, dopo = null;
+        g.forEach(function (x) {
+            if (x < TP.giorno) prima = x;
+            if (x > TP.giorno && dopo === null) dopo = x;
+        });
+        document.getElementById('t-prima').disabled = !prima;
+        document.getElementById('t-dopo').disabled = !dopo;
+        document.getElementById('t-prima').setAttribute('data-g', prima || '');
+        document.getElementById('t-dopo').setAttribute('data-g', dopo || '');
+        return i;
+    }
+
+    function tMargini() {
+        var c = map.getContainer(), w = c.clientWidth, h = c.clientHeight;
+        var r0 = c.getBoundingClientRect(), cmd = document.querySelector('.comandi').getBoundingClientRect();
+        /* lo spazio libero in verticale: sotto la barra (o sopra, se col foglio aperto e' salita in alto)
+           e, sul telefono, sopra il foglio quando e' aperto */
+        var alto = 0, basso = h;
+        if (!elTempo.hidden) {
+            var rt = elTempo.getBoundingClientRect();
+            if (rt.top - r0.top > h / 2) basso = rt.top - r0.top; else alto = rt.bottom - r0.top;
+        }
+        if (telefono() && !document.body.classList.contains('chiuso')) {
+            var rp = document.querySelector('.pannello').getBoundingClientRect();
+            if (rp.top - r0.top < basso) basso = Math.max(h / 3, rp.top - r0.top);
+        }
+        /* i segni hanno il cartellino sotto il tondo: in basso serve piu' aria (di piu' se ne sono impilati
+           piu' d'uno); sopra (telefono) e a destra (computer) ci sono i comandi della mappa */
+        var sotto = Math.max(40, h - basso + 24) + 40 + Math.max(0, TP.altezzaPila - 40);
+        var lato = Math.max(84, Math.round(TP.mezzoCartellino) + 12);      /* il cartellino e' piu' largo del tondo */
+        var m = telefono() ? { top: Math.max(90, Math.round(cmd.bottom - r0.top) + 34, Math.round(alto) + 34), left: lato, right: lato, bottom: sotto }
+                           : { top: Math.max(70, Math.round(alto) + 34), left: Math.min(430, Math.round(w * 0.38)),
+                               right: Math.max(110, Math.round(r0.right - cmd.left) + 70), bottom: sotto };
+        if (m.top + m.bottom > h - 80) { m.bottom = Math.max(20, h - 80 - m.top); }
+        if (m.left + m.right > w - 80) { m.left = m.right = 20; }
+        return m;
+    }
+    function tInquadra() {
+        var dati = MEM.leggi(TP.giorno), b = null;
+        TP.persone.forEach(function (p) {
+            (dati[p.nome] || []).forEach(function (pt) {
+                if (b) b.extend([pt[2], pt[1]]); else b = new maplibregl.LngLatBounds([pt[2], pt[1]], [pt[2], pt[1]]);
+            });
+        });
+        if (b) map.fitBounds(b, { padding: tMargini(), maxZoom: 16, duration: 900 }, { rientra: ++TP.rientra, giro: 0 });
+    }
+
+    function tInquadraOra() {
+        var punti = [];
+        Object.keys(TP.fantasmi).forEach(function (n) {
+            var f = TP.fantasmi[n];
+            if (f.el.style.display !== 'none') punti.push([f.lon, f.lat]);
+        });
+        if (!punti.length) return;
+        var b = punti.reduce(function (acc, pt) { return acc.extend(pt); }, new maplibregl.LngLatBounds(punti[0], punti[0]));
+        map.fitBounds(b, { padding: tMargini(), maxZoom: 16, duration: 900 }, { rientra: ++TP.rientra, giro: 0 });
+    }
+
+    /* Dopo un'inquadratura si guarda dove sono finiti davvero tondi e cartellini (quelli impilati non
+       si possono sapere prima): se qualcuno sta sotto la barra, i comandi, il pannello o il foglio,
+       la mappa si sposta o si allontana quanto basta. Al massimo due ritocchi, e mai se la sposta l'utente. */
+    function tLibero(box) {
+        var c = map.getContainer(), w = c.clientWidth, h = c.clientHeight, r0 = c.getBoundingClientRect();
+        var cmd = document.querySelector('.comandi').getBoundingClientRect();
+        var rp = document.querySelector('.pannello').getBoundingClientRect();
+        var L = { l: 8, t: 8, r: w - 8, b: h - 8 };
+        if (!elTempo.hidden) {
+            var rt = elTempo.getBoundingClientRect();
+            if (rt.top - r0.top > h / 2) L.b = Math.min(L.b, rt.top - r0.top - 8); else L.t = Math.max(L.t, rt.bottom - r0.top + 8);
+        }
+        if (telefono()) {
+            if (!box || box.r > cmd.left - r0.left - 8) L.t = Math.max(L.t, cmd.bottom - r0.top + 8);
+            var zoom = document.querySelector('.maplibregl-ctrl-bottom-right .maplibregl-ctrl-group'), rz = zoom && zoom.getBoundingClientRect();
+            if (rz && rz.width) L.r = Math.min(L.r, rz.left - r0.left - 8);             /* lo zoom sta a destra, sopra la barra */
+            if (!document.body.classList.contains('chiuso') && rp.top - r0.top < L.b) L.b = Math.max(h / 3, rp.top - r0.top - 8);
+        } else {
+            L.l = Math.max(L.l, rp.right - r0.left + 12);
+            L.r = Math.min(L.r, cmd.left - r0.left - 12);
+        }
+        return L;
+    }
+    function tRientra(giro) {
+        if (!TP.aperto || !mappaPronta || TP.T === null) return;
+        tIstante();                                   /* posizioni e pile per la vista di adesso */
+        var c = map.getContainer(), r0 = c.getBoundingClientRect(), box = null, pti = null;
+        function allarga(q, l, t, r, b) { return q ? { l: Math.min(q.l, l), t: Math.min(q.t, t), r: Math.max(q.r, r), b: Math.max(q.b, b) } : { l: l, t: t, r: r, b: b }; }
+        Object.keys(TP.fantasmi).forEach(function (n) {
+            var f = TP.fantasmi[n];
+            if (f.el.style.display === 'none') return;
+            ['.bolla', '.cartellino'].forEach(function (sel) {
+                var r = f.el.querySelector(sel).getBoundingClientRect();
+                box = allarga(box, r.left - r0.left, r.top - r0.top, r.right - r0.left, r.bottom - r0.top);
+            });
+            var p = map.project([f.lon, f.lat]);
+            pti = allarga(pti, p.x, p.y, p.x, p.y);
+        });
+        if (!box) return;
+        var L = tLibero(box);
+        if (box.l >= L.l && box.r <= L.r && box.t >= L.t && box.b <= L.b) return;
+        var lw = L.r - L.l, lh = L.b - L.t, bw = box.r - box.l, bh = box.b - box.t;
+        var sw = pti.r - pti.l, sh = pti.b - pti.t, ow = bw - sw, oh = bh - sh, k = 1;
+        /* non ci sta: ci si allontana, ma solo se aiuta (i cartellini non rimpiccioliscono, solo le distanze) */
+        if (bw > lw && lw - ow > 24 && sw > 1) k = Math.max(k, sw / (lw - ow));
+        if (bh > lh && lh - oh > 24 && sh > 1) k = Math.max(k, sh / (lh - oh));
+        if (k > 1.02) {
+            var z = Math.max(map.getMinZoom(), map.getZoom() - Math.min(1.5, Math.log(k) / Math.LN2 + 0.1));
+            map.easeTo({ center: map.unproject([(box.l + box.r) / 2, (box.t + box.b) / 2]), zoom: z, duration: 450,
+                         offset: [(L.l + L.r) / 2 - c.clientWidth / 2, (L.t + L.b) / 2 - c.clientHeight / 2] },
+                       { rientra: TP.rientra, giro: giro });
+            return;
+        }
+        /* ci sta (o non ci stara' comunque): si sposta quanto basta; se e' troppo alto, contano i tondi in cima */
+        var dx = bw > lw ? (L.l + L.r - box.l - box.r) / 2 : (box.l < L.l ? L.l - box.l : (box.r > L.r ? L.r - box.r : 0));
+        var dy = bh > lh ? L.t - box.t : (box.t < L.t ? L.t - box.t : (box.b > L.b ? L.b - box.b : 0));
+        if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+        map.easeTo({ center: map.unproject([c.clientWidth / 2 - dx, c.clientHeight / 2 - dy]), duration: 400 }, { rientra: TP.rientra, giro: giro });
+    }
+
+    /* --- il disegno dell'istante: uno per fotogramma, al massimo --- */
+    function programma() { if (!TP.raf && TP.aperto) TP.raf = requestAnimationFrame(ciclo); }
+    function ciclo(ora) {
+        TP.raf = 0;
+        if (!TP.aperto) return;
+        if (TP.play) {
+            var dt = TP.ultimoFrame ? Math.min(0.25, (ora - TP.ultimoFrame) / 1000) : 0;
+            TP.ultimoFrame = ora;
+            var lim = tLimite();
+            TP.T = Math.min(lim, TP.T + dt * TP.vel);
+            if (TP.T >= lim) { TP.alBordo = TP.oggi; tempoPausa(); }
+        }
+        tIstante();
+        if (TP.play) TP.raf = requestAnimationFrame(ciclo);
+    }
+
+    function tIstante() {
+        var T = TP.T;
+        elTestina.style.left = tPct(T).toFixed(3) + '%';
+        var min = Math.floor(T / 60);
+        if (min !== TP.minuto) {
+            TP.minuto = min;
+            var hhmm = tOra(T);
+            elOra.textContent = hhmm;
+            elPista.setAttribute('aria-valuenow', Math.round((T - TP.inizio) / 60));
+            elPista.setAttribute('aria-valuetext', hhmm + ', ' + TP.dataTesto);
+            if (TP.oggi) { elFuturo.hidden = false; elFuturo.style.left = tPct(tLimite()).toFixed(3) + '%'; }
+            else elFuturo.hidden = true;
+        }
+
+        /* per ogni persona la posizione di ogni sua traccia; si mostra la piu' informativa */
+        var posizioni = [];
+        TP.persone.forEach(function (p) {
+            p.pos = p.tracce.map(function (tr) { return tPosizione(tr, T); });
+            p.k = p.pos.length > 1 ? tScegli(p.pos, p.tracce) : 0;
+            posizioni.push(p.pos[p.k]);
+            tFantasma(p, p.pos[p.k]);
+        });
+        tRaggruppa();
+        tScia(posizioni);
+
+        var n = tIndice(TP.sosteTs, T) + 1;
+        if (n !== TP.sosteN && mappaPronta && map.getLayer('soste-cerchio')) {
+            TP.sosteN = n;
+            var prima = ['<=', ['get', 'ts'], T];
+            map.setPaintProperty('soste-cerchio', 'circle-opacity', ['case', prima, 0.9, 0.22]);
+            map.setPaintProperty('soste-cerchio', 'circle-stroke-opacity', ['case', prima, 1, 0.3]);
+        }
+        /* il nome di una zona dove c'e' qualcuno si toglie: stava fra il tondo e il cartellino,
+           e il cartellino la zona la dice gia' */
+        var occ = [];
+        posizioni.forEach(function (pos) {
+            if (pos.stato === 'nessuna') return;
+            zone.forEach(function (z) {
+                if (occ.indexOf(z.chiave) < 0 && distanza(pos.lat, pos.lon, z.lat, z.lon) <= z.raggio) occ.push(z.chiave);
+            });
+        });
+        var chiaveOcc = occ.sort().join('|');
+        if (chiaveOcc !== TP.zoneOcc && mappaPronta && map.getLayer('zone-nome')) {
+            TP.zoneOcc = chiaveOcc;
+            map.setFilter('zone-nome', occ.length ? ['all', FILTRO_ZONE_NOME, ['!', ['in', ['get', 'chiave'], ['literal', occ]]]] : FILTRO_ZONE_NOME);
+        }
+        if (TP.play) tSegui(posizioni);
+    }
+
+    function zonaDel(lat, lon) {                     /* la zona piu' piccola che contiene il punto */
+        var z = null;
+        zone.forEach(function (x) {
+            if (distanza(lat, lon, x.lat, x.lon) <= x.raggio && (!z || x.raggio < z.raggio)) z = x;
+        });
+        return z;
+    }
+    /* un orario di un altro giorno (una sosta cominciata ieri sera) porta il giorno: "20:43 (gio 24)" */
+    function tOraGiorno(ts) {
+        if (ts >= TP.inizio && ts < TP.fine) return tOra(ts);
+        var g = '';
+        try {
+            var o = { weekday: 'short', day: 'numeric' };
+            if (TP.fuso) o.timeZone = TP.fuso;
+            g = new Date(ts * 1000).toLocaleDateString(document.documentElement.lang || 'it', o);
+        } catch (e) {}
+        return tOra(ts) + (g ? ' (' + g + ')' : '');
+    }
+
+    function tFantasma(p, pos) {
+        var f = TP.fantasmi[p.nome];
+        if (pos.stato === 'nessuna') { if (f) f.el.style.display = 'none'; return; }
+        if (!f) {
+            var el = document.createElement('div');
+            el.className = 'segno fantasma';
+            el.style.setProperty('--c', p.colore);
+            el.innerHTML =
+                '<div class="bolla" style="background:' + p.colore + '">' + pulito(iniziale(p.nome)) +
+                    '<span class="rotta"></span></div>' +
+                '<div class="cartellino" data-no-tr><b></b><small></small></div>';
+            el.querySelector('b').textContent = p.nome;
+            el.addEventListener('click', function () { scegli(p.nome); });
+            /* il centro del tondo (40 px) sta esattamente sul punto, dove finisce la scia */
+            var m = new maplibregl.Marker({ element: el, anchor: 'top', offset: [0, -20] }).setLngLat([pos.lon, pos.lat]).addTo(map);
+            f = TP.fantasmi[p.nome] = { nome: p.nome, marker: m, el: el, small: el.querySelector('small'), lat: pos.lat, lon: pos.lon,
+                                        chiave: '', misura: null, off: '0,0', gcart: '0,0', z: '', pila: false };
+        }
+        if (f.el.style.display) f.el.style.display = '';
+        if (f.lat !== pos.lat || f.lon !== pos.lon) {
+            f.marker.setLngLat([pos.lon, pos.lat]);
+            f.lat = pos.lat; f.lon = pos.lon;
+        }
+        var muove = pos.stato === 'muove';
+        var chiave = pos.stato + '|' + (pos.da || pos.alle || '') + '|' + (muove ? Math.round(pos.kmh / 2) : '');
+        if (muove) f.el.style.setProperty('--rotta', Math.round(pos.rotta - map.getBearing()) + 'deg');
+        if (chiave === f.chiave) return;
+        f.chiave = chiave;
+        var testo;
+        if (pos.stato === 'ferma') {
+            var z = zonaDel(pos.lat, pos.lon);
+            testo = frase('fr-t-sosta') + ' ' + tOraGiorno(pos.da) + (z ? ' · ' + z.nome : '');
+        } else if (muove) {
+            testo = frase('fr-t-muove') + (pos.kmh >= 3 ? ' · ' + Math.round(pos.kmh) + ' km/h' : '');
+        } else {
+            testo = frase('fr-t-ultima') + ' ' + tOraGiorno(pos.alle);
+        }
+        f.small.textContent = testo;
+        f.misura = null;                              /* il cartellino ha cambiato larghezza: si rimisura */
+        f.el.classList.toggle('muove', muove);
+        f.el.classList.toggle('sbiadito', pos.stato === 'buco');
+    }
+
+    /* Chi sta nello stesso posto non si copre: i tondi che si toccherebbero si affiancano come una pila
+       di avatar (spostati di pochi pixel) e i loro cartellini, su una riga sola, si mettono uno sotto
+       l'altro; un cartellino che coprirebbe il tondo o il cartellino di un altro scende quanto basta. */
+    function tRaggruppa() {
+        if (!mappaPronta) return;
+        var vis = [], mezzo = 0;
+        TP.persone.forEach(function (p) {
+            var f = TP.fantasmi[p.nome];
+            if (!f || f.el.style.display === 'none') return;
+            f.pt = map.project([f.lon, f.lat]);
+            vis.push(f);
+        });
+        var gruppi = [];
+        vis.forEach(function (f) {
+            var tocca = gruppi.filter(function (g) {
+                return g.some(function (h) { return Math.abs(h.pt.x - f.pt.x) < 38 && Math.abs(h.pt.y - f.pt.y) < 38; });
+            });
+            var g = tocca[0];
+            if (!g) { gruppi.push([f]); return; }
+            g.push(f);
+            for (var k = 1; k < tocca.length; k++) { Array.prototype.push.apply(g, tocca[k]); gruppi.splice(gruppi.indexOf(tocca[k]), 1); }
+        });
+        /* due gruppi vicini (meno di 90 px) i cui cartellini coprirebbero l'altro diventano una pila sola:
+           a quello zoom sono "li'" tutti e due, e una lista sotto una fila di tondi si legge meglio */
+        function impronta(g) {
+            var x = 0, y = 0, l = Infinity, r = -Infinity, w = 0, h = 0;
+            g.forEach(function (f) {
+                if (!f.misura) { var c = f.el.querySelector('.cartellino'); f.misura = [c.offsetWidth, c.offsetHeight]; }
+                x += f.pt.x / g.length; y += f.pt.y / g.length;
+                l = Math.min(l, f.pt.x); r = Math.max(r, f.pt.x);
+                w = Math.max(w, f.misura[0]); h += f.misura[1] + 3;
+            });
+            return { x: x, y: y, l: Math.min(l - 20, x - w / 2), r: Math.max(r + 20, x + w / 2), t: y - 20, b: y + 25 + h };
+        }
+        for (var unite = true, giri = 0; unite && giri < 6; giri++) {
+            unite = false;
+            for (var i = 0; i < gruppi.length && !unite; i++) {
+                for (var j = i + 1; j < gruppi.length && !unite; j++) {
+                    var a = impronta(gruppi[i]), b = impronta(gruppi[j]);
+                    if (Math.abs(a.x - b.x) < 90 && Math.abs(a.y - b.y) < 90 && a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t) {
+                        Array.prototype.push.apply(gruppi[i], gruppi[j]); gruppi.splice(j, 1); unite = true;
+                    }
+                }
+            }
+        }
+        /* nella pila il cartellino va su una riga: cambia misura, quindi si misura dopo */
+        gruppi.forEach(function (g) {
+            var pila = g.length > 1;
+            g.forEach(function (f) {
+                if (f.pila !== pila) { f.pila = pila; f.el.classList.toggle('in-pila', pila); f.misura = null; }
+                if (!f.misura) { var c = f.el.querySelector('.cartellino'); f.misura = [c.offsetWidth, c.offsetHeight]; }
+                mezzo = Math.max(mezzo, f.misura[0] / 2);
+            });
+        });
+        TP.mezzoCartellino = mezzo;
+        var PASSO = 30, RIGA = 3, pila = 1, altezzaPila = 0;
+        var blocchi = gruppi.map(function (g) {
+            /* da sinistra a destra come stanno davvero; chi sta nello stesso punto, in ordine di nome (non ballano) */
+            g.sort(function (a, b) { return (Math.round(a.pt.x / 16) - Math.round(b.pt.x / 16)) || (a.nome < b.nome ? -1 : 1); });
+            var cx = 0, cy = 0, larga = 0, alta = 0, n = g.length;
+            g.forEach(function (f) { cx += f.pt.x / n; cy += f.pt.y / n; });
+            g.forEach(function (f, k) {
+                f.slot = n > 1 ? { x: cx + (k - (n - 1) / 2) * PASSO, y: cy } : { x: f.pt.x, y: f.pt.y };
+                larga = Math.max(larga, f.misura[0]);
+                alta += f.misura[1] + (k ? RIGA : 0);
+            });
+            pila = Math.max(pila, n);
+            altezzaPila = Math.max(altezzaPila, alta);
+            var l = g[0].slot.x - 20, r = g[n - 1].slot.x + 20;
+            return { g: g, cx: cx, giu: 0, tondi: { l: l, r: r, t: cy - 20, b: cy + 20 },
+                     cart: { l: cx - larga / 2, r: cx + larga / 2, t: cy + 25, b: cy + 25 + alta } };
+        });
+        TP.pila = pila; TP.altezzaPila = altezzaPila;
+        /* Dove va il cartellino (o la pila di cartellini) di ogni gruppo: sotto i tondi; se li' copre un altro
+           segno o finisce sotto la barra, i comandi o il pannello, sopra, a destra o a sinistra; se no scende
+           oltre gli altri. Prima le pile, poi gli altri, dall'alto in basso. I tondi restano dove sono. */
+        var c0 = map.getContainer().getBoundingClientRect(), W = c0.width, H = c0.height, fissi = [];
+        ['.comandi', '#tempo', '.pannello', '.maplibregl-ctrl-bottom-right .maplibregl-ctrl-group'].forEach(function (sel) {
+            var e = document.querySelector(sel);
+            if (!e || e.hidden) return;
+            var r = e.getBoundingClientRect();
+            if (r.width && r.bottom > c0.top && r.top < c0.bottom) fissi.push({ l: r.left - c0.left, t: r.top - c0.top, r: r.right - c0.left, b: r.bottom - c0.top });
+        });
+        var tondi = blocchi.map(function (b) { return b.tondi; }), messi = [];
+        function area(q, o) { return Math.max(0, Math.min(q.r, o.r) - Math.max(q.l, o.l)) * Math.max(0, Math.min(q.b, o.b) - Math.max(q.t, o.t)); }
+        function costo(q, mio) {                      /* 0 = libero; coprire un tondo e' il peggio, poi barra e comandi, poi un altro cartellino */
+            var k = 0;
+            tondi.forEach(function (o) { var a = o === mio ? 0 : area(q, o); if (a > 0) k += 1e6 + a; });
+            fissi.forEach(function (o) { var a = area(q, o); if (a > 0) k += 1e5 + 3 * a; });
+            messi.forEach(function (o) { var a = area(q, o); if (a > 0) k += 2e4 + a; });
+            return k + 3 * ((q.r - q.l) * (q.b - q.t) - area(q, { l: 4, t: 4, r: W - 4, b: H - 4 }));
+        }
+        blocchi.sort(function (a, b) { return (b.g.length - a.g.length) || (a.cart.t - b.cart.t); });
+        blocchi.forEach(function (b) {
+            var q = b.cart, T = b.tondi, alta = q.b - q.t, larga = q.r - q.l, mezzo = (T.t + T.b) / 2 - alta / 2;
+            var scelte = [[0, 0, 0], [0, T.t - 5 - alta - q.t, 40],                       /* sotto, sopra */
+                          [T.r + 6 - q.l, mezzo - q.t, 120], [T.l - 6 - larga - q.l, mezzo - q.t, 160]];   /* a destra, a sinistra */
+            var giu = 0;
+            for (var giro = 0; giro < 8; giro++) {    /* e l'ultima: sotto, spinto giu' oltre gli altri */
+                var serve = 0;
+                tondi.concat(messi).forEach(function (o) {
+                    if (o === T) return;
+                    if (q.l < o.r && q.r > o.l && q.t + giu < o.b && q.b + giu > o.t) serve = Math.max(serve, o.b + 3 - q.t);
+                });
+                if (!serve) break;
+                giu = serve;
+            }
+            if (giu > 0) scelte.push([0, Math.min(giu, 200), 40 * Math.min(giu, 200)]);
+            var meglio = scelte[0], minimo = Infinity;
+            scelte.forEach(function (sc) {
+                var k = costo({ l: q.l + sc[0], r: q.r + sc[0], t: q.t + sc[1], b: q.b + sc[1] }, T) + sc[2];
+                if (k < minimo) { minimo = k; meglio = sc; }
+            });
+            b.sposta = meglio;
+            messi.push({ l: q.l + meglio[0], r: q.r + meglio[0], t: q.t + meglio[1], b: q.b + meglio[1] });
+        });
+        blocchi.forEach(function (b) {
+            var y = b.sposta[1], n = b.g.length;
+            b.g.forEach(function (f, k) {
+                var ox = Math.round(f.slot.x - f.pt.x), oy = Math.round(f.slot.y - f.pt.y), chiave = ox + ',' + oy;
+                if (f.off !== chiave) { f.marker.setOffset([ox, oy - 20]); f.off = chiave; }
+                /* nella pila i cartellini (di larghezze diverse) si allineano al centro della pila, o al lato se stanno di fianco */
+                var lato = b.sposta[0] > 0 ? (f.misura[0] - (b.cart.r - b.cart.l)) / 2 : b.sposta[0] < 0 ? ((b.cart.r - b.cart.l) - f.misura[0]) / 2 : 0;
+                var dx = Math.round(b.cx - f.slot.x + b.sposta[0] + lato), dy = Math.round(y), gk = dx + ',' + dy;
+                if (f.gcart !== gk) {
+                    f.el.style.setProperty('--g-dx', dx + 'px');
+                    f.el.style.setProperty('--g-dy', dy + 'px');
+                    f.gcart = gk;
+                }
+                var z = n > 1 ? String(20 - k) : (b.sposta[0] || b.sposta[1] ? '15' : '');     /* nella pila il primo sta sopra */
+                if (f.z !== z) { f.el.style.zIndex = z; f.z = z; }
+                y += f.misura[1] + RIGA;
+            });
+        });
+    }
+
+    /* la scia fino all'ora scelta (di ogni traccia): la parte fatta cambia solo quando si passa un punto,
+       il pezzetto dall'ultimo punto al segno si rifa' a ogni fotogramma */
+    function tScia(posizioni) {
+        if (!mappaPronta || !map.getSource('tempo-fatto')) return;
+        var chiave = TP.persone.map(function (p) { return p.pos.map(function (x) { return x.i; }).join('.'); }).join(',') + '|' + TP.persone.length;
+        if (chiave !== TP.chiaveFatto) {
+            TP.chiaveFatto = chiave;
+            var fc = vuoto();
+            TP.persone.forEach(function (p) {
+                p.tracce.forEach(function (tr, k) {
+                    var fino = p.pos[k].i, tratto = [];
+                    function chiudi() {
+                        if (tratto.length >= 2) fc.features.push({ type: 'Feature', properties: { colore: p.colore },
+                            geometry: { type: 'LineString', coordinates: tratto } });
+                        tratto = [];
+                    }
+                    for (var i = 0; i <= fino; i++) {
+                        var pt = tr[i];
+                        if (i > 0 && pt[0] - (tr[i - 1][0] + (tr[i - 1][3] || 0)) > T_BUCO) chiudi();
+                        tratto.push([pt[2], pt[1]]);
+                    }
+                    chiudi();
+                });
+            });
+            map.getSource('tempo-fatto').setData(fc);
+        }
+        var coda = vuoto();
+        TP.persone.forEach(function (p, k) {
+            var pos = posizioni[k];
+            if (pos.stato !== 'muove') return;
+            var pt = p.tracce[p.k][pos.i];
+            coda.features.push({ type: 'Feature', properties: { colore: p.colore },
+                geometry: { type: 'LineString', coordinates: [[pt[2], pt[1]], [pos.lon, pos.lat]] } });
+        });
+        if (coda.features.length || TP.codaPiena) {
+            map.getSource('tempo-coda').setData(coda);
+            TP.codaPiena = coda.features.length > 0;
+        }
+    }
+
+    /* in riproduzione la mappa segue chi si muove, con calma; se la sposta l'utente, per un po' no */
+    function tSegui(posizioni) {
+        var ora = Date.now();
+        if (ora - TP.ultimoSegui < 600 || ora - TP.manoUtente < 8000 || map.isMoving()) return;
+        TP.ultimoSegui = ora;
+        var punti = [];
+        posizioni.forEach(function (pos) { if (pos.stato === 'muove') punti.push([pos.lon, pos.lat]); });
+        if (!punti.length) return;
+        var c = map.getContainer(), w = c.clientWidth, h = c.clientHeight, m = tMargini();
+        var fuori = punti.some(function (pt) {
+            var s = map.project(pt);
+            return s.x < m.left || s.x > w - m.right || s.y < m.top || s.y > h - m.bottom;
+        });
+        if (!fuori) return;
+        var spo = [(m.left - m.right) / 2, (m.top - m.bottom) / 2];
+        var b = punti.reduce(function (acc, pt) { return acc.extend(pt); }, new maplibregl.LngLatBounds(punti[0], punti[0]));
+        var sw = map.project(b.getSouthWest()), ne = map.project(b.getNorthEast());
+        if (Math.abs(ne.x - sw.x) < w - m.left - m.right - 40 && Math.abs(sw.y - ne.y) < h - m.top - m.bottom - 40) {
+            map.easeTo({ center: b.getCenter(), offset: spo, duration: 1100 });
+        } else {
+            map.fitBounds(b, { padding: m, maxZoom: map.getZoom(), duration: 1100 });
+        }
+    }
+
+    /* --- comandi --- */
+    function tempoVai(t) {
+        var lim = tLimite();
+        TP.T = Math.max(TP.inizio, Math.min(lim, t));
+        TP.alBordo = TP.oggi && TP.T >= lim - 2;
+        programma();
+    }
+    function tempoPlay() {
+        if (!TP.aperto || TP.T === null) return;
+        if (TP.T >= tLimite() - 1) TP.T = tPrimoMovimento();
+        TP.play = true; TP.ultimoFrame = 0; TP.alBordo = false;
+        document.body.classList.add('tempo-va');
+        elPlay.classList.add('va');
+        elPlay.setAttribute('aria-label', frase('fr-t-pausa'));
+        elPlay.setAttribute('title', frase('fr-t-pausa'));
+        programma();
+    }
+    function tempoPausa() {
+        if (!TP.play) return;
+        TP.play = false;
+        document.body.classList.remove('tempo-va');
+        elPlay.classList.remove('va');
+        elPlay.setAttribute('aria-label', frase('fr-t-riproduci'));
+        elPlay.setAttribute('title', frase('fr-t-riproduci'));
+    }
+    /* la velocita' in minuti della giornata per ogni secondo vero: "5 min/s" si capisce, "×300" no */
+    function tMostraVel() { document.getElementById('t-vel-testo').textContent = (TP.vel / 60) + ' min/s'; }
+    tMostraVel();
+
+    document.getElementById('btn-tempo').addEventListener('click', function () {
+        if (TP.aperto) tempoChiudi(); else tempoApri();
+    });
+    document.getElementById('btn-rivedi').addEventListener('click', tempoApri);
+    document.getElementById('t-chiudi').addEventListener('click', tempoChiudi);
+    document.getElementById('t-adesso').addEventListener('click', tempoChiudi);
+    elPlay.addEventListener('click', function () { if (TP.play) tempoPausa(); else tempoPlay(); });
+    document.getElementById('t-vel').addEventListener('click', function () {
+        TP.vel = VELOCITA[(VELOCITA.indexOf(TP.vel) + 1) % VELOCITA.length];
+        conservaScelta('wh_mappa_tempo_vel', String(TP.vel));
+        tMostraVel();
+    });
+    ['t-prima', 't-dopo'].forEach(function (id) {
+        document.getElementById(id).addEventListener('click', function () {
+            var g = this.getAttribute('data-g');
+            if (g) scegliGiorno(g);
+        });
+    });
+
+    /* trascinare: dito o mouse, la mappa e la pagina sotto restano ferme */
+    /* Col dito la traccia e' corta (sul telefono ~4 minuti per pixel): se il dito sale sopra la traccia
+       mentre trascina, si va piano come nei lettori di iOS (un quarto, poi un dodicesimo), a partire
+       dall'ora a cui si era. Col mouse no: ci sono le frecce della tastiera. */
+    function daPuntatore(e) {
+        var r = TP.rect || elBinario.getBoundingClientRect(), giorno = TP.fine - TP.inizio;
+        var su = r.top - e.clientY, lento = 1;
+        if (TP.presa && e.pointerType && e.pointerType !== 'mouse' && su > 48) lento = su > 140 ? 12 : 4;
+        elPista.classList.toggle('lento', lento > 1);
+        elTempo.classList.toggle('lento', lento > 1);
+        if (lento > 1) {
+            if (TP.fineX === null || TP.fineLento !== lento) { TP.fineX = e.clientX; TP.fineT = TP.T; TP.fineLento = lento; }
+            tempoVai(TP.fineT + (e.clientX - TP.fineX) / Math.max(1, r.width) * giorno / lento);
+            return;
+        }
+        TP.fineX = null;
+        var f = Math.max(0, Math.min(1, (e.clientX - r.left) / Math.max(1, r.width)));
+        tempoVai(TP.inizio + f * giorno);
+    }
+    elPista.addEventListener('pointerdown', function (e) {
+        if (e.button > 0 || TP.T === null) return;
+        e.preventDefault();
+        elPista.focus({ preventScroll: true });
+        try { elPista.setPointerCapture(e.pointerId); } catch (x) {}
+        TP.presa = true; TP.rect = elBinario.getBoundingClientRect();
+        TP.eraInPlay = TP.play; tempoPausa();
+        elPista.classList.add('presa');
+        daPuntatore(e);
+    });
+    elPista.addEventListener('pointermove', function (e) {
+        if (!TP.presa) return;
+        e.preventDefault();
+        daPuntatore(e);
+    });
+    function lascia() {
+        if (!TP.presa) return;
+        TP.presa = false; TP.rect = null; TP.fineX = null;
+        elPista.classList.remove('presa', 'lento');
+        elTempo.classList.remove('lento');
+        if (TP.eraInPlay) tempoPlay();
+    }
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { elPista.addEventListener(ev, lascia); });
+    elPista.addEventListener('touchmove', function (e) { if (TP.presa) e.preventDefault(); }, { passive: false });
+
+    elPista.addEventListener('keydown', function (e) {
+        if (TP.T === null) return;
+        var passo = e.shiftKey ? 600 : 60, base = Math.floor(TP.T / 60) * 60, t;
+        switch (e.key) {
+            case 'ArrowRight': case 'ArrowUp':   t = base + passo; break;
+            case 'ArrowLeft':  case 'ArrowDown': t = base - passo; break;
+            case 'PageUp':   t = base + 3600; break;
+            case 'PageDown': t = base - 3600; break;
+            case 'Home': t = TP.inizio; break;
+            case 'End':  t = tLimite(); break;
+            default: return;
+        }
+        e.preventDefault(); e.stopPropagation();
+        tempoPausa();
+        tempoVai(t);
+    });
+    document.addEventListener('keydown', function (e) {
+        if (!TP.aperto || e.defaultPrevented || document.querySelector('.wh-pop')) return;
+        var el = e.target || {}, tag = el.tagName || '';
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || el.isContentEditable) return;
+        if (e.key === 'Escape') { e.preventDefault(); tempoChiudi(); }
+        else if ((e.key === ' ' || e.key === 'Spacebar') && tag !== 'BUTTON' && tag !== 'A') {
+            e.preventDefault();
+            if (TP.play) tempoPausa(); else tempoPlay();
+        }
+    });
+
+    /* chi sposta la mappa a mano ha la precedenza sull'inseguimento */
+    ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart'].forEach(function (ev) {
+        map.on(ev, function (e) { if (e && e.originalEvent) { TP.manoUtente = Date.now(); TP.rientra++; } });
+    });
+    /* ruotando la mappa la freccetta della direzione si rigira; zoomando i segni vicini si raggruppano di nuovo */
+    ['zoom', 'rotate', 'pitch'].forEach(function (ev) { map.on(ev, function () { if (TP.aperto) programma(); }); });
+    /* il ritocco dopo un'inquadratura: solo per l'ultima chiesta (un'animazione interrotta non conta), due volte al massimo */
+    map.on('moveend', function (e) { if (e && e.rientra === TP.rientra && e.giro < 2) tRientra(e.giro + 1); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) tempoPausa(); });
+    window.addEventListener('resize', function () { if (TP.aperto) { tAltezza(); TP.minuto = null; programma(); } });
+    if (window.ResizeObserver) new ResizeObserver(tAltezza).observe(elTempo);
+
+    /* =================================================================
+       13. AVVIO
        ================================================================= */
     if (window.lucide) lucide.createIcons();
     /* le scie di prima erano salvate nel browser: ora i percorsi stanno sul server,
@@ -1451,6 +2852,17 @@ body.zona-in-modifica #map, body.zona-in-modifica .maplibregl-canvas-container.m
         .then(function (r) { return r.json(); })
         .then(function (d) {
             if (d && d.lat && d.lon) { casa = { lat: +d.lat, lon: +d.lon, name: d.name }; mostraCasa(); }
+            if (d && d.timezone) {                    /* le ore della pagina (e il giorno "oggi") sono quelle di casa */
+                TP.orologio = tCreaOrologio(d.timezone);
+                if (TP.orologio) {
+                    TP.fuso = d.timezone; orologioCasa = TP.orologio;
+                    MEM.fuso(d.timezone);
+                    orologio();
+                    disegnaGiorni();                  /* se non l'ha scelto l'utente, "oggi" diventa l'oggi di casa */
+                    aggiornaPercorso(true);           /* ...e le soste si riscrivono con le ore di casa */
+                    if (TP.aperto && TP.giorno) { TP.minuto = null; tDisegnaOre(); programma(); }
+                }
+            }
         })
         .catch(function () {});
 

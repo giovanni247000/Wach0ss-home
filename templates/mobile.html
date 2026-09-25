@@ -4298,9 +4298,9 @@ window.addEventListener('load', () => { WeatherEffects.init(); });
             });
         });
 
-        // la scelta fatta su questo telefono; se non c'e', lo sfondo predefinito dell'impianto
-        // (Notte in citta' sugli impianti nuovi, vuoto su quelli di prima); poi quello di sempre
-        const savedBg = localStorage.getItem('core_bg_theme') || window.__sfondoImpianto || 'default';
+        // la scelta fatta su questo telefono; se non c'e', quella dell'impianto (se impostata);
+        // altrimenti Notte in citta', lo sfondo predefinito per tutti (quello di prima resta fra le voci)
+        const savedBg = localStorage.getItem('core_bg_theme') || window.__sfondoImpianto || 'notte_citta';
         
 const ANIMATED_BGS = {
     anim_aurora: 'bg-anim-aurora',
