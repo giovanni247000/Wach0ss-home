@@ -6395,13 +6395,33 @@ function collegaTvManuale() {
     });
 }
 
-// Samsung/LG: una sola chiamata, che aspetta il "Consenti" sullo schermo (fino a un minuto).
+// Samsung/LG: una sola chiamata, che aspetta il "Consenti" sullo schermo per TV_ATTESA_CONSENTI
+// secondi (come ATTESA_ABBINAMENTO in smart_tv.py: il server risponde sempre prima del minuto).
+// Intanto l'attesa resta GRIGIA con i secondi che scorrono; il rosso solo se alla fine non e' andata.
 // Android TV: il server risponde {status:'pin'}, la TV mostra un codice, e si finisce con /api/tv/pair/pin.
+const TV_ATTESA_CONSENTI = 55;
+
+function tvEsc(t) {
+    return String(t).replace(/[&<>"]/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[ch]));
+}
+
 async function collegaTv(c) {
     c.go.disabled = true;
-    tvMsg(c.msg, 'attesa', c.marca === 'android'
-        ? 'Guarda la TV: tra poco mostra un codice&hellip;'
-        : 'Guarda la TV e premi <b>Consenti</b> con il suo telecomando&hellip; (hai un minuto)');
+    let conto = null;
+    if (c.marca === 'android') {
+        tvMsg(c.msg, 'attesa', 'Guarda la TV: tra poco mostra un codice&hellip;');
+    } else {
+        const fine = Date.now() + TV_ATTESA_CONSENTI * 1000;
+        tvMsg(c.msg, 'attesa', '<span class="tv-attesa-testo">Guarda la TV e premi Consenti con il suo telecomando</span> <b class="tv-conto"></b>');
+        const testo = c.msg.querySelector('.tv-attesa-testo'), num = c.msg.querySelector('.tv-conto');
+        const scrivi = () => {
+            const s = Math.max(0, Math.ceil((fine - Date.now()) / 1000));
+            num.textContent = s > 0 ? s + ' s' : '';
+            if (!s && !testo.dataset.fine) { testo.dataset.fine = '1'; testo.textContent = 'Aspetto la risposta della TV\u2026'; }
+        };
+        scrivi();
+        conto = setInterval(scrivi, 1000);
+    }
     try {
         const r = await fetch('/api/tv/pair', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -6431,11 +6451,13 @@ async function collegaTv(c) {
             };
             return;
         }
-        if (d.status !== 'success') { tvMsg(c.msg, 'errore', d.message || 'Collegamento non riuscito'); c.go.disabled = false; return; }
+        if (d.status !== 'success') { tvMsg(c.msg, 'errore', tvEsc(d.message || 'Collegamento non riuscito')); c.go.disabled = false; return; }
         tvCollegata(c, d);
     } catch (e) {
         tvMsg(c.msg, 'errore', 'Errore di rete durante il collegamento');
         c.go.disabled = false;
+    } finally {
+        if (conto) clearInterval(conto);
     }
 }
 
