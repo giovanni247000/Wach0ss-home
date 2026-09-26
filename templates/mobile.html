@@ -3,6 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script>
+    /* GRANDEZZA PAGINA (Impostazioni > Aspetto dell'app > Grandezza pagina, 26/09/2026).
+       La scelta fatta su QUESTO dispositivo (localStorage 'core_scala_pagina': 80-110, 100 = Standard)
+       si applica qui, prima del primo disegno, riscrivendo il meta viewport qui sopra: con scala S la
+       pagina si impagina come se lo schermo fosse largo W/S px e viene mostrata a scala S.
+       Provato su Safari iOS e nella WKWebView (larghezza, 100vh/100dvh, cambio al volo): sotto il 100%
+       basta device-width (il browser allarga la pagina fino a riempire lo schermo, anche girato); sopra
+       serve la larghezza esplicita, altrimenti la pagina resterebbe larga come lo schermo e uscirebbe
+       di lato. Al 100% (o senza scelta) il meta resta IDENTICO e non si tocca nient'altro.
+       Le aree sicure (env()) il browser le da' in punti dello schermo: con html.wh-scala il CSS le
+       riporta in pixel della pagina (vedi "GRANDEZZA PAGINA" nel foglio di stile).
+       La grandezza cambia solo la GRANDEZZA, mai l'impaginazione: a 1024 px la pagina passa da
+       telefono (barra in basso) a tablet/computer (barra laterale), e la scala non deve farle
+       passare quella soglia. In verticale le grandezze che la passerebbero non si possono scegliere
+       (iPad da 1024 a 105/110%, iPad da 820 all'80%); girando lo schermo (telefono in orizzontale
+       all'85%: 932/0,85 = 1096 px) la scala si ferma appena prima della soglia e torna quella scelta
+       quando si rigira il telefono. */
+    (function () {
+        var BASE = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+        var AMMESSE = [80, 85, 90, 95, 100, 105, 110];
+        var SOGLIA = 1024;      // da qui la pagina e' "tablet/computer": @media (min-width: 1024px) e innerWidth >= 1024
+        function lati() {       // lato corto e lato lungo dello schermo, in punti
+            var a = 375, b = 812;
+            try { a = screen.width || a; b = screen.height || b; } catch (e) {}
+            return [Math.min(a, b), Math.max(a, b)];
+        }
+        function orizzontale() { try { return window.matchMedia('(orientation: landscape)').matches; } catch (e) { return false; } }
+        function larghezza() { var l = lati(); return orizzontale() ? l[1] : l[0]; }
+        // perche' una grandezza non si puo' scegliere su questo schermo ('' = si puo')
+        function motivo(p) {
+            if (AMMESSE.indexOf(p) < 0) return 'no';
+            if (p === 100) return '';
+            var l = lati()[0], w = l * 100 / p;
+            if (w < 320) return 'stretto';                           // pagina piu' stretta di 320 px
+            if ((l >= SOGLIA) !== (w >= SOGLIA)) return 'soglia';    // passerebbe da tablet a telefono o viceversa
+            return '';
+        }
+        function possibile(p) { return motivo(p) === ''; }
+        // la scala davvero usata nel verso di adesso (1 = nessuna)
+        function efficace(p) {
+            if (p === 100) return 1;
+            var s = p / 100, L = larghezza();
+            if (L < SOGLIA && L / s >= SOGLIA) s = Math.ceil(L / (SOGLIA - 1) * 1000) / 1000;   // resta impaginata da telefono
+            else if (L >= SOGLIA && L / s < SOGLIA) s = Math.floor(L / SOGLIA * 1000) / 1000;   // resta impaginata da tablet
+            return Math.abs(s - 1) < 0.005 ? 1 : s;
+        }
+        function meta(s) {
+            if (s === 1) return BASE;
+            var w = s < 1 ? 'device-width' : Math.floor(lati()[0] / s);
+            return 'width=' + w + ', initial-scale=' + s + ', minimum-scale=' + s + ', maximum-scale=' + s + ', user-scalable=no, viewport-fit=cover';
+        }
+        function applica(p) {
+            if (!possibile(p)) p = 100;
+            var s = efficace(p), c = meta(s);
+            var m = document.querySelector('meta[name="viewport"]'), h = document.documentElement;
+            if (m && m.getAttribute('content') !== c) m.setAttribute('content', c);
+            if (s === 1) { h.classList.remove('wh-scala'); h.style.removeProperty('--wh-scala'); }
+            else { h.classList.add('wh-scala'); h.style.setProperty('--wh-scala', String(s)); }
+            window.__whScala = s;
+            return p;
+        }
+        var p = 100;
+        try { p = parseInt(localStorage.getItem('core_scala_pagina'), 10) || 100; } catch (e) {}
+        if (!possibile(p)) p = 100;
+        window.__whScala = 1;
+        var W = window.whScala = { possibile: possibile, motivo: motivo, efficace: efficace, meta: meta, applica: applica, attuale: p === 100 ? 100 : applica(p) };
+        // girando lo schermo la scala efficace puo' cambiare (vedi sopra): si riapplica e lo si dice alla pagina
+        function giro() {
+            if (W.attuale === 100 || efficace(W.attuale) === window.__whScala) return;
+            applica(W.attuale);
+            try { window.dispatchEvent(new Event('wh-scala')); } catch (e) {}
+        }
+        try {
+            var mq = window.matchMedia('(orientation: landscape)');
+            if (mq.addEventListener) mq.addEventListener('change', giro); else if (mq.addListener) mq.addListener(giro);
+        } catch (e) {}
+    })();
+    </script>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#000000">
     <meta name="background-color" content="#000000">
@@ -1871,6 +1949,11 @@
 
 /* --- STILI MENU MOBILE PERSONALIZZABILI --- */
         @media (max-width: 1023px) {
+            /* la barra non esce mai dallo schermo (almeno 8 px di margine per lato): se non ci sta,
+               le voci si stringono fino a 36 px e l'icona resta intera al centro. Dove ci sta non cambia nulla. */
+            .floating-nav { max-width: calc(100% - 16px); min-width: 0; }
+            .floating-nav .nav-item { flex-shrink: 1; min-width: 36px; }
+            .floating-nav .nav-item > svg, .floating-nav .nav-item > i { flex-shrink: 0; }
             /* 1. STILE PIATTO (Barra classica aderente ai bordi) */
             body.nav-flat .floating-nav-wrapper {
                 padding-bottom: 0; padding-top: 0; background: rgba(94, 94, 94, 0.15); 
@@ -2102,81 +2185,597 @@
     transition: background-color 0.22s ease, box-shadow 0.22s ease;
 }
 /* =========================================================================
-   IMPOSTAZIONI: sezione a pagina intera (elenco -> dettaglio)
-   Sostituisce il pannello a fisarmonica. Nessun effetto costoso: solo uno
-   scorrimento orizzontale, quindi funziona bene anche sui telefoni datati.
+   IMPOSTAZIONI (rifatte il 26/09/2026): pagina intera, elenco -> dettaglio.
+   L'ordine e la chiarezza delle Impostazioni di iOS, con l'aria di Wach0ss Home:
+   notte, vetro e una luce calda. Sul telefono il dettaglio entra da destra;
+   da 820 px le due colonne stanno affiancate. Gli effetti costosi (sfocature)
+   sono solo sulla testata quando si scorre, e spariscono in modalita' leggera.
    ========================================================================= */
 .imp-pagina {
-    position: fixed; inset: 0; z-index: 2600; display: flex; flex-direction: column;
-    background: #0B0B0F;
-    transform: translateX(100%); transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
-    visibility: hidden;
+    --imp-testo: #F5F5F7; --imp-testo-2: rgba(235,235,245,0.64); --imp-testo-3: rgba(235,235,245,0.58); --imp-testo-4: rgba(235,235,245,0.4);
+    --imp-vetro: rgba(255,255,255,0.058); --imp-bordo: rgba(255,255,255,0.075); --imp-sep: rgba(255,255,255,0.085);
+    --imp-caldo: #FFB35C; --imp-caldo-2: #FF8A3D; --imp-caldo-chiaro: #FFD6A3;
+    --imp-fondo: #07080D; --imp-curva: cubic-bezier(0.32, 0.72, 0, 1); --imp-durata: 0.44s;
+    --imp-sa-l: env(safe-area-inset-left, 0px); --imp-sa-r: env(safe-area-inset-right, 0px);
+    position: fixed; inset: 0; z-index: 2600; overflow: hidden;
+    background: var(--imp-fondo); color: var(--imp-testo);
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+    transform: translateX(100%); visibility: hidden;
+    transition: transform var(--imp-durata) var(--imp-curva), visibility 0s linear var(--imp-durata);
 }
-.imp-pagina.aperta { transform: translateX(0); visibility: visible; }
+.imp-pagina.aperta { transform: translateX(0); visibility: visible; transition: transform var(--imp-durata) var(--imp-curva), visibility 0s; }
+.imp-pagina *, .imp-pagina *::before, .imp-pagina *::after { box-sizing: border-box; }
+
 .imp-schermata {
-    position: absolute; inset: 0; display: flex; flex-direction: column;
-    background: #0B0B0F; transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease;
+    position: absolute; inset: 0; display: flex; flex-direction: column; min-width: 0;
+    background:
+        radial-gradient(95% 40% at 100% -4%, rgba(255,160,80,0.13), rgba(255,160,80,0) 70%),
+        radial-gradient(80% 36% at -6% -2%, rgba(70,110,255,0.11), rgba(70,110,255,0) 70%),
+        linear-gradient(180deg, #0B0D16 0%, var(--imp-fondo) 46%, #060609 100%);
+    transition: transform var(--imp-durata) var(--imp-curva), opacity var(--imp-durata) ease;
 }
-.imp-schermata.via { transform: translateX(-22%); opacity: 0.35; pointer-events: none; }
-.imp-dettaglio { transform: translateX(100%); z-index: 2; box-shadow: -12px 0 32px rgba(0,0,0,0.5); }
+.imp-schermata.via { transform: translateX(-26%); opacity: 0.45; pointer-events: none; }
+.imp-dettaglio { transform: translateX(100%); z-index: 2; box-shadow: -20px 0 44px rgba(0,0,0,0.55); }
 .imp-dettaglio.aperta { transform: translateX(0); }
 
+/* ---- testata: trasparente in cima, vetro quando si scorre ---- */
 .imp-testa {
-    display: flex; align-items: center; gap: 6px; padding: calc(12px + env(safe-area-inset-top)) 12px 12px 6px;
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-    background: linear-gradient(180deg, rgba(28,28,34,0.98), rgba(16,16,20,0.98));
-    flex-shrink: 0;
+    position: relative; z-index: 3; flex-shrink: 0;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px;
+    min-height: calc(52px + var(--safe-top)); padding: var(--safe-top) max(10px, calc(var(--imp-sa-r) + 6px)) 0 max(8px, calc(var(--imp-sa-l) + 4px));
+    border-bottom: 0.5px solid transparent;
+    transition: background-color 0.25s ease, border-color 0.25s ease;
 }
-.imp-testa h2 { margin: 0; font-size: 1.06rem; font-weight: 700; color: #FFF; letter-spacing: -0.02em; }
+.imp-testa.scorsa {
+    background: rgba(13,14,20,0.74); border-bottom-color: rgba(255,255,255,0.1);
+    backdrop-filter: blur(22px) saturate(170%); -webkit-backdrop-filter: blur(22px) saturate(170%);
+}
+.imp-titolino {
+    margin: 0; grid-column: 2; font-size: 1.02rem; font-weight: 650; letter-spacing: -0.015em; color: var(--imp-testo);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 62vw; text-align: center;
+    transition: opacity 0.2s ease, transform 0.25s ease;
+}
+.imp-testa.con-titolone .imp-titolino { opacity: 0; transform: translateY(4px); }
+.imp-testa.con-titolone.titolo-su .imp-titolino { opacity: 1; transform: none; }
 .imp-back {
-    display: inline-flex; align-items: center; gap: 2px; background: transparent; border: none;
-    color: var(--accent-cyan); font-family: inherit; font-size: 0.95rem; font-weight: 500;
-    padding: 6px 8px 6px 4px; cursor: pointer; border-radius: 10px; flex-shrink: 0;
+    grid-column: 1; justify-self: start;
+    display: inline-flex; align-items: center; gap: 1px; min-height: 44px; min-width: 44px; max-width: 100%;
+    background: transparent; border: none; color: var(--imp-caldo); font-family: inherit; font-size: 1rem; font-weight: 500;
+    padding: 6px 10px 6px 2px; cursor: pointer; border-radius: 12px; flex-shrink: 0; white-space: nowrap;
 }
-.imp-back i { width: 22px; height: 22px; }
-.imp-back:active { background: rgba(255,255,255,0.07); }
-.imp-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 18px 16px calc(30px + env(safe-area-inset-bottom)) 16px; }
+.imp-back span { overflow: hidden; text-overflow: ellipsis; }
+.imp-back svg { width: 26px; height: 26px; stroke-width: 2.2; flex-shrink: 0; }
+.imp-back:active { opacity: 0.55; }
+.imp-chiudi { width: 44px; height: 44px; min-height: 44px; min-width: 44px; padding: 0; justify-content: center; border-radius: 50%;
+              background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08); color: var(--imp-testo); }
+.imp-chiudi svg { width: 22px; height: 22px; margin-left: -2px; }
+.imp-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.imp-testa.scorsa .imp-chiudi { background: rgba(255,255,255,0.1); }
 
+/* ---- zona che scorre ---- */
+.imp-scroll {
+    flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
+    padding: 2px max(16px, calc(var(--imp-sa-r) + 12px)) calc(40px + var(--safe-bottom)) max(16px, calc(var(--imp-sa-l) + 12px));
+}
+.imp-contenuto { max-width: 680px; margin: 0 auto; }
+.imp-titolone { margin: 2px 4px 16px; font-size: 2.1rem; line-height: 1.1; font-weight: 800; letter-spacing: -0.035em; color: var(--imp-testo); }
+
+/* ---- profilo ---- */
+.imp-profilo {
+    position: relative; overflow: hidden; border-radius: 24px; isolation: isolate;
+    background: linear-gradient(140deg, rgba(255,179,92,0.17) 0%, rgba(255,138,61,0.06) 38%, rgba(64,96,255,0.10) 100%), var(--imp-vetro);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 18px 44px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.imp-profilo::before {   /* una luna lontana nell'angolo */
+    content: ""; position: absolute; z-index: -1; right: -46px; top: -58px; width: 170px; height: 170px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,214,163,0.20) 0%, rgba(255,179,92,0.07) 42%, rgba(255,179,92,0) 70%);
+}
+.imp-profilo-testa {
+    display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 14px 14px 16px;
+    background: transparent; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.imp-profilo-testa:active { background: rgba(255,255,255,0.04); }
+.imp-avatar {
+    width: 58px; height: 58px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 1.55rem; font-weight: 750; color: #2A1606; letter-spacing: -0.02em;
+    background: radial-gradient(circle at 32% 26%, #FFE7C2 0%, #FFB35C 48%, #FF7F3F 100%);
+    box-shadow: 0 0 0 3px rgba(255,179,92,0.16), 0 10px 26px rgba(255,138,61,0.34), inset 0 -3px 6px rgba(160,60,0,0.25);
+}
+.imp-profilo-nome { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.imp-profilo-riga { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+.imp-profilo-riga b { flex-shrink: 0; max-width: 100%; font-size: 1.28rem; font-weight: 700; letter-spacing: -0.025em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-profilo-nome > small { color: var(--imp-testo-2); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-ruolo { flex-shrink: 0; white-space: nowrap; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+             padding: 3px 8px; border-radius: 99px; background: rgba(100,180,255,0.16); color: #9CCBFF; }
+.imp-ruolo.admin { background: rgba(255,179,92,0.18); color: var(--imp-caldo-chiaro); }
+/* griglia fissa: Casa e Versione affiancate, il Server (indirizzo lungo, 192.168.x.x:porta) su tutta la
+   riga sotto, cosi' si legge intero; per l'utente normale (senza Versione) Casa e Server una per riga */
+.imp-profilo-info { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0 12px 12px; }
+.imp-profilo-info.con-versione { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.imp-profilo-info.con-versione #imp-stato-server { grid-column: 1 / -1; order: 3; }
+.imp-info {
+    position: relative; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 50px;
+    padding: 8px 12px; border-radius: 15px; background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.06);
+    color: inherit; font: inherit; text-align: left;
+}
+button.imp-info { cursor: pointer; }
+button.imp-info:active { background: rgba(255,255,255,0.06); }
+.imp-info > svg { width: 17px; height: 17px; color: var(--imp-caldo); flex-shrink: 0; }
+.imp-info-testo { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.imp-info-testo small { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--imp-testo-3); }
+.imp-info-testo .imp-info-nuova { font-size: 0.74rem; font-weight: 650; letter-spacing: 0; text-transform: none; color: #FF8FA3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-info-testo .imp-info-nuova:empty { display: none; }
+.imp-info-testo b { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-led { width: 9px; height: 9px; margin: 0 4px; flex-shrink: 0; border-radius: 50%; background: #30D158;
+           box-shadow: 0 0 0 3px rgba(48,209,88,0.16), 0 0 10px rgba(48,209,88,0.65); }
+.imp-info.fuori .imp-led { background: #FF9F0A; box-shadow: 0 0 0 3px rgba(255,159,10,0.16), 0 0 10px rgba(255,159,10,0.55); }
+.imp-info-nuovo { position: absolute; top: -7px; right: -4px; align-items: center; padding: 2px 7px; border-radius: 99px;
+                  background: #FF375F; color: #FFF; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.03em;
+                  box-shadow: 0 4px 10px rgba(255,55,95,0.4); }
+
+/* ---- gruppi e righe ---- */
 .imp-etichetta {
-    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-    color: rgba(255,255,255,0.42); margin: 4px 0 8px 6px;
+    font-size: 0.76rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--imp-testo-3); margin: 28px 16px 8px;
 }
 .imp-gruppo {
-    background: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.045));
-    border: 1px solid rgba(255,255,255,0.09); border-radius: 18px; overflow: hidden; margin-bottom: 22px;
+    position: relative; background: var(--imp-vetro); border: 1px solid var(--imp-bordo); border-radius: 18px; overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
 }
+.imp-nota { margin: 9px 16px 0; font-size: 0.8rem; line-height: 1.42; color: var(--imp-testo-3); }
 .imp-riga {
-    display: flex; align-items: center; gap: 13px; width: 100%; padding: 13px 14px;
-    background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.06);
-    color: #FFF; font-family: inherit; text-align: left; cursor: pointer; text-decoration: none;
+    position: relative; display: flex; align-items: center; gap: 13px; width: 100%; min-height: 56px;
+    padding: 10px 14px; background: transparent; border: 0; border-radius: 0; color: var(--imp-testo);
+    font-family: inherit; font-size: inherit; text-align: left; text-decoration: none; cursor: pointer;
+    transition: background-color 0.18s ease;
 }
-.imp-gruppo > .imp-riga:last-child { border-bottom: none; }
-.imp-riga:active { background: rgba(255,255,255,0.06); }
+.imp-riga + .imp-riga::before, .imp-riga + .imp-cursore::before, .imp-cursore + .imp-cursore::before, .imp-blocco + .imp-riga::before {
+    content: ""; position: absolute; top: 0; left: 57px; right: 0; height: 0.5px; background: var(--imp-sep);
+}
+.imp-blocco + .imp-riga::before { left: 0; }
+.imp-riga:active { background: rgba(255,255,255,0.07); }
+.imp-riga.imp-riga-fissa { cursor: default; }
+.imp-riga.imp-riga-fissa:active { background: transparent; }
+.imp-riga.scelta { background: rgba(255,179,92,0.12); }
+@media (hover: hover) { .imp-riga:not(.imp-riga-fissa):hover { background: rgba(255,255,255,0.045); } }
 .imp-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.imp-testo b { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em; }
-.imp-testo small { font-size: 0.76rem; color: rgba(255,255,255,0.45); line-height: 1.25; }
-.imp-freccia { width: 18px; height: 18px; color: rgba(255,255,255,0.3); flex-shrink: 0; }
+.imp-testo b { font-size: 0.99rem; font-weight: 560; letter-spacing: -0.012em; color: var(--imp-testo); line-height: 1.25; }
+.imp-testo small { font-size: 0.79rem; color: var(--imp-testo-2); line-height: 1.3; }
+.imp-valore { flex-shrink: 1; min-width: 0; max-width: 42%; font-size: 0.92rem; color: var(--imp-testo-3); text-align: right;
+              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-valore:empty { display: none; }
+.imp-ora { display: none; }
+/* elenco stretto (telefono, o colonna dell'elenco su tablet): il valore va sotto il titolo, al posto della descrizione */
+.imp-scroll { container-type: inline-size; }
+@container (max-width: 519px) {
+    .imp-riga .imp-valore { display: none; }
+    .imp-testo:has(.imp-ora:not(:empty)) small:not(.imp-ora) { display: none; }
+    .imp-ora:not(:empty) { display: block; color: rgba(255,206,150,0.9); font-weight: 500; }
+}
+.imp-freccia { width: 18px; height: 18px; flex-shrink: 0; margin-right: -3px; color: rgba(235,235,245,0.28); }
+.imp-riga[hidden] { display: none; }
 .imp-pill {
-    font-size: 0.68rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0;
-    background: #FF375F; color: #FFF; letter-spacing: 0.02em;
+    flex-shrink: 0; align-items: center; font-size: 0.7rem; font-weight: 750; padding: 3px 9px; border-radius: 99px;
+    background: linear-gradient(180deg, #FF5D73, #FF2D55); color: #FFF; letter-spacing: 0.02em; box-shadow: 0 0 0 3px rgba(255,45,85,0.14);
 }
+.imp-riga-azione { justify-content: center; min-height: 50px; }
+.imp-riga-azione .imp-testo { align-items: center; }
+.imp-riga-azione .imp-testo b { color: var(--imp-caldo); font-weight: 600; }
+.imp-riga-azione[disabled] { opacity: 0.35; cursor: default; }
+.imp-riga-pericolo .imp-testo b { color: #FF6961; }
+
+/* squircle colorate (le classi c-blue ... c-gray stanno in cima alla pagina) */
+.imp-pagina .acc-ico { width: 30px; height: 30px; border-radius: 8.5px; }
+.imp-pagina .acc-ico svg { width: 18px; height: 18px; color: #FFF; stroke-width: 2.1; }
+.acc-ico.c-green  { background: linear-gradient(180deg, #4CD964, #1FAE45); }
+.acc-ico.c-red    { background: linear-gradient(180deg, #FF6961, #E5352B); }
+.acc-ico.c-indigo { background: linear-gradient(180deg, #7D7AFF, #4E4ADB); }
+.acc-ico.c-pink   { background: linear-gradient(180deg, #FF7AA2, #E5436F); }
+.acc-ico.c-yellow { background: linear-gradient(180deg, #FFD60A, #F2A900); }
+.acc-ico.c-amber  { background: linear-gradient(180deg, #FFC574, #FF8A3D); }
+.acc-ico.c-arcobaleno { background: conic-gradient(from 200deg, #FF5E5B, #FFC93C, #4CD964, #3FB6FF, #8E6CFF, #FF5E9E, #FF5E5B); }
+.imp-pagina .acc-ico.c-yellow svg { color: #3A2A00; }
+
+/* ---- lingua dentro la riga: stesso aspetto dei controlli segmentati ---- */
+.imp-pagina .wh-lingua { flex-shrink: 0; padding: 2px; gap: 2px; border-radius: 10px; background: rgba(118,118,128,0.26); font-size: 13px; }
+.imp-pagina .wh-lingua button { min-width: 44px; min-height: 38px; padding: 8px 10px; border-radius: 8px; opacity: 0.75; color: var(--imp-testo); }
+.imp-pagina .wh-lingua button.on { background: #F4F4F7; color: #0B0B10; opacity: 1; box-shadow: 0 3px 8px rgba(0,0,0,0.35); }
+
+/* ---- interruttori: la zona che si puo' toccare e' piu' grande del disegno (almeno 44 x 44) ---- */
+.imp-pagina label.switch-ios::after { content: ""; position: absolute; inset: -9px -6px; }
+
+/* ---- controllo segmentato (i .style-btn di sempre) ---- */
+.imp-blocco { position: relative; padding: 12px; }
+.imp-seg { display: flex; gap: 2px; padding: 3px; border-radius: 12px; background: rgba(118,118,128,0.24); }
+.imp-pagina .imp-seg .style-btn {
+    flex: 1 1 0; min-width: 0; min-height: 40px; margin: 0; padding: 8px 6px; border: 0; border-radius: 9px;
+    background: transparent; color: var(--imp-testo); font-family: inherit; font-size: 0.9rem; font-weight: 600; box-shadow: none; transform: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+.imp-pagina .imp-seg .style-btn:active { opacity: 0.7; transform: none; }
+.imp-pagina .imp-seg .style-btn.active { background: #F4F4F7; color: #0B0B10; box-shadow: 0 3px 9px rgba(0,0,0,0.38); }
+
+/* ---- tessere con disegno (i .style-btn di sempre; i figli non prendono il tocco: il codice legge e.target) ---- */
+.imp-tessere { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 10px; padding: 12px; }
+.imp-pagina .style-btn.imp-tessera {
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px; min-width: 0; margin: 0;
+    padding: 10px 4px 9px; border-radius: 15px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07);
+    color: var(--imp-testo-2); font-family: inherit; font-size: 0.8rem; font-weight: 600; box-shadow: none; transform: none;
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+.imp-pagina .style-btn.imp-tessera > * { pointer-events: none; }
+.imp-pagina .style-btn.imp-tessera > span:last-child { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-pagina .style-btn.imp-tessera:active { transform: scale(0.97); }
+.imp-pagina .style-btn.imp-tessera.active {
+    background: rgba(255,179,92,0.11); border-color: rgba(255,179,92,0.7); color: var(--imp-caldo-chiaro);
+    box-shadow: inset 0 0 0 1px rgba(255,179,92,0.3), 0 8px 22px rgba(255,138,61,0.16);
+}
+.imp-pitto {
+    position: relative; display: block; width: 100%; max-width: 58px; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden;
+    background: linear-gradient(165deg, #232A4A 0%, #111630 60%, #0B0E1E 100%); border: 1px solid rgba(255,255,255,0.1);
+}
+.imp-pitto i { position: absolute; display: block; }
+.style-btn.active .imp-pitto { border-color: rgba(255,214,163,0.45); }
+/* barra: isola / piatta / dock / minimal */
+.imp-p-nav i { bottom: 9%; width: 11%; aspect-ratio: 1; border-radius: 50%; background: rgba(255,255,255,0.8); z-index: 1; }
+.imp-p-nav i:nth-child(1) { left: 22%; } .imp-p-nav i:nth-child(2) { left: 36%; } .imp-p-nav i:nth-child(3) { left: 53%; } .imp-p-nav i:nth-child(4) { left: 67%; }
+.imp-p-nav::after { content: ""; position: absolute; }
+.imp-p-nav[data-v="floating"]::after { left: 15%; right: 15%; bottom: 5%; height: 15%; border-radius: 99px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.28); }
+.imp-p-nav[data-v="flat"]::after { left: 0; right: 0; bottom: 0; height: 18%; background: rgba(160,160,170,0.28); border-top: 1px solid rgba(255,255,255,0.3); }
+.imp-p-nav[data-v="flat"] i { bottom: 6%; }
+.imp-p-nav[data-v="dock"]::after { left: 10%; right: 10%; bottom: 4%; height: 19%; border-radius: 9px; background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.35); }
+.imp-p-nav[data-v="dock"] i { width: 13%; bottom: 7.5%; background: rgba(255,255,255,0.9); }
+.imp-p-nav[data-v="dock"] i:nth-child(1) { left: 17%; } .imp-p-nav[data-v="dock"] i:nth-child(2) { left: 34%; } .imp-p-nav[data-v="dock"] i:nth-child(3) { left: 53%; } .imp-p-nav[data-v="dock"] i:nth-child(4) { left: 70%; }
+.imp-p-nav[data-v="minimal"] i { width: 15%; bottom: 7%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.45); }
+.imp-p-nav[data-v="minimal"] i:nth-child(1) { left: 8%; background: #FFF; } .imp-p-nav[data-v="minimal"] i:nth-child(2) { left: 31%; } .imp-p-nav[data-v="minimal"] i:nth-child(3) { left: 54%; } .imp-p-nav[data-v="minimal"] i:nth-child(4) { left: 77%; }
+/* griglia: lista / 2 / 3 colonne */
+.imp-p-griglia { display: grid; gap: 4px; padding: 7px; align-content: start; }
+.imp-p-griglia i { position: static; border-radius: 3px; background: rgba(255,255,255,0.32); border: 1px solid rgba(255,255,255,0.18); }
+.imp-p-griglia[data-v="1"] { grid-template-columns: 1fr; } .imp-p-griglia[data-v="1"] i { height: 9px; }
+.imp-p-griglia[data-v="2"] { grid-template-columns: 1fr 1fr; } .imp-p-griglia[data-v="2"] i { aspect-ratio: 1; }
+.imp-p-griglia[data-v="3"] { grid-template-columns: 1fr 1fr 1fr; gap: 3px; } .imp-p-griglia[data-v="3"] i { aspect-ratio: 1; border-radius: 2px; }
+/* forma: quadrate / smussate / rotonde */
+.imp-p-forma i { left: 20%; right: 20%; top: 50%; aspect-ratio: 1; transform: translateY(-50%);
+                 background: linear-gradient(160deg, rgba(255,255,255,0.4), rgba(255,255,255,0.18)); border: 1px solid rgba(255,255,255,0.35); }
+.imp-p-forma[data-v="square"] i { border-radius: 4px; } .imp-p-forma[data-v="default"] i { border-radius: 9px; } .imp-p-forma[data-v="round"] i { border-radius: 50%; }
+
+/* ---- cursori ---- */
+.imp-cursore { position: relative; padding: 12px 14px 14px; }
+.imp-cursore-testa { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; min-height: 30px; }
+.imp-cursore-testa b { flex: 1; min-width: 0; font-size: 0.99rem; font-weight: 560; letter-spacing: -0.012em; }
+.imp-cursore-testa output { font-size: 0.88rem; font-weight: 600; color: var(--imp-testo-2); font-variant-numeric: tabular-nums; }
+.imp-cursore-fila { display: flex; align-items: center; gap: 12px; }
+.imp-cursore-fila > svg { width: 18px; height: 18px; color: var(--imp-testo-4); flex-shrink: 0; }
+.imp-cursore-fila > svg:last-child { color: var(--imp-testo); }
+.imp-pagina input[type="range"] {
+    -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; height: 32px; margin: 0; background: transparent; box-shadow: none; border-radius: 0;
+    --p: 50%; touch-action: pan-y;
+}
+.imp-pagina input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px; border-radius: 3px;
+    background: linear-gradient(90deg, var(--imp-caldo-2), var(--imp-caldo)) 0 0 / var(--p) 100% no-repeat, rgba(255,255,255,0.14);
+}
+.imp-pagina input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%; background: #FFF;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.45), 0 0 0 0.5px rgba(0,0,0,0.06);
+}
+.imp-pagina input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.14); }
+.imp-pagina input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--imp-caldo); }
+.imp-pagina input[type="range"]::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #FFF; box-shadow: 0 3px 10px rgba(0,0,0,0.45); }
+.imp-pagina input[type="color"] {
+    width: 36px; height: 36px; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.85); border-radius: 50%; padding: 0;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.4); background: transparent;
+}
+
+/* ---- sfondi ---- */
+.imp-sfondi { display: grid; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); gap: 14px 10px; padding: 14px 12px 12px; }
+.imp-sfondo { position: relative; display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
+.imp-pagina .imp-sfondo .bg-option {
+    width: 100%; height: auto; aspect-ratio: 9 / 15; margin: 0; border: 0; border-radius: 14px; transform: none;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 6px 16px rgba(0,0,0,0.38); transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+.imp-pagina .imp-sfondo .bg-option:active { transform: scale(0.95); }
+.imp-pagina .imp-sfondo .bg-option.active { transform: none; box-shadow: 0 0 0 2px #0B0C12, 0 0 0 4.5px var(--imp-caldo), 0 10px 24px rgba(255,138,61,0.3); }
+.imp-sfondo:has(.bg-option.active)::after {
+    content: ""; position: absolute; top: -6px; right: -5px; width: 22px; height: 22px; border-radius: 50%; pointer-events: none;
+    background: var(--imp-caldo) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232A1606' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 13px no-repeat;
+    box-shadow: 0 0 0 2px #0B0C12, 0 4px 10px rgba(0,0,0,0.45);
+}
+.imp-sfondo-nome {
+    max-width: 100%; font-size: 0.72rem; line-height: 1.2; text-align: center; color: var(--imp-testo-2); cursor: pointer;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.imp-sfondo:has(.bg-option.active) .imp-sfondo-nome { color: var(--imp-testo); font-weight: 650; }
+/* le due righe "sfondo personale" sono .bg-option (il codice le accende e le spegne): qui tornano righe */
+.imp-pagina .imp-riga.bg-option {
+    width: 100%; height: auto; margin: 0; border: 0; border-radius: 0; box-shadow: none; transform: none; overflow: visible; flex-shrink: 0;
+}
+.imp-pagina .imp-riga.bg-option:active { transform: none; }
+.imp-spunta { width: 20px; height: 20px; flex-shrink: 0; color: var(--imp-caldo); stroke-width: 2.6; opacity: 0; transform: scale(0.6); transition: opacity 0.2s ease, transform 0.25s var(--imp-curva); }
+.imp-riga.bg-option.active .imp-spunta { opacity: 1; transform: none; }
+.imp-riga.bg-option.active .imp-freccia { display: none; }
+
+/* ---- anteprime ---- */
+.imp-anteprima {
+    position: relative; overflow: hidden; border-radius: 22px; margin-top: 6px;
+    border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.03);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.imp-ap-sfondo { position: absolute; inset: 0; overflow: hidden; background: #081030; }
+.imp-ap-sfondo > .bg-option {   /* copia della tessera dello sfondo in uso */
+    position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; margin: 0; border: 0 !important;
+    border-radius: 0 !important; box-shadow: none !important; transform: none !important; cursor: default; pointer-events: none;
+}
+.imp-ap-schermo, .imp-ap-scala { display: flex; align-items: center; gap: 18px; padding: 16px; background:
+    radial-gradient(120% 100% at 0% 0%, rgba(255,179,92,0.10), rgba(255,179,92,0) 60%), rgba(255,255,255,0.03); }
+.imp-telefono {
+    --tw: 112px; --th: 228px;
+    position: relative; flex-shrink: 0; width: var(--tw); height: var(--th); border-radius: calc(var(--tw) * 0.16); overflow: hidden;
+    border: 3px solid #1C1D24; box-shadow: 0 0 0 1px rgba(255,255,255,0.14), 0 14px 30px rgba(0,0,0,0.55); background: #000; isolation: isolate;
+}
+.imp-telefono::after {   /* la tacca */
+    content: ""; position: absolute; z-index: 5; top: 4px; left: 50%; width: 34%; height: 5.5%; transform: translateX(-50%);
+    border-radius: 99px; background: #000;
+}
+.imp-tel-testa { position: absolute; z-index: 1; left: 9%; right: 9%; top: 10%; }
+.imp-tel-testa i, .imp-tel-testa b, .imp-tel-testa s { display: block; border-radius: 3px; background: rgba(255,255,255,0.55); }
+.imp-tel-testa i { width: 38%; height: 4px; opacity: 0.6; }
+.imp-tel-testa b { width: 70%; height: 9px; margin-top: 5px; background: rgba(255,255,255,0.9); }
+.imp-tel-testa s { width: 50%; height: 4px; margin-top: 5px; opacity: 0.55; }
+.imp-tel-meteo {
+    position: absolute; z-index: 1; left: 9%; right: 9%; top: 27%; height: 17%; border-radius: 12px; display: flex; align-items: center; padding: 0 9%;
+    background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.22); box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+    transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+}
+.imp-tel-gradi { font-size: 1.05rem; font-weight: 300; color: #FFF; letter-spacing: -0.04em; }
+.imp-tel-luna { margin-left: auto; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #FFF5DA, #FFD48A); box-shadow: 0 0 10px rgba(255,212,138,0.7); }
+body.weather-minimal .imp-tel-meteo { background: transparent; border-color: transparent; box-shadow: none; }
+.imp-tel-card { position: absolute; z-index: 1; left: 9%; right: 9%; top: 48%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.imp-tel-card i { height: 26px; border-radius: 7px; background: rgba(var(--card-color), max(var(--card-opacity), 0.1)); border: 1px solid rgba(255,255,255,0.2); }
+.imp-tel-nav {
+    position: absolute; z-index: 2; left: 16%; right: 16%; bottom: 4%; height: 9%; display: flex; align-items: center; justify-content: space-evenly;
+    border-radius: 99px; background: rgba(20,20,24,0.55); border: 1px solid rgba(255,255,255,0.22); transition: all 0.3s ease;
+}
+.imp-tel-nav i { width: 13%; aspect-ratio: 1; border-radius: 50%; background: rgba(255,255,255,0.75); transition: all 0.3s ease; }
+.imp-tel-nav i:first-child { background: #FFF; }
+body.nav-flat .imp-tel-nav { left: 0; right: 0; bottom: 0; height: 10%; border-radius: 0; border: 0; border-top: 1px solid rgba(255,255,255,0.25); background: rgba(94,94,94,0.35); }
+body.nav-dock .imp-tel-nav { left: 9%; right: 9%; bottom: 3.5%; height: 11%; border-radius: 12px; background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.35); }
+body.nav-dock .imp-tel-nav i { width: 16%; }
+body.nav-minimal .imp-tel-nav { left: 4%; right: 4%; background: transparent; border-color: transparent; }
+body.nav-minimal .imp-tel-nav i { width: 16%; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.4); }
+body.nav-minimal .imp-tel-nav i:first-child { background: #FFF; }
+.imp-ap-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.imp-ap-info > small { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--imp-caldo); }
+.imp-ap-info > b { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.025em; line-height: 1.15; }
+.imp-ap-righe { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.imp-ap-righe > span { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--imp-testo-2); min-width: 0; }
+.imp-ap-righe svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--imp-testo-4); }
+/* card: una manciata di card finte, che seguono colore, trasparenza, forma, dimensione e colonne scelte */
+.imp-ap-card { height: 204px; }
+.imp-ap-card::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 36px; pointer-events: none;
+                      background: linear-gradient(180deg, rgba(7,8,13,0), rgba(7,8,13,0.55)); }
+.imp-ap-griglia { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px; }
+.imp-ap-c {
+    display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 10px; min-height: 84px; padding: 11px;
+    border-radius: 18px; background: rgba(var(--card-color), var(--card-opacity));
+    backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.12); border-top-color: rgba(255,255,255,0.26); box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+    transition: border-radius 0.3s ease, min-height 0.3s ease, padding 0.3s ease;
+}
+.imp-ap-ico { width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.14); }
+.imp-ap-ico svg { width: 15px; height: 15px; color: #FFF; }
+.imp-ap-c.accesa .imp-ap-ico { background: linear-gradient(180deg, #FFE08A, #FFB340); box-shadow: 0 0 14px rgba(255,190,70,0.55); }
+.imp-ap-c.accesa .imp-ap-ico svg { color: #3A2500; }
+.imp-ap-c.calda .imp-ap-ico { background: linear-gradient(180deg, #FFB361, #FF7B2F); }
+.imp-ap-t { display: flex; flex-direction: column; min-width: 0; max-width: 100%; }
+.imp-ap-t b { font-size: 0.78rem; font-weight: 650; color: #FFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-ap-t small { font-size: 0.66rem; color: rgba(255,255,255,0.62); }
+body.shape-square .imp-ap-c { border-radius: 9px; } body.shape-square .imp-ap-ico { border-radius: 6px; }
+body.shape-round .imp-ap-c { border-radius: 26px; align-items: center; text-align: center; } body.shape-round .imp-ap-ico { border-radius: 50%; } body.shape-round .imp-ap-t { align-items: center; }
+body.size-large .imp-ap-c { min-height: 108px; padding: 14px; }
+body.layout-grid-3 .imp-ap-griglia { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+body.layout-grid-3 .imp-ap-c { min-height: 76px; padding: 9px; }
+body.layout-grid-1 .imp-ap-griglia { grid-template-columns: 1fr; gap: 8px; }
+body.layout-grid-1 .imp-ap-c { min-height: 0; flex-direction: row; align-items: center; justify-content: flex-start; padding: 9px 12px; }
+body.layout-grid-1.shape-round .imp-ap-c { text-align: left; } body.layout-grid-1.shape-round .imp-ap-t { align-items: flex-start; }
+/* grandezza pagina: la home in miniatura, alla grandezza scelta */
+.imp-tel-scala { --tw: 112px; --th: 232px; width: calc(var(--tw) / var(--wh-scala, 1)); height: calc(var(--th) / var(--wh-scala, 1)); }
+.imp-scala-dentro { position: absolute; z-index: 1; left: 0; top: 0; width: 375px; height: 780px; transform-origin: 0 0; transition: transform 0.45s var(--imp-curva); }
+.imp-sd-testa { position: absolute; left: 22px; right: 22px; top: 58px; }
+.imp-sd-testa i, .imp-sd-testa b, .imp-sd-testa s { display: block; border-radius: 6px; background: rgba(255,255,255,0.5); }
+.imp-sd-testa i { width: 110px; height: 10px; opacity: 0.6; }
+.imp-sd-testa b { width: 230px; height: 30px; margin-top: 12px; background: rgba(255,255,255,0.9); border-radius: 9px; }
+.imp-sd-testa s { width: 170px; height: 12px; margin-top: 12px; opacity: 0.55; }
+.imp-sd-meteo { position: absolute; left: 22px; right: 22px; top: 186px; height: 96px; border-radius: 28px; background: rgba(255,255,255,0.14); border: 2px solid rgba(255,255,255,0.2); }
+.imp-sd-meteo i { position: absolute; left: 24px; top: 22px; width: 90px; height: 44px; border-radius: 10px; background: rgba(255,255,255,0.85); }
+.imp-sd-meteo b { position: absolute; right: 24px; top: 22px; width: 50px; height: 50px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #FFF5DA, #FFD48A); }
+.imp-sd-pillole { position: absolute; left: 22px; right: 22px; top: 300px; display: flex; gap: 12px; }
+.imp-sd-pillole i { flex: 1; height: 58px; border-radius: 20px; background: rgba(255,255,255,0.12); border: 2px solid rgba(255,255,255,0.14); }
+.imp-sd-griglia { position: absolute; left: 22px; right: 22px; top: 378px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.imp-sd-griglia i { height: 115px; border-radius: 28px; background: rgba(255,255,255,0.13); border: 2px solid rgba(255,255,255,0.2); }
+.imp-sd-griglia i:nth-child(3n+1) { background: rgba(255,214,120,0.34); border-color: rgba(255,214,120,0.5); }
+.imp-sd-riga100 { position: absolute; left: 0; right: 0; top: 812px; border-top: 3px dashed rgba(255,179,92,0.9); display: none; }
+.imp-sd-riga100 span { position: absolute; right: 12px; top: -40px; font: 700 26px/1 -apple-system, sans-serif; color: var(--imp-caldo); background: rgba(7,8,13,0.7); padding: 4px 10px; border-radius: 10px; }
+.imp-tel-scala.piu-spazio .imp-sd-riga100 { display: block; }
+.imp-sd-nav {
+    position: absolute; z-index: 2; left: 16%; right: 16%; bottom: 4%; height: 8%; display: flex; align-items: center; justify-content: space-evenly;
+    border-radius: 99px; background: rgba(20,20,24,0.6); border: 1px solid rgba(255,255,255,0.22); transform-origin: 50% 100%; transition: transform 0.45s var(--imp-curva);
+}
+.imp-sd-nav i { width: 13%; aspect-ratio: 1; border-radius: 50%; background: rgba(255,255,255,0.75); }
+.imp-scala-num { font-size: 2.3rem !important; font-weight: 750 !important; letter-spacing: -0.04em !important; font-variant-numeric: tabular-nums; }
+.imp-scala-nome { font-size: 0.95rem; font-weight: 600; color: var(--imp-testo); }
+.imp-scala-dato { margin-top: 8px; font-size: 0.8rem; line-height: 1.35; color: var(--imp-testo-2); }
+.imp-scala-dato b { color: var(--imp-caldo); font-weight: 700; }
+.imp-scala-scelte { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; padding: 3px; border-radius: 12px; background: rgba(118,118,128,0.24); }
+.imp-scala-scelte button {
+    min-width: 0; min-height: 44px; padding: 0; border: 0; border-radius: 9px; background: transparent; color: var(--imp-testo);
+    font-family: inherit; font-size: 0.8rem; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; cursor: pointer;
+    transition: background-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
+}
+.imp-scala-scelte button:active { opacity: 0.7; }
+.imp-scala-scelte button[aria-checked="true"] { background: #F4F4F7; color: #0B0B10; box-shadow: 0 3px 9px rgba(0,0,0,0.38); }
+.imp-scala-scelte button[data-scala="100"] { position: relative; }
+.imp-scala-scelte button[data-scala="100"]:not([aria-checked="true"])::after { content: ""; position: absolute; left: 50%; bottom: 5px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: var(--imp-caldo); }
+.imp-scala-scelte button:disabled { opacity: 0.28; cursor: default; }
+.imp-scala-scelte button { position: relative; }
+.scala-in-corso .imp-scala-scelte, .scala-in-corso #imp-scala-ripristina { pointer-events: none; }
+.scala-in-corso .imp-scala-scelte button:not([aria-checked="true"]) { opacity: 0.45; }
+.scala-in-corso .imp-scala-scelte button[aria-checked="true"] { color: transparent; }
+.scala-in-corso .imp-scala-scelte button[aria-checked="true"]::after {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+    border: 2px solid #0B0B10; border-right-color: transparent; animation: impGira 0.8s linear infinite;
+}
+@keyframes impGira { to { transform: rotate(360deg); } }
+.imp-scala-perche { display: flex; align-items: flex-start; gap: 7px; margin-top: 11px; padding: 0 3px; font-size: 0.78rem; line-height: 1.38; color: var(--imp-testo-2); }
+.imp-scala-perche[hidden] { display: none; }
+.imp-scala-perche svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; color: var(--imp-caldo); }
+.imp-velo-scala {
+    position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    background: #07080D; color: #F5F5F7; font: 600 0.95rem/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+}
+.imp-velo-scala i { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #FFB35C; border-right-color: transparent; animation: impGira 0.8s linear infinite; }
+.imp-scala-righello { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; align-items: end; padding: 9px 3px 0; color: var(--imp-testo-3); }
+.imp-scala-righello > span { text-align: center; }
+.imp-scala-righello .std { grid-column: 4 / 7; }
+.imp-scala-righello .grande { grid-column: 7; }
+.imp-scala-righello .piccola { font-size: 0.72rem; font-weight: 600; }
+.imp-scala-righello .grande { font-size: 1.15rem; font-weight: 600; line-height: 1; }
+.imp-scala-righello .std { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; }
+
+/* ---- sistema ---- */
+.imp-sistema-eroe {
+    position: relative; overflow: hidden; margin-top: 6px; padding: 22px 18px 18px; border-radius: 22px; text-align: center;
+    background: radial-gradient(120% 80% at 50% -10%, rgba(255,179,92,0.14), rgba(255,179,92,0) 60%), var(--imp-vetro);
+    border: 1px solid rgba(255,255,255,0.09); box-shadow: 0 16px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.imp-eroe-ico { display: inline-flex; width: 62px; height: 62px; border-radius: 17px; align-items: center; justify-content: center;
+                background: linear-gradient(180deg, #3A3D48, #1E2028); border: 1px solid rgba(255,255,255,0.14);
+                box-shadow: 0 10px 26px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.2); }
+.imp-eroe-ico svg { width: 30px; height: 30px; color: var(--imp-caldo); }
+.imp-eroe-nome { margin-top: 12px; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--imp-testo-3); }
+.imp-eroe-versione { margin-top: 4px; font-size: 1.35rem; font-weight: 750; letter-spacing: -0.025em; color: var(--imp-testo); }
+.imp-eroe-stato { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 26px; margin: 6px 0 16px; font-size: 0.86rem; color: var(--imp-testo-2); }
+#btn-update-note { width: 26px; height: 26px; flex-shrink: 0; padding: 0; border: 0; border-radius: 50%; align-items: center; justify-content: center;
+                   background: rgba(255,255,255,0.12); color: var(--imp-caldo); cursor: pointer; }
+#btn-update-note svg { width: 15px; height: 15px; }
+.imp-bottone {
+    width: 100%; min-height: 48px; padding: 13px 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 15px;
+    background: rgba(255,255,255,0.09); color: var(--imp-testo); font-family: inherit; font-size: 0.95rem; font-weight: 650; cursor: pointer; text-align: center;
+    transition: transform 0.15s ease, background-color 0.2s ease;
+}
+.imp-bottone svg { width: 17px; height: 17px; vertical-align: -3px; margin-right: 6px; }
+.imp-bottone:active { transform: scale(0.98); background: rgba(255,255,255,0.13); }
+.imp-bottone-primario { border: 0; color: #2A1606; background: linear-gradient(180deg, #FFC574, #FF8A3D); box-shadow: 0 10px 26px rgba(255,138,61,0.35), inset 0 1px 0 rgba(255,255,255,0.35); }
+.imp-bottone-primario:active { background: linear-gradient(180deg, #FFB85C, #F57C2E); }
+.imp-pagina #agg-av { margin-bottom: 0; border-radius: 18px; background: var(--imp-vetro); border-color: var(--imp-bordo); box-shadow: inset 0 1px 0 rgba(255,255,255,0.045); }
+.imp-pagina .agg-av-testa { gap: 13px; padding: 12px 14px; min-height: 64px; }
+.imp-pagina .agg-av-ico { width: 30px; height: 30px; border-radius: 8.5px; }
+.imp-pagina .agg-av-ico svg { width: 18px; height: 18px; }
+.imp-pagina .agg-av-titolo { gap: 2px; }
+.imp-pagina .agg-av-titolo b { font-size: 0.99rem; font-weight: 560; letter-spacing: -0.012em; color: var(--imp-testo); }
+.imp-pagina .agg-av-titolo small { font-size: 0.79rem; line-height: 1.3; color: var(--imp-testo-2); }
+.imp-pagina .agg-av-corpo { border-top-color: var(--imp-sep); padding: 12px 14px 14px; }
+.imp-pagina .agg-av-etichetta { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; color: var(--imp-testo-3); }
+.imp-pagina .agg-av-tel-testo b, .imp-pagina .agg-av-vuoto b { color: var(--imp-testo); }
+.imp-pagina .agg-av-tel-testo small { color: var(--imp-testo-2); }
+.imp-pagina .agg-av-vuoto span { color: var(--imp-testo-2); }
+
+/* ---- cambia server (solo app iOS) e firma ---- */
+.imp-cambia-server {
+    width: 100%; margin-top: 28px; padding: 0; border: 1px solid rgba(255,69,58,0.22); border-radius: 18px;
+    background: rgba(255,69,58,0.08); color: inherit; font: inherit; text-align: left; cursor: pointer; overflow: hidden;
+}
+.imp-cambia-server:active { background: rgba(255,69,58,0.14); }
+.imp-riga-dentro { display: flex; align-items: center; gap: 13px; min-height: 56px; padding: 10px 14px; }
+.imp-cambia-server .imp-testo b { color: #FF6961; }
+.imp-firma { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 36px 0 6px; color: var(--imp-testo-4); font-size: 0.76rem; font-weight: 600; letter-spacing: 0.08em; }
+.imp-firma-logo { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+                  background: rgba(255,179,92,0.1); border: 1px solid rgba(255,179,92,0.22); }
+.imp-firma-logo svg { width: 17px; height: 17px; color: var(--imp-caldo); }
+
+/* ---- categorie del dettaglio ---- */
 .imp-cat { display: none; }
-.imp-cat.attiva { display: block; }
-/* i contenuti arrivano dal vecchio pannello: qui si tolgono i margini che aveva li' dentro */
-.imp-cat > .accordion-content { max-height: none; opacity: 1; padding: 0; pointer-events: auto; overflow: visible; transition: none; }
-.imp-cat .section-title { margin-top: 26px; margin-bottom: 12px; font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.45); letter-spacing: 0.12em; text-shadow: none; }
-.imp-cat > .accordion-content > .section-title:first-child { margin-top: 4px; }
-/* gli sfondi: tutti in pagina su piu' righe, invece della fila da far scorrere di lato
-   (in una pagina che scorre gia' in verticale lo scorrimento laterale e' scomodo) */
-.imp-cat .bg-selector-container {
-    display: grid !important; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-    gap: 12px; overflow: visible !important;
-    margin: 0 !important; padding: 6px 0 6px 0 !important;
+.imp-cat.attiva { display: block; animation: imp-entra 0.36s var(--imp-curva) both; }
+@keyframes imp-entra { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.imp-vuoto { display: none; }
+.imp-dettaglio .imp-contenuto > .imp-cat:first-of-type { margin-top: 0; }
+.imp-cat > .imp-etichetta:first-child { margin-top: 10px; }
+
+/* ---- telefono piccolo ---- */
+@media (max-width: 359px) {
+    .imp-valore { display: none; }
+    .imp-avatar { width: 48px; height: 48px; font-size: 1.3rem; }
+    .imp-profilo-testa { gap: 12px; padding: 14px 12px 12px 14px; }
+    .imp-info { padding: 8px 10px; gap: 8px; }
+    .imp-titolone { font-size: 1.85rem; }
+    .imp-ap-schermo, .imp-ap-scala { gap: 14px; padding: 14px; }
+    .imp-sfondi { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap: 12px 8px; }
+    .imp-tessere { gap: 7px; padding: 10px; }
+    .imp-pagina .style-btn.imp-tessera { font-size: 0.74rem; }
+    .imp-scala-scelte button { font-size: 0.72rem; letter-spacing: -0.04em; }
 }
-.imp-cat .bg-option { width: auto !important; height: 104px; }
-.imp-firma { text-align: center; color: rgba(255,255,255,0.28); font-size: 0.74rem; margin: 26px 0 8px 0; letter-spacing: 0.04em; }
-/* in modalita' leggera niente sfumature sulla testata: tinta piena */
-.wh-leggera .imp-testa { background: #16161A; }
+
+/* ---- da 820 px: elenco e dettaglio affiancati (come le Impostazioni dell'iPad) ---- */
+@media (min-width: 820px) {
+    .imp-schermata#imp-elenco { right: auto; width: 360px; border-right: 0.5px solid rgba(255,255,255,0.1); }
+    .imp-schermata#imp-elenco.via { transform: none; opacity: 1; pointer-events: auto; }
+    .imp-dettaglio, .imp-dettaglio.aperta { left: 360px; transform: none; box-shadow: none; }
+    .imp-dettaglio .imp-back { visibility: hidden; }
+    .imp-dettaglio:not(.aperta) .imp-cat { display: none; }
+    .imp-dettaglio:not(.aperta) .imp-vuoto {
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 60vh; text-align: center; color: var(--imp-testo-3);
+    }
+    .imp-vuoto b { font-size: 1.3rem; color: var(--imp-testo); letter-spacing: -0.02em; }
+    .imp-vuoto-ico { width: 64px; height: 64px; border-radius: 18px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;
+                     background: rgba(255,179,92,0.1); border: 1px solid rgba(255,179,92,0.22); }
+    .imp-vuoto-ico svg { width: 30px; height: 30px; color: var(--imp-caldo); }
+    .imp-titolino { max-width: 40vw; }
+}
+
+/* ---- movimento ridotto: niente scorrimenti, solo dissolvenze brevi ---- */
+@media (prefers-reduced-motion: reduce) {
+    .imp-pagina, .imp-pagina.aperta { transform: none; opacity: 0; transition: opacity 0.2s ease, visibility 0s linear 0.2s; }
+    .imp-pagina.aperta { opacity: 1; transition: opacity 0.2s ease, visibility 0s; }
+    .imp-schermata, .imp-schermata.via, .imp-dettaglio { transition: opacity 0.2s ease; transform: none; }
+    .imp-dettaglio:not(.aperta) { opacity: 0; pointer-events: none; }
+    .imp-cat.attiva { animation: none; }
+    .imp-scala-dentro, .imp-sd-nav { transition: none; }
+}
+@media (prefers-reduced-motion: reduce) and (min-width: 820px) {
+    .imp-dettaglio:not(.aperta) { opacity: 1; pointer-events: auto; }
+}
+
+/* ---- modalita' leggera: niente vetro sfocato ne' ombre grandi ---- */
+.wh-leggera .imp-testa.scorsa { background: #121319; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.wh-leggera .imp-ap-c { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.wh-leggera .imp-profilo, .wh-leggera .imp-anteprima, .wh-leggera .imp-sistema-eroe { box-shadow: none; }
+
+/* =========================================================================
+   GRANDEZZA PAGINA: con la pagina in scala (html.wh-scala, messo dallo script in cima
+   a <head>) il browser da' le aree sicure in punti dello schermo, non in pixel della
+   pagina: qui si riportano in pixel della pagina (diviso la scala), cosi' testata,
+   barra in basso e sfondo restano fuori da tacca, Dynamic Island e indicatore Home.
+   Al 100% la classe non c'e' e non cambia nulla.
+   ========================================================================= */
+html.wh-scala {
+    --safe-top: calc(env(safe-area-inset-top, 30px) / var(--wh-scala, 1));
+    --safe-bottom: calc(env(safe-area-inset-bottom, 16px) / var(--wh-scala, 1));
+    --wh-sa-t: calc(env(safe-area-inset-top, 0px) / var(--wh-scala, 1));
+    --wh-sa-b: calc(env(safe-area-inset-bottom, 0px) / var(--wh-scala, 1));
+}
+html.wh-scala .imp-pagina {
+    --imp-sa-l: calc(env(safe-area-inset-left, 0px) / var(--wh-scala, 1));
+    --imp-sa-r: calc(env(safe-area-inset-right, 0px) / var(--wh-scala, 1));
+}
+@media (max-width: 1023px) {
+    html.wh-scala #app-background.bg-notte-citta { --nc-citta-su: calc(66px + var(--wh-sa-b)); --nc-luna-y: calc(var(--wh-sa-t) + 46px); }
+    html.wh-scala .nc-brilli i:nth-child(5) { top: calc(var(--wh-sa-t) + 10px) !important; }
+    html.wh-scala .nc-brilli i:nth-child(6) { top: calc(var(--wh-sa-t) + 94px) !important; }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+    html.wh-scala #app-background.bg-notte-citta { --nc-luna-y: calc(var(--wh-sa-t) + 22px); }
+}
 </style>
 </head>
 <body>
@@ -2687,26 +3286,63 @@
         </div>
     </div>
 
-<!-- ===== IMPOSTAZIONI: sezione a pagina intera ===== -->
-<div class="imp-pagina" id="imp-pagina">
+<!-- ===== IMPOSTAZIONI: sezione a pagina intera (rifatta il 26/09/2026) =====
+     Telefono: elenco -> pagina di dettaglio che entra da destra. Da 820 px: due colonne (elenco a
+     sinistra, dettaglio a destra). I controlli sono quelli di sempre (stessi id, classi e attributi
+     data-pref/data-val/data-bg): i loro ascoltatori e i salvataggi sono nel codice piu' sotto e non
+     sono cambiati. Nuova solo la "Grandezza pagina" (core_scala_pagina, script in cima a <head>). -->
+<div class="imp-pagina" id="imp-pagina" aria-label="Impostazioni">
 
     <div class="imp-schermata" id="imp-elenco">
-        <div class="imp-testa">
-            <button class="imp-back" onclick="impChiudi()" title="Chiudi"><i data-lucide="chevron-left"></i></button>
-            <h2>Impostazioni</h2>
+        <div class="imp-testa con-titolone">
+            <button type="button" class="imp-back imp-chiudi" onclick="impChiudi()" title="Chiudi" aria-label="Chiudi"><i data-lucide="chevron-left"></i></button>
+            <h2 class="imp-titolino">Impostazioni</h2>
+            <span></span>
         </div>
         <div class="imp-scroll">
+          <div class="imp-contenuto">
+            <h1 class="imp-titolone">Impostazioni</h1>
+
+            <!-- chi sei e dove sei collegato -->
+            <div class="imp-profilo">
+                <button type="button" class="imp-profilo-testa" onclick="impAccount()">
+                    <span class="imp-avatar" aria-hidden="true" data-no-tr>{{ (session.get('username') or '?')[:1] | upper }}</span>
+                    <span class="imp-profilo-nome">
+                        <span class="imp-profilo-riga">
+                            <b data-no-tr>{{ session.get('username', '') }}</b>
+                            {% if session.role == 'admin' %}<span class="imp-ruolo admin">Amministratore</span>{% else %}<span class="imp-ruolo">Utente</span>{% endif %}
+                        </span>
+                        <small>Password e uscita</small>
+                    </span>
+                    <i data-lucide="chevron-right" class="imp-freccia"></i>
+                </button>
+                <div class="imp-profilo-info{% if session.role == 'admin' %} con-versione{% endif %}">
+                    <div class="imp-info">
+                        <i data-lucide="house"></i>
+                        <span class="imp-info-testo"><small>Casa</small><b id="imp-casa" data-no-tr>&mdash;</b></span>
+                    </div>
+                    <div class="imp-info" id="imp-stato-server">
+                        <span class="imp-led" aria-hidden="true"></span>
+                        <span class="imp-info-testo"><small>Server</small><b id="imp-server" data-no-tr>&mdash;</b></span>
+                    </div>
+                    {% if session.role == 'admin' %}
+                    <button type="button" class="imp-info imp-info-versione" id="imp-info-versione" onclick="impApri('sistema')">
+                        <i data-lucide="badge-check"></i>
+                        <span class="imp-info-testo"><small>Versione</small><b id="imp-versione" data-no-tr>&mdash;</b><span class="imp-info-nuova" id="imp-versione-nuova" data-no-tr></span></span>
+                        <span class="imp-info-nuovo sys-update-badge" style="display:none;">Nuova</span>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
 
             <!-- ===== LINGUA: INIZIO ===== -->
-            <div class="imp-etichetta">Lingua / Language</div>
+            <div class="imp-etichetta">Generale</div>
             <div class="imp-gruppo">
-                <div class="imp-riga" style="cursor:default;">
+                <div class="imp-riga imp-riga-fissa">
                     <span class="acc-ico c-blue"><i data-lucide="languages"></i></span>
                     <span class="imp-testo"><b>Lingua</b><small>Italiano o inglese</small></span>
-                    <!-- ===== LINGUA: INIZIO =====
-                         Selettore della lingua. Autonomo: porta con sé stile e comportamento, non tocca il resto
-                         della pagina. Il colore acceso è il blu di Wach0ss, che si legge sia su fondo chiaro sia scuro.
-                         Per toglierlo: cancellare da "LINGUA: INIZIO" a "LINGUA: FINE". -->
+                    <!-- Selettore della lingua. Autonomo: porta con se' stile e comportamento, non tocca il resto
+                         della pagina. Per toglierlo: cancellare da "LINGUA: INIZIO" a "LINGUA: FINE". -->
                     <div class="wh-lingua" role="group" aria-label="Lingua / Language">
                         <button type="button" data-l="it" title="Italiano" lang="it">IT</button>
                         <button type="button" data-l="en" title="English" lang="en">EN</button>
@@ -2745,32 +3381,41 @@
                         });
                     })();
                     </script>
-                    <!-- ===== LINGUA: FINE ===== -->
                 </div>
             </div>
             <!-- ===== LINGUA: FINE ===== -->
+
             <div class="imp-etichetta">Aspetto dell'app</div>
             <div class="imp-gruppo">
-                <button type="button" class="imp-riga" onclick="impApri('aspetto')">
-                    <span class="acc-ico c-purple"><i data-lucide="monitor"></i></span>
-                    <span class="imp-testo"><b>Schermata e sfondo</b><small>Sfondo, riquadro meteo, stile del menu</small></span>
+                <button type="button" class="imp-riga" data-apri="aspetto" onclick="impApri('aspetto')">
+                    <span class="acc-ico c-purple"><i data-lucide="image"></i></span>
+                    <span class="imp-testo"><b>Schermata e sfondo</b><small>Sfondo, riquadro meteo, stile del menu</small><small class="imp-ora" id="imp-ora-aspetto"></small></span>
+                    <span class="imp-valore" id="imp-val-aspetto"></span>
                     <i data-lucide="chevron-right" class="imp-freccia"></i>
                 </button>
-                <button type="button" class="imp-riga" onclick="impApri('card')">
-                    <span class="acc-ico c-orange"><i data-lucide="layout-template"></i></span>
-                    <span class="imp-testo"><b>Card dei dispositivi</b><small>Colore, trasparenza, forma e dimensione</small></span>
+                <button type="button" class="imp-riga" data-apri="card" onclick="impApri('card')">
+                    <span class="acc-ico c-orange"><i data-lucide="layout-grid"></i></span>
+                    <span class="imp-testo"><b>Card dei dispositivi</b><small>Colore, trasparenza, forma e dimensione</small><small class="imp-ora" id="imp-ora-card"></small></span>
+                    <span class="imp-valore" id="imp-val-card"></span>
+                    <i data-lucide="chevron-right" class="imp-freccia"></i>
+                </button>
+                <button type="button" class="imp-riga" data-apri="scala" onclick="impApri('scala')">
+                    <span class="acc-ico c-indigo"><i data-lucide="a-large-small"></i></span>
+                    <span class="imp-testo"><b>Grandezza pagina</b><small>Per adattare l'app agli schermi piccoli</small><small class="imp-ora" id="imp-ora-scala" data-no-tr></small></span>
+                    <span class="imp-valore" id="imp-val-scala" data-no-tr></span>
                     <i data-lucide="chevron-right" class="imp-freccia"></i>
                 </button>
             </div>
 
             <div class="imp-etichetta">Fluidità</div>
             <div class="imp-gruppo">
-                <button type="button" class="imp-riga" onclick="impApri('prestazioni')">
-                    <span class="acc-ico c-blue"><i data-lucide="zap"></i></span>
-                    <span class="imp-testo"><b>Prestazioni</b><small>Modalità leggera e animazioni del meteo</small></span>
+                <button type="button" class="imp-riga" data-apri="prestazioni" onclick="impApri('prestazioni')">
+                    <span class="acc-ico c-yellow"><i data-lucide="zap"></i></span>
+                    <span class="imp-testo"><b>Prestazioni</b><small>Modalità leggera e animazioni del meteo</small><small class="imp-ora" id="imp-ora-prestazioni"></small></span>
+                    <span class="imp-valore" id="imp-val-prestazioni"></span>
                     <i data-lucide="chevron-right" class="imp-freccia"></i>
                 </button>
-                <button type="button" class="imp-riga" onclick="impApri('render3d')">
+                <button type="button" class="imp-riga" data-apri="render3d" onclick="impApri('render3d')">
                     <span class="acc-ico c-teal"><i data-lucide="box"></i></span>
                     <span class="imp-testo"><b>Planimetrie 3D</b><small>Luci ed esposizione del modello</small></span>
                     <i data-lucide="chevron-right" class="imp-freccia"></i>
@@ -2780,76 +3425,317 @@
             {% if session.role == 'admin' %}
             <div class="imp-etichetta">Impianto</div>
             <div class="imp-gruppo">
-                <button type="button" class="imp-riga" onclick="impApri('sistema')">
+                <button type="button" class="imp-riga" data-apri="sistema" onclick="impApri('sistema')">
                     <span class="acc-ico c-gray"><i data-lucide="server"></i></span>
-                    <span class="imp-testo"><b>Sistema e aggiornamenti</b><small>Versione installata, riavvio e spegnimento</small></span>
+                    <span class="imp-testo"><b>Sistema e aggiornamenti</b><small>Versione installata, riavvio e spegnimento</small><small class="imp-ora" id="imp-ora-sistema" data-no-tr></small></span>
                     <span class="imp-pill sys-update-badge" style="display:none;">1 nuovo</span>
+                    <span class="imp-valore" id="imp-val-sistema" data-no-tr></span>
                     <i data-lucide="chevron-right" class="imp-freccia"></i>
                 </button>
             </div>
             {% endif %}
 
             <div class="imp-etichetta">Gestione</div>
-            <div class="imp-gruppo" id="imp-collegamenti"></div>
+            <div class="imp-gruppo" id="imp-collegamenti">
+                <button type="button" class="imp-riga" onclick="openAutomationsQuickModal()">
+                    <span class="acc-ico c-blue"><i data-lucide="workflow"></i></span>
+                    <span class="imp-testo"><b>Gestisci automazioni</b><small>Accendi, spegni e prova le tue automazioni</small></span>
+                    <i data-lucide="chevron-right" class="imp-freccia"></i>
+                </button>
+                <a href="{{ url_for('dashboard') }}" id="btn-goto-config" class="imp-riga" onclick="checkDesktopConfig(event)">
+                    <span class="acc-ico c-gray"><i data-lucide="settings-2"></i></span>
+                    <span class="imp-testo"><b>Pannello di controllo</b><small>La configurazione completa, dal computer</small></span>
+                    <i data-lucide="chevron-right" class="imp-freccia"></i>
+                </a>
+            </div>
 
-            <div class="imp-firma">Wach0ss Home</div>
+            <!-- solo nell'app iOS: il codice piu' sotto lo mostra (display: block) quando c'e' window.webkit -->
+            <button type="button" id="btn-ios-change-server" class="imp-cambia-server" onclick="triggerIOSDisconnect()" style="display: none;">
+                <span class="imp-riga-dentro">
+                    <span class="acc-ico c-red"><i data-lucide="server-cog"></i></span>
+                    <span class="imp-testo"><b>Cambia server</b><small>Torna alla scelta del gateway nell'app</small></span>
+                    <i data-lucide="log-out" class="imp-freccia"></i>
+                </span>
+            </button>
+
+            <div class="imp-firma">
+                <span class="imp-firma-logo" aria-hidden="true"><i data-lucide="house"></i></span>
+                <span>Wach0ss Home</span>
+            </div>
+          </div>
         </div>
     </div>
 
     <div class="imp-schermata imp-dettaglio" id="imp-dettaglio">
         <div class="imp-testa">
-            <button class="imp-back" onclick="impIndietro()"><i data-lucide="chevron-left"></i><span>Impostazioni</span></button>
-            <h2 id="imp-titolo"></h2>
+            <button type="button" class="imp-back imp-chiudi" onclick="impIndietro()" title="Impostazioni"><i data-lucide="chevron-left"></i><span class="imp-sr">Impostazioni</span></button>
+            <h2 id="imp-titolo" class="imp-titolino"></h2>
+            <span></span>
         </div>
         <div class="imp-scroll">
-            <div class="imp-cat" data-cat="aspetto"></div>
-            <div class="imp-cat" data-cat="card"></div>
-            <div class="imp-cat" data-cat="prestazioni"></div>
-            <div class="imp-cat" data-cat="render3d"></div>
-            <div class="imp-cat" data-cat="sistema"></div>
-        </div>
-    </div>
+          <div class="imp-contenuto">
 
-</div>
-<div class="bottom-modal" id="settings-modal">
-    <div class="modal-handle"></div>
-    <button class="close-modal-btn" onclick="closeAllModals()"><i data-lucide="x"></i></button>
-    <div class="modal-header"><div class="modal-title">Impostazioni</div></div>
-
-    <div class="modal-scroll-area" style="padding-bottom: 20px;">
-        
-        <div class="settings-accordion">
-
-{% if session.role == 'admin' %}
-<div class="accordion-item" id="acc-system">
-        <div class="accordion-header" onclick="toggleSettingsAccordion(this)">
-            <div class="accordion-title"><span class="acc-ico c-gray"><i data-lucide="server"></i></span> Sistema e Aggiornamenti</div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div class="update-pill sys-update-badge"><i data-lucide="arrow-down"></i> 1 nuovo</div>
-                <i data-lucide="chevron-down" class="accordion-icon"></i>
+            <!-- da tablet, prima di scegliere una voce -->
+            <div class="imp-vuoto">
+                <span class="imp-vuoto-ico"><i data-lucide="settings"></i></span>
+                <b>Impostazioni</b>
+                <span>Scegli una voce a sinistra per vederne le opzioni.</span>
             </div>
-        </div>
-        <div class="accordion-content">
-            <div class="section-title">AGGIORNAMENTI</div>
-            <div style="background: rgba(255,255,255,0.03); padding: 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 24px; text-align: center;">
-                <div id="sys-version-info" style="color: #FFF; font-weight: 700; font-size: 1.1rem; margin-bottom: 8px;">Versione: Caricamento...</div>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 18px;">
-                    <div id="sys-update-status" style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">Verifica aggiornamenti in corso...</div>
-                    <button id="btn-update-note" onclick="apriNotaAggiornamento()" title="Novità di questa versione" aria-label="Novità di questa versione"
-                            style="display: none; width: 22px; height: 22px; flex-shrink: 0; padding: 0; border: none; border-radius: 50%;
-                                   background: rgba(255,255,255,0.12); color: var(--accent-cyan); cursor: pointer;
-                                   align-items: center; justify-content: center;">
-                        <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+
+            <!-- ======================= SCHERMATA E SFONDO ======================= -->
+            <div class="imp-cat" data-cat="aspetto">
+                <div class="imp-anteprima imp-ap-schermo">
+                    <div class="imp-telefono" aria-hidden="true">
+                        <div class="imp-ap-sfondo"></div>
+                        <div class="imp-tel-testa"><i></i><b></b><s></s></div>
+                        <div class="imp-tel-meteo"><span class="imp-tel-gradi">18°</span><span class="imp-tel-luna"></span><i></i></div>
+                        <div class="imp-tel-card"><i></i><i></i><i></i><i></i></div>
+                        <div class="imp-tel-nav"><i></i><i></i><i></i><i></i></div>
+                    </div>
+                    <div class="imp-ap-info">
+                        <small>Sfondo</small>
+                        <b id="imp-ap-sfondo-nome">&nbsp;</b>
+                        <span class="imp-ap-righe">
+                            <span><i data-lucide="cloud-sun"></i><span id="imp-ap-meteo"></span></span>
+                            <span><i data-lucide="panel-bottom"></i><span id="imp-ap-menu"></span></span>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="imp-etichetta">Sfondo</div>
+                <div class="imp-gruppo">
+                    <div class="imp-sfondi">
+                        <div class="imp-sfondo"><div class="bg-option bg-notte-citta" data-bg="notte_citta" title="Notte in città"></div><span class="imp-sfondo-nome">Notte in città</span></div>
+                        <div class="imp-sfondo"><div class="bg-option" data-bg="default" style="background: url('/static/sfondo.png') center/cover;"></div><span class="imp-sfondo-nome">Classico</span></div>
+                        <div class="imp-sfondo"><div class="bg-option bg-anim-aurora" data-bg="anim_aurora" title="Aurora"></div><span class="imp-sfondo-nome">Aurora</span></div>
+                        <div class="imp-sfondo"><div class="bg-option bg-anim-mesh" data-bg="anim_mesh" title="Nebula"></div><span class="imp-sfondo-nome">Nebula</span></div>
+                        <div class="imp-sfondo"><div class="bg-option bg-anim-stars" data-bg="anim_stars" title="Notte stellata"></div><span class="imp-sfondo-nome">Notte stellata</span></div>
+                        <div class="imp-sfondo"><div class="bg-option bg-anim-sunset" data-bg="anim_sunset" title="Tramonto"></div><span class="imp-sfondo-nome">Tramonto</span></div>
+                        <div class="imp-sfondo"><div class="bg-option bg-anim-ocean" data-bg="anim_ocean" title="Oceano"></div><span class="imp-sfondo-nome">Oceano</span></div>
+                        <div class="imp-sfondo"><div class="bg-option bg-anim-aurora2" data-bg="anim_aurora2" title="Aurora Boreale"></div><span class="imp-sfondo-nome">Aurora Boreale</span></div>
+                        <div class="imp-sfondo"><div class="bg-option bg-anim-prisma" data-bg="anim_prisma" title="Prisma"></div><span class="imp-sfondo-nome">Prisma</span></div>
+                        <div class="imp-sfondo"><div class="bg-option bg-anim-synth" data-bg="anim_synth" title="Retrowave"></div><span class="imp-sfondo-nome">Retrowave</span></div>
+                        <div class="imp-sfondo"><div class="bg-option bg-anim-lava" data-bg="anim_lava" title="Lava"></div><span class="imp-sfondo-nome">Lava</span></div>
+                        <div class="imp-sfondo"><div class="bg-option bg-anim-fireflies" data-bg="anim_fireflies" title="Lucciole"></div><span class="imp-sfondo-nome">Lucciole</span></div>
+                        <div class="imp-sfondo"><div class="bg-option" data-bg="blue" style="background: linear-gradient(to bottom right, #001f3f, #000);"></div><span class="imp-sfondo-nome">Blu notte</span></div>
+                        <div class="imp-sfondo"><div class="bg-option" data-bg="purple" style="background: linear-gradient(to bottom right, #2a0845, #000);"></div><span class="imp-sfondo-nome">Viola</span></div>
+                        <div class="imp-sfondo"><div class="bg-option" data-bg="gradient_orange" style="background: linear-gradient(to bottom right, #ff7e5f, #feb47b);"></div><span class="imp-sfondo-nome">Arancio</span></div>
+                        <div class="imp-sfondo"><div class="bg-option" data-bg="gradient_green" style="background: linear-gradient(to bottom right, #11998e, #38ef7d);"></div><span class="imp-sfondo-nome">Smeraldo</span></div>
+                        <div class="imp-sfondo"><div class="bg-option" data-bg="img_green" style="background: url('https://i.pinimg.com/originals/de/76/7a/de767a8b779c06f4bbf22a6f51886dae.jpg') center/cover;"></div><span class="imp-sfondo-nome">Verde</span></div>
+                        <div class="imp-sfondo"><div class="bg-option" data-bg="img_glass" style="background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=200&auto=format&fit=crop') center/cover;"></div><span class="imp-sfondo-nome">Vetro</span></div>
+                        <div class="imp-sfondo"><div class="bg-option" data-bg="img_dark" style="background: url('https://img.freepik.com/foto-gratuito/paesaggio-naturale-con-cielo-stellato-e-limpido_23-2151683127.jpg') center/cover;"></div><span class="imp-sfondo-nome">Cielo stellato</span></div>
+                        <div class="imp-sfondo"><div class="bg-option" data-bg="img_liquid" style="background: url('https://img.wallpapic.it/i592-027-931/medium/foresta-vecchia-bosco-di-abeti-rossi-sequoia-sfondo.jpg') center/cover;"></div><span class="imp-sfondo-nome">Bosco</span></div>
+                    </div>
+                </div>
+
+                <div class="imp-etichetta">Sfondo personale</div>
+                <div class="imp-gruppo">
+                    <div class="imp-riga bg-option" id="btn-color-bg" role="button" tabindex="0">
+                        <span class="acc-ico c-arcobaleno"><i data-lucide="palette"></i></span>
+                        <span class="imp-testo"><b>Tinta a scelta</b><small>Una sfumatura del colore che preferisci</small></span>
+                        <i data-lucide="check" class="imp-spunta"></i>
+                        <i data-lucide="chevron-right" class="imp-freccia"></i>
+                    </div>
+                    <div class="imp-riga bg-option" id="btn-upload-bg" role="button" tabindex="0">
+                        <span class="acc-ico c-green"><i data-lucide="image-plus"></i></span>
+                        <span class="imp-testo"><b>Una tua foto</b><small>Scegli un'immagine dal telefono</small></span>
+                        <i data-lucide="check" class="imp-spunta"></i>
+                        <i data-lucide="chevron-right" class="imp-freccia"></i>
+                    </div>
+                    <input type="file" id="bg-file-input" accept="image/*" style="display: none;">
+                    <input type="color" id="bg-color-input" style="display: none;" value="#0a84ff">
+                </div>
+
+                <div class="imp-etichetta">Riquadro del meteo</div>
+                <div class="imp-gruppo">
+                    <div class="imp-blocco">
+                        <div class="imp-seg" role="group">
+                            <button type="button" class="style-btn active" data-pref="weather" data-val="glass">Contenitore</button>
+                            <button type="button" class="style-btn" data-pref="weather" data-val="minimal">Solo testo</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="imp-etichetta">Barra di navigazione</div>
+                <div class="imp-gruppo">
+                    <div class="imp-tessere" style="--n: 4;">
+                        <button type="button" class="style-btn imp-tessera active" data-pref="nav" data-val="floating"><span class="imp-pitto imp-p-nav" data-v="floating"><i></i><i></i><i></i><i></i></span><span>Isola</span></button>
+                        <button type="button" class="style-btn imp-tessera" data-pref="nav" data-val="flat"><span class="imp-pitto imp-p-nav" data-v="flat"><i></i><i></i><i></i><i></i></span><span>Piatta</span></button>
+                        <button type="button" class="style-btn imp-tessera" data-pref="nav" data-val="dock"><span class="imp-pitto imp-p-nav" data-v="dock"><i></i><i></i><i></i><i></i></span><span>Dock</span></button>
+                        <button type="button" class="style-btn imp-tessera" data-pref="nav" data-val="minimal"><span class="imp-pitto imp-p-nav" data-v="minimal"><i></i><i></i><i></i><i></i></span><span>Minimal</span></button>
+                    </div>
+                </div>
+                <div class="imp-nota">Lo stile della barra vale sul telefono; da tablet in orizzontale la barra è di lato.</div>
+            </div>
+
+            <!-- ======================= CARD DEI DISPOSITIVI ======================= -->
+            <div class="imp-cat" data-cat="card">
+                <div class="imp-anteprima imp-ap-card" aria-hidden="true">
+                    <div class="imp-ap-sfondo"></div>
+                    <div class="imp-ap-griglia">
+                        <div class="imp-ap-c accesa"><span class="imp-ap-ico"><i data-lucide="lamp-ceiling"></i></span><span class="imp-ap-t"><b>Lampadario</b><small>Acceso</small></span></div>
+                        <div class="imp-ap-c"><span class="imp-ap-ico"><i data-lucide="blinds"></i></span><span class="imp-ap-t"><b>Tapparella</b><small>Aperta</small></span></div>
+                        <div class="imp-ap-c calda"><span class="imp-ap-ico"><i data-lucide="thermometer"></i></span><span class="imp-ap-t"><b>Termostato</b><small data-no-tr id="imp-ap-gradi">21,5°</small></span></div>
+                        <div class="imp-ap-c"><span class="imp-ap-ico"><i data-lucide="plug"></i></span><span class="imp-ap-t"><b>Presa</b><small>Spenta</small></span></div>
+                        <div class="imp-ap-c accesa"><span class="imp-ap-ico"><i data-lucide="lamp-floor"></i></span><span class="imp-ap-t"><b>Lampada</b><small>Accesa</small></span></div>
+                        <div class="imp-ap-c"><span class="imp-ap-ico"><i data-lucide="tv"></i></span><span class="imp-ap-t"><b>TV</b><small>Spenta</small></span></div>
+                    </div>
+                </div>
+
+                <div class="imp-etichetta">Colore e trasparenza</div>
+                <div class="imp-gruppo">
+                    <div class="imp-riga imp-riga-fissa">
+                        <span class="acc-ico c-pink"><i data-lucide="paint-bucket"></i></span>
+                        <span class="imp-testo"><b id="imp-l-tinta">Tinta base</b><small>Il colore del vetro delle card</small></span>
+                        <input type="color" id="card-color-input" value="#ffffff" aria-labelledby="imp-l-tinta">
+                    </div>
+                    <div class="imp-cursore">
+                        <div class="imp-cursore-testa"><b id="imp-l-trasparenza">Trasparenza</b><output data-di="card-opacity-slider" data-no-tr></output></div>
+                        <div class="imp-cursore-fila">
+                            <i data-lucide="eye-off"></i>
+                            <input type="range" id="card-opacity-slider" min="0" max="100" value="4" aria-labelledby="imp-l-trasparenza">
+                            <i data-lucide="eye"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="imp-etichetta">Disposizione sul telefono</div>
+                <div class="imp-gruppo">
+                    <div class="imp-tessere" style="--n: 3;">
+                        <button type="button" class="style-btn imp-tessera" data-pref="layout" data-val="1"><span class="imp-pitto imp-p-griglia" data-v="1"><i></i><i></i><i></i></span><span>Lista</span></button>
+                        <button type="button" class="style-btn imp-tessera active" data-pref="layout" data-val="2"><span class="imp-pitto imp-p-griglia" data-v="2"><i></i><i></i><i></i><i></i></span><span>2 colonne</span></button>
+                        <button type="button" class="style-btn imp-tessera" data-pref="layout" data-val="3"><span class="imp-pitto imp-p-griglia" data-v="3"><i></i><i></i><i></i><i></i><i></i><i></i></span><span>3 colonne</span></button>
+                    </div>
+                </div>
+
+                <div class="imp-etichetta">Forma</div>
+                <div class="imp-gruppo">
+                    <div class="imp-tessere" style="--n: 3;">
+                        <button type="button" class="style-btn imp-tessera" data-pref="shape" data-val="square"><span class="imp-pitto imp-p-forma" data-v="square"><i></i></span><span>Quadrate</span></button>
+                        <button type="button" class="style-btn imp-tessera active" data-pref="shape" data-val="default"><span class="imp-pitto imp-p-forma" data-v="default"><i></i></span><span>Smussate</span></button>
+                        <button type="button" class="style-btn imp-tessera" data-pref="shape" data-val="round"><span class="imp-pitto imp-p-forma" data-v="round"><i></i></span><span>Rotonde</span></button>
+                    </div>
+                </div>
+
+                <div class="imp-etichetta">Dimensione</div>
+                <div class="imp-gruppo">
+                    <div class="imp-blocco">
+                        <div class="imp-seg" role="group">
+                            <button type="button" class="style-btn active" data-pref="size" data-val="default">Compatte</button>
+                            <button type="button" class="style-btn" data-pref="size" data-val="large">Grandi</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================= GRANDEZZA PAGINA ======================= -->
+            <div class="imp-cat" data-cat="scala">
+                <div class="imp-anteprima imp-ap-scala">
+                    <div class="imp-telefono imp-tel-scala" aria-hidden="true">
+                        <div class="imp-ap-sfondo"></div>
+                        <div class="imp-scala-dentro">
+                            <div class="imp-sd-testa"><i></i><b></b><s></s></div>
+                            <div class="imp-sd-meteo"><i></i><b></b></div>
+                            <div class="imp-sd-pillole"><i></i><i></i><i></i></div>
+                            <div class="imp-sd-griglia"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                            <div class="imp-sd-riga100"><span data-no-tr>100%</span></div>
+                        </div>
+                        <div class="imp-sd-nav"><i></i><i></i><i></i><i></i></div>
+                    </div>
+                    <div class="imp-ap-info">
+                        <small>Adesso</small>
+                        <b class="imp-scala-num" id="imp-scala-num" data-no-tr>100%</b>
+                        <span class="imp-scala-nome" id="imp-scala-nome">Standard</span>
+                        <span class="imp-scala-dato" id="imp-scala-dato"><b data-no-tr></b> <span></span></span>
+                    </div>
+                </div>
+
+                <div class="imp-etichetta">Scegli</div>
+                <div class="imp-gruppo">
+                    <div class="imp-blocco">
+                        <div class="imp-scala-scelte" role="radiogroup" aria-label="Grandezza pagina">
+                            <button type="button" role="radio" data-scala="80" data-no-tr>80%</button>
+                            <button type="button" role="radio" data-scala="85" data-no-tr>85%</button>
+                            <button type="button" role="radio" data-scala="90" data-no-tr>90%</button>
+                            <button type="button" role="radio" data-scala="95" data-no-tr>95%</button>
+                            <button type="button" role="radio" data-scala="100" data-no-tr>100%</button>
+                            <button type="button" role="radio" data-scala="105" data-no-tr>105%</button>
+                            <button type="button" role="radio" data-scala="110" data-no-tr>110%</button>
+                        </div>
+                        <div class="imp-scala-righello" aria-hidden="true">
+                            <span class="piccola" data-no-tr>A</span>
+                            <span class="std">Standard</span>
+                            <span class="grande" data-no-tr>A</span>
+                        </div>
+                        <div class="imp-scala-perche" id="imp-scala-perche" hidden><i data-lucide="info"></i><span></span></div>
+                    </div>
+                    <button type="button" class="imp-riga imp-riga-azione" id="imp-scala-ripristina" onclick="impScala(100)">
+                        <span class="imp-testo"><b>Torna alla grandezza standard</b></span>
                     </button>
                 </div>
-                
-                <button id="btn-update-sys" onclick="installSystemUpdate()" style="display: none; width: 100%; background: var(--accent-cyan); color: #FFF; border: none; padding: 14px; border-radius: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 25px rgba(10, 132, 255, 0.3);">
-                    Installa Aggiornamento Ora
-                </button>
-                <button id="btn-check-update" onclick="checkSystemUpdates(true)" style="width: 100%; background: rgba(255,255,255,0.1); color: #FFF; border: none; padding: 12px; border-radius: 14px; font-weight: 600; cursor: pointer;">
-                    <i data-lucide="refresh-cw" style="width:16px; height:16px; vertical-align:middle; margin-right:6px;"></i> Verifica Aggiornamenti
-                </button>
+                <div class="imp-nota" id="imp-scala-nota">Vale solo per questo dispositivo. Più piccola: entrano più card e più testo, utile sugli schermi piccoli. Più grande: testi e tasti più comodi.</div>
             </div>
+
+            <!-- ======================= PRESTAZIONI ======================= -->
+            <div class="imp-cat" data-cat="prestazioni">
+                <div class="imp-etichetta">Effetti grafici</div>
+                <div class="imp-gruppo">
+                    <div class="imp-riga imp-riga-fissa">
+                        <span class="acc-ico c-yellow"><i data-lucide="feather"></i></span>
+                        <span class="imp-testo"><b id="imp-l-leggera">Modalità leggera</b><small>Meno effetti grafici: più fluida sui telefoni datati</small></span>
+                        <label class="switch-ios">
+                            <input type="checkbox" id="toggle-modalita-leggera" aria-labelledby="imp-l-leggera">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="imp-riga imp-riga-fissa">
+                        <span class="acc-ico c-indigo"><i data-lucide="cloud-lightning"></i></span>
+                        <span class="imp-testo"><b id="imp-l-pioggia">Pioggia e fulmini</b><small>Disattiva per fluidità</small></span>
+                        <label class="switch-ios">
+                            <input type="checkbox" id="toggle-weather-anim" aria-labelledby="imp-l-pioggia">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="imp-nota">La modalità leggera toglie sfocature e animazioni: la pagina scorre meglio sui telefoni meno recenti. Pioggia e fulmini sono le animazioni del meteo sopra lo sfondo.</div>
+            </div>
+
+            <!-- ======================= PLANIMETRIE 3D ======================= -->
+            <div class="imp-cat" data-cat="render3d">
+                <div class="imp-etichetta">Luci del modello</div>
+                <div class="imp-gruppo">
+                    <div class="imp-cursore">
+                        <div class="imp-cursore-testa"><span class="acc-ico c-amber"><i data-lucide="sun"></i></span><b id="imp-l-esposizione">Esposizione globale</b><output data-di="slider-exposure" data-no-tr></output></div>
+                        <div class="imp-cursore-fila"><input type="range" id="slider-exposure" min="10" max="300" value="100" aria-labelledby="imp-l-esposizione"></div>
+                    </div>
+                    <div class="imp-cursore">
+                        <div class="imp-cursore-testa"><span class="acc-ico c-yellow"><i data-lucide="lightbulb"></i></span><b id="imp-l-ambientale">Luce ambientale</b><output data-di="slider-ambient" data-no-tr></output></div>
+                        <div class="imp-cursore-fila"><input type="range" id="slider-ambient" min="0" max="200" value="40" aria-labelledby="imp-l-ambientale"></div>
+                    </div>
+                    <div class="imp-cursore">
+                        <div class="imp-cursore-testa"><span class="acc-ico c-orange"><i data-lucide="sun-dim"></i></span><b id="imp-l-direzionale">Luce direzionale</b><output data-di="slider-directional" data-no-tr></output></div>
+                        <div class="imp-cursore-fila"><input type="range" id="slider-directional" min="0" max="200" value="80" aria-labelledby="imp-l-direzionale"></div>
+                    </div>
+                </div>
+                <div class="imp-nota">Valgono per le stanze con la planimetria 3D e si vedono subito sul modello.</div>
+            </div>
+
+            {% if session.role == 'admin' %}
+            <!-- ======================= SISTEMA E AGGIORNAMENTI (solo admin) ======================= -->
+            <div class="imp-cat" data-cat="sistema">
+                <div class="imp-sistema-eroe">
+                    <span class="imp-eroe-ico"><i data-lucide="server"></i></span>
+                    <div class="imp-eroe-nome">Wach0ss Home</div>
+                    <div id="sys-version-info" class="imp-eroe-versione">Versione: Caricamento...</div>
+                    <div class="imp-eroe-stato">
+                        <span id="sys-update-status">Verifica aggiornamenti in corso...</span>
+                        <button id="btn-update-note" onclick="apriNotaAggiornamento()" title="Novità di questa versione" aria-label="Novità di questa versione" style="display: none;">
+                            <i data-lucide="info"></i>
+                        </button>
+                    </div>
+                    <button id="btn-update-sys" class="imp-bottone imp-bottone-primario" onclick="installSystemUpdate()" style="display: none;">Installa aggiornamento ora</button>
+                    <button id="btn-check-update" class="imp-bottone" onclick="checkSystemUpdates(true)"><i data-lucide="refresh-cw"></i> Verifica aggiornamenti</button>
+                </div>
 
             <!-- ===== AVVISO AGGIORNAMENTI: INIZIO (24/09/2026) =====
                  Interruttore per ricevere sull'app iOS una notifica quando esce una versione nuova.
@@ -2916,7 +3802,7 @@
             .agg-av-nota.errore { color: #FF6961; }
             .wh-leggera #agg-av::before { display: none; }
             </style>
-            <div class="section-title">AVVISI</div>
+            <div class="imp-etichetta">Avvisi</div>
             <div id="agg-av">
                 <div class="agg-av-testa">
                     <span class="acc-ico agg-av-ico"><i data-lucide="bell-ring"></i></span>
@@ -3068,197 +3954,30 @@
             </script>
             <!-- ===== AVVISO AGGIORNAMENTI: FINE ===== -->
 
-            <div class="section-title">ALIMENTAZIONE SERVER</div>
-            <div style="display: flex; gap: 12px;">
-                <button onclick="restartServerMachine()" style="flex: 1; padding: 14px; background: rgba(255, 159, 10, 0.15); border: 1px solid rgba(255, 159, 10, 0.3); color: #FF9F0A; border-radius: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
-                    <i data-lucide="rotate-cw" style="width: 18px; height: 18px; vertical-align: middle; display:block; margin: 0 auto 6px;"></i> Riavvia
-                </button>
-                <button onclick="shutdownServerMachine()" style="flex: 1; padding: 14px; background: rgba(255, 69, 58, 0.15); border: 1px solid rgba(255, 69, 58, 0.3); color: #FF453A; border-radius: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s;" onmousedown="this.style.transform='scale(0.95)'" onmouseup="this.style.transform='scale(1)'">
-                    <i data-lucide="power" style="width: 18px; height: 18px; vertical-align: middle; display:block; margin: 0 auto 6px;"></i> Spegni
-                </button>
+                <div class="imp-etichetta">Alimentazione server</div>
+                <div class="imp-gruppo">
+                    <button type="button" class="imp-riga" onclick="restartServerMachine()">
+                        <span class="acc-ico c-orange"><i data-lucide="rotate-cw"></i></span>
+                        <span class="imp-testo"><b>Riavvia</b><small>La casa resta senza controllo per circa un minuto</small></span>
+                    </button>
+                    <button type="button" class="imp-riga imp-riga-pericolo" onclick="shutdownServerMachine()">
+                        <span class="acc-ico c-red"><i data-lucide="power"></i></span>
+                        <span class="imp-testo"><b>Spegni</b><small>Per riaccenderlo serve il pulsante della macchina</small></span>
+                    </button>
+                </div>
             </div>
+            {% endif %}
+          </div>
         </div>
     </div>
-{% endif %}
-            
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleSettingsAccordion(this)">
-                    <div class="accordion-title"><span class="acc-ico c-purple"><i data-lucide="monitor"></i></span> Dashboard & Sfondo</div>
-                    <i data-lucide="chevron-down" class="accordion-icon"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="section-title">PRESTAZIONI</div>
-                    <div style="margin-bottom: 24px; background: rgba(255,255,255,0.03); padding: 14px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="display:flex; align-items:center; gap: 12px;">
-                                <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(10, 132, 255, 0.15); display:flex; align-items:center; justify-content:center;">
-                                    <i data-lucide="zap" style="color:var(--accent-cyan); width:18px; height:18px;"></i>
-                                </div>
-                                <div style="display:flex; flex-direction:column;">
-                                    <span style="color:#FFF; font-weight:600; font-size:0.95rem;">Modalità leggera</span>
-                                    <span style="color:rgba(255,255,255,0.5); font-size:0.75rem;">Meno effetti grafici: più fluida sui telefoni datati</span>
-                                </div>
-                            </div>
-                            <label class="switch-ios">
-                                <input type="checkbox" id="toggle-modalita-leggera">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="section-title">STILE METEO</div>
-                    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-                        <button class="style-btn active" data-pref="weather" data-val="glass">Contenitore</button>
-                        <button class="style-btn" data-pref="weather" data-val="minimal">Solo Testo</button>
-                    </div>
-                    <!-- NUOVO INTERRUTTORE ANIMAZIONI METEO -->
-                    <div class="section-title">ANIMAZIONI METEO 3D</div>
-                    <div style="margin-bottom: 24px; background: rgba(255,255,255,0.03); padding: 14px 18px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08);">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="display:flex; align-items:center; gap: 12px;">
-                                <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(10, 132, 255, 0.15); display:flex; align-items:center; justify-content:center;">
-                                    <i data-lucide="cloud-lightning" style="color:var(--accent-cyan); width:18px; height:18px;"></i>
-                                </div>
-                                <div style="display:flex; flex-direction:column;">
-                                    <span style="color:#FFF; font-weight:600; font-size:0.95rem;">Pioggia e Fulmini</span>
-                                    <span style="color:rgba(255,255,255,0.5); font-size:0.75rem;">Disattiva per fluidità</span>
-                                </div>
-                            </div>
-                            <label class="switch-ios">
-                                <input type="checkbox" id="toggle-weather-anim">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
 
-                    <div class="section-title">STILE MENU MOBILE</div>
-                    <div style="display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; scrollbar-width: none;">
-                        <button class="style-btn active" data-pref="nav" data-val="floating">Isola</button>
-                        <button class="style-btn" data-pref="nav" data-val="flat">Piatta</button>
-                        <button class="style-btn" data-pref="nav" data-val="dock">Dock</button>
-                        <button class="style-btn" data-pref="nav" data-val="minimal">Minimal</button>
-                    </div>
-
-                    <div class="section-title">PERSONALIZZA SFONDO</div>
-                    <div class="bg-selector-container" style="margin-left: -20px; margin-right: -20px; padding-left: 20px; padding-right: 20px;">
-                        <div class="bg-option" id="btn-color-bg" style="display: flex; align-items: center; justify-content: center; background: conic-gradient(red, yellow, green, cyan, blue, magenta, red);">
-                            <i data-lucide="palette" style="color: #FFF; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));"></i>
-                        </div>
-                        <div class="bg-option" id="btn-upload-bg" style="display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1);">
-                            <i data-lucide="image-plus" style="color: #FFF;"></i>
-                        </div>
-
-                        <div class="bg-option bg-notte-citta" data-bg="notte_citta" title="Notte in città"></div>
-                        <div class="bg-option" data-bg="default" style="background: url('/static/sfondo.png') center/cover;"></div>
-                        <div class="bg-option bg-anim-aurora" data-bg="anim_aurora" title="Aurora"></div>
-                        <div class="bg-option bg-anim-mesh" data-bg="anim_mesh" title="Nebula"></div>
-                        <div class="bg-option bg-anim-stars" data-bg="anim_stars" title="Notte stellata"></div>
-                        <div class="bg-option bg-anim-sunset" data-bg="anim_sunset" title="Tramonto"></div>
-                        <div class="bg-option bg-anim-ocean" data-bg="anim_ocean" title="Oceano"></div>
-                        <div class="bg-option bg-anim-aurora2" data-bg="anim_aurora2" title="Aurora Boreale"></div>
-                        <div class="bg-option bg-anim-prisma" data-bg="anim_prisma" title="Prisma"></div>
-                        <div class="bg-option bg-anim-synth" data-bg="anim_synth" title="Retrowave"></div>
-                        <div class="bg-option bg-anim-lava" data-bg="anim_lava" title="Lava"></div>
-                        <div class="bg-option bg-anim-fireflies" data-bg="anim_fireflies" title="Lucciole"></div>
-                        <div class="bg-option" data-bg="blue" style="background: linear-gradient(to bottom right, #001f3f, #000);"></div>
-                        <div class="bg-option" data-bg="purple" style="background: linear-gradient(to bottom right, #2a0845, #000);"></div>
-                        <div class="bg-option" data-bg="gradient_orange" style="background: linear-gradient(to bottom right, #ff7e5f, #feb47b);"></div>
-                        <div class="bg-option" data-bg="gradient_green" style="background: linear-gradient(to bottom right, #11998e, #38ef7d);"></div>
-                        <div class="bg-option" data-bg="img_green" style="background: url('https://i.pinimg.com/originals/de/76/7a/de767a8b779c06f4bbf22a6f51886dae.jpg') center/cover;"></div>
-                        <div class="bg-option" data-bg="img_glass" style="background: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=200&auto=format&fit=crop') center/cover;"></div>
-                        <div class="bg-option" data-bg="img_dark" style="background: url('https://img.freepik.com/foto-gratuito/paesaggio-naturale-con-cielo-stellato-e-limpido_23-2151683127.jpg') center/cover;"></div>
-                        <div class="bg-option" data-bg="img_liquid" style="background: url('https://img.wallpapic.it/i592-027-931/medium/foresta-vecchia-bosco-di-abeti-rossi-sequoia-sfondo.jpg') center/cover;"></div>
-                        
-                        <input type="file" id="bg-file-input" accept="image/*" style="display: none;">
-                        <input type="color" id="bg-color-input" style="display: none;" value="#0a84ff">
-                    </div>
-                </div>
-            </div>
-
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleSettingsAccordion(this)">
-                    <div class="accordion-title"><span class="acc-ico c-orange"><i data-lucide="layout-template"></i></span> Dispositivi & Card</div>
-                    <i data-lucide="chevron-down" class="accordion-icon"></i>
-                </div>
-                <div class="accordion-content">
-                    <div class="section-title">COLORE CARD</div>
-                    <div class="color-control" style="margin-bottom: 24px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); box-shadow: none;">
-                        <label style="color: rgba(255,255,255,0.8);">Tinta Base</label>
-                        <input type="color" id="card-color-input" value="#ffffff">
-                    </div>
-
-                    <div class="section-title">TRASPARENZA CARD</div>
-                    <div class="slider-wrapper" style="margin-bottom: 28px;">
-                        <i data-lucide="eye-off"></i>
-                        <input type="range" id="card-opacity-slider" min="0" max="100" value="4">
-                        <i data-lucide="eye" style="color:#FFF;"></i>
-                    </div>
-
-                    <div class="section-title">LAYOUT GRIGLIA (MOBILE)</div>
-                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-                        <button class="style-btn" data-pref="layout" data-val="1">Lista</button>
-                        <button class="style-btn active" data-pref="layout" data-val="2">2 Colonne</button>
-                        <button class="style-btn" data-pref="layout" data-val="3">3 Colonne</button>
-                    </div>
-
-                    <div class="section-title">FORMA CARD</div>
-                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-                        <button class="style-btn" data-pref="shape" data-val="square">Quadrate</button>
-                        <button class="style-btn active" data-pref="shape" data-val="default">Smussate</button>
-                        <button class="style-btn" data-pref="shape" data-val="round">Rotonde</button>
-                    </div>
-
-                    <div class="section-title">DIMENSIONE</div>
-                    <div style="display: flex; gap: 12px;">
-                        <button class="style-btn active" data-pref="size" data-val="default">Compatte</button>
-                        <button class="style-btn" data-pref="size" data-val="large">Grandi</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleSettingsAccordion(this)">
-                    <div class="accordion-title"><span class="acc-ico c-teal"><i data-lucide="box"></i></span> Renderizzatore 3D</div>
-                    <i data-lucide="chevron-down" class="accordion-icon"></i>
-                </div>
-                <div class="accordion-content">
-                    <label style="color:rgba(255,255,255,0.8); font-size:0.8rem; font-weight: 700; text-transform: uppercase;">Esposizione Globale</label>
-                    <div class="slider-wrapper" style="margin-top: 10px; margin-bottom: 24px;">
-                        <i data-lucide="sun"></i><input type="range" id="slider-exposure" min="10" max="300" value="100"><i data-lucide="sun" style="color:#FFF;"></i>
-                    </div>
-
-                    <label style="color:rgba(255,255,255,0.8); font-size:0.8rem; font-weight: 700; text-transform: uppercase;">Luce Ambientale</label>
-                    <div class="slider-wrapper" style="margin-top: 10px; margin-bottom: 24px;">
-                        <i data-lucide="lightbulb"></i><input type="range" id="slider-ambient" min="0" max="200" value="40"><i data-lucide="lightbulb" style="color:#FFF;"></i>
-                    </div>
-
-                    <label style="color:rgba(255,255,255,0.8); font-size:0.8rem; font-weight: 700; text-transform: uppercase;">Luce Direzionale</label>
-                    <div class="slider-wrapper" style="margin-top: 10px; margin-bottom: 10px;">
-                        <i data-lucide="sun-dim"></i><input type="range" id="slider-directional" min="0" max="200" value="80"><i data-lucide="sun-dim" style="color:#FFF;"></i>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <div style="margin-top: 16px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09); border-radius: 18px; overflow: hidden;">
-            <button onclick="openAutomationsQuickModal()" style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 16px; background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.07); color: #FFF; font-family: inherit; font-weight: 600; font-size: 0.95rem; cursor: pointer; text-align: left;">
-                <span class="acc-ico c-blue"><i data-lucide="zap" style="width:16px; height:16px; color:#FFF;"></i></span>
-                <span style="flex:1;">Gestisci Automazioni</span>
-                <i data-lucide="chevron-right" style="width:17px; height:17px; color: rgba(255,255,255,0.35);"></i>
-            </button>
-            <a href="{{ url_for('dashboard') }}" id="btn-goto-config" onclick="checkDesktopConfig(event)" style="display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 16px; background: transparent; border: none; color: #FFF; text-decoration: none; font-weight: 600; font-size: 0.95rem; box-sizing: border-box;">
-                <span class="acc-ico c-gray"><i data-lucide="settings-2" style="width:16px; height:16px; color:#FFF;"></i></span>
-                <span style="flex:1;">Pannello di Controllo</span>
-                <i data-lucide="chevron-right" style="width:17px; height:17px; color: rgba(255,255,255,0.35);"></i>
-            </a>
-        </div>
-
-<button id="btn-ios-change-server" onclick="triggerIOSDisconnect()" style="display: none; width: 100%; margin-top: 14px; padding: 18px; background: rgba(255, 69, 58, 0.15); border-radius: 20px; text-align: center; color: #FF453A; font-family: inherit; font-weight: 700; font-size: 1rem; border: 1px solid rgba(255, 69, 58, 0.3); box-shadow: 0 10px 25px rgba(0,0,0,0.2); transition: background 0.2s; cursor: pointer;">
-            Cambia Server
-            <i data-lucide="server" style="width: 18px; height: 18px; vertical-align: middle; margin-left: 8px;"></i>
-        </button>
-    </div>
-
+</div>
+<!-- Il vecchio pannello a fisarmonica non c'e' piu': ne resta il guscio vuoto, perche' altro codice
+     lo nomina (lo chiude insieme agli altri modali). -->
+<div class="bottom-modal" id="settings-modal">
+    <div class="modal-handle"></div>
+    <button class="close-modal-btn" onclick="closeAllModals()"><i data-lucide="x"></i></button>
+    <div class="modal-scroll-area"></div>
 </div>
     
     <div class="bottom-modal" id="light-modal">
@@ -5243,8 +5962,17 @@ const uniqueActive = new Set(activeNodes.map(card => card.dataset.id)).size;
             if (attuale === undefined || attuale === null || isNaN(attuale)) { el.innerHTML = '&nbsp;'; return; }
             const scarto = target - attuale;
             if (Math.abs(scarto) < 0.25) el.innerHTML = 'Temperatura<br>raggiunta';
-            else if (scarto > 0) el.innerHTML = `Mancano<br>${scarto.toFixed(1)}°`;
-            else el.innerHTML = `Sopra di<br>${Math.abs(scarto).toFixed(1)}°`;
+            else if (scarto > 0) el.innerHTML = righeTermo('Mancano', scarto.toFixed(1) + '°');
+            else el.innerHTML = righeTermo('Sopra di', Math.abs(scarto).toFixed(1) + '°');
+        }
+        // "Mancano 0.5°" su due righe. In inglese la frase INTERA passa dal dizionario ("0.5° to go"):
+        // tradotta a pezzi, "Mancano" da sola veniva "Missing".
+        function righeTermo(testa, valore) {
+            const intera = testa + ' ' + valore;
+            const t = window.WH_T ? window.WH_T(intera) : intera;
+            if (t === intera) return testa + '<br>' + valore;
+            const i = t.indexOf(' ');
+            return i > 0 ? t.slice(0, i) + '<br>' + t.slice(i + 1) : t;
         }
 
         function aggiornaPassiTermo(temp) {
@@ -8326,36 +9054,25 @@ function updateBadgeVisibility() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-// Il badge porta dritto al tasto "Installa Aggiornamento Ora"
+// Il pallino porta dritto alla pagina Sistema e richiama l'attenzione sul tasto "Installa aggiornamento ora"
 function openUpdateSection(event) {
     if (event) event.stopPropagation();
     if (navigator.vibrate) navigator.vibrate(30);
 
     openSettingsModal();
+    if (typeof window.impApri === 'function') window.impApri('sistema');
 
-    // Aspetta l'animazione di apertura del modale
+    // dopo l'animazione di apertura
     setTimeout(() => {
-        const acc = document.getElementById('acc-system');
-        if (!acc) return;
-
-        // Chiude gli altri e apre quello degli aggiornamenti
-        document.querySelectorAll('.settings-accordion .accordion-item').forEach(i => {
-            if (i !== acc) i.classList.remove('active');
-        });
-        acc.classList.add('active');
-
-        // Scorre fino alla sezione e richiama l'attenzione sul tasto
-        setTimeout(() => {
-            try { acc.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
-
-            const btn = document.getElementById('btn-update-sys');
-            if (btn && btn.style.display !== 'none') {
-                btn.classList.add('btn-update-highlight');
-                setTimeout(() => btn.classList.remove('btn-update-highlight'), 2800);
-            }
-        }, 420);
-    }, 340);
+        const btn = document.getElementById('btn-update-sys');
+        if (btn && btn.style.display !== 'none') {
+            try { btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+            btn.classList.add('btn-update-highlight');
+            setTimeout(() => btn.classList.remove('btn-update-highlight'), 2800);
+        }
+    }, 480);
 }
+
 
 async function fetchInstalledVersion() {
     try {
@@ -8857,117 +9574,308 @@ document.addEventListener('visibilitychange', () => {
 </script>
 <script>
 // =====================================================================
-// --- IMPOSTAZIONI: sezione a pagina intera ---
-// I contenuti NON sono riscritti: sono gli stessi nodi del vecchio pannello
-// a fisarmonica, spostati qui dentro. Percio' id, interruttori, cursori e
-// funzioni continuano a essere gli stessi di prima.
+// --- IMPOSTAZIONI: sezione a pagina intera (rifatta il 26/09/2026) ---
+// L'HTML dei controlli sta gia' al suo posto (dentro #imp-pagina): id, classi e attributi
+// sono quelli del vecchio pannello a fisarmonica, quindi i loro ascoltatori (piu' in alto
+// in questa pagina) salvano e applicano esattamente come prima. Qui c'e' solo quello che
+// serve alla sezione: la navigazione, i valori a destra delle righe, le anteprime, il
+// profilo e la nuova "Grandezza pagina".
 // =====================================================================
 (function () {
     const TITOLI = {
         aspetto: 'Schermata e sfondo',
         card: 'Card dei dispositivi',
+        scala: 'Grandezza pagina',
         prestazioni: 'Prestazioni',
         render3d: 'Planimetrie 3D',
         sistema: 'Sistema e aggiornamenti'
     };
+    const NOMI_SFONDO = {
+        notte_citta: 'Notte in città', default: 'Classico', anim_aurora: 'Aurora', anim_mesh: 'Nebula',
+        anim_stars: 'Notte stellata', anim_sunset: 'Tramonto', anim_ocean: 'Oceano', anim_aurora2: 'Aurora Boreale',
+        anim_prisma: 'Prisma', anim_synth: 'Retrowave', anim_lava: 'Lava', anim_fireflies: 'Lucciole',
+        blue: 'Blu notte', purple: 'Viola', gradient_orange: 'Arancio', gradient_green: 'Smeraldo',
+        img_green: 'Verde', img_glass: 'Vetro', img_dark: 'Cielo stellato', img_liquid: 'Bosco',
+        custom_color: 'Tinta a scelta', custom_img: 'Una tua foto'
+    };
+    const NOMI_METEO = { glass: 'Contenitore', minimal: 'Solo testo' };
+    const NOMI_MENU = { floating: 'Isola', flat: 'Piatta', dock: 'Dock', minimal: 'Minimal' };
+    const NOMI_GRIGLIA = { '1': 'Lista', '2': '2 colonne', '3': '3 colonne' };
+    const NOMI_SCALA = { 80: 'Molto piccola', 85: 'Piccola', 90: 'Ridotta', 95: 'Appena ridotta', 100: 'Standard', 105: 'Più grande', 110: 'Molto più grande' };
 
-    function cat(nome) { return document.querySelector('.imp-cat[data-cat="' + nome + '"]'); }
+    const $ = id => document.getElementById(id);
+    const cat = nome => document.querySelector('.imp-cat[data-cat="' + nome + '"]');
+    const leggi = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+    const scrivi = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+    const sessione = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) {} return null; };
+    const testo = (id, t) => { const el = $(id); if (el && el.textContent !== t) el.textContent = t; };
+    const T = t => (window.WH_T ? window.WH_T(t) : t);     // testi scritti dentro zone data-no-tr (in italiano: invariati)
+    const duale = () => window.matchMedia('(min-width: 820px)').matches;   // elenco e dettaglio affiancati
+    let aperta = null;          // categoria mostrata nel dettaglio
 
-    // sposta la coppia "titoletto + riquadro che lo segue" in un'altra categoria
-    function spostaSezione(testo, destinazione) {
-        const titolo = [...document.querySelectorAll('.accordion-content .section-title, .imp-cat .section-title')]
-            .find(t => t.textContent.trim().toUpperCase() === testo);
-        if (!titolo || !destinazione) return;
-        const seguente = titolo.nextElementSibling;
-        destinazione.appendChild(titolo);
-        if (seguente) destinazione.appendChild(seguente);
-    }
-
-    function prepara() {
-        const vecchio = document.getElementById('settings-modal');
-        if (!vecchio) return;
-
-        // 1. il contenuto di ogni voce della fisarmonica va nella sua categoria
-        // si riconoscono dal titolo: le icone a questo punto sono gia' diventate SVG,
-        // quindi l'attributo data-lucide non c'e' piu'
-        const perTitolo = [[/render|3d/i, 'render3d'], [/dispositiv|card/i, 'card'],
-                           [/dashboard|sfondo|schermat/i, 'aspetto'], [/sistema|aggiorn/i, 'sistema']];
-        vecchio.querySelectorAll('.accordion-item').forEach(item => {
-            const contenuto = item.querySelector('.accordion-content');
-            if (!contenuto) return;
-            const titolo = (item.querySelector('.accordion-title') || {}).textContent || '';
-            const nome = item.id === 'acc-system' ? 'sistema'
-                : (perTitolo.find(([re]) => re.test(titolo)) || [])[1];
-            const dest = cat(nome);
-            if (dest) dest.appendChild(contenuto);
-        });
-
-        // 2. le due voci che parlano di fluidita' stavano sotto "Dashboard & Sfondo":
-        //    qui vanno insieme, sotto "Prestazioni"
-        spostaSezione('PRESTAZIONI', cat('prestazioni'));
-        spostaSezione('ANIMAZIONI METEO 3D', cat('prestazioni'));
-
-        // 3. i collegamenti in fondo al vecchio pannello diventano righe dell'elenco
-        const collegamenti = document.getElementById('imp-collegamenti');
-        const automazioni = vecchio.querySelector('button[onclick*="openAutomationsQuickModal"]');
-        const pannello = vecchio.querySelector('#btn-goto-config');
-        const cambiaServer = vecchio.querySelector('#btn-ios-change-server');
-        [automazioni, pannello].forEach(el => {
-            if (!el || !collegamenti) return;
-            el.classList.add('imp-riga');
-            el.removeAttribute('style');
-            const etichetta = el.querySelector('span:not(.acc-ico)');
-            if (etichetta) {
-                const testo = etichetta.textContent.trim();
-                etichetta.className = 'imp-testo';
-                etichetta.innerHTML = '<b>' + testo + '</b>';
-            }
-            const freccia = el.querySelector('i[data-lucide="chevron-right"]');
-            if (freccia) { freccia.classList.add('imp-freccia'); freccia.removeAttribute('style'); }
-            collegamenti.appendChild(el);
-        });
-        if (cambiaServer && collegamenti) collegamenti.parentElement.insertBefore(cambiaServer, collegamenti.nextSibling);
-
-        // 4. il vecchio pannello resta nella pagina ma vuoto: cosi' il codice che lo
-        //    nomina (per chiuderlo) continua a funzionare senza errori
-        const resti = vecchio.querySelector('.modal-scroll-area');
-        if (resti) resti.innerHTML = '';
-
-        lucide.createIcons({ root: document.getElementById('imp-pagina') });
-    }
-
+    // ---------------------------------------------------------------- navigazione
     window.impApri = function (nome) {
-        document.querySelectorAll('.imp-cat').forEach(c => c.classList.remove('attiva'));
         const c = cat(nome);
-        if (c) c.classList.add('attiva');
-        document.getElementById('imp-titolo').textContent = TITOLI[nome] || 'Impostazioni';
-        document.getElementById('imp-dettaglio').classList.add('aperta');
-        document.getElementById('imp-elenco').classList.add('via');
+        if (!c) return;
+        document.querySelectorAll('.imp-cat').forEach(x => x.classList.toggle('attiva', x === c));
+        document.querySelectorAll('#imp-elenco .imp-riga[data-apri]').forEach(r => r.classList.toggle('scelta', r.dataset.apri === nome));
+        $('imp-titolo').textContent = TITOLI[nome] || 'Impostazioni';
+        $('imp-dettaglio').classList.add('aperta');
+        $('imp-elenco').classList.add('via');
         const scroll = document.querySelector('#imp-dettaglio .imp-scroll');
         if (scroll) scroll.scrollTop = 0;
+        aperta = nome;
+        aggiornaTesta(scroll);
+        if (nome === 'aspetto') disegnaAspetto();
+        if (nome === 'scala') disegnaScala();
+        if (nome === 'card' || nome === 'render3d') riempiCursori();
     };
 
     window.impIndietro = function () {
-        document.getElementById('imp-dettaglio').classList.remove('aperta');
-        document.getElementById('imp-elenco').classList.remove('via');
+        $('imp-dettaglio').classList.remove('aperta');
+        $('imp-elenco').classList.remove('via');
+        document.querySelectorAll('#imp-elenco .imp-riga.scelta').forEach(r => r.classList.remove('scelta'));
+        aperta = null;
+        valori();
     };
 
     window.impChiudi = function () {
-        document.getElementById('imp-pagina').classList.remove('aperta');
-        setTimeout(window.impIndietro, 340);
+        $('imp-pagina').classList.remove('aperta');
+        setTimeout(function () { if (!$('imp-pagina').classList.contains('aperta')) window.impIndietro(); }, 460);
     };
 
     window.impMostra = function () {
-        document.getElementById('imp-pagina').classList.add('aperta');
+        valori();
+        profilo();
+        $('imp-pagina').classList.add('aperta');
     };
 
-    window.addEventListener('load', function () {
-        prepara();
+    // il profilo in cima: la finestra di sempre (password ed esci), sopra la home
+    window.impAccount = function () {
+        window.impChiudi();
+        if (typeof openUserModal === 'function') setTimeout(openUserModal, 120);
+    };
 
+    // ---------------------------------------------------------------- testata: titolo grande che si stringe
+    function aggiornaTesta(sc) {
+        if (!sc) return;
+        const testa = sc.parentElement.querySelector('.imp-testa');
+        if (!testa) return;
+        const y = sc.scrollTop;
+        testa.classList.toggle('scorsa', y > 2);
+        if (testa.classList.contains('con-titolone')) testa.classList.toggle('titolo-su', y > 36);
+    }
+
+    // ---------------------------------------------------------------- valori a destra delle righe
+    function temaSfondo() { return leggi('core_bg_theme') || window.__sfondoImpianto || 'notte_citta'; }
+    function valore(nome, t) { testo('imp-val-' + nome, t); testo('imp-ora-' + nome, t); }
+    function valori() {
+        valore('aspetto', NOMI_SFONDO[temaSfondo()] || NOMI_SFONDO['default']);
+        valore('card', NOMI_GRIGLIA[leggi('core_card_layout') || '2'] || '');
+        const p = (window.whScala && window.whScala.attuale) || 100;
+        valore('scala', T(NOMI_SCALA[p] || 'Standard') + ' (' + p + '%)');
+        valore('prestazioni', leggi('wh_modalita_leggera') === 'true' ? 'Modalità leggera attiva' : '');
+        if ($('imp-val-sistema')) valore('sistema', (typeof installedVersion !== 'undefined' && installedVersion) ? 'v' + installedVersion : '');
+    }
+
+    // ---------------------------------------------------------------- profilo
+    let casaChiesta = false;
+    function profilo() {
+        testo('imp-server', location.host || location.hostname || '—');
+        const stato = $('imp-stato-server');
+        if (stato) stato.classList.toggle('fuori', navigator.onLine === false);
+        if (!casaChiesta) {
+            casaChiesta = true;
+            fetch('/api/location', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
+                if (d && d.name) testo('imp-casa', String(d.name));
+            }).catch(() => { casaChiesta = false; });
+        }
+        if ($('imp-versione')) {
+            const v = (typeof installedVersion !== 'undefined' && installedVersion) ? installedVersion : '';
+            const nuova = typeof systemUpdateAvailable !== 'undefined' && systemUpdateAvailable && typeof latestUpdateName !== 'undefined' && latestUpdateName;
+            testo('imp-versione', v || '—');
+            testo('imp-versione-nuova', nuova ? '→ ' + latestUpdateName : '');
+        }
+    }
+    window.addEventListener('online', profilo);
+    window.addEventListener('offline', profilo);
+
+    // ---------------------------------------------------------------- anteprime: sfondo in uso
+    function specchiaSfondo() {
+        const bg = $('app-background');
+        const tema = temaSfondo();
+        let tessera = document.querySelector('.imp-sfondo .bg-option[data-bg="' + tema + '"]');
+        if (!tessera && bg && !bg.style.background) tessera = document.querySelector('.imp-sfondo .bg-option[data-bg="default"]');
+        document.querySelectorAll('#imp-pagina .imp-ap-sfondo').forEach(el => {
+            el.textContent = '';
+            el.removeAttribute('style');
+            if (tessera) {
+                const copia = tessera.cloneNode(false);
+                ['data-bg', 'id', 'title', 'role', 'tabindex'].forEach(a => copia.removeAttribute(a));
+                copia.classList.remove('active');
+                copia.setAttribute('aria-hidden', 'true');
+                el.appendChild(copia);
+            } else if (bg) {   // tinta a scelta o foto: lo stile vero, con una sfocatura in proporzione
+                el.style.background = (bg.style.background || '').replace(/\bfixed\b/g, '');
+                el.style.filter = (bg.style.filter || '').replace(/blur\(([\d.]+)px\)/, (m, n) => 'blur(' + Math.max(4, Math.round(n / 5)) + 'px)');
+            }
+        });
+    }
+    function disegnaAspetto() {
+        specchiaSfondo();
+        testo('imp-ap-sfondo-nome', NOMI_SFONDO[temaSfondo()] || NOMI_SFONDO['default']);
+        testo('imp-ap-meteo', NOMI_METEO[leggi('core_weather_style') || 'glass'] || '');
+        testo('imp-ap-menu', NOMI_MENU[leggi('core_nav_style') || 'floating'] || '');
+    }
+
+    // ---------------------------------------------------------------- cursori: riempimento e valore
+    function cursore(r) {
+        if (!r) return;
+        const min = +r.min || 0, max = +r.max || 100, v = +r.value;
+        r.style.setProperty('--p', ((v - min) / (max - min) * 100).toFixed(1) + '%');
+        const out = document.querySelector('#imp-pagina output[data-di="' + r.id + '"]');
+        if (out) out.textContent = r.id === 'card-opacity-slider' ? v + '%' : (v / 100).toFixed(2).replace(/\.?0+$/, '') + '×';
+    }
+    function riempiCursori() { document.querySelectorAll('#imp-pagina input[type="range"]').forEach(cursore); }
+
+    // ---------------------------------------------------------------- GRANDEZZA PAGINA
+    // Si applica al volo (il meta viewport riscritto viene ripreso subito da Safari e dalla WebView
+    // dell'app); se un browser non lo facesse, la pagina si ricarica e riapre qui. Se nemmeno dopo
+    // il ricaricamento cambia (browser da computer, che ignorano il meta viewport) si torna al 100%
+    // e lo si dice.
+    function scalaAttuale() { return (window.whScala && window.whScala.attuale) || 100; }
+    const PERCHE = {
+        stretto: 'Schermo troppo stretto per questa grandezza',
+        soglia: 'Su questo schermo cambierebbe la disposizione della pagina'
+    };
+    function disegnaScala() {
+        const W = window.whScala;
+        const p = scalaAttuale();
+        const s = p / 100, ora = window.__whScala || 1;
+        const motivi = {};
+        document.querySelectorAll('.imp-scala-scelte button').forEach(b => {
+            const v = +b.dataset.scala;
+            const m = W && W.motivo ? W.motivo(v) : '';
+            b.setAttribute('aria-checked', v === p ? 'true' : 'false');
+            b.disabled = !!m;
+            b.title = m ? T(PERCHE[m] || PERCHE.stretto) : '';
+            if (m) motivi[m] = 1;
+        });
+        // perche' ci sono tasti spenti (sul telefono il title non si vede), e se girato la scala si ferma prima
+        const perche = $('imp-scala-perche');
+        if (perche) {
+            let frase = '';
+            if (motivi.stretto) frase = 'Su uno schermo così stretto le grandezze oltre il 100% non ci stanno.';
+            else if (motivi.soglia) frase = 'Le grandezze in grigio cambierebbero la disposizione della pagina su questo schermo (barra laterale o barra in basso).';
+            else if (W && W.efficace && p !== 100 && Math.abs(W.efficace(p) - s) > 0.004) frase = 'In orizzontale la pagina si rimpicciolisce un po\' meno, per non cambiare disposizione.';
+            perche.hidden = !frase;
+            const sp = perche.querySelector('span');
+            if (sp && sp.textContent !== frase) sp.textContent = frase;
+        }
+        testo('imp-scala-num', p + '%');
+        testo('imp-scala-nome', NOMI_SCALA[p] || '');
+        const dato = $('imp-scala-dato');
+        if (dato) {
+            const num = dato.querySelector('b'), frase = dato.querySelector('span');
+            if (p < 100) { num.textContent = '+' + Math.round((1 / (s * s) - 1) * 100) + '%'; frase.textContent = 'di spazio sullo schermo'; }
+            else if (p > 100) { num.textContent = '+' + (p - 100) + '%'; frase.textContent = 'testi e tasti più grandi'; }
+            else { num.textContent = ''; frase.textContent = 'La grandezza di sempre'; }
+        }
+        const rip = $('imp-scala-ripristina');
+        if (rip) rip.hidden = p === 100;
+        // la miniatura: il telefono resta grande uguale (compensa la scala della pagina),
+        // dentro la home si impagina larga 375/s e si rimpicciolisce per starci
+        const tel = document.querySelector('.imp-tel-scala');
+        if (tel) {
+            const lato = Math.min(screen.width, screen.height) || 375, alto = Math.max(screen.width, screen.height) || 812;
+            const r = Math.min(2.2, Math.max(1.55, alto / lato));
+            const tw = 112, th = Math.round(tw * r);
+            tel.style.setProperty('--th', th + 'px');
+            const dentro = tel.querySelector('.imp-scala-dentro');
+            const inW = tw / ora - 6, inH = th / ora - 6;      // spazio dentro la cornice (3 px per lato)
+            const k = inW / (375 / s);
+            dentro.style.width = (375 / s) + 'px';
+            dentro.style.height = (inH / k) + 'px';
+            dentro.style.transform = 'scale(' + k + ')';
+            const riga = dentro.querySelector('.imp-sd-riga100');   // dove finiva lo schermo al 100%
+            if (riga) riga.style.top = Math.round(inH * 375 / inW) + 'px';
+            tel.classList.toggle('piu-spazio', p < 100);
+            const nav = tel.querySelector('.imp-sd-nav');
+            if (nav) nav.style.transform = 'scale(' + s + ')';
+            specchiaSfondo();
+        }
+    }
+    window.impScala = function (p) {
+        const W = window.whScala;
+        p = +p;
+        if (!W || !W.possibile(p)) return;
+        const prima = scalaAttuale();
+        if (p === prima) { disegnaScala(); return; }
+        const punti = window.innerWidth * (window.__whScala || 1);  // larghezza vera dello schermo
+        scrivi('core_scala_pagina', String(p));
+        W.attuale = W.applica(p);
+        try { hkSafeB = null; } catch (e) {}                          // il menu della card rimisura l'area sicura
+        // WebKit la applica al volo ma ci mette da mezzo secondo a quasi due: intanto il tasto scelto
+        // gira (e gli altri non si toccano), cosi' si vede che il tocco e' arrivato. Si ascolta il
+        // ridimensionamento e, in piu', si controlla ogni 150 ms; dopo 4,5 s senza cambio si ricarica
+        // (con un velo scuro al posto della pagina bianca) e si riapre qui.
+        const atteso = punti / (window.__whScala || 1), inizio = Date.now(), giro = ++scalaGiro;
+        const pag = $('imp-pagina');
+        const fatto = () => Math.abs(window.innerWidth - atteso) <= 4;
+        let timer = 0;
+        const smetti = () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', controlla);
+            if (window.visualViewport) window.visualViewport.removeEventListener('resize', controlla);
+        };
+        function controlla() {
+            if (giro !== scalaGiro) { smetti(); return; }             // nel frattempo un'altra scelta
+            if (fatto()) { smetti(); pag.classList.remove('scala-in-corso'); disegnaScala(); return; }
+            if (Date.now() - inizio < 4500) { clearTimeout(timer); timer = setTimeout(controlla, 150); return; }
+            smetti();
+            sessione('wh_imp_riapri', JSON.stringify({ cat: 'scala', p: p, punti: punti }));
+            veloRicarica();
+            setTimeout(() => location.reload(), 60);
+        }
+        pag.classList.toggle('scala-in-corso', !fatto());
+        disegnaScala();
+        valori();
+        window.addEventListener('resize', controlla);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', controlla);
+        controlla();
+    };
+    let scalaGiro = 0;
+    function veloRicarica() {
+        if (document.querySelector('.imp-velo-scala')) return;
+        const v = document.createElement('div');
+        v.className = 'imp-velo-scala';
+        v.setAttribute('data-no-tr', '');
+        v.innerHTML = '<i></i><span></span>';
+        v.querySelector('span').textContent = T('Applico la grandezza…');
+        document.body.appendChild(v);
+    }
+    // dopo un ricaricamento chiesto da qui: si riapre la pagina e si controlla che abbia funzionato
+    function riapri() {
+        let r = null;
+        try { r = JSON.parse(sessione('wh_imp_riapri') || 'null'); } catch (e) {}
+        if (!r) return;
+        sessione('wh_imp_riapri', null);
+        if (r.p && r.punti && Math.abs(window.innerWidth - r.punti / (window.__whScala || 1)) > 4 && window.whScala) {
+            scrivi('core_scala_pagina', '100');
+            window.whScala.attuale = window.whScala.applica(100);
+            const nota = $('imp-scala-nota');
+            if (nota) nota.textContent = 'Questo browser non permette di cambiare la grandezza della pagina: usa lo zoom del browser.';
+        }
+        window.impMostra();
+        window.impApri(r.cat || 'scala');
+    }
+
+    // ---------------------------------------------------------------- avvio
+    window.addEventListener('load', function () {
         // il tasto Impostazioni apre la sezione al posto del vecchio pannello
         window.openSettingsModal = window.impMostra;
 
-        // "Gestisci Automazioni" apre un pannello che starebbe DIETRO questa sezione:
+        // "Gestisci automazioni" apre un pannello che starebbe DIETRO questa sezione:
         // prima si chiudono le impostazioni, poi si apre il pannello
         const apriAutomazioni = window.openAutomationsQuickModal;
         if (typeof apriAutomazioni === 'function') {
@@ -8977,12 +9885,56 @@ document.addEventListener('visibilitychange', () => {
             };
         }
 
-        // chiudendo tutto (velo, tasto X, gesto) si chiude anche questa sezione
+        // chiudendo tutto (velo, tasto X, gesto) si chiude anche questa sezione, ma non quando
+        // si chiude un modale aperto DA qui sopra (la nota dell'aggiornamento, .sopra-impostazioni)
         const chiudiTutto = window.closeAllModals || function () {};
         window.closeAllModals = function () {
-            if (document.getElementById('imp-pagina').classList.contains('aperta')) window.impChiudi();
+            const velo = $('modal-overlay');
+            const sopra = velo && velo.classList.contains('sopra-impostazioni');
+            if ($('imp-pagina').classList.contains('aperta') && !sopra) window.impChiudi();
             return chiudiTutto.apply(this, arguments);
         };
+
+        const pagina = $('imp-pagina');
+        // titolo grande che si stringe, e vetro sulla testata quando si scorre
+        pagina.querySelectorAll('.imp-scroll').forEach(sc => {
+            sc.addEventListener('scroll', () => aggiornaTesta(sc), { passive: true });
+            aggiornaTesta(sc);
+        });
+        // i nomi sotto le tessere degli sfondi scelgono lo sfondo come la tessera
+        pagina.querySelectorAll('.imp-sfondo-nome').forEach(n => n.addEventListener('click', () => {
+            const t = n.parentElement.querySelector('.bg-option'); if (t) t.click();
+        }));
+        // le righe "sfondo personale" sono div con role=button: anche da tastiera
+        pagina.querySelectorAll('[role="button"][tabindex]').forEach(el => el.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+        }));
+        // grandezza pagina
+        pagina.querySelectorAll('.imp-scala-scelte button').forEach(b => b.addEventListener('click', () => window.impScala(b.dataset.scala)));
+        // valori e anteprime seguono le scelte (dopo gli ascoltatori di sempre, che salvano)
+        const segui = () => setTimeout(() => { valori(); if (aperta === 'aspetto') disegnaAspetto(); }, 30);
+        pagina.addEventListener('click', segui);
+        pagina.addEventListener('change', segui);
+        pagina.addEventListener('input', e => { if (e.target && e.target.type === 'range') cursore(e.target); });
+        const bg = $('app-background');
+        if (bg && window.MutationObserver) new MutationObserver(() => { if (aperta === 'aspetto' || aperta === 'card' || aperta === 'scala') specchiaSfondo(); })
+            .observe(bg, { attributes: true, attributeFilter: ['class', 'style'] });
+        // Esc: indietro, poi chiudi (tastiera dell'iPad o del computer)
+        document.addEventListener('keydown', e => {
+            if (e.key !== 'Escape' || !pagina.classList.contains('aperta')) return;
+            if (document.querySelector('.bottom-modal.active')) return;
+            if ($('imp-dettaglio').classList.contains('aperta') && !duale()) window.impIndietro(); else window.impChiudi();
+        });
+        // girando lo schermo la scala efficace puo' cambiare (script in <head>): si ridisegna
+        window.addEventListener('wh-scala', () => {
+            try { hkSafeB = null; } catch (e) {}
+            if (aperta === 'scala') disegnaScala();
+        });
+        if (window.WH_LINGUA === 'en') testo('imp-ap-gradi', '21.5°');
+        riempiCursori();
+        specchiaSfondo();
+        valori();
+        riapri();
     });
 })();
 </script>
@@ -9029,7 +9981,9 @@ function hkSafeBottom() {
     // altezza dell'indicatore Home (safe area in basso): env() non si legge da JS, lo si misura con un elemento di prova
     if (hkSafeB !== null) return hkSafeB;
     const p = document.createElement('div'); p.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-bottom:env(safe-area-inset-bottom,0px)';
-    document.body.appendChild(p); hkSafeB = parseFloat(getComputedStyle(p).paddingBottom) || 0; p.remove();
+    document.body.appendChild(p);
+    hkSafeB = (parseFloat(getComputedStyle(p).paddingBottom) || 0) / (window.__whScala || 1);   // pagina in scala: punti -> pixel della pagina
+    p.remove();
     return hkSafeB;
 }
 function hkApriMenu(card, x, y) {
