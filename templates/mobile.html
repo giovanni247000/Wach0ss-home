@@ -638,34 +638,409 @@
         .glance-pill#pill-covers.active .glance-icon i { color: #000; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));}
 
 
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-@keyframes flash { 0% { opacity: 1; border-color: rgba(255, 69, 58, 0.3); } 50% { opacity: 0.6; border-color: rgba(255, 69, 58, 1); box-shadow: 0 0 15px rgba(255, 69, 58, 0.4); } 100% { opacity: 1; border-color: rgba(255, 69, 58, 0.3); } }
-/* --- STILI ALLARME E TASTIERINO --- */
-.status-card-alarm { padding: 18px; border-radius: 20px; margin-bottom: 25px; font-weight: 700; font-size: 1.1rem; text-align: center; letter-spacing: 0.5px; transition: all 0.4s; text-transform: uppercase; }
-.state-disarmed { background: rgba(48, 209, 88, 0.12); color: #30D158; border: 1px solid rgba(48, 209, 88, 0.2); }
-.state-armed { background: rgba(10, 132, 255, 0.12); color: #0A84FF; border: 1px solid rgba(10, 132, 255, 0.2); }
-.state-pending { background: rgba(255, 159, 10, 0.12); color: #FF9F0A; border: 1px solid rgba(255, 159, 10, 0.2); animation: pulse 1.5s infinite; }
-.state-triggered { background: rgba(255, 69, 58, 0.15); color: #FF453A; border: 1px solid rgba(255, 69, 58, 0.3); animation: flash 0.8s infinite; }
-.countdown { font-size: 3rem; font-weight: 800; text-align: center; margin: 10px 0; color: #FF9F0A; font-variant-numeric: tabular-nums; }
-.pin-display { display: flex; justify-content: center; gap: 16px; margin: 25px 0 35px 0; height: 16px; }
-.pin-dot { width: 16px; height: 16px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s; }
-.pin-dot.active { background: #ffffff; box-shadow: 0 0 12px rgba(255,255,255,0.8); transform: scale(1.15); border-color: #ffffff; }
-.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 280px; margin: 0 auto; }
-.key { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.03); color: #ffffff; font-size: 1.8rem; font-weight: 500; border-radius: 50%; aspect-ratio: 1; cursor: pointer; display: flex; justify-content: center; align-items: center; user-select: none; transition: all 0.1s ease; }
-.key:active { background: rgba(255, 255, 255, 0.15); transform: scale(0.92); }
-.key.action-btn { 
-    font-size: 0.85rem; 
-    font-weight: 600; 
-    text-transform: uppercase; 
-    border-radius: 20px; 
-    aspect-ratio: auto; 
-    letter-spacing: 0.5px; 
-    white-space: nowrap; 
-    overflow: hidden; 
-    text-overflow: ellipsis; 
-    padding: 0 5px;
+/* ===== ALLARME: FINESTRA COL TASTIERINO (rifatta il 27/09/2026): INIZIO =====
+   Stato grande in cima, con il colore dello stato (verde disinserito, ambra mentre si inserisce,
+   rosa inserito, rosso che pulsa per intrusione e allarme); 4 pallini; tastierino tondo come
+   quello dell'iPhone; tasto principale che dice cosa succede. Il colore arriva da
+   #alarm-modal[data-stato] (--all-c e --all-rgb), deciso da syncAlarmStatus().
+   Sul telefono e' una scheda dal basso; da 1024 px (e col telefono in orizzontale) due colonne. */
+#alarm-modal {
+    --all-c: #8E8E93; --all-rgb: 142,142,147;
+    --all-testo: #F5F5F7; --all-testo-2: rgba(235,235,245,0.66); --all-testo-3: rgba(235,235,245,0.5);
+    --all-tasto: clamp(56px, min(20.5vw, 8.7vh), 80px);
+    --all-giro: 289.03;                                  /* circonferenza dell'anello (r = 46) */
+    z-index: 2700;                                       /* sopra le Impostazioni (2600): un'intrusione si vede anche da li' */
+    max-height: calc(100vh - var(--safe-top) - 10px);
+    max-height: calc(100dvh - var(--safe-top) - 10px);
+    padding-top: 14px;
+    background: linear-gradient(180deg, rgba(24,25,34,0.95) 0%, rgba(12,13,19,0.97) 60%, rgba(8,9,13,0.98) 100%);
+    border-top-color: rgba(255,255,255,0.16);
+    color: var(--all-testo); -webkit-tap-highlight-color: transparent;
 }
-.error-message { color: #FF453A; background: rgba(255, 69, 58, 0.1); padding: 12px; border-radius: 12px; margin-top: 20px; font-size: 0.9rem; font-weight: 500; display: none; text-align: center; }
+#alarm-modal[data-stato="disarmed"]  { --all-c: #30D158; --all-rgb: 48,209,88; }
+#alarm-modal[data-stato="arming"]    { --all-c: #FF9F0A; --all-rgb: 255,159,10; }
+#alarm-modal[data-stato="armed"]     { --all-c: #FF375F; --all-rgb: 255,55,95; }
+#alarm-modal[data-stato="pending"],
+#alarm-modal[data-stato="triggered"] { --all-c: #FF453A; --all-rgb: 255,69,58; }
+/* luce dello stato che scende dall'alto (pulsa quando c'e' un'intrusione) */
+#alarm-modal::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+    background: radial-gradient(110% 52% at 50% -6%, rgba(var(--all-rgb),0.26), rgba(var(--all-rgb),0) 70%);
+    transition: opacity 0.4s ease;
+}
+#alarm-modal > *:not(.close-modal-btn) { position: relative; z-index: 1; }
+/* telefono: la X in alto a destra, come nelle schede di iOS (cerchio di 32 px dentro 44 px da toccare).
+   Sui telefoni piccoli la finestra arriva quasi in cima e il velo da toccare e' una striscia: senza la X
+   restava solo il trascinamento dalla maniglia */
+@media (max-width: 1023.98px) {
+    #alarm-modal .close-modal-btn {
+        display: flex; position: absolute; z-index: 5; top: 20px; right: max(8px, env(safe-area-inset-right));   /* in riga col titolo */
+        width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: rgba(235,235,245,0.78);
+        align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    #alarm-modal .close-modal-btn::before {
+        content: ""; position: absolute; width: 32px; height: 32px; border-radius: 50%;
+        background: rgba(255,255,255,0.11); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); transition: background-color 0.15s ease;
+    }
+    #alarm-modal .close-modal-btn:active::before { background: rgba(255,255,255,0.24); }
+    #alarm-modal .close-modal-btn:focus-visible { outline: 2px solid #FFB35C; outline-offset: -4px; }
+    #alarm-modal .close-modal-btn svg { position: relative; width: 17px; height: 17px; stroke-width: 2.6; }
+}
+@media (max-width: 1023.98px) and (max-height: 700px) { #alarm-modal .close-modal-btn { top: 16px; } }
+#alarm-modal .modal-handle { margin-bottom: 14px; }
+#alarm-modal .modal-header { margin-bottom: 4px; }
+#alarm-modal .modal-title { font-size: 1.02rem; font-weight: 650; letter-spacing: -0.01em; color: var(--all-testo-2); text-shadow: none; }
+
+.all-corpo { width: 100%; max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; padding-bottom: 4px; }
+
+/* ---- stato ---- */
+.all-stato { width: 100%; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6px 0 2px; }
+.all-scudo { position: relative; width: calc(var(--all-tasto) * 1.16); height: calc(var(--all-tasto) * 1.16); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+.all-scudo-disco {
+    position: absolute; inset: 11%; border-radius: 50%;
+    background-color: rgba(var(--all-rgb),0.16);
+    box-shadow: inset 0 0 0 1.5px rgba(var(--all-rgb),0.42), 0 12px 34px rgba(var(--all-rgb),0.28), inset 0 1px 0 rgba(255,255,255,0.12);
+    transition: background-color 0.45s ease, box-shadow 0.45s ease;
+}
+.all-anello { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.all-anello circle { fill: none; stroke-width: 3.5; }
+.all-anello-fondo { stroke: rgba(var(--all-rgb),0.16); transition: stroke 0.45s ease; }
+.all-anello-conto { stroke: var(--all-c); stroke-linecap: round; stroke-dasharray: var(--all-giro); stroke-dashoffset: 0; transition: stroke-dashoffset 0.25s linear, stroke 0.45s ease; }
+.all-anello { opacity: 0; transition: opacity 0.3s ease; }
+.all-scudo-ico { position: relative; display: flex; color: var(--all-c); transition: color 0.45s ease, opacity 0.25s ease, transform 0.25s ease; }
+.all-scudo-ico svg { width: calc(var(--all-tasto) * 0.5); height: calc(var(--all-tasto) * 0.5); stroke-width: 1.9; }
+.all-conto { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; gap: 1px; color: var(--all-testo); }
+.all-conto .countdown { font-size: calc(var(--all-tasto) * 0.42); font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.all-conto small { font-size: calc(var(--all-tasto) * 0.2); font-weight: 650; color: var(--all-testo-2); margin-top: 0.35em; }
+#alarm-modal[data-stato="arming"] .all-conto, #alarm-modal[data-stato="pending"] .all-conto { display: flex; }
+#alarm-modal[data-stato="arming"] .all-anello, #alarm-modal[data-stato="pending"] .all-anello { opacity: 1; }
+#alarm-modal[data-stato="arming"] .all-scudo-ico, #alarm-modal[data-stato="pending"] .all-scudo-ico { opacity: 0; transform: scale(0.7); }
+.all-stato-testi { display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 3.2em; }
+.all-stato-titolo { font-size: 1.42rem; font-weight: 750; letter-spacing: -0.028em; line-height: 1.15; color: var(--all-testo); }
+.all-stato-sotto { font-size: 0.9rem; line-height: 1.35; color: var(--all-testo-2); }
+.all-stato-sotto:empty { display: none; }
+#alarm-modal[data-stato="pending"] .all-stato-titolo, #alarm-modal[data-stato="triggered"] .all-stato-titolo { color: #FF6961; }
+
+/* intrusione e allarme: onde che partono dallo scudo, luce che pulsa */
+#alarm-modal[data-stato="pending"] .all-scudo::before, #alarm-modal[data-stato="pending"] .all-scudo::after,
+#alarm-modal[data-stato="triggered"] .all-scudo::before, #alarm-modal[data-stato="triggered"] .all-scudo::after {
+    content: ""; position: absolute; inset: 11%; border-radius: 50%; border: 2px solid rgba(var(--all-rgb),0.7);
+    animation: all-onda 1.6s cubic-bezier(0.2, 0.6, 0.35, 1) infinite; pointer-events: none;
+}
+#alarm-modal[data-stato="pending"] .all-scudo::after, #alarm-modal[data-stato="triggered"] .all-scudo::after { animation-delay: 0.8s; }
+#alarm-modal[data-stato="triggered"] .all-scudo::before, #alarm-modal[data-stato="triggered"] .all-scudo::after { animation-duration: 1.1s; }
+#alarm-modal[data-stato="triggered"] .all-scudo::after { animation-delay: 0.55s; }
+#alarm-modal[data-stato="pending"]::before { animation: all-bagliore 1.6s ease-in-out infinite; }
+#alarm-modal[data-stato="triggered"]::before { animation: all-bagliore 0.9s ease-in-out infinite; }
+#alarm-modal[data-stato="triggered"] .all-scudo-ico { animation: all-trema 0.9s ease-in-out infinite; }
+@keyframes all-onda { 0% { transform: scale(1); opacity: 0.85; } 100% { transform: scale(1.55); opacity: 0; } }
+@keyframes all-bagliore { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@keyframes all-trema { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-9deg); } 40% { transform: rotate(8deg); } 60% { transform: rotate(-5deg); } 80% { transform: rotate(3deg); } }
+
+/* ---- PIN ---- */
+.all-pin { width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 12px; }
+.all-guida { font-size: 0.95rem; font-weight: 500; line-height: 1.3; color: var(--all-testo); text-align: center; min-height: 1.3em; }
+.pin-display { display: flex; justify-content: center; gap: 20px; height: 16px; margin: 12px 0 6px; }
+.pin-dot {
+    width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box;
+    border: 1.6px solid rgba(255,255,255,0.72); background: transparent;
+    transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+.pin-dot.active { background: #FFF; border-color: #FFF; animation: all-punto 0.24s cubic-bezier(0.3, 1.6, 0.5, 1); }
+@keyframes all-punto { 0% { transform: scale(0.55); } 60% { transform: scale(1.28); } 100% { transform: scale(1); } }
+.pin-display.errore { animation: all-scossa 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
+.pin-display.errore .pin-dot { border-color: #FF6961; }
+.pin-display.errore .pin-dot.active { background: #FF6961; }
+.pin-display.giusto .pin-dot { background: var(--all-c); border-color: var(--all-c); box-shadow: 0 0 12px rgba(var(--all-rgb),0.6); }
+.pin-display.attesa .pin-dot.active { animation: all-attesa 0.9s ease-in-out infinite; }
+.pin-display.attesa .pin-dot:nth-child(2) { animation-delay: 0.12s; }
+.pin-display.attesa .pin-dot:nth-child(3) { animation-delay: 0.24s; }
+.pin-display.attesa .pin-dot:nth-child(4) { animation-delay: 0.36s; }
+@keyframes all-scossa { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-9px); } 40%, 60% { transform: translateX(9px); } }
+@keyframes all-attesa { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.error-message {
+    display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 22px; max-width: 100%;
+    color: #FF8A80; font-size: 0.86rem; font-weight: 600; line-height: 1.3; text-align: center;
+    opacity: 0; transform: translateY(-3px); transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.error-message.on { opacity: 1; transform: none; }
+.error-message svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* ---- tastierino ---- */
+.keypad {
+    display: grid; grid-template-columns: repeat(3, var(--all-tasto)); justify-content: center;
+    gap: clamp(10px, 1.6vh, 16px) clamp(20px, 6.5vw, 30px); margin-top: 6px;
+}
+.keypad .key {
+    width: var(--all-tasto); height: var(--all-tasto); padding: 0; margin: 0; border: 0; border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.1); color: #FFF; font-family: inherit; cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
+    user-select: none; -webkit-user-select: none; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.4s ease, transform 0.25s ease;
+}
+.keypad .key .n { font-size: calc(var(--all-tasto) * 0.44); font-weight: 400; line-height: 1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.keypad .key .l { height: 0.62rem; margin-top: 3px; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.2em; line-height: 0.62rem; color: rgba(255,255,255,0.7); padding-left: 0.2em; }
+.keypad .key:active, .keypad .key.premuto { background: rgba(255,255,255,0.34); transition: none; }
+.keypad .key:focus-visible { outline: 2px solid #FFB35C; outline-offset: 3px; }
+.keypad .key.all-canc { background: transparent; box-shadow: none; color: rgba(255,255,255,0.88); }
+.keypad .key.all-canc svg { width: calc(var(--all-tasto) * 0.4); height: calc(var(--all-tasto) * 0.4); stroke-width: 1.8; }
+.keypad .key.all-canc:active, .keypad .key.all-canc.premuto { background: rgba(255,255,255,0.1); }
+.keypad .key.all-canc[disabled] { opacity: 0.28; cursor: default; }
+.keypad .all-vuoto { visibility: hidden; }
+.keypad.fermo .key { cursor: default; }
+@media (hover: hover) {
+    .keypad .key:hover { background: rgba(255,255,255,0.16); }
+    .keypad .key.all-canc:hover { background: rgba(255,255,255,0.06); }
+    .keypad .key:active { background: rgba(255,255,255,0.34); }
+}
+
+/* ---- tasto principale: dice cosa succede ---- */
+#armBtn.all-azione {
+    width: 100%; max-width: none; min-height: 52px;              /* larga quanto la riga "Configura l'allarme" sotto */ margin-top: 16px; padding: 12px 18px;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    border: 0; border-radius: 16px; cursor: pointer; font-family: inherit; font-size: 1.02rem; font-weight: 700; letter-spacing: -0.01em;
+    color: #2A1606; background: linear-gradient(180deg, #FFC574, #FF8A3D);
+    box-shadow: 0 12px 22px -10px rgba(255,138,61,0.6), inset 0 1px 0 rgba(255,255,255,0.35);
+    transition: transform 0.15s ease, opacity 0.2s ease, filter 0.2s ease;
+}
+#armBtn.all-azione svg { width: 19px; height: 19px; stroke-width: 2.3; }
+#armBtn.all-azione .all-azione-ico { display: flex; }
+#armBtn.all-azione:active { transform: scale(0.97); filter: brightness(0.95); }
+#armBtn.all-azione:focus-visible { outline: 2px solid #FFF; outline-offset: 3px; }
+#armBtn.all-azione[data-tipo="disinserisci"], #armBtn.all-azione[data-tipo="annulla"] {
+    color: #FFF; background: rgba(255,255,255,0.13); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14), inset 0 1px 0 rgba(255,255,255,0.1);
+}
+#armBtn.all-azione[data-tipo="urgente"] {
+    color: #FFF; background: linear-gradient(180deg, #FF6961, #E5352B); box-shadow: 0 12px 24px -10px rgba(255,69,58,0.75), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+#armBtn.all-azione.occupato { opacity: 0.7; cursor: progress; }
+#armBtn.all-azione.occupato .all-azione-ico svg { animation: all-gira 0.9s linear infinite; }
+@keyframes all-gira { to { transform: rotate(360deg); } }
+
+/* ---- configurazione (solo amministratore) ---- */
+.all-config {
+    width: 100%; max-width: 420px; margin-top: 14px; display: flex; align-items: center; gap: 13px; min-height: 56px; padding: 10px 12px 10px 14px;
+    border-radius: 18px; background: rgba(255,255,255,0.058); border: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
+    color: var(--all-testo); text-decoration: none; transition: background-color 0.18s ease;
+}
+.all-config:active { background: rgba(255,255,255,0.1); }
+.all-config:focus-visible { outline: 2px solid #FFB35C; outline-offset: 2px; }
+@media (hover: hover) { .all-config:hover { background: rgba(255,255,255,0.085); } }
+.all-config .acc-ico { width: 30px; height: 30px; border-radius: 8.5px; }
+.all-config .acc-ico svg { width: 18px; height: 18px; color: #FFF; stroke-width: 2.1; }
+.all-config-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.all-config-testo b { font-size: 0.98rem; font-weight: 580; letter-spacing: -0.012em; }
+.all-config-testo small { font-size: 0.79rem; line-height: 1.3; color: var(--all-testo-2); }
+.all-config-freccia { width: 18px; height: 18px; flex-shrink: 0; color: rgba(235,235,245,0.3); }
+
+/* ---- telefoni bassi (SE, mini): tutto un po' piu' stretto ---- */
+@media (max-height: 700px) {
+    #alarm-modal .modal-handle { margin-bottom: 10px; }
+    .all-scudo { width: calc(var(--all-tasto) * 1.12); height: calc(var(--all-tasto) * 1.12); margin-bottom: 6px; }
+    .all-stato-titolo { font-size: 1.24rem; }
+    .all-stato-sotto { font-size: 0.84rem; }
+    .all-pin { margin-top: 8px; }
+    .pin-display { margin: 10px 0 6px; }
+    #armBtn.all-azione { margin-top: 14px; min-height: 50px; }
+    .all-config { margin-top: 12px; }
+}
+/* telefoni piccolissimi (SE prima serie, o pagina ingrandita): tasti di 52 px, niente titolo ne' riga sotto lo stato */
+@media (max-height: 600px) {
+    #alarm-modal { --all-tasto: 52px; }
+    #alarm-modal .modal-header { display: none; }
+    .all-scudo { width: 60px; height: 60px; margin-bottom: 4px; }
+    .all-stato { padding-top: 0; }
+    .all-stato-testi { min-height: 0; }
+    .all-stato-sotto { display: none; }
+    .keypad { gap: 9px 22px; }
+    #armBtn.all-azione { margin-top: 12px; min-height: 48px; }
+}
+@media (max-width: 359px) {
+    .keypad { gap: 10px 18px; }
+    .all-stato-titolo { font-size: 1.18rem; }
+}
+
+/* ---- due colonne: telefono in orizzontale (stato e tasto principale a sinistra, tastierino a destra) ---- */
+@media (max-width: 1023.98px) and (max-height: 520px) and (min-width: 560px) {
+    #alarm-modal { --all-tasto: 46px; padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+    #alarm-modal .modal-handle { margin-bottom: 8px; }
+    #alarm-modal .modal-header { display: none; }
+    .all-corpo { max-width: 720px; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 36px; align-items: center;
+                 grid-template-areas: "stato pin" "stato tasti" "azione tasti" "config tasti"; }
+    .all-stato { grid-area: stato; align-self: end; }
+    .all-stato-sotto { display: block; }
+    .all-pin { grid-area: pin; margin-top: 0; }
+    .keypad { grid-area: tasti; gap: 6px 20px; margin-top: 0; align-self: start; }
+    /* tasto principale e riga della configurazione: stessa larghezza, centrati nella colonna */
+    #armBtn.all-azione { grid-area: azione; margin-top: 10px; min-height: 46px; max-width: 420px; justify-self: center; }
+    .all-config { grid-area: config; margin-top: 8px; min-height: 50px; padding-top: 6px; padding-bottom: 6px; align-self: start; justify-self: center; }
+    .pin-display { margin: 6px 0 2px; }
+    .error-message { min-height: 18px; font-size: 0.8rem; }
+    /* la X a sinistra: a destra finirebbe sopra la frase del PIN, in cima alla colonna del tastierino */
+    #alarm-modal .close-modal-btn { right: auto; left: max(8px, env(safe-area-inset-left)); }
+}
+/* telefono in orizzontale molto basso (SE prima serie, 568x320): tasti di 44 px e file piu' strette, cosi'
+   l'ultima fila (0 e cancella) sta dentro senza scorrere; frase del PIN un po' piu' piccola (la colonna di
+   sinistra si allarga) e riga della configurazione senza la seconda riga, che la faceva andare a capo tre volte */
+@media (max-width: 1023.98px) and (max-height: 340px) and (min-width: 560px) {
+    #alarm-modal { --all-tasto: 44px; }
+    .keypad { row-gap: 4px; }
+    .pin-display { margin: 4px 0 0; }
+    .all-guida { font-size: 0.86rem; }
+    .all-config-testo small { display: none; }
+}
+
+/* ---- da 1024 px: finestra al centro, stato a sinistra e tastierino a destra ---- */
+@media (min-width: 1024px) {
+    #alarm-modal { --all-tasto: clamp(62px, 8.4vh, 78px); width: min(820px, calc(100vw - 64px)); padding: 26px 34px 32px; max-height: calc(100vh - 40px); }
+    #alarm-modal .modal-header { margin-bottom: 16px; }
+    #alarm-modal .modal-title { font-size: 1.12rem; color: var(--all-testo); }
+    #alarm-modal .close-modal-btn { right: 22px; top: 18px; width: 44px; height: 44px; }
+    .all-corpo { max-width: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 40px; align-items: center;
+                 grid-template-areas: "stato pin" "stato tasti" "stato azione"; }
+    .all-corpo.con-config { grid-template-areas: "stato pin" "stato tasti" "config azione"; }
+    .all-stato {
+        grid-area: stato; align-self: stretch; justify-content: center; padding: 26px 20px; border-radius: 26px;
+        background-color: rgba(var(--all-rgb),0.07); box-shadow: inset 0 0 0 1px rgba(var(--all-rgb),0.2);
+        transition: background-color 0.45s ease, box-shadow 0.45s ease;
+    }
+    .all-scudo { width: 136px; height: 136px; margin-bottom: 16px; }
+    .all-scudo-ico svg { width: 60px; height: 60px; }
+    .all-conto .countdown { font-size: 2.7rem; }
+    .all-conto small { font-size: 1.05rem; }
+    .all-stato-titolo { font-size: 1.6rem; }
+    .all-stato-sotto { font-size: 0.95rem; max-width: 280px; }
+    .all-pin { grid-area: pin; margin-top: 0; }
+    .keypad { grid-area: tasti; }
+    #armBtn.all-azione { grid-area: azione; }
+    .all-config { grid-area: config; align-self: end; max-width: none; }
+    #alarm-modal::before { background: radial-gradient(90% 60% at 20% 0%, rgba(var(--all-rgb),0.22), rgba(var(--all-rgb),0) 70%); }
+}
+
+/* tasto in alto a destra e voce della barra laterale: pulsano con l'intrusione e l'allarme */
+#mobile-alarm-btn.all-pulsa { animation: all-tasto-pulsa 1.2s ease-out infinite; }
+#alarm-nav-item.all-pulsa svg { animation: all-bagliore 0.9s ease-in-out infinite; color: #FF453A; }
+@keyframes all-tasto-pulsa { 0% { box-shadow: 0 0 0 0 rgba(255,69,58,0.6); } 100% { box-shadow: 0 0 0 12px rgba(255,69,58,0); } }
+
+/* movimento ridotto: niente onde ne' scosse (i colori e i testi dicono lo stesso) */
+@media (prefers-reduced-motion: reduce) {
+    #alarm-modal .all-scudo::before, #alarm-modal .all-scudo::after { display: none; }
+    #alarm-modal::before, #alarm-modal .all-scudo-ico, .pin-dot.active, .pin-display.errore, .pin-display.attesa .pin-dot.active,
+    #mobile-alarm-btn.all-pulsa, #alarm-nav-item.all-pulsa svg { animation: none !important; }
+}
+/* ---- aggiunte per il sistema di allarme nuovo (27/09/2026): modalita' Notte, sensore che ha fatto scattare,
+   sensori esclusi, tastierino bloccato dopo troppi PIN sbagliati, sirena ferma ---- */
+/* inserito in modalita' Notte: indaco al posto del rosa (stesso colore nel tasto in alto e nella barra laterale) */
+#alarm-modal[data-stato="armed"][data-modo="notte"] { --all-c: #7D7AFF; --all-rgb: 125,122,255; }
+/* scattato con la sirena ferma (finito il suo tempo, o nessuna sirena fra le azioni): resta rosso, ma calmo */
+#alarm-modal[data-stato="triggered"][data-sirena="ferma"] .all-scudo-ico { animation: none; }
+#alarm-modal[data-stato="triggered"][data-sirena="ferma"] .all-scudo::before,
+#alarm-modal[data-stato="triggered"][data-sirena="ferma"] .all-scudo::after { animation-duration: 2.4s; }
+#alarm-modal[data-stato="triggered"][data-sirena="ferma"] .all-scudo::after { animation-delay: 1.2s; }
+#alarm-modal[data-stato="triggered"][data-sirena="ferma"]::before { animation-duration: 2.4s; }
+
+/* frase sotto lo stato su due righe (computer): righe pari, niente parola sola in fondo */
+.all-stato-sotto { text-wrap: balance; }
+
+/* riga sotto lo stato: sensore che ha fatto scattare (intrusione, allarme) o sensori esclusi (inserito) */
+.all-info {
+    display: none; align-items: flex-start; gap: 7px; max-width: 100%; margin-top: 7px; padding: 6px 13px 6px 10px; border-radius: 14px;
+    font-size: 0.85rem; font-weight: 600; line-height: 1.3; text-align: left; color: var(--all-testo);
+    background: rgba(var(--all-rgb),0.15); box-shadow: inset 0 0 0 1px rgba(var(--all-rgb),0.32);
+    transition: background-color 0.45s ease, box-shadow 0.45s ease;
+}
+.all-info.on { display: flex; }
+.all-info-ico { display: flex; flex-shrink: 0; margin-top: 1px; color: var(--all-c); }
+.all-info-ico svg { width: 15px; height: 15px; stroke-width: 2.3; }
+.all-info-testo { min-width: 0; overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.all-info-et { color: var(--all-testo-2); }
+.all-info-et:empty { display: none; }
+.all-info[data-tipo="esclusi"] { font-weight: 550; background: rgba(255,255,255,0.07); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
+.all-info[data-tipo="esclusi"] .all-info-ico { color: var(--all-testo-2); }
+
+/* Fuori casa / Notte (solo da disinserito e con sensori scelti per la notte): come i controlli a segmenti di iOS.
+   Sta sopra il tastierino: alla quarta cifra il PIN parte da solo, la modalita' va scelta prima */
+.all-modo {
+    position: relative; display: grid; grid-template-columns: 1fr 1fr; width: min(100%, 290px); margin: 12px auto 0; padding: 3px;
+    border-radius: 14px; background: rgba(118,118,128,0.22); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+.all-modo[hidden] { display: none; }
+.all-modo-cursore {
+    position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 11px; pointer-events: none;
+    background: rgba(255,255,255,0.17); box-shadow: 0 3px 8px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.12);
+    transition: transform 0.28s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.all-modo[data-modo="notte"] .all-modo-cursore { transform: translateX(100%); }
+.all-modo button {
+    position: relative; z-index: 1; min-width: 0; min-height: 38px; margin: 0; padding: 0 8px; border: 0; border-radius: 11px; background: transparent;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    font-family: inherit; font-size: 0.9rem; font-weight: 600; letter-spacing: -0.01em; color: rgba(235,235,245,0.62); white-space: nowrap;
+    cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: color 0.2s ease;
+}
+.all-modo button svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 2.2; transition: color 0.2s ease; }
+.all-modo button[aria-checked="true"] { color: #FFF; }
+.all-modo button[data-modo="totale"][aria-checked="true"] svg { color: #FF7A93; }
+.all-modo button[data-modo="notte"][aria-checked="true"] svg { color: #A5A3FF; }
+.all-modo button:focus-visible { outline: 2px solid #FFB35C; outline-offset: -2px; }
+.all-modo.fermo button { cursor: default; }
+@media (hover: hover) { .all-modo button[aria-checked="false"]:hover { color: rgba(235,235,245,0.85); } }
+/* zona da toccare allargata di 5 px sopra e sotto (34 px sui telefoni piccolissimi -> 44): sopra e sotto c'e' solo testo */
+.all-modo button::after { content: ""; position: absolute; inset: -5px 0; }
+
+/* tastierino bloccato (troppi PIN sbagliati con questo account): tasti spenti, conto alla rovescia sotto i pallini */
+.keypad.bloccato .key:not(.all-vuoto) { opacity: 0.3; cursor: not-allowed; }
+.keypad.bloccato .key:active, .keypad.bloccato .key.premuto { background: rgba(255,255,255,0.1); }
+@media (hover: hover) { .keypad.bloccato .key:hover { background: rgba(255,255,255,0.1); } .keypad.bloccato .key.all-canc:hover { background: transparent; } }
+#armBtn.all-azione.bloccato { opacity: 0.4; cursor: not-allowed; filter: saturate(0.5); }
+#armBtn.all-azione.bloccato:active { transform: none; filter: saturate(0.5); }
+.error-message .all-errore-ico { display: flex; }
+.error-message.blocco { color: #FFB35C; font-variant-numeric: tabular-nums; }
+
+/* elenco dei sensori aperti nel popup "Inserire comunque?" (askAppConfirm: il popup sta fuori dalla finestra) */
+.all-aperti-testo { display: block; }
+.all-aperti { list-style: none; margin: 10px 0 12px; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 34vh; overflow-y: auto; }
+.all-aperti li { padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,0.08); color: #FFF; font-size: 0.9rem; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+
+@media (max-height: 700px) {
+    .all-modo { margin-top: 9px; }
+    .all-modo button { min-height: 36px; }
+    /* con la scelta della modalita' il tasto principale restava mezzo fuori (375x667): via "La casa non e' sorvegliata",
+       che ripete "Disinserito" */
+    #alarm-modal.con-modo .all-stato-sotto { display: none; }
+    #alarm-modal.con-modo .all-stato-testi { min-height: 0; }
+}
+@media (max-height: 600px) {
+    .all-info { margin-top: 4px; padding: 4px 11px 4px 9px; font-size: 0.8rem; }
+    .all-modo { margin-top: 6px; }
+    .all-modo button { min-height: 34px; font-size: 0.86rem; }
+    /* 320x568: con una riga in piu' (scelta della modalita', sensore, esclusi) il tasto principale finiva sotto il
+       bordo: scudo e file del tastierino piu' stretti */
+    #alarm-modal.con-riga .all-scudo { width: 46px; height: 46px; margin-bottom: 2px; }
+    #alarm-modal.con-riga .all-scudo-ico svg { width: 22px; height: 22px; }
+    #alarm-modal.con-riga .all-conto .countdown { font-size: 17px; }
+    #alarm-modal.con-riga .all-conto small { font-size: 9px; }
+    #alarm-modal.con-riga .keypad { row-gap: 5px; }
+    /* ...ma la riga sotto lo stato resta (una sola riga) quando dice qualcosa di suo: Notte, sirena ferma */
+    #alarm-modal.sotto-utile .all-stato-testi { max-width: 100%; }
+    #alarm-modal.sotto-utile .all-stato-sotto { display: block; max-width: 100%; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* con tutte e due (riga sotto lo stato e sensore/esclusi) la riga dei sensori sta su una riga sola, coi puntini:
+       su due righe il tasto principale finiva 7 px sotto il bordo (Notte in inserimento con due sensori esclusi) */
+    #alarm-modal.con-riga.sotto-utile .all-info-testo { -webkit-line-clamp: 1; }
+}
+@media (max-width: 1023.98px) and (max-height: 520px) and (min-width: 560px) {
+    .all-modo { margin-top: 8px; }
+    .all-modo button { min-height: 34px; }
+}
+@media (min-width: 1024px) {
+    .all-info { margin-top: 12px; font-size: 0.9rem; }
+    .all-modo { width: min(100%, 320px); margin-top: 22px; }
+    .all-modo button { min-height: 42px; font-size: 0.95rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .all-modo-cursore { transition: none; }
+}
+/* ===== ALLARME: FINESTRA COL TASTIERINO: FINE ===== */
 /* --- PRESET TIMER --- */
         .timer-presets {
             display: flex;
@@ -2806,6 +3181,100 @@ body.layout-grid-1.shape-round .imp-ap-c { text-align: left; } body.layout-grid-
 .imp-pw-invia { margin-top: 14px; }
 .imp-pw-invia[disabled] { opacity: 0.55; cursor: default; transform: none; }
 
+/* ---- automazioni (27/09/2026): prima erano un modale a parte ---- */
+.imp-auto-conta { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; max-width: 40%; font-size: 0.9rem; color: var(--imp-testo-3); white-space: nowrap; overflow: hidden; }
+.imp-auto-conta:empty { display: none; }
+.imp-auto-conta::before { content: ""; width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: #30D158; box-shadow: 0 0 8px rgba(48,209,88,0.6); }
+.imp-auto-conta.zero::before { background: rgba(235,235,245,0.3); box-shadow: none; }
+.imp-auto-eroe {
+    position: relative; overflow: hidden; margin-top: 6px; padding: 14px; border-radius: 22px;
+    display: flex; align-items: center; gap: 14px;
+    background: radial-gradient(110% 120% at 0% 0%, rgba(63,155,255,0.2), rgba(63,155,255,0) 58%), var(--imp-vetro);
+    border: 1px solid rgba(255,255,255,0.09); box-shadow: 0 16px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.imp-auto-eroe-ico {
+    width: 58px; height: 58px; flex-shrink: 0; border-radius: 17px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #3F9BFF, #0A6DE0); box-shadow: inset 0 1px 1px rgba(255,255,255,0.3), 0 10px 24px rgba(10,109,224,0.4);
+}
+.imp-auto-eroe-ico svg { width: 30px; height: 30px; color: #FFF; stroke-width: 2; }
+.imp-auto-conti { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.imp-auto-conto { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding: 9px 12px; border-radius: 15px; background: rgba(0,0,0,0.24); border: 1px solid rgba(255,255,255,0.06); }
+.imp-auto-conto b { font-size: 1.6rem; font-weight: 750; line-height: 1.05; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--imp-testo); }
+.imp-auto-conto.on b { color: #6EE7A0; }
+.imp-auto-conto span { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--imp-testo-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.imp-auto-cerca {
+    display: flex; align-items: center; gap: 8px; margin-top: 18px; min-height: 44px; padding: 0 12px; border-radius: 12px;
+    background: rgba(118,118,128,0.24); cursor: text; transition: box-shadow 0.2s ease;
+}
+.imp-auto-cerca[hidden] { display: none; }
+.imp-auto-cerca svg { width: 18px; height: 18px; flex-shrink: 0; color: var(--imp-testo-3); }
+.imp-auto-cerca input {
+    flex: 1; min-width: 0; height: 44px; margin: 0; padding: 0; border: 0; outline: 0; background: transparent;
+    color: var(--imp-testo); font-family: inherit; font-size: 16px; -webkit-appearance: none; appearance: none;
+}
+.imp-auto-cerca input::placeholder { color: var(--imp-testo-3); opacity: 1; }
+.imp-auto-cerca input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; cursor: pointer;
+    background: rgba(235,235,245,0.45) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M7 7l10 10M17 7L7 17'/%3E%3C/svg%3E") center / 10px no-repeat; }
+.imp-auto-cerca:focus-within { box-shadow: 0 0 0 2px rgba(255,179,92,0.55); }
+
+.imp-auto-lista[hidden], #imp-auto-etichetta[hidden], #imp-auto-nota[hidden] { display: none; }
+.imp-auto-riga { min-height: 66px; padding-top: 11px; padding-bottom: 11px; }
+.imp-auto-riga .imp-testo b { overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.imp-auto-riga .imp-testo small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.imp-auto-riga .acc-ico, .imp-auto-riga .imp-testo b { transition: opacity 0.25s ease, filter 0.25s ease, color 0.25s ease; }
+.imp-auto-riga.spenta .acc-ico { filter: grayscale(1); opacity: 0.42; }
+.imp-auto-riga.spenta .imp-testo b { color: var(--imp-testo-2); }
+.imp-auto-np { white-space: nowrap; }
+.imp-auto-tag { display: inline-block; margin-right: 6px; padding: 1px 7px 2px; border-radius: 99px; vertical-align: 1px;
+                font-size: 0.64rem; font-weight: 750; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(255,255,255,0.1); color: var(--imp-testo-2); }
+.imp-auto-riga label.switch-ios input:focus-visible + .slider { outline: 2px solid var(--imp-caldo); outline-offset: 2px; }
+.imp-auto-riga label.switch-ios .slider { transition-duration: 0.25s; }
+.imp-auto-riga.salva label.switch-ios { opacity: 0.7; }
+
+/* in attesa della prima lettura: righe finte che luccicano */
+.imp-auto-finta { display: flex; align-items: center; gap: 13px; min-height: 66px; padding: 11px 14px; position: relative; }
+.imp-auto-finta + .imp-auto-finta::before { content: ""; position: absolute; top: 0; left: 57px; right: 0; height: 0.5px; background: var(--imp-sep); }
+.imp-auto-finta i, .imp-auto-finta span::before, .imp-auto-finta span::after, .imp-auto-finta em {
+    display: block; background: linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.13) 50%, rgba(255,255,255,0.06) 100%);
+    background-size: 220% 100%; animation: imp-luccica 1.3s linear infinite;
+}
+.imp-auto-finta i { width: 30px; height: 30px; flex-shrink: 0; border-radius: 8.5px; }
+.imp-auto-finta span { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.imp-auto-finta span::before { content: ""; width: 52%; height: 12px; border-radius: 6px; }
+.imp-auto-finta span::after { content: ""; width: 78%; height: 9px; border-radius: 5px; }
+.imp-auto-finta em { width: 50px; height: 28px; border-radius: 14px; flex-shrink: 0; }
+@keyframes imp-luccica { from { background-position: 110% 0; } to { background-position: -110% 0; } }
+
+/* vuota, errore, nessun risultato */
+.imp-auto-vuoto {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 18px; padding: 28px 20px 24px; text-align: center;
+    border-radius: 22px; background: var(--imp-vetro); border: 1px solid var(--imp-bordo); color: var(--imp-testo-2); font-size: 0.88rem; line-height: 1.45;
+}
+.imp-auto-vuoto-ico { width: 58px; height: 58px; border-radius: 17px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px;
+                      background: rgba(255,179,92,0.1); border: 1px solid rgba(255,179,92,0.22); }
+.imp-auto-vuoto-ico svg { width: 27px; height: 27px; color: var(--imp-caldo); }
+.imp-auto-vuoto b { font-size: 1.08rem; font-weight: 700; letter-spacing: -0.015em; color: var(--imp-testo); }
+.imp-auto-vuoto span { max-width: 340px; }
+.imp-auto-vuoto.errore .imp-auto-vuoto-ico { background: rgba(255,105,97,0.12); border-color: rgba(255,105,97,0.3); }
+.imp-auto-vuoto.errore .imp-auto-vuoto-ico svg { color: #FF8A80; }
+.imp-auto-vuoto .imp-bottone { width: auto; min-width: 170px; margin-top: 12px; }
+.imp-auto-vuoto .imp-bottone[disabled] { opacity: 0.55; cursor: progress; transform: none; }
+
+.imp-auto-avviso {
+    display: flex; align-items: flex-start; gap: 10px; margin-top: 24px; padding: 13px 14px; border-radius: 16px;
+    background: rgba(100,180,255,0.08); border: 1px solid rgba(100,180,255,0.16); color: var(--imp-testo-2); font-size: 0.85rem; line-height: 1.45;
+}
+.imp-auto-avviso svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; color: #9CCBFF; }
+@media (max-width: 359px) {
+    .imp-auto-eroe { gap: 10px; padding: 12px; }
+    .imp-auto-eroe-ico { width: 46px; height: 46px; border-radius: 14px; }
+    .imp-auto-eroe-ico svg { width: 24px; height: 24px; }
+    .imp-auto-conto { padding: 8px 10px; }
+    .imp-auto-conto b { font-size: 1.35rem; }
+}
+@media (prefers-reduced-motion: reduce) { .imp-auto-finta i, .imp-auto-finta span::before, .imp-auto-finta span::after, .imp-auto-finta em { animation: none; } }
+.wh-leggera .imp-auto-eroe { box-shadow: none; }
 /* ---- telefono piccolo ---- */
 @media (max-width: 359px) {
     .imp-valore { display: none; }
@@ -3540,11 +4009,21 @@ html.wh-scala .imp-pagina {
 
             <div class="imp-etichetta">Gestione</div>
             <div class="imp-gruppo" id="imp-collegamenti">
-                <button type="button" class="imp-riga" onclick="openAutomationsQuickModal()">
+                <button type="button" class="imp-riga" data-apri="automazioni" onclick="impApri('automazioni')">
                     <span class="acc-ico c-blue"><i data-lucide="workflow"></i></span>
-                    <span class="imp-testo"><b>Gestisci automazioni</b><small>Accendi, spegni e prova le tue automazioni</small></span>
+                    <span class="imp-testo"><b>Automazioni</b><small>Attiva o sospendi le regole della casa</small></span>
+                    <span class="imp-auto-conta" id="imp-conta-automazioni" data-no-tr></span>
                     <i data-lucide="chevron-right" class="imp-freccia"></i>
                 </button>
+                {% if session.role == 'admin' %}
+                <!-- sempre, anche con l'allarme non configurato (tasto in alto nascosto): prima configurazione o dopo «Disattiva l'allarme» -->
+                <a href="{{ url_for('alarm_config_ui') }}" id="imp-riga-allarme" class="imp-riga">
+                    <span class="acc-ico c-red"><i data-lucide="shield"></i></span>
+                    <span class="imp-testo"><b>Allarme</b><small>Sensori, sirene, avvisi e PIN</small><small class="imp-ora" id="imp-ora-allarme" data-no-tr></small></span>
+                    <span class="imp-valore" id="imp-val-allarme" data-no-tr></span>
+                    <i data-lucide="chevron-right" class="imp-freccia"></i>
+                </a>
+                {% endif %}
                 <a href="{{ url_for('dashboard') }}" id="btn-goto-config" class="imp-riga" onclick="checkDesktopConfig(event)">
                     <span class="acc-ico c-gray"><i data-lucide="settings-2"></i></span>
                     <span class="imp-testo"><b>Pannello di controllo</b><small>La configurazione completa, dal computer</small></span>
@@ -3633,6 +4112,46 @@ html.wh-scala .imp-pagina {
                 </div>
             </div>
 
+            <!-- ======================= AUTOMAZIONI (27/09/2026): INIZIO =======================
+                 Prima erano un modale a parte (#automations-quick-modal, "Gestisci automazioni"). La lista la
+                 disegna window.impAutomazioni (script "AUTOMAZIONI NELLE IMPOSTAZIONI"): interruttore
+                 attiva/sospendi (PUT /api/automations), riassunto di cosa la fa partire, ricerca da 7 in su. -->
+            <div class="imp-cat" data-cat="automazioni">
+                <div class="imp-auto-eroe">
+                    <span class="imp-auto-eroe-ico" aria-hidden="true"><i data-lucide="workflow"></i></span>
+                    <div class="imp-auto-conti">
+                        <div class="imp-auto-conto on"><b id="imp-auto-n-on" data-no-tr>&ndash;</b><span>Attive</span></div>
+                        <div class="imp-auto-conto off"><b id="imp-auto-n-off" data-no-tr>&ndash;</b><span>Sospese</span></div>
+                    </div>
+                </div>
+
+                <label class="imp-auto-cerca" id="imp-auto-cerca" hidden>
+                    <i data-lucide="search"></i>
+                    <input type="search" id="imp-auto-q" placeholder="Cerca un'automazione" aria-label="Cerca un'automazione" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+                </label>
+
+                <div class="imp-etichetta" id="imp-auto-etichetta">Le tue automazioni</div>
+                <div class="imp-gruppo imp-auto-lista" id="imp-auto-lista" data-no-tr></div>
+                <div id="imp-auto-stato" data-no-tr aria-live="polite"></div>
+                <p class="imp-nota" id="imp-auto-nota">Un'automazione sospesa resta salvata ma non parte finché non la riattivi.</p>
+
+                {% if session.role == 'admin' %}
+                <div class="imp-etichetta">Crea e modifica</div>
+                <div class="imp-gruppo">
+                    <a href="{{ url_for('automations_ui') }}" class="imp-riga">
+                        <span class="acc-ico c-indigo"><i data-lucide="square-pen"></i></span>
+                        <span class="imp-testo"><b>Editor delle automazioni</b><small>Crea nuove regole, modificale e provale</small></span>
+                        <i data-lucide="chevron-right" class="imp-freccia"></i>
+                    </a>
+                </div>
+                {% else %}
+                <div class="imp-auto-avviso">
+                    <i data-lucide="info"></i>
+                    <span>Le automazioni le crea e le modifica l'amministratore della casa. Da qui puoi attivarle o sospenderle.</span>
+                </div>
+                {% endif %}
+            </div>
+            <!-- ======================= AUTOMAZIONI: FINE ======================= -->
             <!-- ======================= SCHERMATA E SFONDO ======================= -->
             <div class="imp-cat" data-cat="aspetto">
                 <div class="imp-anteprima imp-ap-schermo">
@@ -4405,43 +4924,72 @@ html.wh-scala .imp-pagina {
 </div>
 
 
-<div class="bottom-modal" id="alarm-modal">
+<!-- ===== ALLARME: FINESTRA COL TASTIERINO (rifatta il 27/09/2026): INIZIO =====
+     Gli id di prima restano (statusCardAlarm, countdownBox, timerDisplay, armBtn, errorBox, .pin-dot):
+     li usa solo "// --- LOGICA ALLARME ---". Il colore e i testi li mette syncAlarmStatus() (data-stato, data-modo
+     'notte', data-sirena 'ferma'). Il messaggio sotto i pallini (#all-errore) lo traduce showAlarmError(). -->
+<div class="bottom-modal" id="alarm-modal" data-stato="sconosciuto">
     <div class="modal-handle"></div>
-    <button class="close-modal-btn" onclick="closeAllModals()"><i data-lucide="x"></i></button>
-    <div class="modal-header"><div class="modal-title">Sicurezza Casa</div></div>
-    
-    <div class="modal-scroll-area">
-        <div id="statusCardAlarm" class="status-card-alarm state-disarmed">Analisi Sistema...</div>
-        
-        <div id="countdownBox" style="display: none; text-align: center;">
-            <div style="font-size: 0.85rem; color: #8E8E93; font-weight: 500;">Inserire PIN per disattivare:</div>
-            <div id="timerDisplay" class="countdown">60</div>
+    <button type="button" class="close-modal-btn" onclick="closeAllModals()" title="Chiudi" aria-label="Chiudi"><i data-lucide="x"></i></button>
+    <div class="modal-header"><div class="modal-title" id="all-titolo-modale">Sicurezza Casa</div></div>
+
+    <div class="modal-scroll-area all-corpo{% if session.role == 'admin' %} con-config{% endif %}">
+        <div id="statusCardAlarm" class="all-stato" data-trascina>
+            <div class="all-scudo" aria-hidden="true">
+                <span class="all-scudo-disco"></span>
+                <svg class="all-anello" viewBox="0 0 100 100" focusable="false"><circle class="all-anello-fondo" cx="50" cy="50" r="46"></circle><circle class="all-anello-conto" id="all-anello" cx="50" cy="50" r="46"></circle></svg>
+                <span class="all-scudo-ico" id="all-icona" data-icona="shield"><i data-lucide="shield"></i></span>
+                <div id="countdownBox" class="all-conto" data-no-tr><span id="timerDisplay" class="countdown">60</span><small>s</small></div>
+            </div>
+            <div class="all-stato-testi" role="status" aria-live="polite">
+                <b class="all-stato-titolo" id="all-stato-titolo">Controllo lo stato…</b>
+                <span class="all-stato-sotto" id="all-stato-sotto"></span>
+                <!-- sensore che ha fatto scattare (intrusione, allarme) o sensori esclusi (inserito): la scrive allarmeDisegna() -->
+                <span class="all-info" id="all-info"><span class="all-info-ico" id="all-info-ico" aria-hidden="true"></span><span class="all-info-testo"><span class="all-info-et" id="all-info-et"></span> <span class="all-info-nomi" id="all-info-nomi" data-no-tr></span></span></span>
+            </div>
+            <!-- modalita' del prossimo inserimento: solo da disinserito e se ci sono sensori per la notte (night_available) -->
+            <div class="all-modo" id="all-modo" role="radiogroup" aria-label="Modalità di inserimento" data-modo="totale" hidden>
+                <span class="all-modo-cursore" aria-hidden="true"></span>
+                <button type="button" role="radio" aria-checked="true" data-modo="totale" onclick="allarmeScegliModo('totale')"><i data-lucide="house"></i><span>Fuori casa</span></button>
+                <button type="button" role="radio" aria-checked="false" data-modo="notte" onclick="allarmeScegliModo('notte')"><i data-lucide="moon"></i><span>Notte</span></button>
+            </div>
         </div>
 
-        <div class="pin-display">
-            <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+        <div class="all-pin">
+            <div class="all-guida" id="all-guida">Inserisci il PIN</div>
+            <div class="pin-display" id="all-pallini" aria-hidden="true">
+                <span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span><span class="pin-dot"></span>
+            </div>
+            <div id="errorBox" class="error-message" role="alert"><span class="all-errore-ico" id="all-errore-ico" data-icona="circle-alert"><i data-lucide="circle-alert"></i></span><span id="all-errore" data-no-tr></span></div>
         </div>
-        
-        <div class="keypad">
-            <div class="key" onclick="pressNum('1')">1</div>
-            <div class="key" onclick="pressNum('2')">2</div>
-            <div class="key" onclick="pressNum('3')">3</div>
-            <div class="key" onclick="pressNum('4')">4</div>
-            <div class="key" onclick="pressNum('5')">5</div>
-            <div class="key" onclick="pressNum('6')">6</div>
-            <div class="key" onclick="pressNum('7')">7</div>
-            <div class="key" onclick="pressNum('8')">8</div>
-            <div class="key" onclick="pressNum('9')">9</div>
-            <div class="key action-btn" style="color: #AEAEB2; background: transparent; border: none;" onclick="clearPin()">Canc</div>
-            <div class="key" onclick="pressNum('0')">0</div>
-            <div id="armBtn" class="key action-btn" style="background: rgba(10, 132, 255, 0.15); color: #0A84FF; border: 1px solid rgba(10, 132, 255, 0.25);" onclick="submitPin()">OK</div>
-        </div>
-        
-        <div id="errorBox" class="error-message"></div>
 
-        <a href="/alarm/config" style="background: transparent; color: #636366; padding: 10px; margin-top: 25px; cursor: pointer; font-size: 0.85rem; text-decoration: none; display: block; text-align: center; font-weight: 500;">⚙️ Configura Rete Allarme</a>
+        <div class="keypad" id="all-tastierino" role="group" aria-label="Tastierino del PIN">
+            <button type="button" class="key" data-cifra="1" onclick="pressNum('1')" aria-label="1"><span class="n">1</span><span class="l" data-no-tr></span></button>
+            <button type="button" class="key" data-cifra="2" onclick="pressNum('2')" aria-label="2"><span class="n">2</span><span class="l" data-no-tr>ABC</span></button>
+            <button type="button" class="key" data-cifra="3" onclick="pressNum('3')" aria-label="3"><span class="n">3</span><span class="l" data-no-tr>DEF</span></button>
+            <button type="button" class="key" data-cifra="4" onclick="pressNum('4')" aria-label="4"><span class="n">4</span><span class="l" data-no-tr>GHI</span></button>
+            <button type="button" class="key" data-cifra="5" onclick="pressNum('5')" aria-label="5"><span class="n">5</span><span class="l" data-no-tr>JKL</span></button>
+            <button type="button" class="key" data-cifra="6" onclick="pressNum('6')" aria-label="6"><span class="n">6</span><span class="l" data-no-tr>MNO</span></button>
+            <button type="button" class="key" data-cifra="7" onclick="pressNum('7')" aria-label="7"><span class="n">7</span><span class="l" data-no-tr>PQRS</span></button>
+            <button type="button" class="key" data-cifra="8" onclick="pressNum('8')" aria-label="8"><span class="n">8</span><span class="l" data-no-tr>TUV</span></button>
+            <button type="button" class="key" data-cifra="9" onclick="pressNum('9')" aria-label="9"><span class="n">9</span><span class="l" data-no-tr>WXYZ</span></button>
+            <span class="key all-vuoto" aria-hidden="true"></span>
+            <button type="button" class="key" data-cifra="0" onclick="pressNum('0')" aria-label="0"><span class="n">0</span><span class="l" data-no-tr></span></button>
+            <button type="button" class="key all-canc" id="all-canc" data-cifra="canc" onclick="allarmeCancellaUltima()" title="Cancella l'ultima cifra" aria-label="Cancella l'ultima cifra" disabled><i data-lucide="delete"></i></button>
+        </div>
+
+        <button type="button" id="armBtn" class="all-azione" data-tipo="inserisci" onclick="submitPin()"><span class="all-azione-ico" id="all-azione-ico" data-icona="lock"><i data-lucide="lock"></i></span><span id="all-azione-testo">Inserisci l'allarme</span></button>
+
+        {% if session.role == 'admin' %}
+        <a href="{{ url_for('alarm_config_ui') }}" class="all-config">
+            <span class="acc-ico c-gray"><i data-lucide="settings-2"></i></span>
+            <span class="all-config-testo"><b>Configura l'allarme</b><small>Sensori, sirene, avvisi e PIN</small></span>
+            <i data-lucide="chevron-right" class="all-config-freccia"></i>
+        </a>
+        {% endif %}
     </div>
 </div>
+<!-- ===== ALLARME: FINESTRA COL TASTIERINO: FINE ===== -->
 
 
 
@@ -4631,30 +5179,7 @@ html.wh-scala .imp-pagina {
         </div>
     </div>
 
-<div class="bottom-modal" id="automations-quick-modal">
-        <div class="modal-handle"></div>
-        <button class="close-modal-btn" onclick="closeAllModals()"><i data-lucide="x"></i></button>
-        <div class="modal-header"><div class="modal-title">Regole e Automazioni</div></div>
-        
-        <div class="modal-scroll-area" style="padding-bottom: 20px;">
-            <p style="color:var(--text-muted); font-size:0.9em; text-align:center; margin-bottom: 20px;">Attiva o sospendi rapidamente le regole logiche della casa.</p>
-            
-            <div id="quick-automations-list" style="display: flex; flex-direction: column; gap: 10px;">
-                </div>
-            
-{% if session.get('role') == 'admin' %}
-    <a href="{{ url_for('automations_ui') }}" style="display: block; margin-top: 30px; padding: 16px; background: var(--accent-cyan); border-radius: 16px; text-align: center; color: #FFF; text-decoration: none; font-weight: 700; font-size: 1rem; box-shadow: 0 4px 15px rgba(10, 132, 255, 0.3);">
-        Editor Avanzato
-        <i data-lucide="external-link" style="width: 18px; height: 18px; vertical-align: middle; margin-left: 8px;"></i>
-    </a>
-{% else %}
-    <a href="#" onclick="appAlert('L\'Editor Avanzato è uno strumento di sistema. Chiedi a un Amministratore se hai bisogno di creare nuove automazioni!'); return false;" style="display: block; margin-top: 30px; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 16px; text-align: center; color: rgba(255,255,255,0.4); text-decoration: none; font-weight: 700; font-size: 1rem; border: 1px solid rgba(255,255,255,0.1); cursor: not-allowed;">
-        Editor Avanzato (Solo Admin)
-        <i data-lucide="lock" style="width: 18px; height: 18px; vertical-align: middle; margin-left: 8px;"></i>
-    </a>
-{% endif %}
-        </div>
-    </div>
+<!-- (27/09/2026) qui c'era il modale delle automazioni (#automations-quick-modal): ora e' la pagina Impostazioni > Automazioni -->
 
     <script>
 
@@ -8372,85 +8897,153 @@ function inlineCoverCmd(event, entityId, action) {
     }).catch(err => console.error("Errore comando mini cover:", err));
 }
 
-// --- GESTIONE MODALE AUTOMAZIONI RAPIDE ---
+// --- AUTOMAZIONI: ora sono una pagina delle Impostazioni (Impostazioni > Gestione > Automazioni) ---
+// Il modale #automations-quick-modal e' stato tolto il 27/09/2026 (la pagina e' nello script
+// "AUTOMAZIONI NELLE IMPOSTAZIONI"). I nomi di sempre restano, per chi li chiama.
     function openAutomationsQuickModal() {
-        // Chiude le impostazioni se erano aperte
-        document.getElementById('settings-modal').classList.remove('active');
-        
-        // Apre il nuovo modale delle automazioni
-        document.getElementById('modal-overlay').classList.add('active'); 
-        document.getElementById('automations-quick-modal').classList.add('active'); 
-        document.getElementById('app-wrapper').classList.add('modal-active');
-        
-        loadQuickAutomations();
-    }
-
-    async function loadQuickAutomations() {
-        const list = document.getElementById('quick-automations-list');
-        list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);"><i data-lucide="loader-2" style="animation: spin 1s linear infinite;"></i></div>';
-        lucide.createIcons({root: list});
-        
-        try {
-            const res = await fetch('/api/automations');
-            const automations = await res.json();
-            list.innerHTML = '';
-            
-            if(automations.length === 0) {
-                list.innerHTML = '<div style="text-align:center; padding:20px; background:rgba(255,255,255,0.03); border-radius:16px; border: 1px solid rgba(255,255,255,0.05); color:var(--text-muted); font-weight:500;">Nessuna regola configurata.</div>';
-                return;
-            }
-
-            automations.forEach(a => {
-                const checked = a.is_active ? 'checked' : '';
-                const opacity = a.is_active ? '1' : '0.5';
-                
-                // Riciclo lo stile "active-entity-item" che è già perfetto e dark glass
-                list.innerHTML += `
-                    <div class="active-entity-item" style="opacity: ${opacity}; transition: opacity 0.3s; cursor: default;" id="quick-auto-${a.id}">
-                        <div style="flex-grow:1; display:flex; flex-direction:column; gap:4px;">
-                            <span style="font-weight:700; font-size:1rem; color:#FFF; letter-spacing: -0.3px;">${a.name}</span>
-                            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform: uppercase;">${(a.config.azioni || a.config.actions || []).length} azioni</span>
-                        </div>
-                        <label class="switch-ios" style="margin:0;">
-                            <input type="checkbox" ${checked} onchange="toggleQuickAuto(${a.id}, this.checked)">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                `;
-            });
-        } catch(e) {
-            list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--danger);">Errore di rete.</div>';
+        if (typeof window.impApri !== 'function' || typeof window.impMostra !== 'function') return;
+        const pag = document.getElementById('imp-pagina');
+        if (!pag || !pag.classList.contains('aperta')) {
+            // un modale aperto sulla home (per esempio quello di una card) si chiude prima
+            if (document.querySelector('.bottom-modal.active') && typeof closeAllModals === 'function') closeAllModals();
+            window.impMostra();
         }
+        window.impApri('automazioni');
     }
-
-    async function toggleQuickAuto(id, isActive) {
-        const item = document.getElementById(`quick-auto-${id}`);
-        // Aggiorna subito visivamente (diventa grigio/sfocato)
-        if(item) item.style.opacity = isActive ? '1' : '0.5';
-        
-        try {
-            await fetch('/api/automations', { 
-                method: 'PUT', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({id: id, is_active: isActive}) 
-            });
-        } catch(e) {
-            // Annulla la grafica in caso di errore server
-            if(item) item.style.opacity = !isActive ? '1' : '0.5'; 
-            loadQuickAutomations();
-        }
-    }
+    function loadQuickAutomations() { return window.impAutomazioni ? window.impAutomazioni.carica(true) : Promise.resolve(null); }
+    function toggleQuickAuto(id, isActive) { return window.impAutomazioni ? window.impAutomazioni.cambia(id, isActive) : Promise.resolve(false); }
 
 
  // --- LOGICA ALLARME ---
+// Rifatta il 27/09/2026 insieme alla finestra col tastierino, stessi nomi di funzione (openAlarmModal, pressNum,
+// clearPin, submitPin, showAlarmError, syncAlarmStatus) e stessi id. API del sistema di allarme nuovo:
+//   GET  /api/alarm/status ogni 1,5 s: status, mode ('totale'|'notte'), seconds_remaining e total_seconds (anello),
+//        night_available, trigger {entity_id, name}, bypassed [{entity_id, name}], siren_active, siren_configured
+//        (fra le azioni c'e' qualcosa che si puo' fermare), lockout_seconds (blocco del PIN di QUESTO account)...
+//   POST /api/alarm/toggle {pin, state, mode?, force?}: si decide sempre col `code` della risposta, mai col testo:
+//        403 'pin' (attempts_left; col quinto errore anche `seconds` del blocco), 429 'bloccato' (seconds),
+//        409 'aperti' (open: sensori aperti o attivi; col tempo per uscire solo gli immediati, porta e movimento
+//        li copre il tempo per uscire): si chiede se inserire lo stesso e si rimanda con force:true senza
+//        riscrivere il PIN. force vale solo per l'elenco appena mostrato a questo account: se intanto se n'e'
+//        aperto un altro, o sono passati piu' di 2 minuti, arriva un nuovo 409 con l'elenco aggiornato e si
+//        richiede. Gli esclusi restano esclusi solo finche' non si chiudono, poi tornano sorvegliati.
+//        400 'notte' (nessun sensore per la notte), 400 'configurazione' (nessun sensore nella configurazione),
+//        400 'modo' (modalita' che il server non conosce).
+// Stati: disarmed -> arming (tempo per uscire) -> armed -> pending (tempo per entrare) -> triggered.
 let currentAlarmPin = "";
 let currentAlarmStatus = "disarmed";
+const ALLARME_CIFRE = 4;            // la pagina /alarm/config salva solo PIN di 4 cifre (pattern [0-9]{4})
+let allarmeNoto = false;            // e' arrivata almeno una risposta del server
+let allarmeUltimo = null;           // ultima risposta di /api/alarm/status (modo, sensore, esclusi, sirena...)
+let allarmeInvio = false;           // richiesta /api/alarm/toggle in corso
+let allarmeChiede = false;          // popup "sensori aperti" aperto: il PIN giusto aspetta la risposta
+// PIN appena accettato: per mezzo secondo i pallini restano colorati. Il PIN e' gia' stato svuotato e il tasto
+// principale (o Invio) non rimanda niente: prima, un tocco in quel momento lo rimandava con lo stato opposto
+// e annullava l'operazione appena fatta (4 cifre e poi "OK" per abitudine)
+let allarmeFatto = false, allarmeFattoT = null;
+let allarmeAutoT = null, allarmeErroreT = null, allarmeTic = null, allarmeDaSvuotare = false;
+let allarmeScadenza = 0, allarmeDurata = 60, allarmeContoDi = '';   // conto alla rovescia locale fra due letture
+let allarmeBloccoFino = 0, allarmeBloccoTic = null;                  // tastierino bloccato (troppi PIN sbagliati)
+// cresce a ogni invio e a ogni risposta di /api/alarm/toggle: una lettura dello stato partita prima non vale
+// (riporterebbe per un attimo lo stato vecchio, o toglierebbe il blocco appena cominciato)
+let allarmeVersione = 0;
+// modalita' scelta per il prossimo inserimento (Fuori casa / Notte): resta in questo telefono
+let allarmeModo = (function () { try { return localStorage.getItem('wh_allarme_modo') === 'notte' ? 'notte' : 'totale'; } catch (e) { return 'totale'; } })();
+
+// testi e aspetto di ogni stato (i testi passano da i18n.js: frasi intere in lingue/en.json)
+const ALLARME_STATI = {
+    disarmed:  { icona: 'shield-check', titolo: 'Disinserito', sotto: 'La casa non è sorvegliata',
+                 guida: "Inserisci il PIN per attivare l'allarme", tasto: "Inserisci l'allarme", tastoIcona: 'lock', tipo: 'inserisci',
+                 barra: 'Disinserito', rgb: '48, 209, 88', colore: '#30D158' },
+    arming:    { icona: 'shield-ellipsis', titolo: 'Inserimento in corso', sotto: 'Hai tempo per uscire: allo zero si inserisce',
+                 guida: "Inserisci il PIN per annullare", tasto: 'Annulla attivazione', tastoIcona: 'x', tipo: 'annulla',
+                 barra: 'In inserimento', rgb: '255, 159, 10', colore: '#FF9F0A', conto: true },
+    armed:     { icona: 'shield', titolo: 'Inserito', sotto: 'La casa è sorvegliata',
+                 guida: 'Inserisci il PIN per disinserire', tasto: 'Disinserisci', tastoIcona: 'lock-open', tipo: 'disinserisci',
+                 barra: 'Inserito', rgb: '255, 55, 95', colore: '#FF375F' },
+    pending:   { icona: 'shield-alert', titolo: 'Intrusione rilevata', sotto: "Allo zero scatta l'allarme",
+                 guida: 'Inserisci il PIN per disinserire', tasto: 'Disinserisci', tastoIcona: 'lock-open', tipo: 'urgente',
+                 barra: 'Intrusione', rgb: '255, 69, 58', colore: '#FF453A', conto: true, pulsa: true },
+    triggered: { icona: 'siren', titolo: 'Allarme in corso', sotto: 'Sirene e avvisi sono attivi',
+                 guida: "Inserisci il PIN per fermare l'allarme", tasto: "Ferma l'allarme", tastoIcona: 'bell-off', tipo: 'urgente',
+                 barra: 'Allarme', rgb: '255, 69, 58', colore: '#FF453A', pulsa: true }
+};
+// varianti: modalita' Notte (scelta da disinserito, oppure inserita) e allarme scattato con la sirena ferma
+// (finito il tempo della sirena, o nessuna sirena fra le azioni): resta scattato finche' non si disinserisce.
+// siren_active e' false anche quando fra le azioni non c'e' nessuna sirena (solo Telegram, scene di Home Assistant,
+// o niente): allora "Sirena ferma" sarebbe falso fin dal primo secondo; si dice solo quando la sirena c'era
+// (triggered_sirena_ferma): vista suonare da questa pagina, o siren_configured del server
+const ALLARME_VARIANTI = {
+    disarmed_notte:  { guida: 'Inserisci il PIN per la modalità Notte', tasto: 'Inserisci per la notte', tastoIcona: 'moon' },
+    arming_notte:    { sotto: 'Modalità Notte: allo zero si inserisce' },
+    armed_notte:     { icona: 'moon-star', titolo: 'Inserito · Notte', sotto: 'Sono controllati solo i sensori della notte',
+                       barra: 'Inserito · Notte', rgb: '125, 122, 255', colore: '#7D7AFF' },
+    triggered_ferma: { icona: 'shield-alert', titolo: 'Allarme scattato', sotto: 'Resta scattato finché non lo disinserisci',
+                       guida: 'Inserisci il PIN per disinserire', tasto: 'Disinserisci', tastoIcona: 'lock-open' },
+    triggered_sirena_ferma: { sotto: 'Sirena ferma: disinserisci per ripristinare' }
+};
+// la sirena ha suonato in questo scatto (vista con siren_active true): poi "Sirena ferma" e' vero.
+// Si azzera appena lo stato non e' piu' triggered
+let allarmeSirenaVista = false;
+
+// testi composti al volo (numeri, nomi): le parti fisse si traducono qui, l'elemento ha data-no-tr
+function allarmeT(t) { return window.WH_T ? window.WH_T(t) : t; }
+function allarmeModoScelto() {
+    return (allarmeUltimo && allarmeUltimo.night_available && allarmeModo === 'notte') ? 'notte' : 'totale';
+}
+// stato attuale con le sue varianti
+function allarmeAspetto() {
+    const st = ALLARME_STATI[currentAlarmStatus] ? currentAlarmStatus : 'disarmed';
+    const s = Object.assign({}, ALLARME_STATI[st]);
+    const u = allarmeUltimo || {};
+    if (st === 'disarmed' && allarmeModoScelto() === 'notte') Object.assign(s, ALLARME_VARIANTI.disarmed_notte);
+    else if ((st === 'arming' || st === 'armed') && u.mode === 'notte') Object.assign(s, ALLARME_VARIANTI[st + '_notte']);
+    else if (st === 'triggered' && u.siren_active === false) {
+        Object.assign(s, ALLARME_VARIANTI.triggered_ferma);
+        if (allarmeSirenaVista || u.siren_configured === true) Object.assign(s, ALLARME_VARIANTI.triggered_sirena_ferma);
+    }
+    return s;
+}
+
+// vibrazione dove c'e' (Android; Safari e l'app iOS non la danno), mai prima che la pagina sia stata toccata
+function allarmeVibra(schema) {
+    try {
+        if (!navigator.vibrate || (navigator.userActivation && !navigator.userActivation.hasBeenActive)) return;
+        navigator.vibrate(schema);
+    } catch (e) {}
+}
+// testo scritto solo se cambia (i18n.js lo traduce una volta sola, non a ogni lettura)
+function allarmeScrivi(el, t) {
+    if (!el || el.dataset.it === t) return;
+    el.dataset.it = t;
+    el.textContent = t;
+}
+// icona Lucide rifatta solo se cambia
+function allarmeIcona(el, nome) {
+    if (!el || el.dataset.icona === nome) return;
+    el.dataset.icona = nome;
+    el.innerHTML = '<i data-lucide="' + nome + '"></i>';
+    if (typeof lucide !== 'undefined') lucide.createIcons({ root: el });
+}
+function allarmeAperto() {
+    const m = document.getElementById('alarm-modal');
+    return !!(m && m.classList.contains('active'));
+}
+function allarmeBloccato() { return allarmeBloccoFino > Date.now(); }
 
 function openAlarmModal() {
-    document.getElementById('modal-overlay').classList.add('active'); 
-    document.getElementById('alarm-modal').classList.add('active'); 
+    const velo = document.getElementById('modal-overlay');
+    velo.classList.add('active');
+    // dalle Impostazioni (o con un'intrusione mentre sono aperte): la finestra sta sopra e,
+    // chiusa, si torna li' (vedi closeAllModals nelle Impostazioni)
+    const imp = document.getElementById('imp-pagina');
+    if (imp && imp.classList.contains('aperta')) velo.classList.add('sopra-impostazioni');
+    document.getElementById('alarm-modal').classList.add('active');
     document.getElementById('app-wrapper').classList.add('modal-active');
-    clearPin(); // Resetta il PIN ogni volta che si apre
+    if (!allarmeChiede) clearPin(); // Resetta il PIN ogni volta che si apre
+    allarmeDisegna();
+    allarmeConto();
+    if (allarmeBloccato()) allarmeBloccoPasso();
 }
 
 function updatePinDisplay() {
@@ -8459,51 +9052,396 @@ function updatePinDisplay() {
         if (index < currentAlarmPin.length) dot.classList.add('active');
         else dot.classList.remove('active');
     });
+    const canc = document.getElementById('all-canc');
+    if (canc) canc.disabled = currentAlarmPin.length === 0 || allarmeInvio || allarmeFatto || allarmeChiede || allarmeBloccato();
+}
+
+// si riparte da un tastierino vuoto senza aspettare la fine della scossa (PIN sbagliato) o dei pallini
+// colorati (PIN accettato): chi riscrive subito il PIN non perde la prima cifra
+function allarmeRicomincia() {
+    clearTimeout(allarmeErroreT); clearTimeout(allarmeFattoT);
+    allarmeDaSvuotare = false; allarmeFatto = false;
+    currentAlarmPin = "";
+    const p = document.getElementById('all-pallini');
+    if (p) p.classList.remove('errore', 'giusto');
 }
 
 function pressNum(num) {
-    if (currentAlarmPin.length < 4) { currentAlarmPin += num; updatePinDisplay(); }
+    num = String(num);
+    if (allarmeInvio || allarmeChiede || !/^[0-9]$/.test(num)) return;
+    if (allarmeBloccato()) { allarmeVibra([30, 40, 30]); return; }      // tastierino bloccato: resta il conto alla rovescia
+    if (allarmeDaSvuotare || allarmeFatto) allarmeRicomincia();
+    if (currentAlarmPin.length >= ALLARME_CIFRE) return;
+    currentAlarmPin += num;
+    showAlarmError('');
+    updatePinDisplay();
+    allarmeVibra(8);
+    // quarta cifra: si manda da solo, come il tastierino di un antifurto (quel tanto che basta a vedere il pallino)
+    if (currentAlarmPin.length === ALLARME_CIFRE) {
+        clearTimeout(allarmeAutoT);
+        allarmeAutoT = setTimeout(() => { if (currentAlarmPin.length === ALLARME_CIFRE) submitPin(); }, 170);
+    }
+}
+
+// cancella solo l'ultima cifra (il tasto a destra dello 0, o Backspace)
+function allarmeCancellaUltima() {
+    if (allarmeInvio || allarmeFatto || allarmeChiede) return;
+    if (allarmeDaSvuotare) { allarmeRicomincia(); updatePinDisplay(); return; }   // PIN sbagliato: via tutto subito
+    if (!currentAlarmPin) return;
+    clearTimeout(allarmeAutoT);
+    currentAlarmPin = currentAlarmPin.slice(0, -1);
+    updatePinDisplay();
+    allarmeVibra(8);
 }
 
 function clearPin() {
+    clearTimeout(allarmeAutoT); clearTimeout(allarmeErroreT); clearTimeout(allarmeFattoT);
+    allarmeDaSvuotare = false; allarmeFatto = false;
     currentAlarmPin = ""; updatePinDisplay();
-    document.getElementById('errorBox').style.display = 'none';
+    const p = document.getElementById('all-pallini');
+    if (p) p.classList.remove('errore', 'giusto', 'attesa');
+    showAlarmError('');
+}
+
+// Fuori casa / Notte (si sceglie prima del PIN: alla quarta cifra il PIN parte da solo)
+function allarmeScegliModo(modo) {
+    if (allarmeInvio || allarmeChiede || (modo !== 'totale' && modo !== 'notte')) return;
+    allarmeModo = modo;
+    try { localStorage.setItem('wh_allarme_modo', modo); } catch (e) {}
+    allarmeVibra(8);
+    allarmeDisegna();
 }
 
 function submitPin() {
-    if (currentAlarmPin.length < 4) { showAlarmError("Codice PIN incompleto."); return; }
-    const targetState = (currentAlarmStatus === "disarmed") ? "armed" : "disarmed";
+    // gia' in viaggio, appena accettato (il PIN non c'e' piu') o sbagliato e in via di svuotamento: niente doppio invio
+    if (allarmeInvio || allarmeFatto || allarmeDaSvuotare || allarmeChiede) return;
+    clearTimeout(allarmeAutoT);
+    if (allarmeBloccato()) { allarmeVibra([30, 40, 30]); return; }
+    if (currentAlarmPin.length < ALLARME_CIFRE) { allarmeSbagliato('Inserisci tutte e 4 le cifre del PIN.', false); return; }
+    const corpo = { pin: currentAlarmPin, state: (currentAlarmStatus === "disarmed") ? "armed" : "disarmed" };
+    if (corpo.state === 'armed') corpo.mode = allarmeModoScelto();
+    allarmeManda(corpo, null);
+}
 
+// manda la richiesta e decide dal `code` della risposta. esclusi: nomi dei sensori aperti gia' accettati (force)
+function allarmeManda(corpo, esclusi) {
+    const pallini = document.getElementById('all-pallini');
+    allarmeVersione++;
+    allarmeOccupato(true);
     fetch('/api/alarm/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: currentAlarmPin, state: targetState })
+        cache: 'no-store',
+        body: JSON.stringify(corpo)
     })
-    .then(res => {
-        if (!res.ok) return res.json().then(err => { throw new Error(err.message || "Codice Errato") });
-        return res.json();
+    .then(res => res.json().catch(() => null).then(d => ({ res, d })))
+    .then(({ res, d }) => {
+        allarmeVersione++;
+        allarmeOccupato(false);
+        const codice = (d && d.status === 'error') ? String(d.code || '') : '';
+        // tastierino bloccato (da questo telefono o da un altro): il PIN non e' stato nemmeno controllato
+        if (res.status === 429 || codice === 'bloccato') {
+            allarmeRicomincia(); updatePinDisplay();
+            allarmeVibra([70, 50, 70]);
+            allarmeBlocca(d && d.seconds);
+            return;
+        }
+        if (res.status === 403 && d && d.status === 'error') {
+            const secondi = Number(d.seconds) || 0;
+            if (secondi > 0) {                       // quinto errore di fila: scossa e poi tastierino bloccato
+                allarmeSbagliato('', true);
+                allarmeBlocca(secondi);
+                return;
+            }
+            allarmeSbagliato(allarmeFrasePin(d.attempts_left), true);
+            return;
+        }
+        if (res.status === 409 && codice === 'aperti') {
+            if (!allarmeAperto()) { clearPin(); return; }       // finestra chiusa nel frattempo: niente domanda
+            allarmeChiediAperti(corpo, (d && d.open) || []);
+            return;
+        }
+        if (codice === 'notte') {                    // i sensori della notte sono stati tolti nel frattempo
+            allarmeSbagliato('Nessun sensore scelto per la modalità Notte.', true);
+            syncAlarmStatus();
+            return;
+        }
+        if (codice === 'configurazione') {           // tolti tutti i sensori dalla configurazione: non si inserisce
+            allarmeSbagliato("L'allarme non ha sensori: non si può inserire.", true);
+            syncAlarmStatus();                       // il tasto in alto e la voce laterale spariscono
+            return;
+        }
+        if (codice === 'modo') {                     // modalita' che il server non conosce: si torna a Fuori casa
+            allarmeModo = 'totale';
+            try { localStorage.setItem('wh_allarme_modo', 'totale'); } catch (e) {}
+            allarmeSbagliato('Modalità non valida.', true);
+            allarmeDisegna();
+            return;
+        }
+        if (!res.ok || !d || d.status !== 'success') {
+            // sessione scaduta (pagina di accesso al posto del JSON) o errore del server: il PIN resta, si puo' riprovare
+            showAlarmError(res.redirected || res.status === 401 ? 'Sessione scaduta: ricarica la pagina e rientra.' : 'Il server non ha risposto come doveva: riprova.');
+            allarmeVibra([40, 60, 40]);
+            return;
+        }
+        // fatto: il PIN si toglie subito (niente secondo invio), i pallini restano un attimo del colore
+        // del nuovo stato (.pin-display.giusto li colora tutti), poi il tastierino si svuota
+        allarmeFatto = true;
+        currentAlarmPin = "";
+        currentAlarmStatus = d.current_state || (corpo.state === 'armed' ? 'arming' : 'disarmed');
+        // si disegna subito il nuovo stato, senza aspettare la prossima lettura
+        const u = allarmeUltimo = Object.assign({}, allarmeUltimo || {});
+        u.status = currentAlarmStatus;
+        if (currentAlarmStatus === 'disarmed') { u.mode = null; u.trigger = null; u.bypassed = []; u.siren_active = false; allarmeSirenaVista = false; }
+        else {
+            if (d.mode) u.mode = d.mode;
+            if (esclusi && esclusi.length && corpo.state === 'armed') u.bypassed = esclusi;
+        }
+        if (currentAlarmStatus === 'arming') {
+            const uscita = Number(u.exit_delay) > 0 ? Number(u.exit_delay) : 60;
+            allarmeContoDi = 'arming'; allarmeDurata = uscita; allarmeScadenza = Date.now() + uscita * 1000;
+        }
+        allarmeDisegna();
+        allarmeConto();
+        if (pallini) pallini.classList.add('giusto');
+        updatePinDisplay();
+        allarmeVibra(30);
+        clearTimeout(allarmeFattoT);
+        allarmeFattoT = setTimeout(() => { clearPin(); syncAlarmStatus(); }, 480);
     })
-    .then(() => { clearPin(); syncAlarmStatus(); })
-    .catch(err => { showAlarmError(err.message); clearPin(); });
+    .catch(() => {
+        allarmeVersione++;
+        allarmeOccupato(false);
+        showAlarmError('Il server non risponde: controlla la connessione e riprova.');
+        allarmeVibra([40, 60, 40]);
+    });
 }
 
-function showAlarmError(msg) {
-    const errBox = document.getElementById('errorBox');
-    errBox.innerText = msg; errBox.style.display = 'block';
+// PIN sbagliato: quanti tentativi restano prima del blocco (al quinto errore di fila il tastierino si ferma).
+// Frasi intere scritte qui: il server manda alla pagina solo le traduzioni delle frasi che trova nel file
+const ALLARME_TENTATIVI = { 4: 'PIN errato. Ancora 4 tentativi', 3: 'PIN errato. Ancora 3 tentativi',
+                            2: 'PIN errato. Ancora 2 tentativi', 1: 'PIN errato. Ultimo tentativo' };
+function allarmeFrasePin(rimasti) {
+    const n = Number(rimasti);
+    if (rimasti === undefined || rimasti === null || !isFinite(n)) return 'PIN errato. Riprova.';
+    return ALLARME_TENTATIVI[Math.max(1, Math.round(n))] || 'PIN errato. Riprova.';
+}
+
+// 409: sensori della modalita' scelta gia' aperti o attivi (col tempo per uscire solo gli immediati). Si chiede
+// se inserire lo stesso (restano esclusi finche' non si chiudono, poi tornano sorvegliati) e si rimanda con
+// force:true lo stesso PIN, senza farlo riscrivere. force vale solo per l'elenco mostrato qui: se il server
+// risponde con un altro 409 (elenco cambiato, o risposta arrivata dopo piu' di 2 minuti) si richiede con quello nuovo
+function allarmeChiediAperti(corpo, aperti) {
+    const nomi = (Array.isArray(aperti) ? aperti : []).map(x => x && (x.name || x.entity_id)).filter(Boolean).map(String);
+    const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const uno = nomi.length === 1;
+    const pallini = document.getElementById('all-pallini');
+    allarmeChiede = true;
+    clearTimeout(allarmeAutoT);
+    if (pallini) pallini.classList.add('attesa');
+    updatePinDisplay();
+    allarmeVibra([40, 60, 40]);
+    const msg = '<span class="all-aperti-testo">' + (uno ? 'Questo sensore è aperto o attivo:' : 'Questi sensori sono aperti o attivi:') + '</span>'
+        + '<ul class="all-aperti">' + nomi.map(n => '<li data-no-tr>' + esc(n) + '</li>').join('') + '</ul>'
+        + '<span class="all-aperti-testo">' + (uno ? 'Inserire comunque? Resterà escluso finché non si chiude.'
+                                                   : 'Inserire comunque? Resteranno esclusi finché non si chiudono.') + '</span>';
+    askAppConfirm({ title: uno ? 'Sensore aperto' : 'Sensori aperti', message: msg, confirmText: 'Inserisci comunque', icon: 'door-open' })
+    .then(si => {
+        allarmeChiede = false;
+        if (pallini) pallini.classList.remove('attesa');
+        // no, finestra chiusa nel frattempo o gia' inserito da qualcun altro: il PIN si butta
+        if (!si || !allarmeAperto() || currentAlarmStatus !== 'disarmed') { clearPin(); allarmeDisegna(); return; }
+        allarmeManda(Object.assign({}, corpo, { force: true }), (Array.isArray(aperti) ? aperti : []).filter(x => x && (x.name || x.entity_id)));
+    });
+}
+
+// PIN sbagliato o incompleto: i pallini tremano, il messaggio resta finche' non si scrive di nuovo
+function allarmeSbagliato(msg, svuota) {
+    const p = document.getElementById('all-pallini');
+    showAlarmError(msg);
+    allarmeVibra([70, 50, 70]);
+    if (!p) { if (svuota) clearPin(); return; }
+    p.classList.remove('errore'); void p.offsetWidth; p.classList.add('errore');
+    clearTimeout(allarmeErroreT);
+    allarmeDaSvuotare = !!svuota;
+    allarmeErroreT = setTimeout(() => {
+        p.classList.remove('errore');
+        if (svuota) { currentAlarmPin = ""; updatePinDisplay(); }
+        allarmeDaSvuotare = false;
+    }, 520);
+}
+
+// tasto principale e tastierino fermi mentre si aspetta il server
+function allarmeOccupato(si) {
+    allarmeInvio = si;
+    const b = document.getElementById('armBtn'), p = document.getElementById('all-pallini'), k = document.getElementById('all-tastierino');
+    const modo = document.getElementById('all-modo');
+    if (b) { b.classList.toggle('occupato', si); b.setAttribute('aria-busy', si ? 'true' : 'false'); }
+    if (p) p.classList.toggle('attesa', si);
+    if (k) k.classList.toggle('fermo', si);
+    if (modo) modo.classList.toggle('fermo', si);
+    if (si) allarmeIcona(document.getElementById('all-azione-ico'), 'loader-circle');
+    allarmeScrivi(document.getElementById('all-azione-testo'), si ? 'Un momento…' : allarmeAspetto().tasto);
+    if (!si) allarmeDisegna();
+    updatePinDisplay();
+}
+
+// riga dei messaggi sotto i pallini. tipo 'blocco': conto alla rovescia del tastierino bloccato (testo gia' tradotto);
+// mentre il tastierino e' bloccato gli altri messaggi non lo coprono
+function showAlarmError(msg, tipo) {
+    const box = document.getElementById('errorBox');
+    if (!box) return;
+    const blocco = tipo === 'blocco';
+    if (!blocco && allarmeBloccato()) return;
+    allarmeScrivi(document.getElementById('all-errore'), msg ? (blocco ? msg : allarmeT(msg)) : '');
+    box.classList.toggle('on', !!msg);
+    box.classList.toggle('blocco', blocco && !!msg);
+    allarmeIcona(document.getElementById('all-errore-ico'), blocco ? 'timer' : 'circle-alert');
+}
+
+// tastierino bloccato per `secondi` (risposta 429, quinto PIN sbagliato o lockout_seconds dello stato: il blocco
+// vale per questo account, su tutti i suoi telefoni). Il conto alla rovescia scorre qui; alla fine il tastierino torna com'era
+function allarmeBlocca(secondi) {
+    const s = Math.ceil(Number(secondi) || 0);
+    if (s <= 0) { allarmeSblocca(); return; }
+    const fine = Date.now() + s * 1000;
+    // una lettura dello stato sposta la fine solo se non torna col conto locale (niente salti di un secondo)
+    if (!allarmeBloccato() || Math.abs(fine - allarmeBloccoFino) > 1500) allarmeBloccoFino = fine;
+    clearTimeout(allarmeAutoT);
+    if (currentAlarmPin && !allarmeDaSvuotare) { currentAlarmPin = ""; updatePinDisplay(); }
+    allarmeBloccoPasso();
+    if (!allarmeBloccoTic) allarmeBloccoTic = setInterval(allarmeBloccoPasso, 250);
+}
+function allarmeBloccoPasso() {
+    const resto = allarmeBloccoFino - Date.now();
+    if (resto <= 0) { allarmeSblocca(); return; }
+    const k = document.getElementById('all-tastierino'), b = document.getElementById('armBtn'), box = document.getElementById('errorBox');
+    if (k && !k.classList.contains('bloccato')) {
+        k.classList.add('bloccato'); k.setAttribute('aria-disabled', 'true');
+        if (b) { b.classList.add('bloccato'); b.setAttribute('aria-disabled', 'true'); }
+        if (box) box.removeAttribute('aria-live');          // il primo messaggio si annuncia...
+        allarmeDisegna();
+    } else if (box) box.setAttribute('aria-live', 'off');   // ...i secondi che scorrono no
+    const sec = Math.ceil(resto / 1000);
+    const quanto = Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');   // sempre m:ss, come la pagina di configurazione
+    showAlarmError(allarmeT('Troppi tentativi: riprova tra') + ' ' + quanto, 'blocco');
+    updatePinDisplay();
+}
+function allarmeSblocca() {
+    if (allarmeBloccoTic) { clearInterval(allarmeBloccoTic); allarmeBloccoTic = null; }
+    allarmeBloccoFino = 0;
+    const k = document.getElementById('all-tastierino'), b = document.getElementById('armBtn'), box = document.getElementById('errorBox');
+    const era = !!(k && k.classList.contains('bloccato'));
+    if (k) { k.classList.remove('bloccato'); k.removeAttribute('aria-disabled'); }
+    if (b) { b.classList.remove('bloccato'); b.removeAttribute('aria-disabled'); }
+    if (box) box.removeAttribute('aria-live');
+    if (box && box.classList.contains('blocco')) showAlarmError('');
+    if (era) allarmeDisegna();
+    updatePinDisplay();
+}
+
+// la finestra secondo lo stato attuale (colore, icona, testi, sensore/esclusi, scelta della modalita', tasto principale)
+function allarmeDisegna() {
+    const m = document.getElementById('alarm-modal');
+    if (!m) return;
+    const s = allarmeAspetto();
+    const u = allarmeUltimo || {};
+    const stato = allarmeNoto ? (ALLARME_STATI[currentAlarmStatus] ? currentAlarmStatus : 'disarmed') : 'sconosciuto';
+    if (m.dataset.stato !== stato) m.dataset.stato = stato;
+    const notte = allarmeNoto && (stato === 'arming' || stato === 'armed') && u.mode === 'notte' ? 'notte' : '';
+    if ((m.dataset.modo || '') !== notte) m.dataset.modo = notte;
+    const ferma = stato === 'triggered' && u.siren_active === false ? 'ferma' : '';
+    if ((m.dataset.sirena || '') !== ferma) m.dataset.sirena = ferma;
+    // riga sotto lo stato che dice qualcosa di suo (Notte in inserimento, sirena ferma): sui telefoni piccolissimi
+    // resta anche quando le altre righe sotto lo stato si nascondono
+    const utile = !!(notte && stato === 'arming') || !!ferma;
+    if (m.classList.contains('sotto-utile') !== utile) m.classList.toggle('sotto-utile', utile);
+    allarmeIcona(document.getElementById('all-icona'), allarmeNoto ? s.icona : 'shield');
+    allarmeScrivi(document.getElementById('all-stato-titolo'), allarmeNoto ? s.titolo : 'Controllo lo stato…');
+    allarmeScrivi(document.getElementById('all-stato-sotto'), allarmeNoto ? s.sotto : '');
+    allarmeScrivi(document.getElementById('all-guida'), !allarmeNoto ? 'Inserisci il PIN' : (allarmeBloccato() ? 'Tastierino bloccato' : s.guida));
+
+    // sensore che ha fatto scattare (intrusione, allarme) oppure sensori esclusi (in inserimento, inserito)
+    let info = null;
+    if (allarmeNoto && (stato === 'pending' || stato === 'triggered') && u.trigger && (u.trigger.name || u.trigger.entity_id)) {
+        info = { tipo: 'sensore', icona: 'radar', et: '', nomi: String(u.trigger.name || u.trigger.entity_id), titolo: "Sensore che ha fatto scattare l'allarme" };
+    } else if (allarmeNoto && (stato === 'arming' || stato === 'armed') && Array.isArray(u.bypassed) && u.bypassed.length) {
+        info = { tipo: 'esclusi', icona: 'eye-off', et: 'Esclusi:', titolo: 'Sensori esclusi finché non si chiudono',
+                 nomi: u.bypassed.map(x => String((x && (x.name || x.entity_id)) || '')).filter(Boolean).join(', ') };
+    }
+    const riga = document.getElementById('all-info');
+    if (riga) {
+        riga.classList.toggle('on', !!info);
+        if (info) {
+            if (riga.dataset.tipo !== info.tipo) riga.dataset.tipo = info.tipo;
+            if (riga.dataset.titolo !== info.titolo) { riga.dataset.titolo = info.titolo; riga.title = info.titolo; }
+            allarmeIcona(document.getElementById('all-info-ico'), info.icona);
+            allarmeScrivi(document.getElementById('all-info-et'), info.et);
+            allarmeScrivi(document.getElementById('all-info-nomi'), info.nomi);
+        }
+    }
+
+    // Fuori casa / Notte: solo da disinserito e se ci sono sensori scelti per la notte
+    const scelta = document.getElementById('all-modo');
+    if (scelta) {
+        const vedi = allarmeNoto && stato === 'disarmed' && !!u.night_available;
+        if (scelta.hidden === vedi) scelta.hidden = !vedi;
+        if (m.classList.contains('con-modo') !== vedi) m.classList.toggle('con-modo', vedi);   // telefoni bassi: via la riga sotto lo stato
+        // una riga in piu' (scelta della modalita', sensore o esclusi): sui telefoni piccolissimi si stringe il resto
+        const riga2 = vedi || !!info;
+        if (m.classList.contains('con-riga') !== riga2) m.classList.toggle('con-riga', riga2);
+        const modo = allarmeModoScelto();
+        if (scelta.dataset.modo !== modo) {
+            scelta.dataset.modo = modo;
+            scelta.querySelectorAll('button[data-modo]').forEach(x => x.setAttribute('aria-checked', x.dataset.modo === modo ? 'true' : 'false'));
+        }
+    }
+
+    const b = document.getElementById('armBtn');
+    if (b && !allarmeInvio) {
+        if (b.dataset.tipo !== s.tipo) b.dataset.tipo = s.tipo;
+        allarmeIcona(document.getElementById('all-azione-ico'), s.tastoIcona);
+        allarmeScrivi(document.getElementById('all-azione-testo'), s.tasto);
+    }
+}
+
+// conto alla rovescia: l'anello e i secondi scorrono in locale fra una lettura e l'altra
+function allarmeConto() {
+    const s = ALLARME_STATI[currentAlarmStatus];
+    const serve = allarmeAperto() && allarmeNoto && s && s.conto;
+    if (!serve) { if (allarmeTic) { clearInterval(allarmeTic); allarmeTic = null; } return; }
+    const passo = () => {
+        const s2 = ALLARME_STATI[currentAlarmStatus];
+        if (!allarmeAperto() || !s2 || !s2.conto) { clearInterval(allarmeTic); allarmeTic = null; return; }
+        const resto = Math.max(0, allarmeScadenza - Date.now());
+        const sec = Math.ceil(resto / 1000);
+        const t = document.getElementById('timerDisplay');
+        if (t && t.textContent !== String(sec)) t.textContent = String(sec);
+        const anello = document.getElementById('all-anello');
+        if (anello) anello.style.strokeDashoffset = String(289.03 * (1 - Math.min(1, resto / (Math.max(1, allarmeDurata) * 1000))));
+    };
+    passo();
+    if (!allarmeTic) allarmeTic = setInterval(passo, 200);
 }
 
 function syncAlarmStatus() {
-    fetch('/api/alarm/status')
+    const versione = allarmeVersione;
+    return fetch('/api/alarm/status', { cache: 'no-store' })
     .then(res => res.json())
     .then(data => {
+        if (versione !== allarmeVersione || allarmeInvio) return;     // partita prima dell'ultimo invio: vale la prossima
         const mobBtn = document.getElementById('mobile-alarm-btn');
+        // Impostazioni > Gestione > Allarme (solo amministratore): a destra sugli schermi larghi, sotto il nome sul telefono
+        ['imp-val-allarme', 'imp-ora-allarme'].forEach(id => { const e = document.getElementById(id); if (e) e.textContent = data.is_configured ? '' : allarmeT('Non configurato'); });
         const sideBtn = document.getElementById('alarm-nav-item');
 
-        // 1. SE NON È CONFIGURATO: Nascondi tutto ed esci
-        if (!data.is_configured) {
+        // 1. SE NON È CONFIGURATO (e disinserito): Nascondi tutto ed esci. Inserito, in allarme o col conto alla
+        //    rovescia resta tutto, anche senza sensori (tolti dalla configurazione "Salva lo stesso"): altrimenti
+        //    nessun telefono potrebbe piu' disinserire o fermare la sirena
+        if (!data.is_configured && (data.status || 'disarmed') === 'disarmed') {
             if (mobBtn) mobBtn.style.display = 'none';
             if (sideBtn) sideBtn.style.display = 'none';
-            return; 
+            return;
         }
 
         // 2. SE È CONFIGURATO: Mostra i pulsanti dinamicamente
@@ -8511,105 +9449,102 @@ function syncAlarmStatus() {
         if (sideBtn) sideBtn.style.display = 'flex';
 
         // Salviamo lo stato precedente prima di aggiornarlo
-        const previousStatus = currentAlarmStatus; 
+        const previousStatus = currentAlarmStatus;
         currentAlarmStatus = data.status;
+        allarmeUltimo = data;
+        allarmeNoto = true;
+        if (currentAlarmStatus !== 'triggered') allarmeSirenaVista = false;
+        else if (data.siren_active === true) allarmeSirenaVista = true;
+        const conto = (ALLARME_STATI[currentAlarmStatus] || ALLARME_STATI.disarmed).conto;
 
-        // --- INIZIO NUOVA LOGICA: AUTO-APERTURA MODALE ---
-        // Se scatta il conto alla rovescia (pending) o l'allarme suona (triggered)...
+        // conto alla rovescia: la scadenza si rilegge a ogni risposta; il totale e' total_seconds (tempo per uscire
+        // o per entrare scelto nella configurazione). Senza (server di prima) quello visto all'inizio, almeno 60 s
+        if (conto) {
+            const resto = Math.max(0, Number(data.seconds_remaining) || 0);
+            const totale = Number(data.total_seconds) || 0;
+            allarmeScadenza = Date.now() + resto * 1000;
+            if (totale > 0) allarmeDurata = Math.max(totale, resto);
+            else if (allarmeContoDi !== currentAlarmStatus) allarmeDurata = Math.max(60, resto);
+            else allarmeDurata = Math.max(allarmeDurata, resto);
+            allarmeContoDi = currentAlarmStatus;
+        } else {
+            allarmeContoDi = '';
+        }
+
+        // tastierino bloccato per questo account (anche da un altro telefono dello stesso account, o dalla
+        // pagina di configurazione se e' l'amministratore): gli altri account non sono bloccati
+        if (typeof data.lockout_seconds === 'number') {
+            if (data.lockout_seconds > 0) allarmeBlocca(data.lockout_seconds);
+            else if (allarmeBloccato()) allarmeSblocca();
+        }
+
+        // --- AUTO-APERTURA: conto alla rovescia dell'intrusione (pending) o allarme che suona (triggered) ---
         if ((currentAlarmStatus === "pending" || currentAlarmStatus === "triggered") && previousStatus !== currentAlarmStatus) {
-            const alarmModal = document.getElementById('alarm-modal');
-            // ...apri il tastierino da solo (solo se non è già aperto)
-            if (alarmModal && !alarmModal.classList.contains('active')) {
-                openAlarmModal();
-            }
-        }
-        // --- FINE NUOVA LOGICA ---
-
-        const card = document.getElementById('statusCardAlarm');
-        const countdownBox = document.getElementById('countdownBox');
-        const armBtn = document.getElementById('armBtn');
-        const sidebarStatus = document.getElementById('sidebar-alarm-status');
-        const sidebarIcon = document.getElementById('sidebar-alarm-icon');
-        
-        let color = "rgba(255,255,255,0.1)"; 
-        let textColor = "#ffffff";
-        let iconName = "shield-check";
-        let statusText = "Disarmato";
-
-        if (card) card.className = "status-card-alarm"; 
-        
-        // ... (lascia intatto il resto degli if per i colori e testi)
-        
-// TRATTO DALLA TUA FUNZIONE syncAlarmStatus() - MODIFICA SOLO I TESTI IN MAIUSCOLO:
-
-if (data.status === "disarmed") {
-            if(card) { card.innerText = "🔓 Sistema Disarmato"; card.classList.add('state-disarmed'); }
-            if(countdownBox) countdownBox.style.display = 'none';
-            if(armBtn) armBtn.innerText = "ATTIVA"; 
-            iconName = "shield-check"; color = "rgba(48, 209, 88, 0.15)"; textColor = "#30D158"; statusText = "Disarmato";
-            
-        } else if (data.status === "arming") {
-            if(card) { card.innerText = "⏳ Attivazione in corso..."; card.classList.add('state-pending'); }
-            // Mostra il contatore e cambia il testo
-            if(countdownBox) { 
-                countdownBox.style.display = 'block'; 
-                document.getElementById('timerDisplay').innerText = data.seconds_remaining;
-                const label = countdownBox.querySelector('div');
-                if(label) label.innerText = "Il sistema si attiverà tra:";
-            }
-            // Mettiamo ANNULLA perché se premiamo, disarmando fermiamo l'attivazione
-            if(armBtn) armBtn.innerText = "ANNULLA"; 
-            iconName = "shield-alert"; color = "rgba(255, 159, 10, 0.15)"; textColor = "#FF9F0A"; statusText = "In Attivazione";
-            
-        } else if (data.status === "armed") {
-            if(card) { card.innerText = "🔒 Sistema Inserito"; card.classList.add('state-armed'); }
-            if(countdownBox) countdownBox.style.display = 'none'; 
-            if(armBtn) armBtn.innerText = "SBLOCCA";
-            iconName = "shield"; color = "rgba(10, 132, 255, 0.15)"; textColor = "#0A84FF"; statusText = "Inserito";
-            
-        } else if (data.status === "pending") {
-            if(card) { card.innerText = "⚠️ Violazione Rilevata"; card.classList.add('state-pending'); }
-            // Mostra il contatore di emergenza e cambia il testo
-            if(countdownBox) { 
-                countdownBox.style.display = 'block'; 
-                document.getElementById('timerDisplay').innerText = data.seconds_remaining; 
-                const label = countdownBox.querySelector('div');
-                if(label) label.innerText = "Inserire PIN per disattivare:";
-            }
-            if(armBtn) armBtn.innerText = "STOP"; 
-            iconName = "shield-alert"; color = "rgba(255, 159, 10, 0.3)"; textColor = "#FF9F0A"; statusText = "Violazione";
-            
-        } else if (data.status === "triggered") {
-            if(card) { card.innerText = "🚨 ALLARME ATTIVO 🚨"; card.classList.add('state-triggered'); }
-            if(countdownBox) countdownBox.style.display = 'none'; 
-            if(armBtn) armBtn.innerText = "STOP";
-            iconName = "bell-ring"; color = "rgba(255, 69, 58, 0.3)"; textColor = "#FF453A"; statusText = "ALLARME";
+            if (!allarmeAperto()) openAlarmModal();
+            allarmeVibra([200, 100, 200]);
         }
 
-        // Sincronizza lo stile del bottone mobile
+        allarmeDisegna();
+        allarmeConto();
+
+        // tasto in alto a destra (telefono) e voce della barra laterale (tablet e computer): stesso aspetto della
+        // finestra (Notte: luna indaco)
+        const s = allarmeAspetto();
+        const color = 'rgba(' + s.rgb + ', ' + (s.pulsa ? 0.3 : 0.16) + ')';
         if (mobBtn) {
             mobBtn.style.background = color;
-            mobBtn.style.color = textColor;
-            mobBtn.style.borderColor = color;
-            mobBtn.innerHTML = `<i data-lucide="${iconName}"></i>`;
-            lucide.createIcons({ root: mobBtn });
+            mobBtn.style.color = s.colore;
+            mobBtn.style.borderColor = 'rgba(' + s.rgb + ', 0.38)';
+            mobBtn.classList.toggle('all-pulsa', !!s.pulsa);
+            if (mobBtn.dataset.icona !== s.icona) {
+                mobBtn.dataset.icona = s.icona;
+                mobBtn.innerHTML = `<i data-lucide="${s.icona}"></i>`;
+                lucide.createIcons({ root: mobBtn });
+            }
+            // scattato: la barra dice solo "Allarme" ("Allarme: Allarme"): si legge il titolo ("Allarme in corso")
+            const et = s.barra === 'Allarme' ? allarmeT(s.titolo) : allarmeT('Allarme') + ': ' + allarmeT(s.barra);
+            if (mobBtn.getAttribute('aria-label') !== et) { mobBtn.setAttribute('aria-label', et); mobBtn.title = et; }
         }
-        
-        // Sincronizza testi e icone della sidebar desktop
+        const sidebarStatus = document.getElementById('sidebar-alarm-status');
+        const sidebarIcon = document.getElementById('sidebar-alarm-icon');
         if (sidebarStatus) {
-            sidebarStatus.innerText = statusText;
-            sidebarStatus.style.color = textColor;
+            allarmeScrivi(sidebarStatus, s.barra);
+            sidebarStatus.style.color = s.colore;
         }
-        if (sidebarIcon && sidebarIcon.getAttribute('data-lucide') !== iconName) {
-            sidebarIcon.setAttribute('data-lucide', iconName);
+        if (sideBtn) sideBtn.classList.toggle('all-pulsa', !!s.pulsa);
+        if (sidebarIcon && sidebarIcon.getAttribute('data-lucide') !== s.icona) {
+            sidebarIcon.setAttribute('data-lucide', s.icona);
             lucide.createIcons({ root: sideBtn });
         }
     }).catch(err => console.log("Errore sync allarme:", err));
 }
 
+// tastiera fisica (iPad con tastiera, computer): cifre, Backspace, Invio; Esc chiude
+document.addEventListener('keydown', function (e) {
+    if (!allarmeAperto() || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (document.getElementById('upd-conf-no')) return;                   // c'e' un popup di conferma sopra
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    const segna = chi => {
+        const k = document.querySelector('#all-tastierino [data-cifra="' + chi + '"]');
+        if (!k) return;
+        k.classList.add('premuto');
+        setTimeout(() => k.classList.remove('premuto'), 130);
+    };
+    if (/^[0-9]$/.test(e.key)) { e.preventDefault(); if (!e.repeat) { segna(e.key); pressNum(e.key); } }
+    else if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); segna('canc'); allarmeCancellaUltima(); }
+    else if (e.key === 'Enter') {
+        // Invio su un collegamento o sulla scelta Fuori casa / Notte: fa il suo lavoro
+        if (t && t.closest && t.closest('a[href], .close-modal-btn, .all-modo button')) return;
+        e.preventDefault();
+        if (!e.repeat) submitPin();
+    }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); closeAllModals(); }   // solo la finestra: le Impostazioni sotto restano
+});
+
 // Avvio della sincronizzazione separata e protetta
 setInterval(syncAlarmStatus, 1500);
-window.addEventListener('load', syncAlarmStatus);   
+window.addEventListener('load', syncAlarmStatus);
 
 
 
@@ -8986,7 +9921,10 @@ function triggerIOSDisconnect() {
 
 function initSwipeAndExplode() {
     document.querySelectorAll('.bottom-modal').forEach(modal => {
-        const dragAreas = [modal.querySelector('.modal-header'), modal.querySelector('.modal-handle')];
+        // anche le zone con data-trascina (lo stato in cima alla finestra allarme): sui telefoni piccoli
+        // l'intestazione e' nascosta e restava solo la maniglia
+        const dragAreas = [modal.querySelector('.modal-header'), modal.querySelector('.modal-handle')].concat(Array.from(modal.querySelectorAll('[data-trascina]')));
+        let scroller = null;     // contenuto che scorre in cui e' cominciato il gesto (zone data-trascina)
         let startY = 0;
         let currentY = 0;
         let isDragging = false;
@@ -8995,6 +9933,9 @@ function initSwipeAndExplode() {
         const onTouchStart = (e) => {
             if (window.innerWidth >= 1024) return; // Disabilita su Desktop
             if (modal.classList.contains('incorporato')) return;   // ospitato in una card allargata: niente swipe
+            // dentro il contenuto che scorre: la finestra si trascina solo col contenuto tutto in cima
+            scroller = e.currentTarget && e.currentTarget.closest ? e.currentTarget.closest('.modal-scroll-area') : null;
+            if (scroller && scroller.scrollTop > 0) return;
             startY = e.touches[0].clientY;
             isDragging = true;
             currentY = 0;
@@ -9008,6 +9949,7 @@ function initSwipeAndExplode() {
             if (!isDragging) return;
             const y = e.touches[0].clientY;
             currentY = y - startY;
+            if (scroller && scroller.scrollTop > 0) { currentY = 0; return; }   // il dito sta facendo scorrere il contenuto
             
             if (currentY > 0) {
                 e.preventDefault(); 
@@ -9691,7 +10633,8 @@ document.addEventListener('visibilitychange', () => {
         prestazioni: 'Prestazioni',
         render3d: 'Planimetrie 3D',
         sistema: 'Sistema e aggiornamenti',
-        account: 'Profilo'
+        account: 'Profilo',
+        automazioni: 'Automazioni'
     };
     const NOMI_SFONDO = {
         notte_citta: 'Notte in città', default: 'Classico', anim_aurora: 'Aurora', anim_mesh: 'Nebula',
@@ -9733,6 +10676,7 @@ document.addEventListener('visibilitychange', () => {
         if (nome === 'aspetto') disegnaAspetto();
         if (nome === 'scala') disegnaScala();
         if (nome === 'card' || nome === 'render3d') riempiCursori();
+        if (nome === 'automazioni' && window.impAutomazioni) window.impAutomazioni.apri();
     };
 
     window.impIndietro = function () {
@@ -9752,6 +10696,7 @@ document.addEventListener('visibilitychange', () => {
     window.impMostra = function () {
         valori();
         profilo();
+        if (window.impAutomazioni) window.impAutomazioni.conta();      // numero a destra della riga Automazioni
         $('imp-pagina').classList.add('aperta');
     };
 
@@ -10094,15 +11039,8 @@ document.addEventListener('visibilitychange', () => {
         // il tasto Impostazioni apre la sezione al posto del vecchio pannello
         window.openSettingsModal = window.impMostra;
 
-        // "Gestisci automazioni" apre un pannello che starebbe DIETRO questa sezione:
-        // prima si chiudono le impostazioni, poi si apre il pannello
-        const apriAutomazioni = window.openAutomationsQuickModal;
-        if (typeof apriAutomazioni === 'function') {
-            window.openAutomationsQuickModal = function () {
-                window.impChiudi();
-                return apriAutomazioni.apply(this, arguments);
-            };
-        }
+        // (le automazioni sono una pagina di questa sezione dal 27/09/2026: openAutomationsQuickModal la apre
+        //  da sola, non serve piu' chiudere le Impostazioni prima)
 
         // chiudendo tutto (velo, tasto X, gesto) si chiude anche questa sezione, ma non quando
         // si chiude un modale aperto DA qui sopra (la nota dell'aggiornamento, .sopra-impostazioni)
@@ -10158,6 +11096,398 @@ document.addEventListener('visibilitychange', () => {
         riapri();
     });
 })();
+</script>
+<script>
+// =====================================================================
+// --- AUTOMAZIONI NELLE IMPOSTAZIONI (27/09/2026) ---
+// Impostazioni > Gestione > Automazioni (una .imp-cat come le altre). Prima era il modale
+// #automations-quick-modal. GET /api/automations -> [{id, name, is_active, config}], PUT {id, is_active}
+// (tutti gli utenti); crearle e modificarle resta all'editor (solo amministratore).
+// Il riassunto sotto il nome lo compone questo script: le frasi hanno segnaposti ({ora}, {nome}...)
+// e si traducono intere (lingue/en.json), la lista e' data-no-tr.
+// =====================================================================
+(function () {
+    const $ = id => document.getElementById(id);
+    const T = t => (window.WH_T ? window.WH_T(t) : t);
+    const F = (t, v) => T(t).replace(/\{(\w+)\}/g, (x, k) => (v && v[k] != null ? String(v[k]) : x));
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const piatto = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const icone = el => { if (el && typeof lucide !== 'undefined') lucide.createIcons({ root: el }); };
+    const ADMIN = {{ 'true' if session.role == 'admin' else 'false' }};   // l'editor e' solo dell'amministratore
+    const MIN_CERCA = 7;                 // da quante automazioni in su compare la ricerca
+    const FRESCHE_MS = 15000;            // un elenco letto da meno di cosi' si riusa (conteggio della riga)
+
+    let elenco = null, letteAlle = 0, inCorso = null, errore = false;
+    let cerca = '';
+    const giro = {}, confermato = {};    // per ogni id: ultima richiesta mandata, ultimo stato confermato dal server
+    const giroConf = {}, inViaggio = {}; // per ogni id: richiesta che ha dato il valore confermato, richieste non ancora tornate
+    let nomi = null, nomiChiesti = false, zone = null, zoneChieste = false;
+
+    // ------------------------------------------------------------ nomi leggibili
+    function nomiDallaPagina() {
+        const m = {};
+        document.querySelectorAll('.hk-card[data-id]').forEach(c => {
+            const id = c.dataset.id;
+            if (!id || m[id]) return;
+            let n = c.dataset.nome || '';
+            if (!n && !c.classList.contains('type-media_player')) {
+                const e = c.querySelector('.hk-name, .cam-title');
+                n = e ? e.textContent.trim() : '';
+            }
+            if (n) m[id] = n;
+        });
+        return m;
+    }
+    const pulito = n => String(n || '').replace(/^[^A-Za-z0-9\u00C0-\u024F]+/, '').trim();      // via le emoji davanti (🎬 Scena)
+    function nomeDi(id) {
+        if (!id) return '…';
+        if (!nomi) nomi = nomiDallaPagina();
+        if (nomi[id]) return nomi[id];
+        let s = String(id).replace(/___ha\d+$/, '');
+        s = s.indexOf('.') >= 0 ? s.slice(s.indexOf('.') + 1) : s;
+        s = s.replace(/^local_/, '').replace(/_+/g, ' ').trim();
+        return s ? s.charAt(0).toUpperCase() + s.slice(1) : id;
+    }
+    function nomeZona(k) {
+        const z = zone && zone.find(x => x.chiave === k);
+        const n = z ? z.nome : (k ? String(k).charAt(0).toUpperCase() + String(k).slice(1) : '…');
+        return k === 'casa' ? T(n) : n;
+    }
+    // i nomi che la pagina non ha (dispositivi non messi in una stanza, scene) si chiedono al server, una volta
+    function nomiMancanti() {
+        if (nomiChiesti || !elenco) return;
+        if (!nomi) nomi = nomiDallaPagina();
+        const serve = elenco.some(a => entitaDi(conf(a)).some(id => !nomi[id]));
+        if (!serve) return;
+        nomiChiesti = true;
+        fetch('/api/entities_for_automations', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
+            if (!Array.isArray(d)) return;
+            d.forEach(e => { if (e && e.entity_id && e.name && !nomi[e.entity_id]) nomi[e.entity_id] = pulito(e.name) || e.name; });
+            disegna();
+        }).catch(() => {});
+    }
+    function zoneMancanti() {
+        if (zoneChieste || !elenco) return;
+        const serve = elenco.some(a => { const c = conf(a); return (c.inneschi || []).concat(c.condizioni || []).some(x => x && x.tipo === 'zona'); });
+        if (!serve) return;
+        zoneChieste = true;
+        fetch('/api/zone', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
+            if (d && Array.isArray(d.zone)) { zone = d.zone; disegna(); }
+        }).catch(() => {});
+    }
+    function entitaDi(c) {
+        const ids = [];
+        (c.inneschi || []).forEach(i => { if (i && i.entita) ids.push(i.entita); });
+        return ids;
+    }
+
+    // ------------------------------------------------------------ configurazione (le regole classiche si leggono come le nuove)
+    function conf(a) {
+        let c = a && a.config;
+        if (typeof c === 'string') { try { c = JSON.parse(c); } catch (e) { c = {}; } }
+        c = c || {};
+        if (c.versione === 2 || c.inneschi || c.azioni) return c;
+        const t = c.trigger || {}, k = c.condition || {}, inneschi = [], condizioni = [], azioni = [];
+        if (t.type === 'time') inneschi.push({ tipo: 'orario', ora: t.value || '', giorni: [] });
+        else if (t.type === 'state') inneschi.push({ tipo: 'stato', entita: t.entity, confronto: (t.operator && t.operator !== '==') ? t.operator : 'diventa', valore: t.value });
+        if (k.type === 'state') condizioni.push({ tipo: 'stato' });
+        else if (k.type === 'time_range') condizioni.push({ tipo: 'fascia' });
+        (c.actions || []).forEach(x => azioni.push({ tipo: 'dispositivo', entita: x && x.entity_id }));
+        return { versione: 1, inneschi, condizioni, azioni };
+    }
+
+    // ------------------------------------------------------------ il riassunto ("Alle 07:00, dal lunedì al venerdì · 2 azioni")
+    const GIORNI = ['lun', 'mar', 'mer', 'gio', 'ven', 'sab', 'dom'];
+    function giorni(g) {
+        const v = (g || []).map(Number).filter(x => x >= 0 && x < 7).sort((a, b) => a - b);
+        const s = v.join(',');
+        if (!v.length || v.length === 7) return T('ogni giorno');
+        if (s === '0,1,2,3,4') return T('dal lunedì al venerdì');
+        if (s === '5,6') return T('nel fine settimana');
+        return v.map(x => T(GIORNI[x])).join(', ');
+    }
+    // acceso/spento, aperto/chiuso: true, false; null per gli altri valori (numeri, "playing"...)
+    function acceso(v) {
+        const x = String(v == null ? '' : v).trim().toLowerCase();
+        if (['on', 'open', 'aperto', 'aperta', 'acceso', 'accesa', 'attivo', 'attiva', 'true'].indexOf(x) >= 0) return true;
+        if (['off', 'closed', 'chiuso', 'chiusa', 'spento', 'spenta', 'inattivo', 'inattiva', 'false'].indexOf(x) >= 0) return false;
+        return null;
+    }
+    // l'evento col verbo ("Lampada lettura si accende"): niente aggettivo da accordare col nome del dispositivo
+    // ("Lampada diventa acceso"); in inglese il passato, uguale al singolare e al plurale ("Blinds closed")
+    const EVENTI = {
+        cover:         { on: '{nome} si apre',    off: '{nome} si chiude',
+                         on_min: '{nome} si apre e resta così per {min} min',    off_min: '{nome} si chiude e resta così per {min} min' },
+        binary_sensor: { on: '{nome} si attiva',  off: '{nome} si disattiva',
+                         on_min: '{nome} si attiva e resta così per {min} min',  off_min: '{nome} si disattiva e resta così per {min} min' },
+        altro:         { on: '{nome} si accende', off: '{nome} si spegne',
+                         on_min: '{nome} si accende e resta così per {min} min', off_min: '{nome} si spegne e resta così per {min} min' }
+    };
+    function confronto(c, v) {
+        return ({ '>': F('sopra {valore}', { valore: v }), '<': F('sotto {valore}', { valore: v }), '>=': F('almeno {valore}', { valore: v }),
+                  '<=': F('al massimo {valore}', { valore: v }), '!=': F('non {valore}', { valore: v }) })[c] || null;
+    }
+    function fraseInnesco(i) {
+        i = i || {};
+        if (i.tipo === 'orario') return F('Alle {ora}', { ora: i.ora || '--:--' }) + ', ' + giorni(i.giorni);
+        if (i.tipo === 'sole') {
+            const s = Math.round(Number(i.scostamento) || 0), alba = i.evento === 'alba';
+            if (!s) return T(alba ? "All'alba" : 'Al tramonto');
+            const t = s < 0 ? (alba ? "{min} min prima dell'alba" : '{min} min prima del tramonto') : (alba ? "{min} min dopo l'alba" : '{min} min dopo il tramonto');
+            return F(t, { min: Math.abs(s) });
+        }
+        if (i.tipo === 'periodico') {
+            const m = Number(i.minuti) || 0;
+            if (m === 1) return T('Ogni minuto');
+            if (m === 60) return T('Ogni ora');
+            if (m > 60 && m % 60 === 0) return F('Ogni {n} ore', { n: m / 60 });
+            return F('Ogni {n} minuti', { n: m || '…' });
+        }
+        if (i.tipo === 'zona') {
+            const esce = i.evento === 'esce', persona = i.persona || '…';
+            if (i.zona === 'casa') return F(esce ? '{persona} esce di casa' : '{persona} arriva a casa', { persona: persona });
+            return F(esce ? '{persona} esce da {zona}' : '{persona} entra in {zona}', { persona: persona, zona: nomeZona(i.zona) });
+        }
+        if (i.tipo === 'stato' || i.tipo === 'durata') {
+            const n = nomeDi(i.entita), c = i.confronto, durata = i.tipo === 'durata', min = i.minuti || '…';
+            if (!durata && c === 'cambia') return F('{nome} cambia', { nome: n });
+            const b = acceso(i.valore);
+            if (b !== null && (!c || c === 'diventa' || c === '==' || c === '!=')) {
+                const d = String(i.entita || '').split('.')[0];
+                const e = EVENTI[d === 'cover' || d === 'binary_sensor' ? d : 'altro'];
+                const on = c === '!=' ? !b : b;                       // "diverso da acceso" = si spegne
+                return F(e[(on ? 'on' : 'off') + (durata ? '_min' : '')], { nome: n, min: min });
+            }
+            const v = String(i.valore == null || i.valore === '' ? '…' : i.valore), cf = confronto(c, v);
+            if (durata) return F('{nome}: {cosa} per {min} min', { nome: n, cosa: cf || v, min: min });
+            return cf ? n + ' ' + cf : F('{nome} diventa {valore}', { nome: n, valore: v });
+        }
+        return T('Innesco sconosciuto');
+    }
+    function pezziRiassunto(a) {
+        const c = conf(a), inn = c.inneschi || [], pezzi = [];
+        if (!inn.length) pezzi.push(T(c.solo_manuale ? 'Solo a mano' : 'Nessun innesco'));
+        else {
+            pezzi.push(fraseInnesco(inn[0]));
+            if (inn.length === 2) pezzi.push(T('oppure un altro'));
+            else if (inn.length > 2) pezzi.push(F('oppure altri {n}', { n: inn.length - 1 }));
+        }
+        const nc = (c.condizioni || []).length;
+        if (nc) pezzi.push(nc === 1 ? T('1 condizione') : F('{n} condizioni', { n: nc }));
+        const na = (c.azioni || []).filter(x => x && x.tipo !== 'attesa').length;
+        pezzi.push(!na ? T('Nessuna azione') : (na === 1 ? T('1 azione') : F('{n} azioni', { n: na })));
+        return pezzi;
+    }
+    const riassunto = a => pezziRiassunto(a).join(' · ');
+    // in HTML: i pezzi corti ("2 azioni") non si spezzano a meta' andando a capo
+    const riassuntoHTML = a => pezziRiassunto(a).map((p, i) => i ? '<span class="imp-auto-np">' + esc(p) + '</span>' : esc(p)).join(' · ');
+    // icona e colore: da che cosa la fa partire
+    function tessera(a) {
+        const c = conf(a), i = (c.inneschi || [])[0];
+        if (!i) return c.solo_manuale ? ['hand', 'c-gray'] : ['git-branch', 'c-gray'];
+        if (i.tipo === 'orario') return ['clock', 'c-indigo'];
+        if (i.tipo === 'sole') return [i.evento === 'alba' ? 'sunrise' : 'sunset', 'c-orange'];
+        if (i.tipo === 'periodico') return ['repeat', 'c-teal'];
+        if (i.tipo === 'zona') return [i.evento === 'esce' ? 'log-out' : 'map-pin', 'c-green'];
+        const d = String(i.entita || '').split('.')[0], n = piatto((i.entita || '') + ' ' + nomeDi(i.entita));
+        if (d === 'binary_sensor') return /moviment|presenz|motion|occup/.test(n) ? ['radar', 'c-green'] : ['door-open', 'c-blue'];
+        if (d === 'light') return ['lightbulb', 'c-yellow'];
+        if (d === 'cover') return ['blinds', 'c-purple'];
+        if (d === 'climate') return ['thermometer', 'c-orange'];
+        if (d === 'sensor') return /temp|clima|termo/.test(n) ? ['thermometer', 'c-red'] : ['activity', 'c-blue'];
+        if (d === 'switch') return ['power', 'c-blue'];
+        return ['zap', 'c-blue'];
+    }
+
+    // ------------------------------------------------------------ disegno
+    function conti() {
+        const on = elenco ? elenco.filter(a => a.is_active).length : null;
+        const tot = elenco ? elenco.length : null;
+        const a = $('imp-auto-n-on'), b = $('imp-auto-n-off');
+        if (a) a.textContent = on == null ? '–' : String(on);
+        if (b) b.textContent = on == null ? '–' : String(tot - on);
+        const r = $('imp-conta-automazioni');
+        if (r) {
+            r.textContent = (!elenco || !tot) ? '' : (on === 1 ? T('1 attiva') : F('{n} attive', { n: on }));
+            r.classList.toggle('zero', !!elenco && on === 0);
+        }
+    }
+    function ordinate() {
+        return (elenco || []).slice().sort((x, y) => String(x.name || '').localeCompare(String(y.name || ''), undefined, { sensitivity: 'base', numeric: true }));
+    }
+    function riga(a) {
+        const [ico, col] = tessera(a);
+        const nome = a.name || T('Senza nome');
+        const tag = a.is_active ? '' : '<span class="imp-auto-tag">' + esc(T('Sospesa')) + '</span>';
+        return '<div class="imp-riga imp-riga-fissa imp-auto-riga' + (a.is_active ? '' : ' spenta') + '" data-id="' + esc(a.id) + '">'
+            + '<span class="acc-ico ' + col + '"><i data-lucide="' + ico + '"></i></span>'
+            + '<span class="imp-testo"><b id="imp-auto-l-' + esc(a.id) + '">' + esc(nome) + '</b><small>' + tag + riassuntoHTML(a) + '</small></span>'
+            + '<label class="switch-ios"><input type="checkbox"' + (a.is_active ? ' checked' : '') + ' aria-labelledby="imp-auto-l-' + esc(a.id) + '"><span class="slider"></span></label>'
+            + '</div>';
+    }
+    function riquadro(classe, icona, titolo, testo, bottone) {
+        return '<div class="imp-auto-vuoto' + (classe ? ' ' + classe : '') + '">'
+            + '<span class="imp-auto-vuoto-ico"><i data-lucide="' + icona + '"></i></span>'
+            + '<b>' + esc(T(titolo)) + '</b><span>' + esc(T(testo)) + '</span>'
+            + (bottone ? '<button type="button" class="imp-bottone" data-azione="riprova"><i data-lucide="refresh-cw"></i>' + esc(T(bottone)) + '</button>' : '')
+            + '</div>';
+    }
+    function disegna() {
+        const lista = $('imp-auto-lista'), stato = $('imp-auto-stato'), cercaBox = $('imp-auto-cerca');
+        if (!lista || !stato) return;
+        conti();
+        const et = $('imp-auto-etichetta'), nota = $('imp-auto-nota');
+        const mostra = (l, s, n) => { lista.hidden = !l; if (et) et.hidden = !l; if (nota) nota.hidden = !n; stato.hidden = !s; };
+        if (!elenco) {
+            if (cercaBox) cercaBox.hidden = true;
+            if (errore) {
+                stato.innerHTML = riquadro('errore', 'wifi-off', 'Non riesco a leggere le automazioni', 'Il server non ha risposto. Controlla la connessione e riprova.', 'Riprova');
+                mostra(false, true, false); icone(stato);
+            } else {
+                lista.innerHTML = '<div class="imp-auto-finta"><i></i><span></span><em></em></div>'.repeat(3);
+                lista.setAttribute('aria-busy', 'true');
+                stato.innerHTML = ''; mostra(true, false, false);
+            }
+            return;
+        }
+        lista.removeAttribute('aria-busy');
+        const tutte = ordinate();
+        if (cercaBox) {
+            const serve = tutte.length >= MIN_CERCA;
+            if (!serve && cerca) { cerca = ''; const q = $('imp-auto-q'); if (q) q.value = ''; }
+            cercaBox.hidden = !serve;
+        }
+        if (!tutte.length) {
+            lista.innerHTML = '';
+            stato.innerHTML = ADMIN
+                ? riquadro('', 'sparkles', 'Nessuna automazione', "Creane una con l'editor qui sotto: per esempio le luci al tramonto o le tapparelle al mattino.")
+                : riquadro('', 'sparkles', 'Nessuna automazione', "Le automazioni le crea l'amministratore della casa: quando ci saranno, le troverai qui.");
+            mostra(false, true, false); icone(stato);
+            return;
+        }
+        const q = piatto(cerca.trim());
+        const viste = q ? tutte.filter(a => piatto((a.name || '') + ' ' + riassunto(a)).indexOf(q) >= 0) : tutte;
+        if (!viste.length) {
+            lista.innerHTML = '';
+            stato.innerHTML = riquadro('', 'search-x', 'Nessuna automazione corrisponde', 'Prova con un altro nome.');
+            mostra(false, true, true); icone(stato);
+            return;
+        }
+        lista.innerHTML = viste.map(riga).join('');
+        stato.innerHTML = '';
+        mostra(true, false, true);
+        icone(lista);
+    }
+    // una riga sola (dopo l'interruttore): niente ridisegno, il fuoco resta dov'e'
+    function aggiornaRiga(id) {
+        const a = elenco && elenco.find(x => String(x.id) === String(id));
+        const r = document.querySelector('#imp-auto-lista .imp-auto-riga[data-id="' + String(id).replace(/"/g, '') + '"]');
+        if (!a || !r) return;
+        r.classList.toggle('spenta', !a.is_active);
+        const inp = r.querySelector('input[type="checkbox"]');
+        if (inp && inp.checked !== !!a.is_active) inp.checked = !!a.is_active;
+        const small = r.querySelector('.imp-testo small');
+        if (small) small.innerHTML = (a.is_active ? '' : '<span class="imp-auto-tag">' + esc(T('Sospesa')) + '</span>') + riassuntoHTML(a);
+    }
+
+    // ------------------------------------------------------------ dati
+    function carica(forza) {
+        if (inCorso) return inCorso;
+        if (!forza && elenco && Date.now() - letteAlle < FRESCHE_MS) { conti(); return Promise.resolve(elenco); }
+        if (!elenco) { errore = false; disegna(); }
+        const b = document.querySelector('#imp-auto-stato [data-azione="riprova"]');
+        if (b) b.disabled = true;
+        inCorso = fetch('/api/automations', { cache: 'no-store', headers: { 'Accept': 'application/json' } })
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(d => {
+                if (!Array.isArray(d)) throw new Error('risposta non valida');
+                // un interruttore appena toccato e non ancora confermato vince sulla lettura
+                d.forEach(a => {
+                    confermato[a.id] = !!a.is_active;
+                    const vecchia = elenco && elenco.find(x => x.id === a.id);
+                    if (vecchia && vecchia.__inVolo) { a.is_active = vecchia.is_active; a.__inVolo = true; }
+                });
+                elenco = d; letteAlle = Date.now(); errore = false;
+            })
+            .catch(e => {
+                console.log('Automazioni: lettura non riuscita', e);
+                errore = true;
+                // l'avviso solo a chi sta guardando la pagina (non a chi ha appena aperto le Impostazioni)
+                const inVista = document.querySelector('#imp-pagina.aperta .imp-cat[data-cat="automazioni"].attiva');
+                if (elenco && inVista && typeof hkToast === 'function') hkToast(T('Non riesco ad aggiornare le automazioni: mostro le ultime lette.'));
+            })
+            .then(() => { inCorso = null; disegna(); nomiMancanti(); zoneMancanti(); return elenco; });
+        return inCorso;
+    }
+    // Interruttore: si mostra subito il nuovo stato e si manda il PUT. Con tocchi rapidi le richieste possono
+    // accavallarsi e tornare in disordine: il valore "confermato" e' quello dell'ultimo tocco riuscito, e
+    // l'interruttore si riallinea solo quando sono tornate tutte (un PUT fallito arrivato prima di uno riuscito
+    // piu' vecchio lasciava l'interruttore al contrario del server)
+    function cambia(id, on) {
+        const a = elenco && elenco.find(x => String(x.id) === String(id));
+        if (!a) return Promise.resolve(false);
+        // l'elenco puo' essere riletto mentre la richiesta e' in viaggio: si lavora sempre sulla voce attuale
+        const voce = () => (elenco && elenco.find(x => x.id === a.id)) || a;
+        on = !!on;
+        a.is_active = on; a.__inVolo = true;
+        const mio = giro[a.id] = (giro[a.id] || 0) + 1;
+        inViaggio[a.id] = (inViaggio[a.id] || 0) + 1;
+        aggiornaRiga(a.id); conti();
+        try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+        const fine = riuscito => {
+            inViaggio[a.id] = Math.max(0, (inViaggio[a.id] || 1) - 1);
+            if (riuscito && mio > (giroConf[a.id] || 0)) { giroConf[a.id] = mio; confermato[a.id] = on; }
+            // l'avviso solo se non e' andato l'ULTIMO tocco (quello che l'utente vede)
+            if (!riuscito && giro[a.id] === mio && typeof hkToast === 'function') hkToast(T("Non sono riuscito a cambiare l'automazione: riprova."));
+            if (inViaggio[a.id] > 0) return riuscito;                  // altre richieste in viaggio: decide l'ultima che torna
+            const v = voce();
+            v.__inVolo = false;
+            const giusto = confermato[a.id] != null ? confermato[a.id] : (riuscito ? on : !on);
+            if (!!v.is_active !== giusto) { v.is_active = giusto; aggiornaRiga(a.id); conti(); }
+            return riuscito;
+        };
+        return fetch('/api/automations', {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+            body: JSON.stringify({ id: a.id, is_active: on })
+        }).then(r => r.json().catch(() => null).then(d => !!(r.ok && d && d.status === 'success')))
+          .catch(() => false)
+          .then(fine);
+    }
+
+    window.impAutomazioni = {
+        // entrando nella pagina: si mostra subito quello che c'e' e si rilegge
+        apri: function () {
+            cerca = '';
+            const q = $('imp-auto-q'); if (q) q.value = '';
+            disegna();
+            return carica(true);
+        },
+        // aprendo le Impostazioni: serve solo il numero a destra della riga
+        conta: function () { conti(); return carica(false); },
+        carica: carica,
+        cambia: cambia
+    };
+
+    function avvia() {
+        const lista = $('imp-auto-lista'), stato = $('imp-auto-stato'), q = $('imp-auto-q');
+        if (!lista) return;
+        lista.addEventListener('change', e => {
+            const inp = e.target;
+            if (!inp || inp.type !== 'checkbox') return;
+            const r = inp.closest('.imp-auto-riga');
+            if (r) cambia(r.dataset.id, inp.checked);
+        });
+        if (stato) stato.addEventListener('click', e => {
+            if (e.target.closest('[data-azione="riprova"]')) carica(true);
+        });
+        if (q) {
+            q.addEventListener('input', () => { cerca = q.value; disegna(); });
+            q.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); try { q.blur(); } catch (x) {} } });
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', avvia); else avvia();
+})();
+// ===== AUTOMAZIONI NELLE IMPOSTAZIONI: FINE =====
 </script>
 <script>
 /* =====================================================================

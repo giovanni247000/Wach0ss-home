@@ -4106,6 +4106,30 @@ if (editingType === 'room') {
                 }
             });
 
+            // Ordine zone (27/09/2026): le zone della stanza scelta si spostano come le stanze, trascinandole.
+            // "Stanza Principale" resta ferma in testa (solo i tasti con data-zona si trascinano); l'ordine
+            // e' quello delle chiavi di sub_rooms, che l'app sul telefono usa per le sue schede.
+            new Sortable(document.getElementById('sub-room-tabs'), {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                draggable: '.tab[data-zona]',
+                ...ambOpzioniTrascinamento(false),
+                onStart: function () { if (typeof ambChiudiMenu === 'function') ambChiudiMenu(); },
+                onEnd: async function (ev) {
+                    if (ev.oldIndex === ev.newIndex || !config[activeRoom] || !config[activeRoom].sub_rooms) return;
+                    const vecchie = config[activeRoom].sub_rooms, nuove = {};
+                    document.querySelectorAll('#sub-room-tabs .tab[data-zona]').forEach(tab => {
+                        const nome = tab.getAttribute('data-zona');
+                        if (Object.prototype.hasOwnProperty.call(vecchie, nome)) nuove[nome] = vecchie[nome];
+                    });
+                    Object.keys(vecchie).forEach(nome => { if (!(nome in nuove)) nuove[nome] = vecchie[nome]; });   // per sicurezza: nessuna zona persa
+                    config[activeRoom].sub_rooms = nuove;
+                    await saveConfig();
+                    renderTabs();
+                    showToast('Ordine zone salvato', 'success');
+                }
+            });
+
             {% if session.role == 'admin' %}
             if(document.querySelector('.error') !== null || new URLSearchParams(window.location.search).get('setup') === 'open') openSetupModal();
             // ritorno dalla pagina /knx (o da un'altra pagina di un'integrazione): si riapre la card da cui
@@ -4178,6 +4202,7 @@ async function saveConfig(syncFromDom = true) {
                     Object.keys(config[activeRoom].sub_rooms).forEach(sub => {
                         const btn = document.createElement('button');
                         btn.className = `tab ${sub === activeSubRoom ? 'active' : ''}`;
+                        btn.setAttribute('data-zona', sub);        // le zone si possono trascinare (vedi 'Ordine zone')
                         btn.innerHTML = `<i data-lucide="layers" style="width:14px;height:14px;"></i> <span data-no-tr>${sub}</span>`;
                         btn.onclick = () => { activeSubRoom = sub; renderTabs(); updateWorkspaceView(); };
                         subContainer.appendChild(btn);

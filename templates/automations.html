@@ -248,7 +248,7 @@
         .scelta.larga { width: 100%; height: 44px; } .scelta.piena { flex: 1; }
         .scelta.tipo { background: transparent; border-color: transparent; font-weight: 700; padding-left: 4px; } .scelta.tipo:hover { background: var(--sup-3); }
         .scelta.tipo .si { background: var(--c-bg); color: var(--c); } .scelta.tipo .sf { margin-left: 2px; }
-        .ico-light { background: #FFF1C2 !important; color: #A16207 !important; } .ico-switch, .ico-input_boolean { background: #DDEBFF !important; color: #1D4ED8 !important; } .ico-cover { background: #ECE6FF !important; color: #6D28D9 !important; } .ico-sensor { background: #DDF6E8 !important; color: #047857 !important; } .ico-binary_sensor { background: #FEE2E2 !important; color: #B91C1C !important; } .ico-media_player { background: #FCE7F3 !important; color: #BE185D !important; } .ico-climate, .ico-fan { background: #FFE4D5 !important; color: #C2410C !important; } .ico-scene, .ico-group { background: #E0E7FF !important; color: #4338CA !important; } .ico-camera { background: #E2E8F0 !important; color: #334155 !important; } .ico-tg { background: #DDF3FF !important; color: #0369A1 !important; }
+        .ico-light { background: #FFF1C2 !important; color: #A16207 !important; } .ico-switch, .ico-input_boolean { background: #DDEBFF !important; color: #1D4ED8 !important; } .ico-cover { background: #ECE6FF !important; color: #6D28D9 !important; } .ico-sensor { background: #DDF6E8 !important; color: #047857 !important; } .ico-binary_sensor { background: #FEE2E2 !important; color: #B91C1C !important; } .ico-media_player { background: #FCE7F3 !important; color: #BE185D !important; } .ico-climate, .ico-fan { background: #FFE4D5 !important; color: #C2410C !important; } .ico-scene, .ico-group { background: #E0E7FF !important; color: #4338CA !important; } .ico-camera { background: #E2E8F0 !important; color: #334155 !important; } .ico-allarme { background: #FFE4E6 !important; color: #BE123C !important; } .ico-tg { background: #DDF3FF !important; color: #0369A1 !important; }
         .vuota { border: 1px dashed var(--bordo-2); border-radius: 14px; padding: 14px; text-align: center; color: var(--testo-3); font-size: 13.5px; margin-top: 10px; }
         .opzioni { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; margin-top: 12px; } .opzioni > div { flex: 1 1 200px; min-width: 0; } .opzioni > div.note { flex: 3 1 320px; }
         .check { display: flex; align-items: center; gap: 10px; margin-top: 10px; min-height: 44px; color: var(--testo-2); font-size: 0.84rem; font-weight: 500; cursor: pointer; line-height: 1.4; }
@@ -707,8 +707,8 @@ const opzioniTelefoni = (attuale) => [{ v: '', t: 'Tutti i telefoni', icona: 'sm
     telefoni.map(t => ({ v: t.device_id, t: t.nome, sub: [t.utente && t.utente !== t.nome ? t.utente : '', t.modello, t.sistema].filter(Boolean).join(' · '), icona: t.in_linea ? 'smartphone' : 'smartphone-nfc' })),
     attuale && !telefoni.some(t => t.device_id === attuale) ? [{ v: attuale, t: 'telefono non registrato', icona: 'smartphone' }] : []);
 let filtroAttivo = 'tutte', cId = null, cClassica = false, cModificata = false, scenaScelte = [];
-const DOMINI = { light: 'Luci', switch: 'Interruttori e prese', cover: 'Tapparelle', sensor: 'Sensori', binary_sensor: 'Sensori aperto/chiuso', media_player: 'Audio e video', climate: 'Clima', scene: 'Scenari', group: 'Gruppi', camera: 'Telecamere', fan: 'Ventole', input_boolean: 'Interruttori virtuali' };
-const ICONE = { light: 'lightbulb', switch: 'power', cover: 'blinds', sensor: 'activity', binary_sensor: 'door-open', media_player: 'speaker', climate: 'thermometer', scene: 'layers', group: 'layers', camera: 'camera', fan: 'fan', input_boolean: 'toggle-left' };
+const DOMINI = { light: 'Luci', switch: 'Interruttori e prese', cover: 'Tapparelle', sensor: 'Sensori', binary_sensor: 'Sensori aperto/chiuso', media_player: 'Audio e video', climate: 'Clima', scene: 'Scenari', group: 'Gruppi', camera: 'Telecamere', fan: 'Ventole', input_boolean: 'Interruttori virtuali', allarme: 'Allarme' };
+const ICONE = { light: 'lightbulb', switch: 'power', cover: 'blinds', sensor: 'activity', binary_sensor: 'door-open', media_player: 'speaker', climate: 'thermometer', scene: 'layers', group: 'layers', camera: 'camera', fan: 'fan', input_boolean: 'toggle-left', allarme: 'shield' };
 const GIORNI = ['L', 'M', 'M', 'G', 'V', 'S', 'D'], GIORNI_LUNGHI = ['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
 const TIPI = {
     innesco: [['stato', 'Un dispositivo cambia', 'zap'], ['durata', 'Un dispositivo resta così per un tempo', 'hourglass'], ['orario', 'A un orario', 'clock'], ['sole', 'Alba o tramonto', 'sun'], ['periodico', 'Ogni tot minuti', 'repeat'], ['zona', 'Una persona entra o esce da una zona', 'map-pin']],
@@ -718,6 +718,16 @@ const TIPI = {
 const CONFRONTI_ONOFF = [['diventa', 'diventa'], ['cambia', 'cambia (qualunque valore)'], ['!=', 'diventa diverso da']];
 const CONFRONTI_NUM = [['>', 'supera'], ['<', 'scende sotto'], ['>=', 'raggiunge almeno'], ['<=', 'scende a'], ['diventa', 'diventa esattamente'], ['!=', 'diventa diverso da'], ['cambia', 'cambia (qualunque valore)']];
 const COND_ONOFF = [['diventa', 'è'], ['!=', 'non è']];
+// l'Allarme ('allarme.casa', dominio 'allarme') non e' un interruttore: vale uno di questi stati (app.py: _AL_STATI_ENTITA
+// e 'inserito_notte'). 'inserito' e' solo Fuori casa: inserito per la Notte vale 'inserito_notte'. f = come si legge nella frase
+const STATI_ALLARME = [
+    { v: 'disinserito', t: 'Disinserito', f: 'disinserito', icona: 'shield-off' },
+    { v: 'in_inserimento', t: 'In inserimento', f: 'in inserimento', sub: 'Tempo per uscire', icona: 'timer' },
+    { v: 'inserito', t: 'Inserito (Fuori casa)', f: 'inserito (fuori casa)', sub: 'Non vale per la Notte', icona: 'shield-check' },
+    { v: 'inserito_notte', t: 'Inserito · Notte', f: 'inserito · notte', icona: 'moon' },
+    { v: 'intrusione', t: 'Intrusione rilevata', f: 'intrusione rilevata', sub: 'Tempo per entrare', icona: 'shield-alert' },
+    { v: 'scattato', t: 'Scattato', f: 'scattato', icona: 'siren' },
+];
 const COND_NUM = [['>', 'è maggiore di'], ['<', 'è minore di'], ['>=', 'è almeno'], ['<=', 'è al massimo'], ['diventa', 'è esattamente'], ['!=', 'è diverso da']];
 const nomeDi = id => (entita.find(e => e.entity_id === id) || {}).name || id || '…';
 const dominioDi = id => (id || '').split('.')[0];
@@ -970,7 +980,7 @@ function converti(c) {
 // =============================================================================
 //  LA FRASE ("in parole")
 // =============================================================================
-const valoreLeggibile = (id, v) => { if (numerico(id)) return `${v}`; const d = dominioDi(id); const on = d === 'cover' ? 'aperta' : (d === 'binary_sensor' ? 'attivo' : 'acceso'); const off = d === 'cover' ? 'chiusa' : (d === 'binary_sensor' ? 'inattivo' : 'spento'); return { on, off }[String(v).toLowerCase()] || v; };
+const valoreLeggibile = (id, v) => { if (numerico(id)) return `${v}`; const d = dominioDi(id); if (d === 'allarme') { const s = STATI_ALLARME.find(x => x.v === String(v)); return s ? s.f : v; } const on = d === 'cover' ? 'aperta' : (d === 'binary_sensor' ? 'attivo' : 'acceso'); const off = d === 'cover' ? 'chiusa' : (d === 'binary_sensor' ? 'inattivo' : 'spento'); return { on, off }[String(v).toLowerCase()] || v; };
 function fraseInnesco(i) {
     const n = `<b>${esc(nomeDi(i.entita))}</b>`;
     if (i.tipo === 'stato') return i.confronto === 'cambia' ? `${n} cambia` : `${n} ${({ diventa: 'diventa', '>': 'supera', '<': 'scende sotto', '>=': 'raggiunge', '<=': 'scende a', '!=': 'diventa diverso da' })[i.confronto] || '…'} <b>${esc(valoreLeggibile(i.entita, i.valore))}</b>`;
@@ -1027,7 +1037,14 @@ function numero(k, val, unita, min, max, step, lab) { return `<div class="unita"
 function ora(k, val, lab) { return `<input type="time" class="campo ora" data-k="${k}" value="${esc(val || '08:00')}" aria-label="${esc(lab || k)}">`; }
 function giorniHTML(scelti) { scelti = (scelti || []).map(Number); return `<div class="giorni" data-k="giorni" role="group" aria-label="Giorni della settimana">${GIORNI.map((g, i) => `<button type="button" data-g="${i}" class="${scelti.includes(i) ? 'on' : ''}" title="${GIORNI_LUNGHI[i]}" aria-label="${GIORNI_LUNGHI[i]}" aria-pressed="${scelti.includes(i)}" onclick="this.classList.toggle('on'); this.setAttribute('aria-pressed', this.classList.contains('on')); cambiato(); aggiornaNote(this.closest('.riga'))">${(aVideo(GIORNI_LUNGHI[i]) || g)[0].toUpperCase()}</button>`).join('')}</div>`; }
 function negaHTML(on) { return `<button type="button" class="nega ${on ? 'on' : ''}" data-k="nega" aria-pressed="${!!on}" title="Al contrario (NON)" onclick="this.classList.toggle('on'); this.setAttribute('aria-pressed', this.classList.contains('on')); cambiato(); aggiornaNote(this.closest('.riga'))">NON</button>`; }
-function valoreOnOff(id, k, val) { const d = dominioDi(id); const on = d === 'cover' ? 'Aperta' : (d === 'binary_sensor' ? 'Attivo (aperto / rilevato)' : 'Acceso'); const off = d === 'cover' ? 'Chiusa' : (d === 'binary_sensor' ? 'Inattivo (chiuso / libero)' : 'Spento'); return { k, opzioni: [{ v: 'on', t: on, icona: 'circle-dot' }, { v: 'off', t: off, icona: 'circle' }], valore: (val || 'on') === 'off' ? 'off' : 'on' }; }
+// tieni: il valore salvato viene dalla regola (non da un dispositivo scelto prima nella stessa riga): se per l'Allarme non e'
+// uno stato valido (regola fatta quando l'editor dava acceso/spento) resta visibile, cosi' il server lo segnala da sistemare
+function tieniValore(riga, ent) { const t = !('ent' in riga.dataset) || riga.dataset.ent === ent; riga.dataset.ent = ent; return t; }
+function valoreOnOff(id, k, val, tieni) { const d = dominioDi(id);
+    if (d === 'allarme') { const noto = STATI_ALLARME.some(s => s.v === val); const opzioni = STATI_ALLARME.map(s => ({ v: s.v, t: s.t, sub: s.sub, icona: s.icona }));
+        if (val && !noto && tieni) opzioni.push({ v: val, t: 'Valore non valido', sub: String(val), icona: 'alert-triangle' });
+        return { k, opzioni, valore: noto || (val && tieni) ? val : 'inserito', unita: 'voci' }; }
+    const on = d === 'cover' ? 'Aperta' : (d === 'binary_sensor' ? 'Attivo (aperto / rilevato)' : 'Acceso'); const off = d === 'cover' ? 'Chiusa' : (d === 'binary_sensor' ? 'Inattivo (chiuso / libero)' : 'Spento'); return { k, opzioni: [{ v: 'on', t: on, icona: 'circle-dot' }, { v: 'off', t: off, icona: 'circle' }], valore: (val || 'on') === 'off' ? 'off' : 'on' }; }
 
 function costruisciFrase(riga, genere, tipo, d) {
     d = d || {}; const f = riga.querySelector('.frase-riga'); f.innerHTML = ''; const menu = [];   // menu: [{k, cfg}]
@@ -1041,7 +1058,8 @@ function costruisciFrase(riga, genere, tipo, d) {
             { const num = numerico(ent); const cmp = tipo === 'durata' ? (num ? CONFRONTI_NUM : CONFRONTI_ONOFF).filter(x => x[0] !== 'cambia') : (num ? CONFRONTI_NUM : CONFRONTI_ONOFF);
                 const conf = cmp.some(x => x[0] === d.confronto) ? d.confronto : (num ? '>' : 'diventa');
                 m('confronto', { valore: conf, opzioni: coppie(cmp), onChange: () => rifai(riga) }, 'Confronto');
-                if (conf !== 'cambia') { if (num) campo('Valore', numero('valore', d.valore, '', null, null, 'any', 'Valore')); else m('valore', valoreOnOff(ent, 'valore', d.valore), 'Valore'); }
+                const tieni = tieniValore(riga, ent);
+                if (conf !== 'cambia') { if (num) campo('Valore', numero('valore', d.valore, '', null, null, 'any', 'Valore')); else m('valore', valoreOnOff(ent, 'valore', d.valore, tieni), 'Valore'); }
                 if (tipo === 'durata') { agg(P('per almeno')); campo('Per almeno', numero('minuti', d.minuti == null ? 5 : d.minuti, 'min', 1, null, 1, 'Per almeno, in minuti')); } }
         } else if (tipo === 'orario') { agg(P('alle')); campo('Ora', ora('ora', d.ora, 'Ora')); agg(P('nei giorni')); campo('Giorni', giorniHTML(d.giorni), 'giorni-c'); agg(N('giorni')); }
         else if (tipo === 'sole') { m('evento', { valore: d.evento || 'tramonto', opzioni: [{ v: 'alba', t: 'Alba', icona: 'sunrise' }, { v: 'tramonto', t: 'Tramonto', icona: 'sunset' }] }, 'Evento'); agg(P('con scostamento di')); campo('Scostamento', numero('scostamento', d.scostamento == null ? 0 : d.scostamento, 'min', null, null, 5, 'Scostamento in minuti')); agg(N('sole')); }
@@ -1051,7 +1069,7 @@ function costruisciFrase(riga, genere, tipo, d) {
     if (genere === 'condizione') {
         campo('Al contrario', negaHTML(d.nega), 'nega-c');
         if (tipo === 'stato') { m('entita', { valore: ent, opzioni: opzioniEntita(), cerca: true, placeholder: 'Scegli un dispositivo', icona: 'cpu', onChange: () => rifai(riga) }, 'Dispositivo');
-            { const num = numerico(ent); const cmp = num ? COND_NUM : COND_ONOFF; const conf = cmp.some(x => x[0] === d.confronto) ? d.confronto : (num ? '>' : 'diventa'); m('confronto', { valore: conf, opzioni: coppie(cmp) }, 'Confronto'); if (num) campo('Valore', numero('valore', d.valore, '', null, null, 'any', 'Valore')); else m('valore', valoreOnOff(ent, 'valore', d.valore), 'Valore'); } }
+            { const num = numerico(ent); const cmp = num ? COND_NUM : COND_ONOFF; const conf = cmp.some(x => x[0] === d.confronto) ? d.confronto : (num ? '>' : 'diventa'); m('confronto', { valore: conf, opzioni: coppie(cmp) }, 'Confronto'); const tieni = tieniValore(riga, ent); if (num) campo('Valore', numero('valore', d.valore, '', null, null, 'any', 'Valore')); else m('valore', valoreOnOff(ent, 'valore', d.valore, tieni), 'Valore'); } }
         else if (tipo === 'fascia') { agg(P('siamo fra le')); campo('Dalle', ora('dalle', d.dalle || '22:00', 'Dalle')); agg(P('e le')); campo('Alle', ora('alle', d.alle || '06:00', 'Alle')); agg(N('fascia')); }
         else if (tipo === 'giorni') { agg(P('è')); campo('Giorni', giorniHTML(d.giorni && d.giorni.length ? d.giorni : [0, 1, 2, 3, 4]), 'giorni-c'); }
         else if (tipo === 'sole') { agg(P('è')); m('posizione', { valore: d.posizione || 'notte', opzioni: [{ v: 'giorno', t: 'giorno (fra alba e tramonto)', icona: 'sun' }, { v: 'notte', t: 'notte', icona: 'moon' }] }, 'Momento'); }
@@ -1110,7 +1128,7 @@ function aggiornaRiepilogo() { const html = frase(leggiConfig()); document.getEl
 async function controlla() { const mio = ++_nControlla; try { const j = await api('/api/automazioni_avanzate/controlla', 'POST', { id: cId, name: document.getElementById('c-nome').value, config: leggiConfig() }); if (mio !== _nControlla) return j.errori || []; mostraErrori(j.errori || []); return j.errori || []; } catch (e) { return []; } }
 function rigaDiErrore(e) { const m = /^(innesco|condizione|azione)\s+(\d+)/i.exec(e || ''); return m ? { genere: m[1].toLowerCase(), n: Number(m[2]) } : null; }
 function rigaN(genere, n) { const lista = document.getElementById('c-' + ({ innesco: 'inneschi', condizione: 'condizioni', azione: 'azioni' })[genere]); return lista ? lista.querySelectorAll('.riga')[n - 1] : null; }
-function campoDiErrore(riga, e) { e = (e || '').toLowerCase(); const k = riga.dataset.tipo === 'notifica_app' ? (/titolo/.test(e) ? 'titolo' : /telefon/.test(e) ? 'dispositivo' : 'testo') : /automazion/.test(e) && riga.dataset.tipo === 'regola' ? 'id' : /person/.test(e) ? 'persona' : /\bzona\b/.test(e) ? 'zona' : /entra o esce/.test(e) ? 'evento' : /dentro o fuori/.test(e) ? 'dove' : /dispositiv|tapparell|luce|scenario|entit/.test(e) ? 'entita' : /messaggio|testo|avviso/.test(e) ? 'messaggio' : /posizion/.test(e) ? 'posizione' : /minut/.test(e) ? 'minuti' : /second/.test(e) ? 'secondi' : /valore/.test(e) ? 'valore' : /giorn/.test(e) ? 'giorni' : /orari|\bora\b/.test(e) ? 'ora' : /titolo/.test(e) ? 'titolo' : null; if (!k) return null; const s = riga.querySelector(`.frase-riga [data-k="${k}"]`); return s ? (s.querySelector('.scelta') || s) : null; }
+function campoDiErrore(riga, e) { e = (e || '').toLowerCase(); const k = riga.dataset.tipo === 'notifica_app' ? (/titolo/.test(e) ? 'titolo' : /telefon/.test(e) ? 'dispositivo' : 'testo') : /automazion/.test(e) && riga.dataset.tipo === 'regola' ? 'id' : /person/.test(e) ? 'persona' : /\bzona\b/.test(e) ? 'zona' : /entra o esce/.test(e) ? 'evento' : /dentro o fuori/.test(e) ? 'dove' : /dispositiv|tapparell|luce|scenario|entit/.test(e) ? 'entita' : /messaggio|testo|avviso/.test(e) ? 'messaggio' : /posizion/.test(e) ? 'posizione' : /minut/.test(e) ? 'minuti' : /second/.test(e) ? 'secondi' : /stato dell'allarme|valore/.test(e) ? 'valore' : /giorn/.test(e) ? 'giorni' : /orari|\bora\b/.test(e) ? 'ora' : /titolo/.test(e) ? 'titolo' : null; if (!k) return null; const s = riga.querySelector(`.frase-riga [data-k="${k}"]`); return s ? (s.querySelector('.scelta') || s) : null; }
 let mostraErroriInline = false;
 function mostraErrori(errori) {
     const b = document.getElementById('c-blocco-errori'); b.style.display = errori.length ? '' : 'none';
