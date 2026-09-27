@@ -584,6 +584,8 @@
         ::-webkit-scrollbar { width: 0; height: 0; display: none; }
 
         .desktop-only { display: none !important; }
+        /* allarme: sul telefono solo in alto a destra (#mobile-alarm-btn), non anche nella barra in basso */
+        @media (max-width: 1023.98px) { #alarm-nav-item { display: none !important; } }
 
         /* --- STILI DRAG & DROP --- */
         .sortable-ghost {
@@ -1179,6 +1181,7 @@
         }
         .floating-nav { pointer-events: auto; background: rgba(20, 20, 24, 0.45); backdrop-filter: blur(40px) saturate(250%); -webkit-backdrop-filter: blur(40px) saturate(250%); border: 1px solid rgba(255,255,255,0.15); border-top: 1px solid rgba(255,255,255,0.25); border-radius: 100px; padding: 8px 12px; display: flex; justify-content: center; gap: 8px; transform: translateZ(0); box-shadow: 0 15px 40px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.1); }
         .nav-item { color: rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 12px 18px; border-radius: 50px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .sidebar-scorre { display: contents; }   /* telefono: la barra in basso resta figlia diretta del contenitore */
         .nav-stanze { display: contents; }   /* telefono: le stanze restano figlie dirette della barra */
         .nav-item i { width: 22px; height: 22px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
         .nav-item.active { color: #000; background: #FFF; box-shadow: 0 4px 15px rgba(255,255,255,0.3); }
@@ -2068,18 +2071,24 @@
                 pointer-events: auto; box-shadow: 10px 0 30px rgba(0,0,0,0.5);
                 overflow: hidden;
             }
-            /* Con tante stanze scorre SOLO l'elenco delle stanze: orologio, sensori, allarme, mappa,
-               e Impostazioni restano fermi. Il resto della barra non si schiaccia. */
-            .floating-nav-wrapper > *:not(.floating-nav) { flex-shrink: 0; }
-            .floating-nav { min-height: 0; }
-            .floating-nav > *:not(.nav-stanze) { flex-shrink: 0; }
-            .nav-stanze {
-                display: flex; flex-direction: column; gap: 12px; align-items: stretch;
-                flex: 0 1 auto; min-height: 96px;
+            /* Restano fermi solo orologio e meteo (.sidebar-header): tutto il resto (preferiti, allarme,
+               mappa, stanze, registrazioni, Impostazioni) scorre insieme in .sidebar-scorre. Ai bordi di
+               quello che scorre una sfumatura breve, cosi' le voci entrano ed escono morbide. */
+            .floating-nav-wrapper > .sidebar-header { flex-shrink: 0; }
+            .sidebar-scorre {
+                display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
                 overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin;
                 -webkit-overflow-scrolling: touch;
+                margin: 0 -12px; padding: 16px 12px;          /* la barra di scorrimento sul bordo, non sopra le voci */
+                -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+                        mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
             }
-            .nav-stanze > .nav-item { flex-shrink: 0; }
+            .sidebar-scorre > * { flex-shrink: 0; }
+            .sidebar-preferiti { flex-direction: column; padding: 0 10px; margin-bottom: 40px; }
+            .sidebar-preferiti .sidebar-sensors-container { margin-top: 0; }
+            .floating-nav { min-height: 0; flex: 1 0 auto; }
+            .floating-nav > * { flex-shrink: 0; }
+            .nav-stanze { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
 
             .floating-nav { 
                 flex-direction: column; padding: 0; margin: 0; border: none; 
@@ -2094,7 +2103,7 @@
             .nav-item.active { background: rgba(255,255,255,0.15); color: #FFF; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
             .nav-item:hover:not(.active) { background: rgba(255,255,255,0.05); color: #FFF; }
 
-            .sidebar-header { flex-direction: column; margin-bottom: 50px; padding: 0 10px; }
+            .sidebar-header { flex-direction: column; margin-bottom: 18px; padding: 0 10px; }
             .sidebar-header h2 { font-size: 0.8rem; letter-spacing: 0.1em; color: rgba(255,255,255,0.4); text-transform: uppercase; font-weight: 700; margin-bottom: 16px; }
             #sidebar-clock { font-size: 4.5rem; font-weight: 300; letter-spacing: -2.5px; color: #FFF; line-height: 1; text-shadow: 0 4px 15px rgba(0,0,0,0.3);}
             #sidebar-date { font-size: 0.95rem; font-weight: 500; color: var(--accent-cyan); margin-top: 10px; text-transform: capitalize; }
@@ -3184,6 +3193,12 @@ html.wh-scala .imp-pagina {
     <span id="sb-inline-weather-desc">Caricamento...</span>
 </div>
 
+        </div>
+        <!-- Barra laterale (schermi grandi): orologio e meteo qui sopra restano fermi, sotto scorre tutto
+             insieme (preferiti, allarme, mappa, stanze, registrazioni, Impostazioni), 27/09/2026.
+             Sul telefono questo contenitore non conta (display: contents): la barra in basso e' quella di sempre. -->
+        <div class="sidebar-scorre">
+        <div class="sidebar-preferiti desktop-only">
 <!-- WIDGET SENSORI SIDEBAR (AGGIORNATO) -->
 <div class="sidebar-sensors-container">
     <div class="sidebar-section-title" style="justify-content: space-between; cursor: pointer; transition: opacity 0.2s;" onclick="openSensorSelector()" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">
@@ -3206,7 +3221,7 @@ html.wh-scala .imp-pagina {
         <i data-lucide="map-pinned"></i>
     </div>
 
-    <!-- 2. PULSANTE ALLARME: Appare su Mobile (icona) e su Desktop (barra completa) -->
+    <!-- 2. PULSANTE ALLARME: solo nella barra laterale degli schermi grandi (sul telefono c'e' quello in alto a destra) -->
     <div id="alarm-nav-item" class="nav-item" style="display: flex; cursor: pointer;" onclick="openAlarmModal()">
         <i id="sidebar-alarm-icon" data-lucide="shield-check"></i>
         <!-- Questo div dentro si vede solo su desktop -->
@@ -3267,6 +3282,7 @@ html.wh-scala .imp-pagina {
     </div>
     {% endif %}
 </div>
+        </div>
         </div>
     </div>
 
