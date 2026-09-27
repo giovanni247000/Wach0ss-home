@@ -79,8 +79,42 @@
             var mq = window.matchMedia('(orientation: landscape)');
             if (mq.addEventListener) mq.addEventListener('change', giro); else if (mq.addListener) mq.addListener(giro);
         } catch (e) {}
+        // ricaricata per cambiare grandezza (Impostazioni > Grandezza pagina): la pagina nasce coperta dallo
+        // stesso scuro del velo di prima, finche' le Impostazioni non sono riaperte (6 s al massimo)
+        // (con la stessa rotellina e la stessa scritta, nello stesso punto, se sulla pagina di prima si vedevano gia')
+        try {
+            var r = sessionStorage.getItem('wh_imp_riapri'), h = document.documentElement;
+            try { r = r ? JSON.parse(r) : null; } catch (e) { r = null; }
+            // chiave rimasta da una ricarica finita altrove (es. /login a sessione scaduta): non vale piu'
+            if (r && (!r.t || Math.abs(Date.now() - r.t) > 30000)) { sessionStorage.removeItem('wh_imp_riapri'); r = null; }
+            if (r) {
+                h.classList.add('wh-riapri');
+                if (r.testo) h.setAttribute('data-riapri', String(r.testo));
+                // rotellina e scritta: se sulla pagina di prima si vedevano gia', qui partono gia' visibili
+                h.style.setProperty('--wh-riapri-ritardo', Math.max(-200, Math.min(600, 600 - (Date.now() - r.t))) + 'ms');
+                setTimeout(function () { h.classList.remove('wh-riapri', 'wh-riapri-via'); }, 6000);
+            }
+        } catch (e) {}
     })();
     </script>
+    <style>
+    /* velo della pagina ricaricata per cambiare grandezza: uguale a .imp-velo-scala (sfondo, rotellina, scritta) */
+    html.wh-riapri::after { content: ""; position: fixed; inset: 0; z-index: 2147483000; background: #07080D;
+                            box-shadow: 0 0 0 100vmax #07080D; pointer-events: auto; }
+    html.wh-riapri #splash-screen { display: none !important; }   /* lo splash lo toglie riapri(): qui non deve spuntare */
+    html.wh-riapri::before { content: attr(data-riapri); position: fixed; left: 0; right: 0; top: 50%; margin-top: calc(12.62px / var(--wh-scala, 1)); z-index: 2147483001;
+                             text-align: center; color: #F5F5F7; font: 600 calc(15.2px / var(--wh-scala, 1))/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+                             pointer-events: none; animation: whRiapriEntra 0.2s ease var(--wh-riapri-ritardo, 600ms) both; }
+    html.wh-riapri body::before { content: ""; position: fixed; left: 50%; top: 50%; width: calc(26px / var(--wh-scala, 1)); height: calc(26px / var(--wh-scala, 1));
+                                  margin: calc(-32.38px / var(--wh-scala, 1)) 0 0 calc(-15.5px / var(--wh-scala, 1));
+                                  box-sizing: content-box; border-radius: 50%; border: calc(2.5px / var(--wh-scala, 1)) solid #FFB35C; border-right-color: transparent; z-index: 2147483001;
+                                  pointer-events: none; animation: whRiapriEntra 0.2s ease var(--wh-riapri-ritardo, 600ms) both, whRiapriGira 0.8s linear infinite; }
+    html.wh-riapri.wh-riapri-via::after { animation: whRiapriEsce 0.28s ease both; }
+    html.wh-riapri.wh-riapri-via::before, html.wh-riapri.wh-riapri-via body::before { animation: none; opacity: 0; }
+    @keyframes whRiapriEntra { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes whRiapriEsce { from { opacity: 1; } to { opacity: 0; } }
+    @keyframes whRiapriGira { to { transform: rotate(360deg); } }
+    </style>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#000000">
     <meta name="background-color" content="#000000">
@@ -1884,7 +1918,7 @@
             background-size: 100% 100%, 100% 100%, 100% auto, 0 0, 112px 112px, 300px 300px, 100% 100%;
         }
         /* sotto i 1024 px c'e' la barra di navigazione in basso e la testata in alto (saluto a
-           sinistra, profilo a destra): la citta' sale sopra la barra (sotto resta il suolo) e la
+           sinistra, tasto dell'allarme a destra): la citta' sale sopra la barra (sotto resta il suolo) e la
            luna sta nella testata, dove non passa sotto le card */
         @media (max-width: 1023px) {
             #app-background.bg-notte-citta {
@@ -1895,7 +1929,7 @@
         }
         /* telefono in verticale: la citta' disegnata per lo schermo stretto (quella della pagina di
            accesso), piu' alta; la luna piu' piccola, a destra della scritta Wach0ss Home, sopra il
-           saluto e a sinistra del pulsante del profilo */
+           saluto (il profilo ora sta nelle Impostazioni: in alto a destra resta solo l'allarme) */
         @media (max-width: 600px) and (orientation: portrait) {
             #app-background.bg-notte-citta {
                 --nc-citta: url('/static/sfondi/notte_citta_citta_tel.svg');
@@ -2035,7 +2069,7 @@
                 overflow: hidden;
             }
             /* Con tante stanze scorre SOLO l'elenco delle stanze: orologio, sensori, allarme, mappa,
-               profilo e Impostazioni restano fermi. Il resto della barra non si schiaccia. */
+               e Impostazioni restano fermi. Il resto della barra non si schiaccia. */
             .floating-nav-wrapper > *:not(.floating-nav) { flex-shrink: 0; }
             .floating-nav { min-height: 0; }
             .floating-nav > *:not(.nav-stanze) { flex-shrink: 0; }
@@ -2633,7 +2667,16 @@ body.layout-grid-1.shape-round .imp-ap-c { text-align: left; } body.layout-grid-
 .imp-velo-scala {
     position: fixed; inset: 0; z-index: 2147483000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
     background: #07080D; color: #F5F5F7; font: 600 0.95rem/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    opacity: 0; transition: opacity 0.2s ease; pointer-events: auto; touch-action: none;
 }
+.imp-velo-scala.su { opacity: 1; }
+.imp-velo-scala { gap: calc(14px / var(--wh-scala, 1)); font-size: calc(15.2px / var(--wh-scala, 1)); }
+.imp-velo-scala i { width: calc(26px / var(--wh-scala, 1)) !important; height: calc(26px / var(--wh-scala, 1)) !important; border-width: calc(2.5px / var(--wh-scala, 1)) !important; box-sizing: content-box; }
+/* la rotellina solo se si aspetta (con il server vicino non si vede nemmeno) */
+.imp-velo-scala > * { opacity: 0; transition: opacity 0.2s ease; }
+.imp-velo-scala.su > * { opacity: 1; transition-delay: 0.6s; }
+/* Impostazioni riaperte dopo il ricaricamento: subito al loro posto, senza scorrere dentro */
+.imp-pagina.subito, .imp-pagina.subito * { transition: none !important; animation: none !important; }
 .imp-velo-scala i { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid #FFB35C; border-right-color: transparent; animation: impGira 0.8s linear infinite; }
 .imp-scala-righello { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; align-items: end; padding: 9px 3px 0; color: var(--imp-testo-3); }
 .imp-scala-righello > span { text-align: center; }
@@ -2701,6 +2744,58 @@ body.layout-grid-1.shape-round .imp-ap-c { text-align: left; } body.layout-grid-
 .imp-vuoto { display: none; }
 .imp-dettaglio .imp-contenuto > .imp-cat:first-of-type { margin-top: 0; }
 .imp-cat > .imp-etichetta:first-child { margin-top: 10px; }
+
+/* ---- profilo: password e uscita (27/09/2026) ---- */
+.imp-profilo-testa.scelta { background: rgba(255,179,92,0.10); }
+.imp-account-eroe {
+    position: relative; overflow: hidden; margin-top: 6px; padding: 24px 18px 20px; border-radius: 22px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+    background: radial-gradient(120% 80% at 50% -10%, rgba(255,179,92,0.16), rgba(255,179,92,0) 60%), var(--imp-vetro);
+    border: 1px solid rgba(255,255,255,0.09); box-shadow: 0 16px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.imp-avatar.imp-avatar-grande { width: 76px; height: 76px; font-size: 2rem; margin-bottom: 4px; }
+.imp-account-nome { max-width: 100%; font-size: 1.4rem; font-weight: 750; letter-spacing: -0.025em; line-height: 1.2; color: var(--imp-testo);
+                    overflow-wrap: anywhere; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+/* telefoni bassi (SE, mini): avatar e nome su una riga, cosi' Aggiorna password e l'esito restano in vista */
+@media (max-height: 700px) {
+    .imp-account-eroe { flex-direction: row; flex-wrap: wrap; justify-content: flex-start; gap: 4px 14px; padding: 14px 16px; text-align: left; }
+    .imp-avatar.imp-avatar-grande { width: 52px; height: 52px; font-size: 1.4rem; margin: 0; }
+    .imp-account-eroe .imp-account-nome { flex: 1 1 calc(100% - 66px); min-width: 0; font-size: 1.2rem; }
+    .imp-account-eroe .imp-ruolo { margin-left: 66px; margin-top: -8px; }
+}
+.imp-pw { margin: 0; }
+.imp-campo { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 11px 14px 9px; cursor: text; transition: background-color 0.18s ease; }
+.imp-campo + .imp-campo::before, .imp-campo + .imp-pw-mostra::before {
+    content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 0.5px; background: var(--imp-sep);
+}
+.imp-campo-testo { font-size: 0.78rem; font-weight: 600; color: var(--imp-testo-2); transition: color 0.18s ease; }
+.imp-campo input {
+    width: 100%; min-height: 30px; margin: 0; padding: 2px 0; border: 0; border-radius: 0; outline: 0; background: transparent;
+    color: var(--imp-testo); font-family: inherit; font-size: 16px; letter-spacing: 0.02em; -webkit-appearance: none; appearance: none;
+}
+.imp-campo input::placeholder { color: var(--imp-testo-4); opacity: 1; }
+/* riempimento del portachiavi: niente fondo giallo (il fondo resta quello della riga) */
+.imp-campo input:-webkit-autofill, .imp-campo input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--imp-testo); caret-color: var(--imp-testo); transition: background-color 600000s 0s, color 600000s 0s;
+}
+.imp-campo:focus-within { background: rgba(255,255,255,0.035); }
+.imp-campo:focus-within .imp-campo-testo { color: var(--imp-caldo); }
+.imp-campo.errore .imp-campo-testo { color: #FF8A80; }
+.imp-pw-mostra {
+    position: relative; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 10px 14px;
+    border: 0; background: transparent; color: var(--imp-caldo); font-family: inherit; font-size: 0.93rem; font-weight: 600; text-align: left; cursor: pointer;
+}
+.imp-pw-mostra:active { background: rgba(255,255,255,0.07); }
+.imp-pw-occhio { display: inline-flex; }
+.imp-pw-occhio svg { width: 18px; height: 18px; }
+.imp-pw-mostra[aria-pressed="true"] .chiuso, .imp-pw-mostra[aria-pressed="true"] .imp-pw-mostra-si,
+.imp-pw-mostra[aria-pressed="false"] .aperto, .imp-pw-mostra[aria-pressed="false"] .imp-pw-mostra-no { display: none; }
+.imp-pw-esito { display: flex; align-items: flex-start; gap: 7px; font-weight: 550; }
+.imp-pw-esito:empty { display: none; }
+.imp-pw-esito.ok { color: #6EE7A0; }
+.imp-pw-esito.no { color: #FF8A80; }
+.imp-pw-invia { margin-top: 14px; }
+.imp-pw-invia[disabled] { opacity: 0.55; cursor: default; transform: none; }
 
 /* ---- telefono piccolo ---- */
 @media (max-width: 359px) {
@@ -2810,9 +2905,6 @@ html.wh-scala .imp-pagina {
     <div style="display: flex; gap: 10px; align-items: center;">
         <button id="mobile-alarm-btn" class="mobile-only" onclick="openAlarmModal()" style="display: none; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); padding: 10px; border-radius: 50%; color: white; cursor: pointer; transition: all 0.3s; width: 44px; height: 44px; align-items: center; justify-content: center;">
             <i data-lucide="shield-check"></i>
-        </button>
-        <button class="user-btn" onclick="openUserModal()" style="background: rgba(255,255,255,0.1); border: none; padding: 10px; border-radius: 50%; color: white; cursor: pointer; width: 44px; height: 44px;">
-            <i data-lucide="user"></i>
         </button>
     </div>
 </div>
@@ -3147,7 +3239,7 @@ html.wh-scala .imp-pagina {
 </div>
             
             <!-- Le stanze stanno in un contenitore proprio: su schermo grande e' l'unica parte della barra
-                 che scorre (orologio, sensori, allarme, profilo e Impostazioni restano fermi); sul telefono
+                 che scorre (orologio, sensori, allarme e Impostazioni restano fermi); sul telefono
                  il contenitore e' trasparente (display: contents) e la barra e' identica a prima -->
             <div class="nav-stanze">
             {% for room_name in layout.keys() %}
@@ -3165,11 +3257,6 @@ html.wh-scala .imp-pagina {
             </div>
             {% endif %}
             
-            <div class="nav-item desktop-only" onclick="openUserModal()">
-                <i data-lucide="user"></i>
-                <span>{{ session.get('username', 'Profilo') }}</span>
-            </div>
-
             <div class="sidebar-spacer desktop-only"></div>
 <div class="nav-item desktop-only" onclick="openSettingsModal()">
     <i data-lucide="settings"></i>
@@ -3305,7 +3392,7 @@ html.wh-scala .imp-pagina {
 
             <!-- chi sei e dove sei collegato -->
             <div class="imp-profilo">
-                <button type="button" class="imp-profilo-testa" onclick="impAccount()">
+                <button type="button" class="imp-profilo-testa" data-apri="account" onclick="impAccount()">
                     <span class="imp-avatar" aria-hidden="true" data-no-tr>{{ (session.get('username') or '?')[:1] | upper }}</span>
                     <span class="imp-profilo-nome">
                         <span class="imp-profilo-riga">
@@ -3480,6 +3567,54 @@ html.wh-scala .imp-pagina {
                 <span class="imp-vuoto-ico"><i data-lucide="settings"></i></span>
                 <b>Impostazioni</b>
                 <span>Scegli una voce a sinistra per vederne le opzioni.</span>
+            </div>
+
+            <!-- ======================= PROFILO: PASSWORD E USCITA (27/09/2026) =======================
+                 Prima stavano in una finestra a parte, aperta dal tasto del profilo in alto a destra
+                 (telefono) e dal nome nella barra laterale (tablet): quei due tasti non ci sono piu',
+                 si arriva qui toccando il profilo in cima alle Impostazioni. -->
+            <div class="imp-cat" data-cat="account">
+                <div class="imp-account-eroe">
+                    <span class="imp-avatar imp-avatar-grande" aria-hidden="true" data-no-tr>{{ (session.get('username') or '?')[:1] | upper }}</span>
+                    <div class="imp-account-nome" data-no-tr>{{ session.get('username', '') }}</div>
+                    {% if session.role == 'admin' %}<span class="imp-ruolo admin">Amministratore</span>{% else %}<span class="imp-ruolo">Utente</span>{% endif %}
+                </div>
+
+                <form id="imp-pw" class="imp-pw" novalidate onsubmit="return impCambiaPassword(event)">
+                    <div class="imp-etichetta">Cambia password</div>
+                    <div class="imp-gruppo">
+                        <!-- per i portachiavi (iCloud, 1Password...): sanno a quale utente va la password nuova -->
+                        <input type="text" class="imp-sr" name="username" autocomplete="username" value="{{ session.get('username', '') }}" tabindex="-1" aria-hidden="true" readonly>
+                        <label class="imp-campo">
+                            <span class="imp-campo-testo">Password attuale</span>
+                            <input type="password" id="imp-pw-attuale" name="current-password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="Obbligatoria">
+                        </label>
+                        <label class="imp-campo">
+                            <span class="imp-campo-testo">Nuova password</span>
+                            <input type="password" id="imp-pw-nuova" name="new-password" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="Obbligatoria">
+                        </label>
+                        <label class="imp-campo">
+                            <span class="imp-campo-testo">Ripeti la nuova password</span>
+                            <input type="password" id="imp-pw-ripeti" name="new-password-2" autocomplete="new-password" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="Obbligatoria">
+                        </label>
+                        <button type="button" class="imp-pw-mostra" id="imp-pw-mostra" aria-pressed="false" onclick="impMostraPassword()">
+                            <span class="imp-pw-occhio chiuso"><i data-lucide="eye"></i></span>
+                            <span class="imp-pw-occhio aperto"><i data-lucide="eye-off"></i></span>
+                            <span class="imp-pw-mostra-si">Mostra le password</span>
+                            <span class="imp-pw-mostra-no">Nascondi le password</span>
+                        </button>
+                    </div>
+                    <p class="imp-nota imp-pw-esito" id="imp-pw-esito" role="status" aria-live="polite"></p>
+                    <button type="submit" class="imp-bottone imp-bottone-primario imp-pw-invia" id="imp-pw-invia">Aggiorna password</button>
+                </form>
+
+                <div class="imp-etichetta">Sessione</div>
+                <div class="imp-gruppo">
+                    <button type="button" class="imp-riga imp-riga-pericolo" id="imp-esci" onclick="impEsci()">
+                        <span class="acc-ico c-red"><i data-lucide="log-out"></i></span>
+                        <span class="imp-testo"><b>Esci dall'account</b><small>Solo su questo dispositivo</small></span>
+                    </button>
+                </div>
             </div>
 
             <!-- ======================= SCHERMATA E SFONDO ======================= -->
@@ -4299,34 +4434,6 @@ html.wh-scala .imp-pagina {
 </body>
 </html>
 
-    <div class="bottom-modal" id="user-modal">
-        <div class="modal-handle"></div>
-        <button class="close-modal-btn" onclick="closeAllModals()"><i data-lucide="x"></i></button>
-        
-        <div class="modal-header" style="flex-direction: column; gap: 10px;">
-            <div style="width: 60px; height: 60px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1);">
-                <i data-lucide="user" style="width: 30px; height: 30px;"></i>
-            </div>
-            <div class="modal-title">{{ session.get('username') }}</div>
-        </div>
-        
-        <div class="modal-scroll-area" style="padding: 0 10px;">
-            <div style="background: rgba(255,255,255,0.03); padding: 20px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05);">
-                <label style="color:rgba(255,255,255,0.5); font-size:0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Cambia Password</label>
-                
-                <input type="password" id="curr-pw" placeholder="Password attuale" style="width:100%; padding:14px; margin-top:12px; border-radius:16px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:white; font-size: 0.9rem;">
-                <input type="password" id="new-pw" placeholder="Nuova password" style="width:100%; padding:14px; margin-top:8px; border-radius:16px; border:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2); color:white; font-size: 0.9rem;">
-                
-                <button onclick="handlePasswordChange()" style="width:100%; margin-top:16px; padding:14px; border-radius:16px; background:#FFF; color:#000; border:none; font-weight:700; cursor:pointer; font-size: 0.9rem; box-shadow: 0 4px 15px rgba(255,255,255,0.15);">
-                    Aggiorna Password
-                </button>
-            </div>
-            
-            <a href="{{ url_for('logout') }}" style="display:block; text-align:center; margin-top: 20px; padding: 16px; background: rgba(255, 69, 58, 0.1); color:#FF453A; border-radius:16px; text-decoration:none; font-weight:600; font-size: 0.9rem; border: 1px solid rgba(255, 69, 58, 0.2);">
-                <i data-lucide="log-out" style="width:16px; height:16px; vertical-align:middle; margin-right: 8px;"></i> Logout
-            </a>
-        </div>
-    </div>
 <div class="bottom-modal" id="cover-modal">
     <div class="modal-handle"></div>
     <button class="close-modal-btn" onclick="closeAllModals()"><i data-lucide="x"></i></button>
@@ -7366,32 +7473,11 @@ document.body.addEventListener('touchmove', function(e) {
             window.dispatchEvent(new Event('resize'));
         }
 
+        // il profilo (password e uscita) sta nelle Impostazioni: chi chiama ancora questa funzione ci arriva
         function openUserModal() {
-            document.getElementById('modal-overlay').classList.add('active'); 
-            document.getElementById('user-modal').classList.add('active'); 
-            document.getElementById('app-wrapper').classList.add('modal-active');
-        }
-
-        async function handlePasswordChange() {
-            const curr = document.getElementById('curr-pw').value;
-            const next = document.getElementById('new-pw').value;
-            
-            if(!curr || !next) return appAlert("Inserisci entrambe le password", { icon: 'alert-circle' });
-            
-            try {
-                const response = await fetch('/api/change_password', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ current_password: curr, new_password: next })
-                });
-                const res = await response.json();
-                if(res.status === 'success') {
-                    appAlert("Password cambiata!", { icon: 'check-circle' }).then(() => closeAllModals());
-                } else {
-                    appAlert(res.message, { title: 'Errore', icon: 'alert-circle' });
-                }
-            } catch(e) {
-                appAlert("Errore di rete", { title: 'Errore', icon: 'alert-circle' });
+            if (typeof window.impMostra === 'function' && typeof window.impApri === 'function') {
+                window.impMostra();
+                window.impApri('account');
             }
         }
 
@@ -9588,7 +9674,8 @@ document.addEventListener('visibilitychange', () => {
         scala: 'Grandezza pagina',
         prestazioni: 'Prestazioni',
         render3d: 'Planimetrie 3D',
-        sistema: 'Sistema e aggiornamenti'
+        sistema: 'Sistema e aggiornamenti',
+        account: 'Profilo'
     };
     const NOMI_SFONDO = {
         notte_citta: 'Notte in città', default: 'Classico', anim_aurora: 'Aurora', anim_mesh: 'Nebula',
@@ -9617,8 +9704,9 @@ document.addEventListener('visibilitychange', () => {
     window.impApri = function (nome) {
         const c = cat(nome);
         if (!c) return;
+        if (aperta === 'account' && nome !== 'account') pulisciPassword();
         document.querySelectorAll('.imp-cat').forEach(x => x.classList.toggle('attiva', x === c));
-        document.querySelectorAll('#imp-elenco .imp-riga[data-apri]').forEach(r => r.classList.toggle('scelta', r.dataset.apri === nome));
+        document.querySelectorAll('#imp-elenco [data-apri]').forEach(r => r.classList.toggle('scelta', r.dataset.apri === nome));
         $('imp-titolo').textContent = TITOLI[nome] || 'Impostazioni';
         $('imp-dettaglio').classList.add('aperta');
         $('imp-elenco').classList.add('via');
@@ -9634,7 +9722,8 @@ document.addEventListener('visibilitychange', () => {
     window.impIndietro = function () {
         $('imp-dettaglio').classList.remove('aperta');
         $('imp-elenco').classList.remove('via');
-        document.querySelectorAll('#imp-elenco .imp-riga.scelta').forEach(r => r.classList.remove('scelta'));
+        document.querySelectorAll('#imp-elenco [data-apri].scelta').forEach(r => r.classList.remove('scelta'));
+        if (aperta === 'account') pulisciPassword();
         aperta = null;
         valori();
     };
@@ -9650,10 +9739,103 @@ document.addEventListener('visibilitychange', () => {
         $('imp-pagina').classList.add('aperta');
     };
 
-    // il profilo in cima: la finestra di sempre (password ed esci), sopra la home
-    window.impAccount = function () {
-        window.impChiudi();
-        if (typeof openUserModal === 'function') setTimeout(openUserModal, 120);
+    // il profilo in cima apre la pagina Profilo: password e uscita (prima era una finestra sopra la home)
+    window.impAccount = function () { window.impApri('account'); };
+
+    // ---------------------------------------------------------------- profilo: password e uscita
+    const CAMPI_PW = ['imp-pw-attuale', 'imp-pw-nuova', 'imp-pw-ripeti'];
+    let pwInCorso = false, pwGiro = 0;          // pwGiro: una risposta arrivata dopo essere usciti dalla pagina non tocca piu' niente
+    function esitoPw(t, tipo) {
+        const el = $('imp-pw-esito');
+        if (!el) return;
+        el.className = 'imp-nota imp-pw-esito' + (tipo ? ' ' + tipo : '');
+        el.textContent = t ? T(t) : '';
+        if (t) try { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+    }
+    function mostraPw(si) {
+        CAMPI_PW.forEach(id => { const x = $(id); if (x) x.type = si ? 'text' : 'password'; });
+        const b = $('imp-pw-mostra');
+        if (b) b.setAttribute('aria-pressed', si ? 'true' : 'false');
+    }
+    // uscendo dalla pagina Profilo le password scritte non restano nei campi
+    function pulisciPassword() {
+        pwGiro++;
+        pwInCorso = false;
+        if ($('imp-pw-invia')) $('imp-pw-invia').disabled = false;
+        CAMPI_PW.forEach(id => {
+            const x = $(id);
+            if (!x) return;
+            x.value = '';
+            const c = x.closest('.imp-campo'); if (c) c.classList.remove('errore');
+        });
+        mostraPw(false);
+        esitoPw('', '');
+    }
+    window.impMostraPassword = function () {
+        const b = $('imp-pw-mostra');
+        mostraPw(!(b && b.getAttribute('aria-pressed') === 'true'));
+    };
+    window.impCambiaPassword = function (e) {
+        if (e) e.preventDefault();
+        if (pwInCorso) return false;
+        const a = $('imp-pw-attuale'), n = $('imp-pw-nuova'), r = $('imp-pw-ripeti'), invia = $('imp-pw-invia');
+        [a, n, r].forEach(x => x.closest('.imp-campo').classList.remove('errore'));
+        const no = (campo, t) => {
+            campo.closest('.imp-campo').classList.add('errore');
+            esitoPw(t, 'no');
+            try { campo.focus(); } catch (x) {}
+            return false;
+        };
+        if (!a.value) return no(a, 'Scrivi la password attuale.');
+        if (!n.value) return no(n, 'Scrivi la nuova password.');
+        if (!r.value) return no(r, 'Ripeti la nuova password per sicurezza.');
+        if (n.value !== r.value) return no(r, 'Le due password nuove non sono uguali.');
+        if (n.value === a.value) return no(n, 'La nuova password è uguale a quella attuale.');
+        pwInCorso = true;
+        invia.disabled = true;
+        esitoPw('Un momento…', '');
+        const giro = pwGiro;
+        fetch('/api/change_password', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+            body: JSON.stringify({ current_password: a.value, new_password: n.value })
+        }).then(risp => risp.json().catch(() => null).then(d => ({ risp, d }))).then(({ risp, d }) => {
+            if (giro !== pwGiro) return;
+            if (d && d.status === 'success') {
+                [a, n, r].forEach(x => { x.value = ''; });
+                mostraPw(false);
+                esitoPw('Password cambiata. La prossima volta entra con quella nuova.', 'ok');
+                if (navigator.vibrate) navigator.vibrate(30);
+                try { document.activeElement && document.activeElement.blur(); } catch (x) {}
+            } else if (d && d.message === 'Password attuale errata') {
+                no(a, 'La password attuale non è giusta.');
+            } else if (!d && (risp.redirected || risp.status === 401 || risp.status === 403)) {
+                esitoPw('La sessione è scaduta: esci e rientra, poi riprova.', 'no');
+            } else {
+                esitoPw((d && d.message) || 'Non è stato possibile cambiare la password.', 'no');
+            }
+        }).catch(() => {
+            if (giro === pwGiro) esitoPw('Il server non risponde: riprova tra poco.', 'no');
+        }).then(() => {
+            if (giro !== pwGiro) return;             // usciti nel frattempo: pulisciPassword ha gia' rimesso tutto
+            pwInCorso = false;
+            invia.disabled = false;
+        });
+        return false;
+    };
+    // Invio sul campo: passa al successivo; sull'ultimo manda il modulo
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || !e.target || CAMPI_PW.indexOf(e.target.id) < 0) return;
+        const i = CAMPI_PW.indexOf(e.target.id);
+        if (i < CAMPI_PW.length - 1) { e.preventDefault(); const x = $(CAMPI_PW[i + 1]); if (x) x.focus(); }
+    });
+    window.impEsci = function () {
+        const vai = () => { location.href = "{{ url_for('logout') }}"; };
+        if (typeof askAppConfirm !== 'function') return vai();
+        askAppConfirm({
+            title: T('Vuoi uscire?'),
+            message: T('Per rientrare su questo dispositivo serviranno nome utente e password.'),
+            confirmText: T('Sì, esci'), icon: 'log-out', danger: true
+        }).then(si => { if (si) vai(); });
     };
 
     // ---------------------------------------------------------------- testata: titolo grande che si stringe
@@ -9805,70 +9987,91 @@ document.addEventListener('visibilitychange', () => {
             specchiaSfondo();
         }
     }
+    // Si cambia sempre ricaricando, sotto un velo: al volo iOS applica la scala nuova 0,6-1,7 s dopo e
+    // per un attimo ridisegna la pagina a meta' (lo "scatto"). La pagina ricaricata nasce gia' alla
+    // grandezza giusta (script in cima a <head>) e coperta dallo stesso scuro (html.wh-riapri), poi riapre
+    // qui senza animazione e scopre. Se il browser non cambia grandezza (quelli da computer ignorano il
+    // meta viewport) si torna al 100% e lo si dice.
+    let scalaInCorso = false;
     window.impScala = function (p) {
         const W = window.whScala;
         p = +p;
-        if (!W || !W.possibile(p)) return;
-        const prima = scalaAttuale();
-        if (p === prima) { disegnaScala(); return; }
+        if (!W || !W.possibile(p) || scalaInCorso) return;
+        if (p === scalaAttuale()) { disegnaScala(); return; }
+        scalaInCorso = true;
         const punti = window.innerWidth * (window.__whScala || 1);  // larghezza vera dello schermo
-        scrivi('core_scala_pagina', String(p));
-        W.attuale = W.applica(p);
-        try { hkSafeB = null; } catch (e) {}                          // il menu della card rimisura l'area sicura
-        // WebKit la applica al volo ma ci mette da mezzo secondo a quasi due: intanto il tasto scelto
-        // gira (e gli altri non si toccano), cosi' si vede che il tocco e' arrivato. Si ascolta il
-        // ridimensionamento e, in piu', si controlla ogni 150 ms; dopo 4,5 s senza cambio si ricarica
-        // (con un velo scuro al posto della pagina bianca) e si riapre qui.
-        const atteso = punti / (window.__whScala || 1), inizio = Date.now(), giro = ++scalaGiro;
-        const pag = $('imp-pagina');
-        const fatto = () => Math.abs(window.innerWidth - atteso) <= 4;
-        let timer = 0;
-        const smetti = () => {
-            clearTimeout(timer);
-            window.removeEventListener('resize', controlla);
-            if (window.visualViewport) window.visualViewport.removeEventListener('resize', controlla);
-        };
-        function controlla() {
-            if (giro !== scalaGiro) { smetti(); return; }             // nel frattempo un'altra scelta
-            if (fatto()) { smetti(); pag.classList.remove('scala-in-corso'); disegnaScala(); return; }
-            if (Date.now() - inizio < 4500) { clearTimeout(timer); timer = setTimeout(controlla, 150); return; }
-            smetti();
-            sessione('wh_imp_riapri', JSON.stringify({ cat: 'scala', p: p, punti: punti }));
-            veloRicarica();
-            setTimeout(() => location.reload(), 60);
-        }
-        pag.classList.toggle('scala-in-corso', !fatto());
-        disegnaScala();
-        valori();
-        window.addEventListener('resize', controlla);
-        if (window.visualViewport) window.visualViewport.addEventListener('resize', controlla);
-        controlla();
+        const inizio = Date.now();
+        document.querySelectorAll('.imp-scala-scelte button').forEach(b => b.setAttribute('aria-checked', +b.dataset.scala === p ? 'true' : 'false'));
+        $('imp-pagina').classList.add('scala-in-corso');
+        velo();
+        setTimeout(function () {
+            scrivi('core_scala_pagina', String(p));
+            sessione('wh_imp_riapri', JSON.stringify({ cat: 'scala', p: p, punti: punti, t: inizio, testo: T('Applico la grandezza…') }));
+            location.reload();
+        }, 230);                                                       // il tempo di sfumare sul velo
     };
-    let scalaGiro = 0;
-    function veloRicarica() {
-        if (document.querySelector('.imp-velo-scala')) return;
-        const v = document.createElement('div');
-        v.className = 'imp-velo-scala';
-        v.setAttribute('data-no-tr', '');
-        v.innerHTML = '<i></i><span></span>';
-        v.querySelector('span').textContent = T('Applico la grandezza…');
-        document.body.appendChild(v);
+    // velo scuro sopra tutto, acceso sfumando (sparisce da solo col ricaricamento)
+    function velo() {
+        let v = document.querySelector('.imp-velo-scala');
+        if (!v) {
+            v = document.createElement('div');
+            v.className = 'imp-velo-scala';
+            v.setAttribute('data-no-tr', '');
+            v.innerHTML = '<i></i><span></span>';
+            v.querySelector('span').textContent = T('Applico la grandezza…');
+            document.body.appendChild(v);
+            void v.offsetWidth;                                        // parte da trasparente: la sfumatura si vede
+        }
+        v.classList.add('su');
     }
     // dopo un ricaricamento chiesto da qui: si riapre la pagina e si controlla che abbia funzionato
+    let riaperta = false;
     function riapri() {
+        if (riaperta) return;
+        riaperta = true;
+        const h = document.documentElement;
         let r = null;
         try { r = JSON.parse(sessione('wh_imp_riapri') || 'null'); } catch (e) {}
-        if (!r) return;
         sessione('wh_imp_riapri', null);
+        if (r && (!r.t || Math.abs(Date.now() - r.t) > 30000)) r = null;   // rimasta da una ricarica finita altrove
+        if (!r) { h.classList.remove('wh-riapri', 'wh-riapri-via'); return; }
+        tastiScala();
+        const splash = document.getElementById('splash-screen');         // al primo avvio resta fino a 'load': qui no
+        if (splash) splash.remove();
         if (r.p && r.punti && Math.abs(window.innerWidth - r.punti / (window.__whScala || 1)) > 4 && window.whScala) {
             scrivi('core_scala_pagina', '100');
             window.whScala.attuale = window.whScala.applica(100);
             const nota = $('imp-scala-nota');
             if (nota) nota.textContent = 'Questo browser non permette di cambiare la grandezza della pagina: usa lo zoom del browser.';
         }
+        const pag = $('imp-pagina');
+        pag.classList.add('subito');
         window.impMostra();
         window.impApri(r.cat || 'scala');
+        // si scopre quando la pagina ha finito il primo giro di lavoro, altrimenti la sfumatura non si vedrebbe
+        // (con la pagina non in vista i requestAnimationFrame sono fermi: allora basta il tempo)
+        let scoperta = false;
+        const scopri = () => {
+            if (scoperta) return;
+            scoperta = true;
+            pag.classList.remove('subito');
+            if (!h.classList.contains('wh-riapri')) return;
+            h.classList.add('wh-riapri-via');
+            setTimeout(() => h.classList.remove('wh-riapri', 'wh-riapri-via'), 320);
+        };
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(scopri, 140)));
+        setTimeout(scopri, 1000);
     }
+    // i tasti della grandezza (anche prima di 'load', quando la pagina si e' appena riaperta qui)
+    let tastiPronti = false;
+    function tastiScala() {
+        if (tastiPronti) return;
+        tastiPronti = true;
+        document.querySelectorAll('#imp-pagina .imp-scala-scelte button').forEach(b => b.addEventListener('click', () => window.impScala(b.dataset.scala)));
+    }
+    // non si aspetta 'load' (immagini delle telecamere, modelli 3D...): basta che la pagina sia costruita
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', riapri);
+    else setTimeout(riapri, 0);
 
     // ---------------------------------------------------------------- avvio
     window.addEventListener('load', function () {
@@ -9910,7 +10113,7 @@ document.addEventListener('visibilitychange', () => {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
         }));
         // grandezza pagina
-        pagina.querySelectorAll('.imp-scala-scelte button').forEach(b => b.addEventListener('click', () => window.impScala(b.dataset.scala)));
+        tastiScala();
         // valori e anteprime seguono le scelte (dopo gli ascoltatori di sempre, che salvano)
         const segui = () => setTimeout(() => { valori(); if (aperta === 'aspetto') disegnaAspetto(); }, 30);
         pagina.addEventListener('click', segui);
@@ -9923,6 +10126,8 @@ document.addEventListener('visibilitychange', () => {
         document.addEventListener('keydown', e => {
             if (e.key !== 'Escape' || !pagina.classList.contains('aperta')) return;
             if (document.querySelector('.bottom-modal.active')) return;
+            const conferma = document.getElementById('upd-conf-no');      // popup di conferma aperto (es. Vuoi uscire?): Esc lo annulla
+            if (conferma) { conferma.click(); return; }
             if ($('imp-dettaglio').classList.contains('aperta') && !duale()) window.impIndietro(); else window.impChiudi();
         });
         // girando lo schermo la scala efficace puo' cambiare (script in <head>): si ridisegna
