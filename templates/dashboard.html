@@ -558,6 +558,36 @@
             #room-tabs .tab { font-size: 0.8rem; }
             .v3d-hint { max-width: calc(100% - 240px); }        /* non finisce sotto i tasti Vista/Modifica del visore 3D */
         }
+        /* --- Nome nelle card della stanza (29/09/2026): fino a due righe e poi i puntini, come nella barra
+           "Dispositivi"; il nome intero sta nel suo title. Lo stato invece resta com'era prima: intero, accanto al
+           badge senza spazio in piu', e se non ci sta va a capo (su una riga con i puntini si leggeva "SPEN..."
+           accanto a VIRTUALE e "IN RIPRODUZ..." accanto a HA, senza modo di vedere il resto). Le card restano
+           quadrate e tutte alte uguali: quando la colonna e' stretta (iPad in verticale, barra allargata) icona e
+           testo si fanno un po' piu' piccoli, cosi' due righe di nome (e anche due di stato) ci stanno.
+           Le misure seguono la larghezza vera della card (container query), non quella della finestra. --- */
+        .dashboard-droptarget .hk-card-source { container-type: inline-size; }
+        .dashboard-droptarget .hk-card-source .hk-name {
+            white-space: normal; text-overflow: clip; overflow: hidden; overflow-wrap: anywhere;
+            display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+            line-height: 1.3;
+            pointer-events: auto;      /* il resto delle informazioni lascia passare il mouse alla card; il nome no: mostra il title */
+        }
+        /* Il lato interno della card (larghezza = altezza) deve contenere icona + spazio + due righe + stato:
+           38 + 12 + 2x18,7 + 2 + 15 = 105 px. Sotto si stringono icona, spazio e testo (lo spazio con un margine
+           negativo: la card non puo' interrogare se stessa, solo i suoi figli). Colonne minime: 140 px sul computer
+           (lato interno 110), 120 px fino a 1100 px di finestra (90), 108 px fino a 900 (82): due righe ci stanno sempre. */
+        @container (max-width: 104.5px) {
+            .dashboard-droptarget .hk-card-source .hk-icon { width: 34px; height: 34px; }
+            .dashboard-droptarget .hk-card-source .hk-icon svg { width: 18px; height: 18px; }
+            .dashboard-droptarget .hk-card-source .entity-info { margin-top: -4px; }
+            .dashboard-droptarget .hk-card-source .hk-name { font-size: 0.85rem; line-height: 1.25; }
+        }
+        @container (max-width: 92.9px) {
+            .dashboard-droptarget .hk-card-source .hk-icon { width: 30px; height: 30px; }
+            .dashboard-droptarget .hk-card-source .hk-icon svg { width: 17px; height: 17px; }
+            .dashboard-droptarget .hk-card-source .entity-info { margin-top: -6px; }
+            .dashboard-droptarget .hk-card-source .hk-name { font-size: 0.8rem; line-height: 1.2; margin-bottom: 1px; }
+        }
 
         /* --- Prova dalla libreria: accende/spegne senza assegnare nulla (stessa API /api/toggle dell'app) --- */
         .hk-prova {
@@ -1325,6 +1355,191 @@
             text-align: center; padding: 24px 12px; color: var(--text-muted);
             font-size: 0.85rem; background: #FAFAFC; border: 1px dashed #D1D1D6; border-radius: var(--radius-md);
         }
+        /* =====================================================================
+           ELENCO DISPOSITIVI (barra a sinistra, 29/09/2026)
+           - larghezza regolabile come la colonna di un foglio di calcolo: maniglia sul bordo destro da
+             trascinare (mouse o dito), doppio clic = larghezza che fa leggere i nomi interi, ricordata
+             su questo dispositivo;
+           - nomi su due righe (nome intero nel suggerimento);
+           - sezioni "Da assegnare" e "Gia' nelle stanze" (richiudibile), con i posti sotto il nome.
+           ===================================================================== */
+        .panel-left { position: relative; min-width: 0; box-sizing: border-box; }   /* la larghezza scelta e' quella che si vede, bordi compresi */
+        .panel-left.lib-anima { transition: flex-basis 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .lib-maniglia {
+            flex: 0 0 16px; margin: 0 -16px; position: relative; z-index: 30; cursor: col-resize;
+            display: flex; align-items: center; justify-content: center; outline: none;
+            touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+        .lib-maniglia::before {
+            content: ''; position: absolute; top: 14px; bottom: 14px; left: 50%; width: 2px; margin-left: -1px;
+            border-radius: 2px; background: var(--accent); opacity: 0; transition: opacity 0.15s ease;
+        }
+        .lib-maniglia-presa {
+            position: relative; width: 6px; height: 38px; border-radius: 4px; background: #FFFFFF;
+            border: 1px solid #D1D1D6; box-shadow: 0 1px 3px rgba(0,0,0,0.08); opacity: 0.5;   /* a riposo si vede appena: si capisce che si puo' allargare */
+            transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        }
+        @media (hover: hover) {   /* col dito il "passaggio" resterebbe acceso dopo il tocco */
+            .lib-maniglia:hover::before { opacity: 0.9; }
+            .lib-maniglia:hover .lib-maniglia-presa { opacity: 1; border-color: var(--accent); }
+        }
+        /* da-puntatore: il fuoco l'ha dato il mouse (per usare poi le frecce), non la tastiera: niente linea fissa */
+        .lib-maniglia:focus-visible:not(.da-puntatore)::before, .lib-maniglia.attiva::before { opacity: 0.9; }
+        .lib-maniglia:focus-visible:not(.da-puntatore) .lib-maniglia-presa, .lib-maniglia.attiva .lib-maniglia-presa { opacity: 1; border-color: var(--accent); }
+        .lib-maniglia.attiva .lib-maniglia-presa { background: var(--accent); }
+        body.lib-ridimensiona, body.lib-ridimensiona * { cursor: col-resize !important; -webkit-user-select: none !important; user-select: none !important; }
+        /* tasto nella testata "Dispositivi": larghezza che fa leggere i nomi interi (di nuovo: larghezza normale) */
+        .btn-launch.lib-adatta { background: #FFFFFF; color: var(--text-main); box-shadow: inset 0 0 0 1px #D1D1D6; }
+        .btn-launch.lib-adatta:hover { background: #F2F2F7; color: var(--accent); box-shadow: inset 0 0 0 1px #C7C7CC; }
+        .btn-launch.lib-adatta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        body.lib-ridimensiona #source-list .hk-card-source { transition: none; }
+
+        #source-list { transition: opacity 0.18s ease; }
+        #source-list.lib-attesa { opacity: 0; }
+        /* L'elenco arriva a centinaia di dispositivi ma se ne vede una dozzina: il browser impagina e disegna solo le card
+           visibili (e quelle vicine); le altre tengono il posto con l'ultima altezza vista. A ogni tasto della ricerca e a
+           ogni cambio di stanza non si rifanno piu' stile e impaginazione di tutto l'elenco. Perche' a schermo non cambi
+           niente (scorrendo nessun salto, anche su Safari) quell'altezza e' sempre quella vera: ogni card si disegna per
+           intero per un fotogramma quando puo' cambiare, oppure quando ricompare se in quel momento era nascosta
+           (lib-cv-pieno, vedi libCvRinfresca). Per misurare i nomi ("adatta ai nomi") le card tornano normali. */
+        #source-list > .hk-card-source { content-visibility: auto; contain-intrinsic-height: auto 90px; }
+        #source-list.lib-misura > .hk-card-source, #source-list.lib-cv-pieno > .hk-card-source,
+        #source-list > .hk-card-source.lib-cv-pieno { content-visibility: visible; }
+        #source-list .hk-name {
+            white-space: normal; text-overflow: clip; overflow: hidden; overflow-wrap: anywhere;
+            display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2;
+            line-height: 1.3; margin-bottom: 3px;
+        }
+        #source-list .hk-card-source { align-items: center; }
+        #source-list .hk-state { gap: 6px; }                                 /* barra stretta: si accorcia lo stato, non il badge */
+        #source-list .hk-state > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #source-list .hk-state .entity-badge { flex-shrink: 0; }
+        #source-list .hk-card-source.lib-nascosta { display: none; }
+        #source-list.lib-chiuso-assegnati:not(.lib-in-ricerca) .hk-card-source.lib-assegnata { display: none; }
+
+        /* testate delle sezioni: restano in cima mentre si scorre l'elenco */
+        .lib-testa {
+            position: sticky; top: -16px; z-index: 5; display: flex; align-items: center; gap: 8px; box-sizing: border-box;
+            width: 100%; min-height: 36px; margin: 0; padding: 8px 2px 6px 2px; border: none; border-radius: 0;
+            background: var(--bg-panel); box-shadow: 0 1px 0 #F0F0F4; font-family: inherit; text-align: left;
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text-muted);
+        }
+        .lib-testa[hidden] { display: none; }
+        .lib-testa > svg { width: 14px; height: 14px; flex-shrink: 0; }
+        .lib-testa-tit { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lib-conta {
+            min-width: 22px; padding: 1px 7px; border-radius: 10px; box-sizing: border-box; background: #F0F0F4; color: #5A5A5F;
+            font-size: 0.7rem; font-weight: 700; letter-spacing: 0; text-align: center; font-variant-numeric: tabular-nums;
+        }
+        .lib-testa[data-sez="liberi"] .lib-conta { background: #E5F1FF; color: var(--accent); }
+        .lib-testa[data-sez="liberi"] > svg { color: var(--accent); }
+        .lib-testa[data-sez="assegnati"] { margin-top: 10px; cursor: pointer; transition: color 0.15s ease; }
+        .lib-testa[data-sez="assegnati"]:hover:not(:disabled) { color: var(--text-main); }
+        .lib-testa[data-sez="assegnati"]:disabled { cursor: default; color: var(--text-muted); opacity: 1; }
+        .lib-testa[data-sez="assegnati"]:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 6px; }
+        .lib-testa .lib-chev { margin-left: auto; width: 16px; height: 16px; transition: transform 0.2s ease; }
+        #source-list.lib-chiuso-assegnati:not(.lib-in-ricerca) .lib-chev { transform: rotate(-90deg); }
+        .lib-nota { display: flex; align-items: center; gap: 8px; padding: 6px 4px 4px 4px; font-size: 0.78rem; color: var(--text-muted); line-height: 1.35; }
+        .lib-nota[hidden] { display: none; }
+        .lib-nota svg { width: 15px; height: 15px; color: var(--success); flex-shrink: 0; }
+        .lib-vuoto { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 12px; color: var(--text-muted); font-size: 0.85rem; text-align: center; }
+        .lib-vuoto[hidden] { display: none; }
+        .lib-vuoto svg { width: 28px; height: 28px; opacity: 0.45; }
+
+        /* card gia' assegnate: piu' tenui, con le stanze/zone sotto il nome; al passaggio tornano piene */
+        #source-list .hk-card-source.lib-assegnata { background: #F8F8FA; border-color: #ECECF0; }
+        #source-list .hk-card-source.lib-assegnata .hk-name { color: #4A4A4F; font-weight: 500; }
+        /* l'icona resta piena e leggibile (col dito e' anche la maniglia per trascinare): grigio, non sbiadita */
+        #source-list .hk-card-source.lib-assegnata:not(:hover) .hk-icon { background: #EFEFF3; color: #6E6E73; box-shadow: none; }
+        #source-list .hk-card-source.lib-assegnata .entity-badge { filter: grayscale(1); opacity: 0.62; transition: filter 0.15s ease, opacity 0.15s ease; }
+        #source-list .hk-card-source.lib-assegnata:hover { background: #FFFFFF; border-color: #C7C7CC; }
+        #source-list .hk-card-source.lib-assegnata:hover .entity-badge { filter: none; opacity: 1; }
+        .lib-dove { display: flex; flex-wrap: wrap; gap: 4px; margin: 1px 0 5px 0; }
+        .lib-posto {
+            display: inline-block; max-width: 100%; box-sizing: border-box; padding: 1px 7px; border-radius: 5px;
+            background: #EAEAEF; color: #56565B; font-size: 0.68rem; font-weight: 600; line-height: 1.5;
+            white-space: normal; overflow: hidden; text-transform: none; letter-spacing: 0;
+        }
+        /* stanza, zona e "3D" sono pezzi interi: se non stanno su una riga la zona va a capo sotto la stanza; un pezzo
+           piu' largo dell'etichetta va a capo fra le sue parole. Mai tagliati: sono proprio l'informazione cercata */
+        .lib-posto-p { display: inline-block; max-width: 100%; vertical-align: top; white-space: normal; overflow-wrap: break-word; }
+        .lib-posto.lib-qui { background: #E5F1FF; color: var(--accent); }
+        .lib-posto.lib-altri {
+            position: relative; -webkit-appearance: none; appearance: none; margin: 0; border: none; cursor: pointer;
+            font-family: inherit; font-size: 0.68rem; font-weight: 600; line-height: 1.5;
+            background: transparent; box-shadow: inset 0 0 0 1px #D1D1D6; color: var(--text-muted);
+            transition: color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .lib-posto.lib-altri:hover { color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+        .lib-posto.lib-altri:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+        .lib-posto.lib-altri svg { width: 12px; height: 12px; vertical-align: -2px; }
+        #source-list .hk-card-source.lib-spostata { animation: libSpostata 1.5s ease; }
+        @keyframes libSpostata {
+            0%, 35% { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+            100% { box-shadow: none; }
+        }
+        #source-list.lib-misura .hk-card-source { display: flex !important; }
+        /* stanze non lette dal server: la pagina non inventa "Area 1" e non salva */
+        .amb-config-non-letta {
+            display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 460px; box-sizing: border-box;
+            margin: 24px auto; padding: 22px 20px; border-radius: var(--radius-lg); text-align: center;
+            background: #FFF6F6; border: 1px solid #F3C9CD; color: var(--text-main);
+        }
+        .amb-config-non-letta > svg { width: 28px; height: 28px; color: var(--danger); }
+        .amb-config-non-letta > b { font-size: 0.95rem; line-height: 1.35; }
+        .amb-config-non-letta > span { font-size: 0.83rem; color: var(--text-muted); line-height: 1.45; }
+        .amb-config-non-letta > .btn-launch { margin-top: 6px; min-height: 44px; gap: 6px; }
+        .amb-config-non-letta > .btn-launch svg { width: 16px; height: 16px; }
+        body.amb-non-letta #target-grid, body.amb-non-letta #empty-state, body.amb-non-letta #btn-toggle-3d,
+        body.amb-non-letta #amb-righe .amb-slot, body.amb-non-letta #upload-3d-zone { display: none !important; }
+        /* misura: il nome largo quanto il suo testo (non quanto la barra), cosi' si puo' anche stringere */
+        #source-list.lib-misura .hk-name { display: inline-block; width: max-content; max-width: none; white-space: nowrap; -webkit-line-clamp: none; line-clamp: none; }
+
+        /* card della stanza per un dispositivo che il server non manda (non risponde o non c'e' piu') */
+        .hk-card-source.hk-non-disp { border-style: dashed; border-color: #D1D1D6; background: #FAFAFC; }
+        .hk-card-source.hk-non-disp .hk-icon { background: #F0F0F3; color: #A0A0A6; }
+        .hk-card-source.hk-non-disp .hk-name { color: #6E6E73; }
+        .hk-card-source.hk-non-disp .hk-state span:first-child { color: #C77800; }
+        .dashboard-droptarget .hk-card-source.lib-lampeggia { animation: libLampeggia 0.9s ease; }
+        @keyframes libLampeggia {
+            0%, 100% { box-shadow: var(--shadow-sm); border-color: #E5E5EA; }
+            30%, 60% { box-shadow: 0 0 0 4px var(--accent-glow); border-color: var(--accent); }
+        }
+
+        /* conferma di eliminazione di stanze e zone: cosa contiene */
+        .amb-del .amb-del-testo { margin: 0 0 20px 0; font-size: 0.83rem; color: var(--text-muted); line-height: 1.45; }
+        .amb-del .amb-del-lead { margin: 0 0 14px 0; font-size: 0.88rem; color: var(--text-main); line-height: 1.5; }
+        .amb-del .amb-del-lead b { font-weight: 700; }
+        .amb-del-sotto { margin: 0 0 8px 0; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; color: var(--text-muted); }
+        .amb-del-zone { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0 0 14px 0; }
+        .amb-del-chip {
+            display: inline-flex; align-items: center; gap: 6px; max-width: 100%; box-sizing: border-box; padding: 4px 5px 4px 9px;
+            border-radius: 8px; background: #F5F5F7; border: 1px solid #E5E5EA; font-size: 0.78rem; font-weight: 600; color: var(--text-main);
+        }
+        .amb-del-chip svg { width: 13px; height: 13px; color: var(--text-muted); flex-shrink: 0; }
+        .amb-del-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .amb-del-chip em { font-style: normal; min-width: 20px; padding: 0 6px; border-radius: 6px; background: #FFFFFF; border: 1px solid #E5E5EA; color: var(--text-muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
+        .amb-del .amb-del-extra { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0 0 12px 0; color: var(--text-main); font-size: 0.8rem; }
+        .amb-del .amb-del-extra svg { width: 14px; height: 14px; color: var(--accent); flex-shrink: 0; }
+        .amb-del .amb-del-nota { margin: 0; padding: 10px 12px; border-radius: 10px; background: #F5F9FF; border: 1px solid #DCEBFF; color: #33475B; font-size: 0.78rem; line-height: 1.45; }
+
+        @media (max-width: 1100px) {
+            .lib-maniglia { flex-basis: 12px; margin: 0 -12px; }
+            .lib-testa { top: -12px; }
+        }
+        /* col dito: maniglia larga 44 px (resta nello spazio fra i due riquadri) e sempre visibile */
+        @media (hover: none), (pointer: coarse) {
+            .lib-maniglia { flex-basis: 44px; margin: 0 -30px; }
+            .lib-maniglia-presa { opacity: 1; height: 44px; }
+            .lib-testa[data-sez="assegnati"] { min-height: 44px; }
+            #source-list .hk-card-source.lib-assegnata .entity-badge { opacity: 0.7; }
+            .lib-posto.lib-altri::after { content: ''; position: absolute; inset: -13px -9px; }   /* bersaglio di 44 px per il dito */
+            .panel-left .panel-header .btn-icon-only { min-width: 44px; min-height: 44px; }
+            .amb-del-azioni .btn-launch { min-height: 44px; }
+        }
+        @media (max-width: 1100px) and (hover: none), (max-width: 1100px) and (pointer: coarse) {
+            .lib-maniglia { flex-basis: 44px; margin: 0 -28px; }
+        }
     </style>
     <script src="/static/popup.js"></script>
 </head>
@@ -1454,17 +1669,22 @@
     </div>
 
     <div class="workspace">
-        <div class="panel panel-left">
+        <div class="panel panel-left" id="lib-pannello">
+            <script>/* larghezza dell'elenco scelta su questo dispositivo: applicata subito, senza salti al caricamento */
+            try { (function () { var w = parseInt(localStorage.getItem('wh_dash_larghezza_dispositivi'), 10); if (w >= 200 && w <= 1200) document.getElementById('lib-pannello').style.flex = '0 0 ' + w + 'px'; })(); } catch (e) {}</script>
             <div class="panel-header">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
     <h3 style="margin: 0;">Dispositivi</h3>
-{% if session.role == 'admin' %}
     <div style="display:flex; gap:8px;">
+        <button type="button" class="btn-launch btn-icon-only lib-adatta" id="lib-adatta" title="Adatta la larghezza ai nomi" aria-label="Adatta la larghezza ai nomi" aria-controls="lib-pannello">
+            <i data-lucide="move-horizontal" style="width:16px; height:16px;"></i>
+        </button>
+{% if session.role == 'admin' %}
         <button class="btn-launch btn-primary btn-icon-only" onclick="openUnifiedModal()" title="Aggiungi Nuovo">
             <i data-lucide="plus" style="width:16px; height:16px;"></i>
         </button>
-    </div>
     {% endif %}
+    </div>
 </div>
                 <div class="search-icon-wrapper">
                     <i data-lucide="search"></i>
@@ -1559,8 +1779,11 @@
                     </div>
                     {% endfor %}
                 </div>
+                <div class="lib-vuoto" id="lib-vuoto" hidden><i data-lucide="search-x"></i><span>Nessun dispositivo trovato</span></div>
             </div>
         </div>
+
+        <div class="lib-maniglia" id="lib-maniglia" role="separator" aria-orientation="vertical" aria-controls="lib-pannello" aria-label="Larghezza dell'elenco dispositivi" title="Trascina per allargare l'elenco. Doppio clic: adatta la larghezza ai nomi" tabindex="0"><span class="lib-maniglia-presa"></span></div>
 
         <div class="panel panel-right">
             <div class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 16px;">
@@ -1732,7 +1955,7 @@
     <div class="icon-modal-content amb-del" onclick="event.stopPropagation()">
         <div class="amb-del-ico"><i data-lucide="trash-2"></i></div>
         <h3 id="amb-del-titolo">Eliminare?</h3>
-        <p id="amb-del-testo"></p>
+        <div id="amb-del-testo" class="amb-del-testo"></div>
         <div class="amb-del-azioni">
             <button type="button" class="btn-launch btn-outline" onclick="ambChiudiElimina()">Annulla</button>
             <button type="button" class="btn-launch amb-btn-danger" id="amb-del-btn" onclick="ambConfermaElimina()"><i data-lucide="trash-2" style="width:15px;height:15px;margin-right:6px;"></i> Elimina</button>
@@ -3814,7 +4037,9 @@
             
             // Genera la lista delle entità per il tab Gruppi (recuperato dal tuo vecchio codice)
             const list = document.getElementById('group-entities-list');
-            const cards = document.querySelectorAll('#source-list .hk-card-source');
+            // nell'ordine del server (dataset.libOrdine, scritto da libRegistra), non in quello della barra divisa in
+            // sezioni "Da assegnare" / "Gia' nelle stanze": elenco e gruppo salvato restano come prima
+            const cards = Array.from(document.querySelectorAll('#source-list .hk-card-source')).sort((a, b) => (+a.dataset.libOrdine || 0) - (+b.dataset.libOrdine || 0));
             /* L'elenco si compone in memoria e si scrive UNA volta sola.
                Prima si faceva list.innerHTML += dentro al ciclo: a ogni giro il
                browser riscriveva in testo tutto l'elenco gia' fatto, lo ributtava
@@ -3954,14 +4179,15 @@ function createSubRoomFromInput() {
             }
             
             if(iconSection.style.display === 'block') renderIconGridOptions(); 
-            lucide.createIcons();
+            libIcone(document);        // solo le icone ancora da disegnare (prima: tutte le ~1000 della pagina a ogni apertura)
         }
         
         function closeEditModal(e) { if(e) e.preventDefault(); document.getElementById('edit-modal').classList.remove('active'); }
 
         function showDeleteConfirm() {
-            document.getElementById('delete-confirm-box').style.display = 'block';
-            document.getElementById('modal-actions-row').style.display = 'none';
+            // stessa conferma del menu ⋯ (dice cosa contiene la stanza o la zona); la finestra delle
+            // impostazioni resta sotto e si chiude solo se l'eliminazione va a buon fine
+            ambChiediElimina();
         }
 
         function hideDeleteConfirm() {
@@ -3970,33 +4196,47 @@ function createSubRoomFromInput() {
         }
 
 async function confirmDeleteContext() {
-    if (editingType === 'room') {
-        if(Object.keys(config).length <= 1) {
+    // Eliminazione di una stanza o di una zona, anche piena: le sue entita' escono dalla configurazione di
+    // quel posto (non dall'impianto). Prima: salvataggio in corsa con altri, scheda attiva sempre la prima,
+    // zone vecchie rimaste nella riga nascosta, griglia rifatta clonando la barra (vuota con la ricerca attiva),
+    // chiavi dell'app cancellate anche se il salvataggio non riusciva.
+    const eZona = editingType === 'subroom';
+    if (editingType !== 'room' && !eZona) return;
+    const stanzaZona = activeRoom;
+    const eliminato = editingId;
+    if (!eZona) {
+        if (!config[eliminato]) { closeEditModal(); hideDeleteConfirm(); return; }          // gia' eliminata (doppio clic)
+        if (Object.keys(config).length <= 1) {
             hideDeleteConfirm();
             return showToast("Devi mantenere almeno una stanza nel sistema", "error");
         }
-        delete config[editingId];
-        ambChiaveApp(editingId, null);                       // via anche l'ordine e le card allargate salvati nell'app
-        activeRoom = Object.keys(config)[0];
-        activeSubRoom = null;
-        
-        await saveConfig(false); // <-- FIX: Non leggere la griglia!
-        
-        renderTabs(); updateWorkspaceView(); 
-        closeEditModal();
-        showToast('Stanza eliminata correttamente', 'success'); 
-        
-    } else if (editingType === 'subroom') {
-        delete config[activeRoom].sub_rooms[editingId];
-        ambChiaveApp(activeRoom + '/' + editingId, null);
-        activeSubRoom = null;
-        
-        await saveConfig(false); // <-- FIX: Non leggere la griglia!
-        
-        renderTabs(); updateWorkspaceView(); 
-        closeEditModal();
-        showToast('Zona eliminata correttamente', 'success'); 
+    } else if (!config[stanzaZona] || !config[stanzaZona].sub_rooms || !config[stanzaZona].sub_rooms[eliminato]) {
+        closeEditModal(); hideDeleteConfirm(); return;
     }
+
+    const primaConfig = JSON.stringify(config), primaStanza = activeRoom, primaZona = activeSubRoom;
+    if (typeof ambChiudiMenu === 'function') ambChiudiMenu();
+    ambEditorAperto = null; ambEditorTesto = '';
+    if (!eZona) {
+        const pos = Object.keys(config).indexOf(eliminato);
+        delete config[eliminato];
+        const resto = Object.keys(config);
+        activeRoom = resto[Math.min(Math.max(pos, 0), resto.length - 1)];   // la stanza accanto, non sempre la prima
+    } else {
+        delete config[stanzaZona].sub_rooms[eliminato];
+    }
+    activeSubRoom = null;
+    renderTabs(); updateWorkspaceView();                       // subito a schermo (e la barra: le entita' tornano libere)
+
+    const ok = await saveConfig(false);                        // la griglia e' gia' quella del posto nuovo: non si legge
+    if (!ok) {                                                 // non salvato: tutto come prima (l'avviso l'ha gia' dato saveConfig)
+        config = JSON.parse(primaConfig); activeRoom = primaStanza; activeSubRoom = primaZona;
+        renderTabs(); updateWorkspaceView();
+        return;
+    }
+    ambChiaveApp(eZona ? stanzaZona + '/' + eliminato : eliminato, null);   // via anche l'ordine e le card allargate salvati nell'app
+    closeEditModal(); hideDeleteConfirm();
+    showToast(eZona ? 'Zona eliminata correttamente' : 'Stanza eliminata correttamente', 'success');
 }
 
         // Nell'app l'ordine delle card e le card allargate sono salvati per nome di stanza/zona ('Stanza' o
@@ -4051,11 +4291,18 @@ if (editingType === 'room') {
                     customIcons[editingId] = selectedIcon;
                     await fetch('/api/icons', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(customIcons) });
                 }
-                customNames[editingId] = newName;
-                await fetch('/api/names', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(customNames) });
+                // Card "Non disponibile" di un'entita' che il server non ha mai mandato (libCardSegnaposto): il campo mostra
+                // solo il suo entity_id. Lasciato cosi' non e' un nome scelto e non si salva (prima diventava il nome
+                // personalizzato e, tornata l'entita', si vedeva l'id al posto del suo nome). Le altre card come prima.
+                const soloId = newName === editingId && !libRegistro.has(editingId) && !customNames[editingId];
+                if (!soloId) {
+                    customNames[editingId] = newName;
+                    await fetch('/api/names', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(customNames) });
+                }
                 
                 document.querySelectorAll(`.hk-card-source[data-id="${editingId}"]`).forEach(card => {
                     card.querySelector('.hk-name').innerText = newName || card.dataset.originalName;
+                    libTitoloNome(card);                   // il title col nome intero segue la rinomina
                     if(selectedIcon) {
                         const el = card.querySelector('.hk-icon');
                         el.innerHTML = `<i data-lucide="${selectedIcon}"></i>`; lucide.createIcons({root: el});
@@ -4063,6 +4310,7 @@ if (editingType === 'room') {
                 });
             }
 
+            libAggiornaSezioni();        // nomi e posti nella barra (rinomina di stanza, zona o dispositivo)
             closeEditModal(); showToast('Impostazioni aggiornate', 'success');
         }
 
@@ -4079,13 +4327,13 @@ if (editingType === 'room') {
                 if(customNames[id]) card.querySelector('.hk-name').innerText = customNames[id]; 
             });
 
-            try { 
-                const res = await fetch('/api/config'); const rawConfig = await res.json(); 
-                for (let room in rawConfig) { config[room] = Array.isArray(rawConfig[room]) ? { device_ids: rawConfig[room], has_3d: false, model_url: "", mesh_mapping: {} } : rawConfig[room]; }
-            } catch (e) {}
-            
-            if(Object.keys(config).length === 0) config = {"Area 1": { device_ids: [], has_3d: false, model_url: "", mesh_mapping: {}, sub_rooms: {} }};
-            if(activeRoom === "") activeRoom = Object.keys(config)[0];
+            // Stanze e zone si modificano SOLO dopo averle lette davvero. Prima, se la lettura falliva (errore del
+            // server, risposta che non e' JSON, un attimo senza rete) la pagina ripartiva da "Area 1" e il primo
+            // salvataggio cancellava sul server tutte le stanze e le zone, anche per l'app.
+            config = await libLeggiConfig();
+            if (!libConfigLetta) libAvvisoConfigNonLetta();
+            else if (Object.keys(config).length === 0) config = {"Area 1": { device_ids: [], has_3d: false, model_url: "", mesh_mapping: {}, sub_rooms: {} }};
+            if(activeRoom === "") activeRoom = Object.keys(config)[0] || "";
             
             renderTabs(); updateWorkspaceView();
             
@@ -4146,28 +4394,14 @@ if (editingType === 'room') {
         }
 
 async function saveConfig(syncFromDom = true) {
-    const contextData = activeSubRoom ? config[activeRoom].sub_rooms[activeSubRoom] : config[activeRoom];
-    
-    // Legge dalla griglia grafica SOLO se syncFromDom è true
-    if (syncFromDom && contextData && !contextData.has_3d) {
-        const currentDevices = [];
-        document.querySelectorAll('#target-grid .hk-card-source').forEach(card => {
-            currentDevices.push(card.dataset.id);
-        });
-        contextData.device_ids = currentDevices;
-    }
-
-    try {
-        const response = await fetch('/api/config', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(config)
-        });
-    } catch (e) {
-        console.error("Errore di rete durante il salvataggio", e);
-    }
-    
+    // syncFromDom: l'ordine si prende dalla griglia, ma solo per la stanza/zona che la griglia mostra davvero
+    // (data-stanza/data-zona) e senza mai perdere gli id che la griglia non mostra (vedi libLeggiGriglia).
+    // Prima leggeva la griglia per il posto ATTIVO: togliendo la 3D a una zona ci finivano le card della
+    // stanza vista prima.
+    if (syncFromDom) libLeggiGriglia();
     checkEmptyState();
+    libAggiornaSezioni();                                      // barra: "Da assegnare" / "Gia' nelle stanze" subito
+    return libInviaConfig();                                   // true = salvato
 }
 
         function checkEmptyState() {
@@ -4175,77 +4409,128 @@ async function saveConfig(syncFromDom = true) {
             else { emptyState.style.display = 'none'; targetGrid.style.minHeight = '100%'; }
         }
 
+        // Schede (29/09/2026): tutte si ricostruiscono solo se cambiano le stanze (nomi, ordine, icone) o le zone della
+        // stanza aperta. Se cambia solo la scheda attiva si rifanno soltanto le schede che cambiano aspetto (quella
+        // lasciata e quella scelta), nuove come prima: niente transizioni che prima non c'erano. Prima ogni clic rifaceva
+        // tutte le schede e le loro icone (25 stanze: ~30 ms su un tablet lento), con lo stesso risultato a schermo.
+        function ambSchedaStanza(room) {
+            const btn = document.createElement('button'); 
+            btn.className = `tab ${(room === activeRoom && !activeSubRoom) ? 'active' : ''}`;
+            btn.setAttribute('data-room', room);
+            const roomIcon = customIcons['room_' + room] || 'layout-grid';
+            btn.innerHTML = `<i data-lucide="${roomIcon}" style="width:16px;height:16px;"></i> <span data-no-tr>${ambEsc(room)}</span>`;
+            // la ricerca si svuota PRIMA di disegnare: prima si svuotava il campo dopo, la barra restava filtrata
+            btn.onclick = () => { activeRoom = room; activeSubRoom = null; document.getElementById('entity-search').value = ''; renderTabs(); updateWorkspaceView(); };
+            return btn;
+        }
+        function ambSchedaPrincipale() {
+            const rootBtn = document.createElement('button');
+            rootBtn.className = `tab ${activeSubRoom === null ? 'active' : ''}`;
+            rootBtn.innerHTML = `<i data-lucide="maximize" style="width:14px;height:14px;"></i> Stanza Principale`;
+            rootBtn.onclick = () => { activeSubRoom = null; renderTabs(); updateWorkspaceView(); };
+            return rootBtn;
+        }
+        function ambSchedaZona(sub) {
+            const btn = document.createElement('button');
+            btn.className = `tab ${sub === activeSubRoom ? 'active' : ''}`;
+            btn.setAttribute('data-zona', sub);        // le zone si possono trascinare (vedi 'Ordine zone')
+            btn.innerHTML = `<i data-lucide="layers" style="width:14px;height:14px;"></i> <span data-no-tr>${ambEsc(sub)}</span>`;
+            btn.onclick = () => { activeSubRoom = sub; renderTabs(); updateWorkspaceView(); };
+            return btn;
+        }
+        // la riga mostra gia' queste schede, in quest'ordine (firma = nomi, ordine e icone)?
+        function ambSchedeUguali(riga, firma, attr, nomi) {
+            const figli = riga.querySelectorAll(':scope > .tab[' + attr + ']');
+            return riga._ambFirma === firma && figli.length === nomi.length && nomi.every((n, i) => figli[i].getAttribute(attr) === n);
+        }
+        // rifa' la scheda solo se deve cambiare aspetto (attiva / stanza della zona attiva)
+        function ambAggiornaScheda(riga, btn, attiva, genitore, nuova) {
+            if (btn.classList.contains('active') === attiva && btn.classList.contains('amb-genitore') === genitore) return;
+            riga.replaceChild(nuova(), btn);
+        }
         function renderTabs() {
-            const container = document.getElementById('room-tabs'); container.innerHTML = '';
-            Object.keys(config).forEach(room => {
-                const btn = document.createElement('button'); 
-                btn.className = `tab ${(room === activeRoom && !activeSubRoom) ? 'active' : ''}`;
-                btn.setAttribute('data-room', room);
-                const roomIcon = customIcons['room_' + room] || 'layout-grid';
-                btn.innerHTML = `<i data-lucide="${roomIcon}" style="width:16px;height:16px;"></i> <span data-no-tr>${room}</span>`;
-                btn.onclick = () => { activeRoom = room; activeSubRoom = null; renderTabs(); updateWorkspaceView(); document.getElementById('entity-search').value = ''; };
-                container.appendChild(btn);
-            });
+            const container = document.getElementById('room-tabs');
+            const stanze = Object.keys(config);
+            const firmaStanze = JSON.stringify(stanze.map(room => [room, customIcons['room_' + room] || 'layout-grid']));
+            if (ambSchedeUguali(container, firmaStanze, 'data-room', stanze)) {
+                container.querySelectorAll(':scope > .tab[data-room]').forEach(btn => {
+                    const room = btn.getAttribute('data-room');
+                    ambAggiornaScheda(container, btn, room === activeRoom && !activeSubRoom, room === activeRoom && !!activeSubRoom, () => ambSchedaStanza(room));
+                });
+            } else {
+                container.innerHTML = '';
+                stanze.forEach(room => container.appendChild(ambSchedaStanza(room)));
+                container._ambFirma = firmaStanze;
+            }
 
             const subContainer = document.getElementById('sub-room-tabs');
             if (subContainer) {
                 if (activeRoom && config[activeRoom].sub_rooms && Object.keys(config[activeRoom].sub_rooms).length > 0) {
                     subContainer.style.display = 'flex';
-                    subContainer.innerHTML = '';
-                    
-                    const rootBtn = document.createElement('button');
-                    rootBtn.className = `tab ${activeSubRoom === null ? 'active' : ''}`;
-                    rootBtn.innerHTML = `<i data-lucide="maximize" style="width:14px;height:14px;"></i> Stanza Principale`;
-                    rootBtn.onclick = () => { activeSubRoom = null; renderTabs(); updateWorkspaceView(); };
-                    subContainer.appendChild(rootBtn);
-
-                    Object.keys(config[activeRoom].sub_rooms).forEach(sub => {
-                        const btn = document.createElement('button');
-                        btn.className = `tab ${sub === activeSubRoom ? 'active' : ''}`;
-                        btn.setAttribute('data-zona', sub);        // le zone si possono trascinare (vedi 'Ordine zone')
-                        btn.innerHTML = `<i data-lucide="layers" style="width:14px;height:14px;"></i> <span data-no-tr>${sub}</span>`;
-                        btn.onclick = () => { activeSubRoom = sub; renderTabs(); updateWorkspaceView(); };
-                        subContainer.appendChild(btn);
-                    });
+                    const zone = Object.keys(config[activeRoom].sub_rooms);
+                    const firmaZone = JSON.stringify([activeRoom, zone]);
+                    const principale = subContainer.querySelector(':scope > .tab:not([data-zona])');
+                    if (principale && ambSchedeUguali(subContainer, firmaZone, 'data-zona', zone)) {
+                        ambAggiornaScheda(subContainer, principale, activeSubRoom === null, false, ambSchedaPrincipale);
+                        subContainer.querySelectorAll(':scope > .tab[data-zona]').forEach(btn => {
+                            const sub = btn.getAttribute('data-zona');
+                            ambAggiornaScheda(subContainer, btn, sub === activeSubRoom, false, () => ambSchedaZona(sub));
+                        });
+                    } else {
+                        subContainer.innerHTML = '';
+                        subContainer.appendChild(ambSchedaPrincipale());
+                        zone.forEach(sub => subContainer.appendChild(ambSchedaZona(sub)));
+                        subContainer._ambFirma = firmaZone;
+                    }
                 } else {
                     subContainer.style.display = 'none';
+                    if (subContainer.firstChild) subContainer.innerHTML = '';   // niente zone della stanza di prima rimaste nella riga nascosta
+                    subContainer._ambFirma = null;
                 }
             }
-            lucide.createIcons({root: document.getElementById('room-tabs').parentElement});
             if (typeof ambDopoRenderTabs === 'function') ambDopoRenderTabs();   // ambienti: chip "+", menu della scheda attiva
+            libIcone(document.getElementById('amb-righe') || container.parentElement);   // una volta, solo le icone nuove
         }
 
         function updateWorkspaceView() {
-            const contextData = activeSubRoom ? config[activeRoom].sub_rooms[activeSubRoom] : config[activeRoom]; 
-            const btnToggle3D = document.getElementById('btn-toggle-3d'); 
-            const uploadZone = document.getElementById('upload-3d-zone'); 
-            const container3D = document.getElementById('dashboard-3d-container'); 
+            if (libTrascinamento) { libGrigliaInAttesa = true; return; }   // una card e' in volo: si ridisegna appena la si lascia
+            const contextData = libContestoAttivo();
+            if (!contextData) return;
+            const btnToggle3D = document.getElementById('btn-toggle-3d');
+            const uploadZone = document.getElementById('upload-3d-zone');
+            const container3D = document.getElementById('dashboard-3d-container');
             const gridContainer = document.getElementById('dashboard-grid-container');
-            
-            if(contextData.has_3d && contextData.model_url) {
-                btnToggle3D.className = "btn-launch btn-3d-feature btn-3d-active"; 
-                btnToggle3D.innerHTML = '<i data-lucide="box" style="width:16px;height:16px;"></i> <span id="text-toggle-3d" style="margin-left: 6px;">3D attiva</span> <i data-lucide="chevron-down" class="btn-3d-chev"></i>';
-                
-                uploadZone.style.display = 'none'; gridContainer.style.display = 'none'; 
+
+            // il contenuto del tasto 3D si riscrive solo quando cambia (prima a ogni clic, con le sue icone)
+            const stato3D = libVista3D(contextData) ? 'attiva' : 'spenta', riscrivi3D = btnToggle3D._ambStato !== stato3D;
+            btnToggle3D._ambStato = stato3D;
+            if(libVista3D(contextData)) {
+                btnToggle3D.className = "btn-launch btn-3d-feature btn-3d-active";
+                if (riscrivi3D) btnToggle3D.innerHTML = '<i data-lucide="box" style="width:16px;height:16px;"></i> <span id="text-toggle-3d" style="margin-left: 6px;">3D attiva</span> <i data-lucide="chevron-down" class="btn-3d-chev"></i>';
+
+                uploadZone.style.display = 'none'; gridContainer.style.display = 'none';
+                targetGrid.innerHTML = ''; libSegnaGriglia(null);   // la griglia nascosta non tiene le card di un altro posto
                 init3DDesigner(contextData.model_url);
             } else {
-                btnToggle3D.className = "btn-launch btn-3d-feature"; 
-                btnToggle3D.innerHTML = '<i data-lucide="box" style="width:16px;height:16px;"></i> <span id="text-toggle-3d" style="margin-left: 6px;">Planimetria 3D</span> <i data-lucide="chevron-down" class="btn-3d-chev"></i>';
-                
-                uploadZone.style.display = 'none'; container3D.style.display = 'none'; gridContainer.style.display = 'block';
-                targetGrid.innerHTML = '';
-                
-                let targetDeviceArray = contextData.device_ids || [];
+                btnToggle3D.className = "btn-launch btn-3d-feature";
+                if (riscrivi3D) btnToggle3D.innerHTML = '<i data-lucide="box" style="width:16px;height:16px;"></i> <span id="text-toggle-3d" style="margin-left: 6px;">Planimetria 3D</span> <i data-lucide="chevron-down" class="btn-3d-chev"></i>';
 
-                (targetDeviceArray).forEach(id => { 
-                    const originalCard = sourceList.querySelector(`[data-id="${id}"]`); 
-                    if(originalCard) { const clone = originalCard.cloneNode(true); decorateTargetCard(clone); targetGrid.appendChild(clone); } 
-                });
-                lucide.createIcons({root: targetGrid}); checkEmptyState();
+                if (window.renderer3D) libChiudi3D();             // lasciando una vista 3D (anche eliminata) il visore si ferma davvero
+                uploadZone.style.display = 'none'; container3D.style.display = 'none'; gridContainer.style.display = 'block';
+                // le card si costruiscono dalla configurazione e dal registro, NON clonando la barra a sinistra
+                libCostruisciGriglia(contextData);
             }
             renderMeshLinks();
-            lucide.createIcons({root: btnToggle3D}); 
-            filterEntities();
+            libIcone(btnToggle3D);
+            libAggiornaSezioni();                                  // anche la stanza "qui" evidenziata nella barra
+        }
+        function libChiudi3D() {
+            if (window.animationFrameId) { cancelAnimationFrame(window.animationFrameId); window.animationFrameId = null; }
+            if (window.__resize3D) { window.__resize3D.disconnect(); window.__resize3D = null; }
+            if (window.renderer3D) { try { window.renderer3D.dispose(); } catch (e) {} window.renderer3D = null; }
+            const c = document.getElementById('dashboard-3d-container');
+            if (c) c.innerHTML = '';
+            window.handle3DDrop = null; window.highlightMesh = null; window.reset3DView = null;
         }
 
         async function toggle3DMode() {
@@ -4257,7 +4542,7 @@ async function saveConfig(syncFromDom = true) {
                     contextData.mesh_mapping = {};
                     if(window.animationFrameId) cancelAnimationFrame(window.animationFrameId); 
                     if(window.renderer3D) { window.renderer3D.dispose(); document.getElementById('dashboard-3d-container').innerHTML = '';}
-                    saveConfig().then(() => updateWorkspaceView());
+                    saveConfig(false).then(() => updateWorkspaceView());   // false: la griglia mostra un altro posto
                 }
             } else {
                 const uploadZone = document.getElementById('upload-3d-zone'); 
@@ -4507,19 +4792,95 @@ function animate() {
             if(cardElement.querySelector('.btn-danger')) cardElement.querySelector('.btn-danger').remove(); 
             cardElement.removeAttribute('draggable'); 
             
-            const removeBtn = document.createElement('button'); removeBtn.className = 'remove-btn'; removeBtn.innerHTML = '<i data-lucide="x"></i>'; 
-            removeBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); cardElement.remove(); saveConfig(); filterEntities(); }; 
+            const removeBtn = libTastoCard('remove-btn', 'x');                // copia di un tasto con l'icona gia' disegnata
+            removeBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); libTogliDallaGriglia(cardElement); };
             cardElement.appendChild(removeBtn);
             
-            const editBtn = document.createElement('button'); editBtn.className = 'edit-icon-btn'; editBtn.innerHTML = '<i data-lucide="pencil"></i>'; 
+            const editBtn = libTastoCard('edit-icon-btn', 'pencil');
             editBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openEditModal('entity', entityId); }; 
             cardElement.appendChild(editBtn);
             
             if(customIcons[entityId]) cardElement.querySelector('.hk-icon').innerHTML = `<i data-lucide="${customIcons[entityId]}"></i>`;
             if(customNames[entityId]) cardElement.querySelector('.hk-name').innerText = customNames[entityId];
+            libTitoloNome(cardElement);
+        }
+        // tasti ✕ e ✎ delle card della stanza: l'icona si disegna una volta sola, poi si copia il tasto (stesso risultato
+        // di prima, quando si scriveva <i data-lucide> in ogni card e poi si ridisegnavano tutte le icone della griglia)
+        function libTastoCard(classe, icona) {
+            const cache = libTastoCard.cache || (libTastoCard.cache = {});
+            let t = cache[classe];
+            if (!t) {
+                t = document.createElement('button'); t.className = classe; t.innerHTML = '<i data-lucide="' + icona + '"></i>';
+                if (window.lucide) lucide.createIcons({ root: t });
+                cache[classe] = t;
+            }
+            return t.cloneNode(true);
+        }
+        // nome intero nel title (nella card della stanza il nome si taglia dopo due righe, come nella barra). Sta sul nome,
+        // che e' data-no-tr: e' un dato e non si traduce (sulla card lo tradurrebbe i18n.js)
+        function libTitoloNome(card) {
+            const n = card ? card.querySelector('.hk-name') : null;
+            const id = card ? (card.dataset.id || '') : '';
+            if (!n || id === 'virtual_timer' || libIdScartato(id)) return;
+            const t = n.textContent.trim();
+            if (n.title !== t) n.title = t;
+        }
+        // Icone (29/09/2026): lucide 1.41 lascia data-lucide sugli <svg> che crea, e createIcons su un contenitore rifa' da
+        // capo anche tutte le icone gia' disegnate. Qui si convertono solo le <i data-lucide> ancora da fare (stesso
+        // risultato: lucide riceve solo quelle; se la chiamata fallisse si torna a createIcons su tutto il contenitore).
+        function libIcone(radice) {
+            if (!radice || !window.lucide) return;
+            const nuove = radice.querySelectorAll('i[data-lucide]');
+            if (!nuove.length) return;
+            // a lucide solo i disegni che servono: con tutti (oltre 1.600) li conta da capo a ogni chiamata
+            const tutte = lucide.icons || {}, serve = {};
+            nuove.forEach(el => { const k = libNomeIcona(el.getAttribute('data-lucide') || ''); if (tutte[k]) serve[k] = tutte[k]; });
+            try { lucide.createIcons({ icons: Object.keys(serve).length ? serve : tutte, root: { querySelectorAll: sel => (sel === '[data-lucide]' ? nuove : radice.querySelectorAll(sel)) } }); }
+            catch (e) { lucide.createIcons({ root: radice }); }
+        }
+        // 'chevron-down' -> 'ChevronDown': stesso nome che cerca lucide 1.41
+        function libNomeIcona(n) {
+            const c = n.replace(/^([A-Z])|[\s-_]+(\w)/g, (t, d, s) => (s ? s.toUpperCase() : d.toLowerCase()));
+            return c.charAt(0).toUpperCase() + c.slice(1);
         }
 
-        function filterEntities() { const query = document.getElementById('entity-search').value.toLowerCase(); Array.from(sourceList.children).forEach(card => { const name = card.querySelector('.hk-name').innerText.toLowerCase(); const domain = card.dataset.domain.toLowerCase(); card.style.display = (name.includes(query) || domain.includes(query)) ? 'flex' : 'none'; }); }
+        // ricerca nella barra: nome, nome originale, id, tipo e stanze/zone; filtra entrambe le sezioni.
+        // Con una classe e non con style.display: lo stile in linea finiva copiato nelle card della stanza.
+        function filterEntities() {
+            const campo = document.getElementById('entity-search');
+            const parole = libNorm(campo ? campo.value.trim() : '').split(/\s+/).filter(Boolean);
+            const cerca = parole.length > 0;
+            let nL = 0, nA = 0, visibili = 0, timerVisibile = false;
+            sourceList.querySelectorAll(':scope > .hk-card-source').forEach(card => {
+                if (card.style.display) card.style.removeProperty('display');
+                const testo = card.dataset.libCerca || libNorm(((card.querySelector('.hk-name') || {}).textContent || '') + ' ' + (card.dataset.domain || '') + ' ' + (card.dataset.id || ''));
+                const ok = parole.every(p => testo.includes(p));
+                card.classList.toggle('lib-nascosta', !ok);
+                if (!ok) return;
+                visibili++;
+                if (card.dataset.id === 'virtual_timer') timerVisibile = true;
+                else if (card.classList.contains('lib-assegnata')) nA++;
+                else nL++;
+            });
+            sourceList.classList.toggle('lib-in-ricerca', cerca);
+            if (libCvDaRifare.size) libCvRicompaiono();         // ricerca svuotata, sezione riaperta: altezze da registrare
+            const tL = sourceList.querySelector(':scope > .lib-testa[data-sez="liberi"]');
+            const tA = sourceList.querySelector(':scope > .lib-testa[data-sez="assegnati"]');
+            const nota = sourceList.querySelector(':scope > .lib-nota');
+            if (tL) {
+                tL.querySelector('.lib-conta').textContent = nL;
+                tL.hidden = cerca && nL === 0 && !timerVisibile;
+            }
+            if (tA) {
+                tA.querySelector('.lib-conta').textContent = nA;
+                tA.hidden = cerca ? nA === 0 : +(sourceList.dataset.totAssegnati || 0) === 0;
+                tA.disabled = cerca;                                // cercando si vedono comunque tutte
+                tA.setAttribute('aria-expanded', (cerca || !sourceList.classList.contains('lib-chiuso-assegnati')) ? 'true' : 'false');
+            }
+            if (nota) nota.hidden = cerca || +(sourceList.dataset.totLiberi || 0) > 0 || !('totLiberi' in sourceList.dataset);
+            const vuoto = document.getElementById('lib-vuoto');
+            if (vuoto) vuoto.hidden = !(cerca && visibili === 0);
+        }
 
         function renderMeshLinks() {
             const bar = document.getElementById('mesh-links-bar');
@@ -4533,9 +4894,7 @@ function animate() {
             if (!visible3D || entries.length === 0) { bar.style.display = 'none'; return; }
             bar.style.display = 'flex';
             entries.forEach(([meshName, entityId]) => {
-                const card = sourceList ? sourceList.querySelector(`[data-id="${entityId}"]`) : null;
-                const entName = (typeof customNames === 'object' && customNames[entityId])
-                    || (card ? card.querySelector('.hk-name').innerText : entityId);
+                const entName = libNome(entityId);      // dal registro: il nome c'e' anche se la barra non mostra la card
                 const chip = document.createElement('div');
                 chip.className = 'mesh-link-chip';
                 const ic = document.createElement('i'); ic.setAttribute('data-lucide', 'link-2');
@@ -4570,9 +4929,693 @@ function animate() {
             renderMeshLinks();
         }
 
-        new Sortable(sourceList, { group: { name: 'shared', pull: 'clone', put: false }, sort: false, animation: 150, fallbackOnBody: true, fallbackTolerance: 4, swapThreshold: 0.65, emptyInsertThreshold: 40, onEnd: function (evt) { const container3D = document.getElementById('dashboard-3d-container'); if (container3D && container3D.style.display !== 'none') { const e = evt.originalEvent; let clientX = e.clientX; let clientY = e.clientY; if (e.type && e.type.includes('touch') && e.changedTouches) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } if (clientX !== undefined && clientY !== undefined) { const rect = container3D.getBoundingClientRect(); if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) { if (window.handle3DDrop) window.handle3DDrop(clientX, clientY, evt.item.dataset.id); } } } }, ...ambOpzioniTrascinamento(true) });
-        new Sortable(targetGrid, { group: 'shared', animation: 150, ghostClass: 'sortable-ghost', dragClass: 'sortable-drag', filter: 'button', preventOnFilter: false, fallbackOnBody: true, fallbackTolerance: 4, swapThreshold: 0.65, emptyInsertThreshold: 40, onAdd: function (evt) { decorateTargetCard(evt.item); lucide.createIcons({root: evt.item}); saveConfig(); filterEntities(); }, onUpdate: function () { saveConfig(); }, ...ambOpzioniTrascinamento(true) });
+        // =====================================================================
+        // --- ELENCO DISPOSITIVI E GRIGLIA DELLA STANZA (29/09/2026) ---
+        // Prima la griglia della stanza si faceva CLONANDO le card della barra a sinistra: se in quel momento
+        // la barra non mostrava una card (ricerca attiva: display:none copiato nel clone; elenco ricaricato
+        // senza quell'entita'; Home Assistant lento) la stanza appariva vuota, e il primo salvataggio che
+        // leggeva la griglia la salvava davvero senza quelle entita'.
+        // Adesso: il REGISTRO tiene una copia pulita di ogni card come l'ha mandata il server; la griglia si
+        // costruisce dalla configurazione + registro; un'entita' che il server non manda compare come card
+        // "non disponibile"; la griglia sa di quale stanza/zona e' (data-stanza / data-zona) e il salvataggio
+        // la legge solo per quella, tenendo in coda gli id che non mostra. Mai piu' entita' perse.
+        // =====================================================================
+        const libRegistro = new Map();        // entity_id -> { tpl: card pulita, presente: e' nell'elenco attuale del server }
+        let libTrascinamento = false;         // Sortable sta trascinando una card
+        let libSezioniInAttesa = false;       // riordino della barra rimandato a fine trascinamento
+        let libGrigliaInAttesa = false;       // griglia da ridisegnare a fine trascinamento
+        const LIB_ICONE = { light: 'lightbulb', switch: 'power', cover: 'blinds', media_player: 'tv', camera: 'camera', climate: 'thermometer',
+            select: 'list-checks', input_select: 'list-checks', button: 'circle-play', input_button: 'circle-play', vacuum: 'bot', image: 'image', group: 'layers', timer: 'timer' };
+        const LIB_CHIUSO_CHIAVE = 'wh_dash_assegnati_chiusi';
+        const LIB_LARG_CHIAVE = 'wh_dash_larghezza_dispositivi';
+        const libDoveAperti = new Set();      // card con tutti i posti aperti ("+N" premuto)
 
+        // le card "Timer attivo" (timer_<ora>) sono conti alla rovescia della sola pagina: non sono dispositivi
+        function libIdScartato(id) { return !id || /^timer_\d+$/.test(id); }
+        function libNorm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+        function libVista3D(ctx) { return !!(ctx && ctx.has_3d && ctx.model_url); }
+        function libContestoAttivo() {
+            const r = config[activeRoom];
+            if (!r) return null;
+            return activeSubRoom ? ((r.sub_rooms || {})[activeSubRoom] || null) : r;
+        }
+
+        function libPulisci(card) {
+            card.querySelectorAll('.lib-dove').forEach(e => e.remove());
+            card.classList.remove('lib-assegnata', 'lib-nascosta', 'sortable-chosen', 'sortable-ghost', 'sortable-drag', 'hk-non-disp', 'lib-lampeggia', 'lib-cv-pieno');
+            card.style.removeProperty('display');
+            card.removeAttribute('draggable');
+            card.removeAttribute('title');
+            delete card.dataset.libCerca;
+            const n = card.querySelector('.hk-name');
+            if (n) n.removeAttribute('title');
+            return card;
+        }
+
+        // copia pulita di ogni card dell'elenco (all'avvio e quando l'elenco viene ricaricato dal server)
+        function libRegistra(radice) {
+            const visti = new Set();
+            radice.querySelectorAll('.hk-card-source[data-id]').forEach((card, i) => {
+                const id = card.dataset.id;
+                if (!id || visti.has(id)) return;
+                visti.add(id);
+                card.dataset.libOrdine = i;                      // ordine del server: le sezioni lo rispettano
+                card._libOrd = i;
+                const tpl = libPulisci(card.cloneNode(true));
+                const n = tpl.querySelector('.hk-name');
+                if (n && card.dataset.originalName) n.textContent = card.dataset.originalName;   // il nome scelto lo mette decorateTargetCard
+                libRegistro.set(id, { tpl, presente: true });
+            });
+            libRegistro.forEach((voce, id) => { voce.presente = visti.has(id); });
+        }
+
+        function libNome(id) {
+            if (customNames && customNames[id]) return customNames[id];
+            const v = libRegistro.get(id);
+            if (v && v.tpl.dataset.originalName) return v.tpl.dataset.originalName;
+            return id;
+        }
+
+        function libSegnaNonDisponibile(card) {
+            card.classList.add('hk-non-disp');
+            card.dataset.state = 'unavailable';
+            const s = card.querySelector('.hk-state span');
+            if (s) s.textContent = 'Non disponibile';
+            card.querySelectorAll('.entity-badge').forEach(b => b.remove());
+            card.title = "Il dispositivo non risponde o non è più nell'impianto: resta assegnato finché non lo togli";
+        }
+        function libCardSegnaposto(id) {
+            const dominio = String(id).split('.')[0];
+            const card = document.createElement('div');
+            card.className = 'hk-card-source';
+            card.dataset.id = id; card.dataset.domain = dominio; card.dataset.originalName = id;
+            card.innerHTML = '<div class="hk-icon"><i data-lucide="' + (LIB_ICONE[dominio] || 'cpu') + '"></i></div>' +
+                '<div class="entity-info"><div class="hk-name" data-no-tr></div>' +
+                '<div class="hk-state" style="display: flex; align-items: center; justify-content: space-between;"><span></span></div></div>';
+            card.querySelector('.hk-name').textContent = id;
+            libSegnaNonDisponibile(card);
+            return card;
+        }
+        // card per la griglia della stanza: dal registro (mai dalla barra), altrimenti "non disponibile"
+        function libCardGriglia(id) {
+            const voce = libRegistro.get(id);
+            let card;
+            if (voce) {
+                card = voce.tpl.cloneNode(true);
+                if (!voce.presente) libSegnaNonDisponibile(card);
+            } else {
+                card = libCardSegnaposto(id);
+            }
+            decorateTargetCard(card);
+            return card;
+        }
+
+        // la griglia porta scritto di quale stanza/zona e': chi la legge non puo' sbagliare posto
+        function libSegnaGriglia(stanza, zona) {
+            if (stanza === null) { delete targetGrid.dataset.stanza; delete targetGrid.dataset.zona; return; }
+            targetGrid.dataset.stanza = stanza;
+            targetGrid.dataset.zona = zona || '';
+        }
+        function libContestoGriglia() {
+            if (!('stanza' in targetGrid.dataset)) return null;
+            const r = config[targetGrid.dataset.stanza];
+            if (!r) return null;
+            const z = targetGrid.dataset.zona;
+            return z ? ((r.sub_rooms || {})[z] || null) : r;
+        }
+        function libCostruisciGriglia(ctx) {
+            targetGrid.innerHTML = '';
+            const visti = new Set(), f = document.createDocumentFragment();
+            (Array.isArray(ctx.device_ids) ? ctx.device_ids : []).forEach(id => {
+                if (libIdScartato(id) || visti.has(id)) return;
+                visti.add(id);
+                f.appendChild(libCardGriglia(id));
+            });
+            targetGrid.appendChild(f);
+            libSegnaGriglia(activeRoom, activeSubRoom);
+            libIcone(targetGrid);             // le card del registro hanno gia' l'icona: restano solo quelle scelte a mano
+            checkEmptyState();
+        }
+        function libRidisegnaGriglia() {
+            if (libTrascinamento) { libGrigliaInAttesa = true; return; }
+            const ctx = libContestoAttivo();
+            if (!ctx || libVista3D(ctx)) return;
+            libCostruisciGriglia(ctx);
+        }
+        // ordine dalla griglia, senza perdere niente: gli id della configurazione che la griglia non mostra restano in coda
+        function libLeggiGriglia() {
+            const ctx = libContestoGriglia();
+            if (!ctx || libVista3D(ctx)) return;
+            const inGriglia = [];
+            targetGrid.querySelectorAll(':scope > .hk-card-source[data-id]').forEach(c => {
+                const id = c.dataset.id;
+                if (!libIdScartato(id) && !inGriglia.includes(id)) inGriglia.push(id);
+            });
+            const prima = Array.isArray(ctx.device_ids) ? ctx.device_ids : [];
+            const resto = prima.filter(id => !libIdScartato(id) && !inGriglia.includes(id));
+            ctx.device_ids = inGriglia.concat(resto);
+        }
+        // ✕ su una card della stanza: si toglie dalla configurazione della stanza/zona della griglia
+        function libTogliDallaGriglia(card) {
+            const id = card.dataset.id;
+            const ctx = libContestoGriglia();
+            if (ctx && Array.isArray(ctx.device_ids)) ctx.device_ids = ctx.device_ids.filter(x => x !== id);
+            card.remove();
+            saveConfig();
+        }
+        // card lasciata nella griglia (dalla barra): al suo posto una card pulita dal registro; se c'e' gia', niente doppioni
+        function libAggiuntaInGriglia(evt) {
+            const item = evt.item, id = item.dataset.id;
+            if (!id) { item.remove(); checkEmptyState(); return; }
+            const gia = Array.from(targetGrid.querySelectorAll(':scope > .hk-card-source')).find(c => c !== item && c.dataset.id === id);
+            if (gia) {
+                item.remove();
+                gia.classList.remove('lib-lampeggia'); void gia.offsetWidth; gia.classList.add('lib-lampeggia');
+                setTimeout(() => gia.classList.remove('lib-lampeggia'), 1000);
+                if (gia.scrollIntoView) gia.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                showToast(targetGrid.dataset.zona ? 'Il dispositivo è già in questa zona' : 'Il dispositivo è già in questa stanza', 'warning');
+                checkEmptyState();
+                return;
+            }
+            const nuova = libCardGriglia(id);
+            item.replaceWith(nuova);
+            libIcone(nuova);
+            saveConfig();
+        }
+        // Il riordino della barra e il ridisegno della griglia rimandati partono DOPO il clic che il browser genera al
+        // rilascio (setTimeout 0: dopo mouseup e click dello stesso rilascio). Fatti qui, dentro il mouseup, spostavano
+        // nel DOM la card da cui era partito il trascinamento: Chrome allora non genera quel clic, Sortable resta col suo
+        // "ignora il prossimo clic" acceso (lo accende quando parte il trascinamento) e si mangiava il clic successivo
+        // dell'utente (card lasciata sul modello 3D: il primo clic su una scheda o su "3D attiva" andava perso).
+        function libFineTrascinamento() {
+            libTrascinamento = false;
+            if (!libGrigliaInAttesa && !libSezioniInAttesa) return;
+            setTimeout(() => {
+                if (libTrascinamento) return;             // e' gia' partito un altro trascinamento: ci pensera' la sua fine
+                if (libGrigliaInAttesa) { libGrigliaInAttesa = false; updateWorkspaceView(); }
+                if (libSezioniInAttesa) libAggiornaSezioni();
+            }, 0);
+        }
+        // rete di sicurezza: se per un errore Sortable non chiudesse il trascinamento, la barra non resta bloccata
+        document.addEventListener('pointerup', () => {
+            setTimeout(() => { if (libTrascinamento && !(window.Sortable && Sortable.active)) libFineTrascinamento(); }, 400);
+        }, true);
+
+        // ---- salvataggio: uno alla volta, sempre con la configurazione piu' recente ----
+        // (prima due salvataggi ravvicinati, per esempio un trascinamento e subito un'eliminazione, potevano
+        // arrivare al server nell'ordine sbagliato e riportare in vita la zona appena eliminata)
+        let libCodaSalva = Promise.resolve(), libSalvaInCoda = null;
+        let libConfigLetta = false;           // true solo dopo una lettura riuscita di /api/config
+        // lettura delle stanze: tre tentativi (un attimo senza rete o il server che riparte), poi ci si arrende
+        async function libLeggiConfig() {
+            const attese = [0, 700, 1600];
+            for (let i = 0; i < attese.length; i++) {
+                if (attese[i]) await new Promise(r => setTimeout(r, attese[i]));
+                try {
+                    const res = await fetch('/api/config');
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    const raw = await res.json();                  // pagina di login o di errore: non e' JSON
+                    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('risposta non valida');
+                    const letta = {};
+                    for (let room in raw) { letta[room] = Array.isArray(raw[room]) ? { device_ids: raw[room], has_3d: false, model_url: "", mesh_mapping: {} } : raw[room]; }
+                    libConfigLetta = true;
+                    return letta;
+                } catch (e) { console.warn('Lettura delle stanze non riuscita (tentativo ' + (i + 1) + ')', e); }
+            }
+            return {};
+        }
+        // stanze non lette: niente "Area 1" finta; un avviso fisso nel riquadro delle stanze e i salvataggi bloccati.
+        // (Qui niente showToast di errore: la sua icona ha la classe .error e init() aprirebbe la configurazione iniziale.)
+        function libAvvisoConfigNonLetta() {
+            const cont = document.getElementById('dashboard-grid-container');
+            if (!cont || document.getElementById('amb-config-non-letta')) return;
+            const a = document.createElement('div');
+            a.id = 'amb-config-non-letta'; a.className = 'amb-config-non-letta'; a.setAttribute('role', 'alert');
+            a.innerHTML = '<i data-lucide="cloud-off"></i><b>Stanze non caricate: ricarica la pagina prima di modificarle</b>' +
+                "<span>Finché la pagina non riesce a leggerle dall'impianto le modifiche non vengono salvate: le stanze già salvate restano intatte.</span>" +
+                '<button type="button" class="btn-launch btn-primary"><i data-lucide="rotate-cw"></i><span>Ricarica la pagina</span></button>';
+            a.querySelector('button').addEventListener('click', () => location.reload());
+            cont.prepend(a);
+            document.body.classList.add('amb-non-letta');      // niente griglia, "+ Stanza" e 3D finche' non si ricarica
+            lucide.createIcons({ root: a });
+        }
+        function libInviaConfig() {
+            // stanze mai lette: salvare qui sovrascriverebbe sul server quelle vere con quelle di ripiego
+            if (!libConfigLetta) { showToast('Stanze non caricate: ricarica la pagina prima di modificarle', 'error'); return Promise.resolve(false); }
+            if (libSalvaInCoda) return libSalvaInCoda;        // parte comunque con la configurazione di quel momento
+            const giro = libCodaSalva.then(async () => {
+                libSalvaInCoda = null;
+                try {
+                    const r = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) });
+                    const d = await r.json().catch(() => null);
+                    if (!r.ok || !d || d.status !== 'success') throw new Error('HTTP ' + r.status);
+                    return true;
+                } catch (e) {
+                    console.warn('Salvataggio della configurazione non riuscito', e);
+                    showToast("Modifica non salvata: controlla il collegamento con l'impianto e riprova", 'error');
+                    return false;
+                }
+            });
+            libSalvaInCoda = giro;
+            libCodaSalva = giro.catch(() => false);
+            return giro;
+        }
+
+        // ---- barra: sezioni "Da assegnare" / "Gia' nelle stanze" e posti sotto il nome ----
+        // stessa configurazione = stessa mappa, con gli stessi elenchi (libDecoraVoce li riconosce e salta le card uguali).
+        // Chi la usa la legge soltanto.
+        var libPostiMemo = { chiave: null, mappa: null };
+        const LIB_NESSUN_POSTO = Object.freeze([]);
+        function libPosti() {
+            const chiaveMemo = JSON.stringify(config);
+            if (libPostiMemo.chiave === chiaveMemo && libPostiMemo.mappa) return libPostiMemo.mappa;
+            const mappa = new Map();
+            const metti = (id, posto) => {
+                if (libIdScartato(id) || typeof id !== 'string') return;
+                let l = mappa.get(id);
+                if (!l) mappa.set(id, l = []);
+                if (!l.some(p => p.stanza === posto.stanza && p.zona === posto.zona)) l.push(posto);
+            };
+            const giro = (ctx, stanza, zona) => {
+                if (!ctx || typeof ctx !== 'object') return;
+                (Array.isArray(ctx.device_ids) ? ctx.device_ids : []).forEach(id => metti(id, { stanza, zona, d3: false }));
+                if (libVista3D(ctx)) Object.values(ctx.mesh_mapping || {}).forEach(id => metti(id, { stanza, zona, d3: true }));
+            };
+            Object.keys(config).forEach(stanza => {
+                const r = config[stanza];
+                if (Array.isArray(r)) { r.forEach(id => metti(id, { stanza, zona: null, d3: false })); return; }
+                giro(r, stanza, null);
+                Object.keys((r && r.sub_rooms) || {}).forEach(z => giro(r.sub_rooms[z], stanza, z));
+            });
+            // elenchi uguali a quelli di prima: si tengono quelli di prima (cambia la configurazione di un posto: si
+            // ridecorano solo le card che ci entrano o ne escono)
+            const vecchia = libPostiMemo.mappa;
+            if (vecchia) mappa.forEach((l, id) => {
+                const v = vecchia.get(id);
+                if (v && v.length === l.length && v.every((p, i) => p.stanza === l[i].stanza && p.zona === l[i].zona && p.d3 === l[i].d3)) mappa.set(id, v);
+            });
+            libPostiMemo = { chiave: chiaveMemo, mappa };
+            return mappa;
+        }
+        function libTeste() {
+            let tL = sourceList.querySelector(':scope > .lib-testa[data-sez="liberi"]');
+            if (!tL) {
+                tL = document.createElement('div');
+                tL.className = 'lib-testa'; tL.dataset.sez = 'liberi';
+                tL.innerHTML = '<i data-lucide="inbox"></i><span class="lib-testa-tit">Da assegnare</span><span class="lib-conta">0</span>';
+                lucide.createIcons({ root: tL });
+            }
+            let nota = sourceList.querySelector(':scope > .lib-nota');
+            if (!nota) {
+                nota = document.createElement('div');
+                nota.className = 'lib-nota'; nota.hidden = true;
+                nota.innerHTML = '<i data-lucide="circle-check"></i><span>Tutti i dispositivi sono già in una stanza</span>';
+                lucide.createIcons({ root: nota });
+            }
+            let tA = sourceList.querySelector(':scope > .lib-testa[data-sez="assegnati"]');
+            if (!tA) {
+                tA = document.createElement('button');
+                tA.type = 'button'; tA.className = 'lib-testa'; tA.dataset.sez = 'assegnati';
+                tA.innerHTML = '<i data-lucide="layout-grid"></i><span class="lib-testa-tit">Già nelle stanze</span><span class="lib-conta">0</span><i data-lucide="chevron-down" class="lib-chev"></i>';
+                tA.addEventListener('click', libApriChiudiAssegnati);
+                lucide.createIcons({ root: tA });
+            }
+            return { tL, nota, tA };
+        }
+        function libDecoraVoce(card, suoi) {
+            const id = card.dataset.id || '';
+            const nomeEl = card.querySelector('.hk-name');
+            const nome = nomeEl ? nomeEl.textContent.trim() : id;
+            // niente da rifare se nome, posti (stesso elenco di libPosti), posto aperto fra i suoi e "+N" sono quelli
+            // dell'ultima volta: a un cambio di stanza cambiano solo le card della stanza lasciata e di quella aperta
+            // (prima si rifacevano tutte e 400, con le loro stringhe)
+            const qui = suoi.findIndex(p => p.stanza === activeRoom && (p.zona || null) === (activeSubRoom || null));
+            const aperto = libDoveAperti.has(id);
+            if (card._libSuoi === suoi && card._libQui === qui && card._libAperto === aperto && card._libNome === nome && card.dataset.libCerca) return;
+            card._libSuoi = suoi; card._libQui = qui; card._libAperto = aperto; card._libNome = nome;
+            const info = card.querySelector('.entity-info');
+            if (nomeEl && id !== 'virtual_timer' && nomeEl.title !== nome) nomeEl.title = nome;
+            card.classList.toggle('lib-assegnata', suoi.length > 0 && id !== 'virtual_timer');
+            let dove = info ? info.querySelector('.lib-dove') : null;
+            if (!suoi.length || !info) { if (dove) dove.remove(); }
+            else {
+                if (!dove) {
+                    dove = document.createElement('div');
+                    dove.className = 'lib-dove';
+                    dove.setAttribute('data-no-tr', '');           // nomi di stanze e zone: sono dati, non si traducono
+                    if (nomeEl && nomeEl.parentNode === info) nomeEl.after(dove); else info.prepend(dove);
+                }
+                const voci = suoi.map(p => {
+                    const pezzi = [p.stanza].concat(p.zona ? [p.zona] : [], p.d3 ? ['3D'] : []);
+                    return { pezzi, t: pezzi.join(' · '), qui: p.stanza === activeRoom && (p.zona || null) === (activeSubRoom || null) };
+                });
+                const firma = JSON.stringify(voci) + (aperto ? '|tutti' : '');
+                if (dove.dataset.firma !== firma) {
+                    dove.dataset.firma = firma;
+                    dove.textContent = '';
+                    // la stanza/zona aperta per prima (evidenziata); oltre tre posti: i primi due e "+N", che col clic
+                    // (o col dito) mostra tutti gli altri e poi li richiude
+                    const ordinate = voci.filter(v => v.qui).concat(voci.filter(v => !v.qui));
+                    const tanti = ordinate.length > 3;
+                    const mostrate = tanti && !aperto ? ordinate.slice(0, 2) : ordinate;
+                    mostrate.forEach(v => {
+                        const c = document.createElement('span');
+                        c.className = 'lib-posto' + (v.qui ? ' lib-qui' : '');
+                        v.pezzi.forEach((pz, i) => {
+                            if (i) c.appendChild(document.createTextNode(' '));
+                            const s = document.createElement('span');
+                            s.className = 'lib-posto-p';
+                            s.textContent = pz + (i < v.pezzi.length - 1 ? ' ·' : '');
+                            c.appendChild(s);
+                        });
+                        dove.appendChild(c);
+                    });
+                    if (tanti) {
+                        const T = x => (window.WH_T ? window.WH_T(x) : x);     // dentro data-no-tr: si traduce qui
+                        const altri = document.createElement('button');
+                        altri.type = 'button';
+                        altri.className = 'lib-posto lib-altri';
+                        altri.setAttribute('aria-expanded', aperto ? 'true' : 'false');
+                        const et = T(aperto ? 'Mostra meno' : 'Mostra tutte le stanze e le zone');
+                        altri.title = et; altri.setAttribute('aria-label', et);
+                        if (aperto) { altri.innerHTML = '<i data-lucide="chevron-up"></i>'; lucide.createIcons({ root: altri }); }
+                        else altri.textContent = '+' + (ordinate.length - mostrate.length);
+                        dove.appendChild(altri);
+                    }
+                    dove.title = voci.map(v => v.t).join('\n');
+                }
+            }
+            const cerca = [nome, card.dataset.originalName || '', id, card.dataset.domain || '',
+                suoi.map(p => p.stanza + ' ' + (p.zona || '')).join(' ')].join(' ');
+            if (card._libCercaDa !== cerca || !card.dataset.libCerca) {    // si normalizza solo se il testo e' cambiato
+                card._libCercaDa = cerca;
+                card.dataset.libCerca = libNorm(cerca);
+            }
+            // l'altezza della card puo' cambiare solo se cambiano i testi (nome, posti mostrati e loro ordine, "+N") o il
+            // peso del nome (sezione): solo allora la si ridisegna per un fotogramma (vedi libCvRinfresca). La stanza "qui"
+            // evidenziata cambia solo i colori.
+            const altezza = nome + '\u0002' + card.classList.contains('lib-assegnata') + '\u0002' + (dove && dove.isConnected ? dove.textContent + (dove.querySelector('.lib-altri svg') ? '\u0001^' : '') : '');
+            if (card._libAltezza !== altezza) { card._libAltezza = altezza; libCvRinfresca(card); }
+        }
+        function libAggiornaSezioni() {
+            if (libTrascinamento) { libSezioniInAttesa = true; return; }
+            libSezioniInAttesa = false;
+            const posti = libPosti();
+            const { tL, nota, tA } = libTeste();
+            const liberi = [], assegnati = [];
+            let timer = null;
+            const primoGiro = !sourceList.dataset.libPronta;
+            sourceList.querySelectorAll(':scope > .hk-card-source').forEach(card => {
+                const id = card.dataset.id || '';
+                const suoi = posti.get(id) || LIB_NESSUN_POSTO;
+                const prima = card.classList.contains('lib-assegnata');
+                libDecoraVoce(card, suoi);
+                if (!primoGiro && prima !== card.classList.contains('lib-assegnata')) {   // ha cambiato sezione: un attimo evidenziata
+                    // l'impaginazione si legge (per far ripartire l'animazione) solo se l'animazione e' ancora in corso:
+                    // letta qui, a meta' delle scritture, costringeva il browser a impaginare tutta la pagina
+                    if (card.classList.contains('lib-spostata')) { card.classList.remove('lib-spostata'); void card.offsetWidth; }
+                    card.classList.add('lib-spostata');
+                    setTimeout(() => card.classList.remove('lib-spostata'), 1600);
+                }
+                if (id === 'virtual_timer') timer = card;               // il Timer resta sempre disponibile in cima
+                else if (suoi.length) assegnati.push(card);
+                else liberi.push(card);
+            });
+            const ord = c => (c._libOrd !== undefined ? c._libOrd : (c._libOrd = +c.dataset.libOrdine || 0));
+            liberi.sort((a, b) => ord(a) - ord(b));
+            assegnati.sort((a, b) => ord(a) - ord(b));
+            const voluto = [tL].concat(timer ? [timer] : [], [nota], liberi, [tA], assegnati);
+            const ora = Array.from(sourceList.children);
+            if (ora.length !== voluto.length || ora.some((el, i) => el !== voluto[i])) libRiordina(sourceList, ora, voluto);
+            sourceList.dataset.totLiberi = liberi.length;
+            sourceList.dataset.totAssegnati = assegnati.length;
+            sourceList.classList.remove('lib-attesa');
+            sourceList.dataset.libPronta = '1';
+            filterEntities();
+        }
+        // Riordino della barra spostando solo le card fuori posto (di solito una: quella che ha cambiato sezione). Prima
+        // si riattaccavano tutte le card (fino a 400) e il browser rifaceva stile e impaginazione dell'intero elenco.
+        // Restano ferme le card della sottosequenza crescente piu' lunga; le altre vanno davanti alla card che le segue.
+        function libRiordina(lista, ora, voluto) {
+            const pos = new Map(ora.map((el, i) => [el, i]));
+            if (ora.length !== voluto.length || voluto.some(el => !pos.has(el))) {       // prima volta (testate nuove): come prima
+                const f = document.createDocumentFragment();
+                voluto.forEach(el => f.appendChild(el));
+                lista.appendChild(f);
+                return;
+            }
+            const seq = voluto.map(el => pos.get(el));
+            const fine = [], prec = new Array(seq.length);     // fine[k]: ultimo indice della miglior sequenza lunga k+1
+            seq.forEach((v, i) => {
+                let lo = 0, hi = fine.length;
+                while (lo < hi) { const m = (lo + hi) >> 1; if (seq[fine[m]] < v) lo = m + 1; else hi = m; }
+                prec[i] = lo > 0 ? fine[lo - 1] : -1;
+                fine[lo] = i;
+            });
+            const ferme = new Set();
+            for (let i = fine.length ? fine[fine.length - 1] : -1; i >= 0; i = prec[i]) ferme.add(voluto[i]);
+            let dopo = null;
+            for (let i = voluto.length - 1; i >= 0; i--) {
+                if (!ferme.has(voluto[i])) lista.insertBefore(voluto[i], dopo);
+                dopo = voluto[i];
+            }
+        }
+        // "+N" sotto il nome: apre e richiude l'elenco completo dei posti (anche col dito, dove il suggerimento non c'e')
+        sourceList.addEventListener('click', e => {
+            const b = e.target.closest('.lib-altri');
+            if (!b || !sourceList.contains(b)) return;
+            e.preventDefault(); e.stopPropagation();
+            const card = b.closest('.hk-card-source');
+            if (!card) return;
+            const id = card.dataset.id || '';
+            if (libDoveAperti.has(id)) libDoveAperti.delete(id); else libDoveAperti.add(id);
+            libDecoraVoce(card, libPosti().get(id) || LIB_NESSUN_POSTO);
+            const nuovo = card.querySelector('.lib-altri');
+            if (nuovo && e.detail === 0) nuovo.focus({ preventScroll: true });     // da tastiera si resta sul tasto
+        });
+        function libApriChiudiAssegnati() {
+            const chiudi = !sourceList.classList.contains('lib-chiuso-assegnati');
+            sourceList.classList.toggle('lib-chiuso-assegnati', chiudi);
+            try { localStorage.setItem(LIB_CHIUSO_CHIAVE, chiudi ? '1' : '0'); } catch (e) {}
+            filterEntities();
+        }
+
+        // ---- larghezza della barra: maniglia sul bordo destro, come una colonna di un foglio di calcolo ----
+        const libPannello = document.getElementById('lib-pannello');
+        const libManiglia = document.getElementById('lib-maniglia');
+        function libLimiti() {
+            const ws = (libPannello && libPannello.parentElement ? libPannello.parentElement.clientWidth : 0) || window.innerWidth;
+            const stretto = window.innerWidth <= 900;                  // iPad in verticale
+            const min = stretto ? 240 : 260;
+            // al pannello di destra resta sempre la sua testata ("+ Stanza", "Planimetria 3D") con una riga di schede
+            // leggibile: sul computer almeno meta' dello spazio e mai meno di 620 px (1024 -> 376, iPad 1180 -> 520,
+            // 1440 -> 700); sull'iPad in verticale circa 320. I nomi che non ci stanno vanno su due righe.
+            const riserva = stretto ? 470 : Math.max(620, Math.round(ws * 0.5));
+            const max = Math.max(min, Math.min(720, ws - riserva));
+            return { min, max };
+        }
+        function libLarghezzaSalvata() {
+            try { const w = parseInt(localStorage.getItem(LIB_LARG_CHIAVE), 10); return w > 0 ? w : 0; } catch (e) { return 0; }
+        }
+        function libAriaLarghezza() {
+            if (!libManiglia || !libPannello) return;
+            const { min, max } = libLimiti();
+            libManiglia.setAttribute('aria-valuemin', min);
+            libManiglia.setAttribute('aria-valuemax', max);
+            libManiglia.setAttribute('aria-valuenow', Math.round(libPannello.getBoundingClientRect().width));
+        }
+        function libApplicaLarghezza(w, salva) {
+            const { min, max } = libLimiti();
+            const v = Math.round(Math.min(max, Math.max(min, w)));
+            libPannello.style.flex = '0 0 ' + v + 'px';
+            if (salva) { try { localStorage.setItem(LIB_LARG_CHIAVE, String(v)); } catch (e) {} }
+            libAriaLarghezza();
+            return v;
+        }
+        function libLarghezzaPredefinita() {
+            libPannello.style.removeProperty('flex');
+            try { localStorage.removeItem(LIB_LARG_CHIAVE); } catch (e) {}
+            libAriaLarghezza();
+        }
+        function libRiadatta() {
+            if (!libPannello) return;
+            const w = libLarghezzaSalvata();
+            if (w) libApplicaLarghezza(w, false); else { libPannello.style.removeProperty('flex'); libAriaLarghezza(); }
+        }
+        // larghezza che fa stare ogni nome su una riga (misurata davvero: icona, tasti e margini compresi)
+        function libLarghezzaIdeale() {
+            sourceList.classList.add('lib-misura');
+            let serve = 0;
+            const extraPannello = libPannello.getBoundingClientRect().width - sourceList.getBoundingClientRect().width;
+            sourceList.querySelectorAll(':scope > .hk-card-source').forEach(card => {
+                const nome = card.querySelector('.hk-name'), info = card.querySelector('.entity-info');
+                if (!nome || !info) return;
+                const w = nome.getBoundingClientRect().width + (card.getBoundingClientRect().width - info.getBoundingClientRect().width) + 2;
+                if (w > serve) serve = w;
+            });
+            sourceList.classList.remove('lib-misura');
+            return Math.ceil(serve + extraPannello);
+        }
+        function libAnimaLarghezza(fn) {
+            libPannello.classList.add('lib-anima');
+            fn();
+            clearTimeout(libAnimaLarghezza.t);
+            libAnimaLarghezza.t = setTimeout(() => { libPannello.classList.remove('lib-anima'); libAriaLarghezza(); }, 260);
+        }
+        // doppio clic (o doppio tocco): nomi interi; se lo e' gia', torna alla larghezza di sempre
+        function libAdattaAiNomi() {
+            const { min, max } = libLimiti();
+            const bersaglio = Math.min(max, Math.max(min, libLarghezzaIdeale()));
+            const attuale = libPannello.getBoundingClientRect().width;
+            libAnimaLarghezza(() => {
+                if (libLarghezzaSalvata() && Math.abs(attuale - bersaglio) <= 4) libLarghezzaPredefinita();
+                else libApplicaLarghezza(bersaglio, true);
+            });
+        }
+        (function () {
+            if (!libPannello || !libManiglia) return;
+            let presa = null, ultimoTocco = 0, rinvio = 0, daApplicare = 0;
+            libManiglia.addEventListener('pointerdown', e => {
+                if (e.button > 0) return;
+                e.preventDefault();
+                if (e.pointerType === 'mouse') {                    // poi funzionano anche le frecce
+                    libManiglia.classList.add('da-puntatore');
+                    try { libManiglia.focus({ preventScroll: true }); } catch (err) {}
+                }
+                try { libManiglia.setPointerCapture(e.pointerId); } catch (err) {}
+                presa = { x: e.clientX, w: libPannello.getBoundingClientRect().width, id: e.pointerId, mosso: false };
+            });
+            libManiglia.addEventListener('pointermove', e => {
+                if (!presa || e.pointerId !== presa.id) return;
+                const dx = e.clientX - presa.x;
+                if (!presa.mosso) {
+                    if (Math.abs(dx) < 3) return;
+                    presa.mosso = true;
+                    libManiglia.classList.add('attiva');
+                    document.body.classList.add('lib-ridimensiona');
+                    if (typeof ambChiudiMenu === 'function') ambChiudiMenu();
+                }
+                daApplicare = presa.w + dx;
+                if (!rinvio) rinvio = requestAnimationFrame(() => { rinvio = 0; libApplicaLarghezza(daApplicare, false); });
+            });
+            const fine = e => {
+                if (!presa || e.pointerId !== presa.id) return;
+                const era = presa; presa = null;
+                if (rinvio) { cancelAnimationFrame(rinvio); rinvio = 0; }
+                libManiglia.classList.remove('attiva');
+                document.body.classList.remove('lib-ridimensiona');
+                if (era.mosso) { libApplicaLarghezza(daApplicare, true); ultimoTocco = 0; return; }
+                if (e.type === 'pointercancel') return;
+                const ora = Date.now();
+                if (ora - ultimoTocco < 450) { ultimoTocco = 0; libAdattaAiNomi(); }
+                else ultimoTocco = ora;
+            };
+            libManiglia.addEventListener('pointerup', fine);
+            libManiglia.addEventListener('pointercancel', fine);
+            libManiglia.addEventListener('blur', () => libManiglia.classList.remove('da-puntatore'));
+            libManiglia.addEventListener('keydown', e => {
+                libManiglia.classList.remove('da-puntatore');
+                const w = libPannello.getBoundingClientRect().width, passo = e.shiftKey ? 64 : 16, { min, max } = libLimiti();
+                let fatto = true;
+                if (e.key === 'ArrowLeft') libApplicaLarghezza(w - passo, true);
+                else if (e.key === 'ArrowRight') libApplicaLarghezza(w + passo, true);
+                else if (e.key === 'Home') libAnimaLarghezza(() => libApplicaLarghezza(min, true));
+                else if (e.key === 'End') libAnimaLarghezza(() => libApplicaLarghezza(max, true));
+                else if (e.key === 'Enter' || e.key === ' ') libAdattaAiNomi();
+                else fatto = false;
+                if (fatto) e.preventDefault();
+            });
+            const bAdatta = document.getElementById('lib-adatta');
+            if (bAdatta) bAdatta.addEventListener('click', () => libAdattaAiNomi());
+            window.addEventListener('resize', libRiadatta);
+            libRiadatta();
+        })();
+
+
+        // animation: 0 nella barra (29/09/2026): la barra non si riordina mai (sort: false, si trascina una copia), quindi
+        // non c'e' niente da animare; con animation Sortable, a ogni spostamento della card sopra la stanza, rileggeva la
+        // posizione di tutte le card della barra (fino a 400) due volte. A schermo e' identico.
+        new Sortable(sourceList, { group: { name: 'shared', pull: 'clone', put: false }, sort: false, draggable: '.hk-card-source', animation: 0, fallbackOnBody: true, fallbackTolerance: 4, swapThreshold: 0.65, emptyInsertThreshold: 40,
+            onStart: function () { libTrascinamento = true; },
+            onEnd: function (evt) {
+                try { const container3D = document.getElementById('dashboard-3d-container'); if (container3D && container3D.style.display !== 'none' && evt.originalEvent) { const e = evt.originalEvent; let clientX = e.clientX; let clientY = e.clientY; if (e.type && e.type.includes('touch') && e.changedTouches) { clientX = e.changedTouches[0].clientX; clientY = e.changedTouches[0].clientY; } if (clientX !== undefined && clientY !== undefined) { const rect = container3D.getBoundingClientRect(); if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) { if (window.handle3DDrop) window.handle3DDrop(clientX, clientY, evt.item.dataset.id); } } } }
+                finally { libFineTrascinamento(); }
+            }, ...ambOpzioniTrascinamento(true) });
+        new Sortable(targetGrid, { group: 'shared', animation: 150, ghostClass: 'sortable-ghost', dragClass: 'sortable-drag', draggable: '.hk-card-source', filter: 'button', preventOnFilter: false, fallbackOnBody: true, fallbackTolerance: 4, swapThreshold: 0.65, emptyInsertThreshold: 40,
+            onStart: function () { libTrascinamento = true; },
+            onAdd: function (evt) { try { libAggiuntaInGriglia(evt); } catch (err) { console.warn(err); } },
+            onUpdate: function () { saveConfig(); },
+            onEnd: function () { libFineTrascinamento(); },
+            ...ambOpzioniTrascinamento(true) });
+
+        // ---- altezze vere per le card fuori vista (content-visibility: auto) ----
+        // Una card fuori vista tiene l'ultima altezza con cui e' stata disegnata. Se poi cambia (posti, nome, larghezza
+        // della barra, caratteri caricati) si disegna per intero per un fotogramma, cosi' il browser registra quella nuova:
+        // l'altezza dell'elenco e' sempre quella vera e scorrendo non salta niente. Senza card: tutte (costo come prima).
+        // Si fa DOPO il fotogramma che mostra la risposta al clic o al tasto, per non rallentarlo.
+        // Una card nascosta (display:none: esclusa dalla ricerca o in "Gia' nelle stanze" chiusa) non si disegna e il
+        // browser le lascia l'altezza vecchia (all'apertura con la sezione chiusa quella del primo fotogramma, senza
+        // posti: 75 px invece di 99-137): resta in sospeso e si ridisegna quando ricompare (filterEntities).
+        const libCvConta = new Map();          // card (o l'elenco intero) -> richieste in corso
+        const libCvCoda = new Set();
+        const libCvDaRifare = new Set();       // card che erano nascoste quando toccava a loro
+        // card ridisegnate per fotogramma: quando ne ricompaiono centinaia (sezione riaperta, prima ricerca con la sezione
+        // chiusa) tutte insieme facevano un fotogramma lungo (CPU x6: +300 ms) e il tasto seguente aspettava
+        const LIB_CV_LOTTO = 60;
+        let libCvProgrammato = false;
+        function libCvNascosta(card) {         // stesse regole del CSS (lib-nascosta, lib-chiuso-assegnati): niente impaginazione
+            return card.classList.contains('lib-nascosta') || (card.classList.contains('lib-assegnata') &&
+                sourceList.classList.contains('lib-chiuso-assegnati') && !sourceList.classList.contains('lib-in-ricerca'));
+        }
+        function libCvRicompaiono() {
+            libCvDaRifare.forEach(card => {
+                if (card.parentElement !== sourceList) libCvDaRifare.delete(card);          // tolta dall'elenco
+                else if (!libCvNascosta(card)) { libCvDaRifare.delete(card); libCvRinfresca(card); }
+            });
+        }
+        function libCvMetti(el) { libCvConta.set(el, (libCvConta.get(el) || 0) + 1); el.classList.add('lib-cv-pieno'); }
+        function libCvTogli(el) {
+            const n = (libCvConta.get(el) || 1) - 1;
+            if (n > 0) libCvConta.set(el, n); else { libCvConta.delete(el); el.classList.remove('lib-cv-pieno'); }
+        }
+        function libCvRinfresca(card) {
+            libCvCoda.add(card || sourceList);
+            if (libCvProgrammato) return;
+            libCvProgrammato = true;
+            requestAnimationFrame(() => requestAnimationFrame(libCvGiro));  // il fotogramma della risposta e' gia' partito
+        }
+        function libCvGiro() {
+            libCvProgrammato = false;
+            const els = [], tutto = libCvCoda.has(sourceList);
+            let n = 0;
+            for (const el of libCvCoda) {
+                if (!tutto && n >= LIB_CV_LOTTO) break;                     // le altre al fotogramma dopo
+                libCvCoda.delete(el);
+                if (el === sourceList) {                                    // tutto l'elenco: le nascoste restano in sospeso
+                    sourceList.querySelectorAll(':scope > .hk-card-source').forEach(c => { if (libCvNascosta(c)) libCvDaRifare.add(c); else libCvDaRifare.delete(c); });
+                    els.push(el);
+                } else if (libCvNascosta(el)) libCvDaRifare.add(el);        // si controlla ora: puo' essere sparita nel frattempo
+                else { libCvDaRifare.delete(el); els.push(el); n++; }
+            }
+            els.forEach(libCvMetti);                                        // questo fotogramma le disegna per intero
+            requestAnimationFrame(() => els.forEach(libCvTogli));           // altezze registrate: si torna come prima
+            if (libCvCoda.size) { libCvProgrammato = true; requestAnimationFrame(libCvGiro); }
+        }
+        if (window.ResizeObserver) {                                     // barra piu' larga o piu' stretta: i nomi vanno a capo diversamente
+            let libCvLarghezza = 0;
+            new ResizeObserver(voci => {
+                const w = Math.round(voci[voci.length - 1].contentRect.width);
+                if (w !== libCvLarghezza) { libCvLarghezza = w; if (w) libCvRinfresca(); }   // 0: elenco nascosto, al ritorno si rifa'
+            }).observe(sourceList);
+        }
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => libCvRinfresca());
+
+        // registro e sezioni prima di init(): la barra compare gia' divisa (al massimo 2,5 s di attesa)
+        libRegistra(sourceList);
+        libCvRinfresca();
+        try { if (localStorage.getItem(LIB_CHIUSO_CHIAVE) === '1') sourceList.classList.add('lib-chiuso-assegnati'); } catch (e) {}
+        sourceList.classList.add('lib-attesa');
+        setTimeout(() => sourceList.classList.remove('lib-attesa'), 2500);
         init();
 
         function closeTimerModal(e) { 
@@ -4703,7 +5746,9 @@ async function deleteGroupEntity(groupId) {
             
             // Genera la lista delle entità per il tab Gruppi (recuperato dal tuo vecchio codice)
             const list = document.getElementById('group-entities-list');
-            const cards = document.querySelectorAll('#source-list .hk-card-source');
+            // nell'ordine del server (dataset.libOrdine, scritto da libRegistra), non in quello della barra divisa in
+            // sezioni "Da assegnare" / "Gia' nelle stanze": elenco e gruppo salvato restano come prima
+            const cards = Array.from(document.querySelectorAll('#source-list .hk-card-source')).sort((a, b) => (+a.dataset.libOrdine || 0) - (+b.dataset.libOrdine || 0));
             /* L'elenco si compone in memoria e si scrive UNA volta sola.
                Prima si faceva list.innerHTML += dentro al ciclo: a ogni giro il
                browser riscriveva in testo tutto l'elenco gia' fatto, lo ributtava
@@ -4793,17 +5838,34 @@ async function deleteGroupEntity(groupId) {
             }
 
             ambRenderSlot('room');
-            ambRenderSlot('subroom');
-            lucide.createIcons({ root: righe });
+            ambRenderSlot('subroom');             // le icone nuove (⋯, "+ Stanza", "+ Zona") le fa renderTabs, insieme alle schede
 
-            // la scheda selezionata resta visibile nella riga scorrevole
-            const riga = document.getElementById('room-tabs');
-            const scheda = riga.querySelector('.tab.active, .tab.amb-genitore');
-            if (scheda) {
+            ambMostraSchedaAttivaPresto();        // letture della posizione al fotogramma, dopo tutte le scritture
+        }
+        // la scheda attiva si porta in vista al prossimo fotogramma (prima dell'immagine): letta qui, a meta' del
+        // ridisegno di schede e griglia, la posizione costringeva il browser a impaginare tutta la pagina due volte
+        var ambSchedaRinvio = 0;
+        function ambMostraSchedaAttivaPresto() {
+            if (!ambSchedaRinvio) ambSchedaRinvio = requestAnimationFrame(() => { ambSchedaRinvio = 0; ambMostraSchedaAttiva(); });
+        }
+        // la scheda selezionata resta visibile nella riga scorrevole (stanze e zone: il suo ⋯ non finisce fuori vista).
+        // Dopo ogni disegno delle schede E ogni volta che le righe cambiano larghezza (barra dei dispositivi allargata
+        // o stretta, doppio clic sulla maniglia, finestra ridimensionata): ci pensa il ResizeObserver qui sotto.
+        function ambMostraSchedaAttiva() {
+            ['room-tabs', 'sub-room-tabs'].forEach(idRiga => {
+                const riga = document.getElementById(idRiga);
+                if (!riga || riga.style.display === 'none' || !riga.clientWidth) return;
+                const scheda = riga.querySelector('.tab.active, .tab.amb-genitore');
+                if (!scheda) return;
                 const rc = riga.getBoundingClientRect(), rt = scheda.getBoundingClientRect();
-                if (rt.left < rc.left) riga.scrollLeft += rt.left - rc.left - 8;
+                if (rt.width > rc.width - 16) riga.scrollLeft += rt.right - rc.right + 8;   // piu' larga della riga: se ne vede la fine, col ⋯
+                else if (rt.left < rc.left) riga.scrollLeft += rt.left - rc.left - 8;
                 else if (rt.right > rc.right) riga.scrollLeft += rt.right - rc.right + 8;
-            }
+            });
+        }
+        if (window.ResizeObserver) {
+            const ambRigheOss = new ResizeObserver(() => ambMostraSchedaAttivaPresto());
+            ['room-tabs', 'sub-room-tabs'].forEach(id => { const el = document.getElementById(id); if (el) ambRigheOss.observe(el); });
         }
 
         function ambRenderSlot(tipo) {
@@ -4837,13 +5899,13 @@ async function deleteGroupEntity(groupId) {
             ambChiudiMenu();
             ambEditorAperto = tipo; ambEditorTesto = '';
             ambRenderSlot('room'); ambRenderSlot('subroom');
-            lucide.createIcons({ root: document.getElementById('amb-righe') });
+            libIcone(document.getElementById('amb-righe'));
         }
 
         function ambChiudiEditor() {
             ambEditorAperto = null; ambEditorTesto = '';
             ambRenderSlot('room'); ambRenderSlot('subroom');
-            lucide.createIcons({ root: document.getElementById('amb-righe') });
+            libIcone(document.getElementById('amb-righe'));
         }
 
         function ambTastoEditor(e, tipo) {
@@ -4946,6 +6008,7 @@ async function deleteGroupEntity(groupId) {
                 const b = tab.querySelector('.amb-menu-btn');
                 if (b) return ambApriMenu(b);
                 tab.click();   // seleziona (renderTabs è sincrono) e poi apre il menu della nuova scheda attiva
+                ambMostraSchedaAttiva();   // subito, non al fotogramma: il menu si apre sotto la scheda gia' in vista
                 const nb = document.querySelector('#amb-righe .tab.active .amb-menu-btn');
                 if (nb) ambApriMenu(nb);
             });
@@ -4956,7 +6019,9 @@ async function deleteGroupEntity(groupId) {
         function ambApriConferma(o) {
             ambAzioneConferma = o.azione;
             document.getElementById('amb-del-titolo').innerHTML = o.titolo;
-            document.getElementById('amb-del-testo').textContent = o.testo;
+            const testoEl = document.getElementById('amb-del-testo');
+            if (o.corpoHTML) { testoEl.innerHTML = o.corpoHTML; lucide.createIcons({ root: testoEl }); }
+            else testoEl.textContent = o.testo;
             const btn = document.getElementById('amb-del-btn');
             btn.innerHTML = '<i data-lucide="' + (o.icona || 'trash-2') + '" style="width:15px;height:15px;margin-right:6px;"></i> ' + (o.etichetta || 'Elimina');
             lucide.createIcons({ root: btn });
@@ -4967,13 +6032,55 @@ async function deleteGroupEntity(groupId) {
             const eZona = !!activeSubRoom;
             editingType = eZona ? 'subroom' : 'room';
             editingId = eZona ? activeSubRoom : activeRoom;
-            const sub = (!eZona && config[activeRoom] && config[activeRoom].sub_rooms) ? Object.keys(config[activeRoom].sub_rooms).length : 0;
+            ambChiediElimina();
+        }
+        // dispositivi (unici) di una stanza o zona: griglia e collegamenti 3D
+        function ambContenuto(ctx) {
+            const ids = new Set();
+            if (!ctx || typeof ctx !== 'object') return ids;
+            (Array.isArray(ctx.device_ids) ? ctx.device_ids : []).forEach(id => { if (!libIdScartato(id)) ids.add(id); });
+            if (libVista3D(ctx)) Object.values(ctx.mesh_mapping || {}).forEach(id => { if (!libIdScartato(id)) ids.add(id); });
+            return ids;
+        }
+        // conferma chiara: cosa contiene, cosa succede ai dispositivi (tolti dal posto, non dall'impianto).
+        // I pezzi di frase stanno in elementi separati: il numero resta un numero, il resto si traduce.
+        function ambChiediElimina() {
+            const eZona = editingType === 'subroom';
+            if (!eZona && editingType !== 'room') return;
+            const stanza = eZona ? activeRoom : editingId;
+            const r = config[stanza];
+            if (!r) return;
+            const ctx = eZona ? (r.sub_rooms || {})[editingId] : r;
+            if (!ctx) return;
+            if (!eZona && Object.keys(config).length <= 1) return showToast("Devi mantenere almeno una stanza nel sistema", "error");
+            const zone = eZona ? [] : Object.keys(r.sub_rooms || {});
+            const tutti = ambContenuto(ctx);
+            zone.forEach(z => ambContenuto(r.sub_rooms[z]).forEach(id => tutti.add(id)));
+            const ha3D = libVista3D(ctx) || zone.some(z => libVista3D(r.sub_rooms[z]));
+            const n = tutti.size;
+            let corpo = '<p class="amb-del-lead">';
+            if (n > 0) {
+                corpo += '<span>' + (eZona ? 'La zona contiene' : 'La stanza contiene') + '</span> <b>' + n + '</b> <span>' + (n === 1 ? 'dispositivo' : 'dispositivi') + '</span><span>' +
+                    (eZona ? (n === 1 ? ": verrà tolto dalla zona, non dall'impianto." : ": verranno tolti dalla zona, non dall'impianto.")
+                           : (n === 1 ? ": verrà tolto dalla stanza, non dall'impianto." : ": verranno tolti dalla stanza, non dall'impianto.")) + '</span>';
+            } else {
+                corpo += '<span>' + (eZona ? 'La zona non contiene dispositivi.' : 'La stanza non contiene dispositivi.') + '</span>';
+            }
+            corpo += '</p>';
+            if (zone.length) {
+                corpo += '<div class="amb-del-sotto">' + (zone.length === 1 ? 'Viene eliminata anche la zona' : 'Vengono eliminate anche le zone') + '</div><div class="amb-del-zone">';
+                zone.forEach(z => {
+                    corpo += '<span class="amb-del-chip"><i data-lucide="layers"></i><span data-no-tr>' + ambEsc(z) + '</span><em>' + ambContenuto(r.sub_rooms[z]).size + '</em></span>';
+                });
+                corpo += '</div>';
+            }
+            if (ha3D) corpo += '<p class="amb-del-extra"><i data-lucide="box"></i><span>Viene rimossa anche la planimetria 3D.</span></p>';
+            if (n > 0) corpo += '<p class="amb-del-nota">I dispositivi restano nell’elenco a sinistra e nelle altre stanze in cui si trovano.</p>';
             ambApriConferma({
-                titolo: (eZona ? 'Eliminare la zona ' : 'Eliminare la stanza ') + '<b>«' + ambEsc(editingId) + '»</b>?',
-                testo: (sub === 1 ? 'Verrà rimossa anche la zona al suo interno. ' : sub > 1 ? 'Verranno rimosse anche le ' + sub + ' zone al suo interno. ' : '') +
-                       'I dispositivi assegnati non vengono cancellati: restano disponibili nell’elenco a sinistra.',
-                etichetta: 'Elimina', icona: 'trash-2',
-                azione: confirmDeleteContext                 // funzione originale
+                titolo: '<span>' + (eZona ? 'Eliminare la zona' : 'Eliminare la stanza') + '</span> <b data-no-tr>«' + ambEsc(editingId) + '»</b>?',
+                corpoHTML: corpo,
+                etichetta: eZona ? 'Elimina zona' : 'Elimina stanza', icona: 'trash-2',
+                azione: confirmDeleteContext
             });
         }
         function ambEscElimina(e) { if (e.key === 'Escape') ambChiudiElimina(); }
@@ -5045,7 +6152,7 @@ async function deleteGroupEntity(groupId) {
             if (window.animationFrameId) cancelAnimationFrame(window.animationFrameId);
             if (window.__resize3D) window.__resize3D.disconnect();
             if (window.renderer3D) { window.renderer3D.dispose(); document.getElementById('dashboard-3d-container').innerHTML = ''; }
-            await saveConfig();
+            await saveConfig(false);          // i dispositivi del posto sono gia' nella configurazione
             updateWorkspaceView();
             showToast('Planimetria 3D rimossa', 'success');
         }
@@ -5086,7 +6193,9 @@ async function deleteGroupEntity(groupId) {
             } finally { btn.classList.remove('in-corso'); }
         }
         function libAggiornaStato(entityId, stato) {
-            document.querySelectorAll('.hk-card-source[data-id="' + CSS.escape(entityId) + '"]').forEach(c => {
+            const voce = libRegistro.get(entityId);
+            const card = document.querySelectorAll('.hk-card-source[data-id="' + CSS.escape(entityId) + '"]');
+            [...card, ...(voce ? [voce.tpl] : [])].forEach(c => {       // anche il registro: le card della stanza nascono aggiornate
                 c.dataset.state = stato;
                 const s = c.querySelector('.hk-state span');
                 if (s) s.textContent = stato === 'on' ? 'Acceso' : 'Spento';
@@ -5108,6 +6217,12 @@ async function deleteGroupEntity(groupId) {
                     const s = c.querySelector('.hk-state span');
                     if (s) s.textContent = esito[1];
                 });
+                const voceReg = libRegistro.get(entityId);
+                if (voceReg) {
+                    if (esito[0]) voceReg.tpl.dataset.state = esito[0];
+                    const sr = voceReg.tpl.querySelector('.hk-state span');
+                    if (sr) sr.textContent = esito[1];
+                }
                 btn.classList.add('attivo');
                 const nome = card.querySelector('.hk-name') ? card.querySelector('.hk-name').innerText : entityId;
                 showToast(nome + ' → ' + (azione === 'up' ? 'Apre' : azione === 'down' ? 'Chiude' : 'Ferma'), 'success');
@@ -5561,6 +6676,8 @@ async function refreshSourceListLive() {
         const cur = document.getElementById('source-list');
         if (!fresh || !cur) return;
         cur.innerHTML = fresh.innerHTML;
+        libRegistra(cur);                 // registro aggiornato: chi non c'e' piu' resta nelle stanze come "non disponibile"
+        delete cur.dataset.libPronta;     // card nuove: nessuna "cambia sezione"
         // Riapplica i nomi personalizzati come all'avvio
         cur.querySelectorAll('.hk-card-source').forEach(card => {
             const id = card.dataset.id;
@@ -5570,7 +6687,8 @@ async function refreshSourceListLive() {
             }
         });
         lucide.createIcons();
-        if (typeof filterEntities === 'function') filterEntities();
+        libAggiornaSezioni();             // sezioni, posti e ricerca
+        libRidisegnaGriglia();            // la stanza aperta segue l'elenco nuovo (senza perdere nessuna entita')
     } catch (e) {}
 }
 

@@ -1438,11 +1438,14 @@
         .hk-name { font-size: 0.85rem; font-weight: 600; line-height: 1.2; color: #FFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 6px rgba(0,0,0,0.5); letter-spacing: -0.01em;}
         .hk-state { font-size: 0.7rem; color: rgba(255,255,255,0.6); font-weight: 600; text-transform: capitalize; transition: color 0.3s ease;}
 
+        /* La luce che scorre sulle card accese si muove con transform invece che con 'left' (29/09/2026):
+           stesso percorso (da -150% a +150% della card, cioe' 6 volte la sua larghezza, che e' il 50% della
+           card) e stessa inclinazione, ma senza rifare l'impaginazione della pagina a ogni fotogramma. */
         @keyframes glass-shimmer {
-            0% { left: -150%; opacity: 0; }
+            0% { transform: translateX(0) skewX(-25deg); opacity: 0; }
             10% { opacity: 1; }
-            30% { left: 150%; opacity: 0; }
-            100% { left: 150%; opacity: 0; }
+            30% { transform: translateX(600%) skewX(-25deg); opacity: 0; }
+            100% { transform: translateX(600%) skewX(-25deg); opacity: 0; }
         }
         .hk-card.state-on::before, .hk-card.state-open::before, .hk-card.state-playing::before, .hk-card.state-cool::before, .hk-card.state-heat::before {
             content: ''; position: absolute; top: 0; left: -150%; width: 50%; height: 100%;
@@ -1509,10 +1512,13 @@
         .hk-card.type-media_player.has-art .hk-icon-wrapper { background: #000; border-color: rgba(255,255,255,0.25); box-shadow: 0 6px 16px rgba(0,0,0,0.45); }
         .hk-card.type-media_player.has-art.state-playing .hk-icon-wrapper { animation: none; box-shadow: 0 0 18px rgba(10,132,255,0.5); border-color: rgba(10,132,255,0.55); }
         .media-card-eq { position: absolute; right: 3px; bottom: 3px; z-index: 2; display: none; align-items: flex-end; gap: 2px; height: 9px; padding: 3px 4px 2px; background: rgba(0,0,0,0.6); border-radius: 6px; }
-        .media-card-eq span { width: 2px; border-radius: 1px; background: #FFF; animation: card-eq 1.1s ease-in-out infinite; }
+        .media-card-eq span { width: 2px; height: 9px; border-radius: 1px; background: #FFF; transform-origin: 50% 100%; transform: scaleY(0); animation: card-eq 1.1s ease-in-out infinite; }
         .media-card-eq span:nth-child(2) { animation-delay: 0.25s; }
         .media-card-eq span:nth-child(3) { animation-delay: 0.12s; }
-        @keyframes card-eq { 0%, 100% { height: 3px; } 50% { height: 9px; } }
+        /* le barrette crescono dal basso con transform invece che con 'height' (29/09/2026): stesse altezze,
+           da 3 a 9 px, senza rifare l'impaginazione a ogni fotogramma. Da ferme (nel ritardo iniziale della
+           seconda e terza barretta, o in modalita' leggera) restano senza altezza come prima: scaleY(0). */
+        @keyframes card-eq { 0%, 100% { transform: scaleY(0.3333); } 50% { transform: scaleY(1); } }
         .hk-card.type-media_player.state-playing .media-card-eq { display: flex; }
         .hk-card.type-media_player .hk-state { text-transform: none; }
 
@@ -3275,6 +3281,228 @@ body.layout-grid-1.shape-round .imp-ap-c { text-align: left; } body.layout-grid-
 }
 @media (prefers-reduced-motion: reduce) { .imp-auto-finta i, .imp-auto-finta span::before, .imp-auto-finta span::after, .imp-auto-finta em { animation: none; } }
 .wh-leggera .imp-auto-eroe { box-shadow: none; }
+/* ---- tinta a scelta (29/09/2026): una pagina sua, aperta da Schermata e sfondo ----
+   Selettore fatto a mano (saturazione/luminosita' + tinta) che si trascina col dito, col mouse e col
+   pennino (pointer events; touch-action: none, cosi' la pagina non scorre mentre si trascina),
+   codice esadecimale, colori consigliati, ultimi usati, stile e intensita'. L'anteprima e' lo schermo
+   di questo dispositivo in piccolo, con lo sfondo disegnato come quello vero (tintaSfondoCss). */
+.imp-tinta-pallino {
+    position: relative; width: 26px; height: 26px; flex-shrink: 0; border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,0.32), rgba(255,255,255,0) 56%), var(--c, #0A84FF);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.2), 0 3px 10px rgba(0,0,0,0.45);
+    transition: box-shadow 0.25s ease;
+}
+.imp-tinta-pallino[hidden] { display: none; }
+#btn-color-bg.active .imp-tinta-pallino { box-shadow: 0 0 0 2px #15161C, 0 0 0 4px var(--imp-caldo), 0 3px 10px rgba(0,0,0,0.45); }
+#btn-color-bg.active .imp-tinta-pallino::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.35));
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 14px no-repeat;
+}
+#btn-color-bg.active .imp-tinta-pallino.chiaro::after {
+    filter: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23141414' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+#btn-color-bg .imp-freccia, #btn-color-bg.active .imp-freccia { display: block; }   /* apre una pagina: la freccia resta anche se e' lo sfondo in uso */
+.imp-tinta-valore { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.86rem; letter-spacing: 0.02em; }
+
+/* anteprima: lo schermo in piccolo (in verticale sul telefono, in orizzontale sull'iPad girato) */
+.imp-tinta-eroe {
+    display: flex; align-items: center; gap: 18px; padding: 16px;
+    background: radial-gradient(120% 100% at 0% 0%, rgba(255,179,92,0.10), rgba(255,179,92,0) 60%), rgba(255,255,255,0.03);
+}
+.imp-tinta-tel {
+    --tw: 140px; --th: 300px;
+    position: relative; flex-shrink: 0; width: var(--tw); height: var(--th); border-radius: var(--tr, 24px); overflow: hidden;
+    border: 3px solid #1C1D24; background: #000; isolation: isolate; container-type: size;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.14), 0 18px 36px rgba(0,0,0,0.55);
+}
+.imp-tinta-tel::after {   /* la tacca */
+    content: ""; position: absolute; z-index: 5; top: 2.2%; left: 50%; width: 32%; height: 3.4%; transform: translateX(-50%);
+    border-radius: 99px; background: #000;
+}
+.imp-tinta-tel.oriz::after, .imp-tinta-tel.tablet::after { display: none; }
+.imp-tinta-sfondo { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #000; }
+.imp-tinta-luce { position: absolute; left: -5%; top: -5%; width: 110%; height: 110%; background: #000; }   /* come #app-background */
+.imp-tinta-tel > div + div { position: absolute; z-index: 1; }
+.imp-tinta-t-testa { left: 9%; right: 9%; top: 9%; }
+.imp-tinta-t-testa i, .imp-tinta-t-testa b, .imp-tinta-t-testa s { display: block; height: 4px; border-radius: 99px; background: rgba(255,255,255,0.55); }
+.imp-tinta-t-testa i { width: 36%; opacity: 0.65; }
+.imp-tinta-t-testa b { width: 70%; height: 10px; height: 3.2cqh; margin-top: 6px; border-radius: 4px; background: rgba(255,255,255,0.92); }
+.imp-tinta-t-testa s { width: 48%; margin-top: 6px; opacity: 0.55; }
+.imp-tinta-t-meteo {
+    left: 8%; right: 8%; top: 24%; height: 13%; display: flex; align-items: center; justify-content: space-between; padding: 0 9%;
+    border-radius: 14px; border-radius: 7cqw; background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.22);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+}
+.imp-tinta-t-meteo > span:first-child { font-size: 18px; font-size: 13cqw; font-weight: 300; line-height: 1; color: #FFF; letter-spacing: -0.04em; }
+.imp-tinta-t-luna { width: 15%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #FFF5DA, #FFD48A); box-shadow: 0 0 10px rgba(255,212,138,0.7); }
+body.weather-minimal .imp-tinta-t-meteo { background: transparent; border-color: transparent; box-shadow: none; }
+.imp-tinta-t-card { left: 8%; right: 8%; top: 41%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; gap: 4cqw; }
+.imp-tinta-t-card i {
+    position: relative; display: block; height: 49px; height: 16cqh; border-radius: 9px; border-radius: 6cqw;
+    background: rgba(var(--card-color), max(var(--card-opacity), 0.07)); border: 1px solid rgba(255,255,255,0.16); border-top-color: rgba(255,255,255,0.3);
+    backdrop-filter: blur(6px) saturate(170%); -webkit-backdrop-filter: blur(6px) saturate(170%);
+}
+.imp-tinta-t-card u { position: absolute; left: 12%; top: 13%; height: 34%; aspect-ratio: 1; border-radius: 50%; background: rgba(255,255,255,0.2); }
+.imp-tinta-t-card i.on u { background: linear-gradient(180deg, #FFE08A, #FFB340); box-shadow: 0 0 8px rgba(255,190,70,0.6); }
+.imp-tinta-t-card b, .imp-tinta-t-card s { position: absolute; left: 12%; height: 8%; min-height: 3px; border-radius: 99px; background: rgba(255,255,255,0.85); }
+.imp-tinta-t-card b { bottom: 30%; width: 58%; }
+.imp-tinta-t-card s { bottom: 14%; width: 36%; background: rgba(255,255,255,0.45); }
+body.shape-square .imp-tinta-t-card i { border-radius: 4px; border-radius: 2.5cqw; }
+body.shape-round .imp-tinta-t-card i { border-radius: 14px; border-radius: 9cqw; }
+.imp-tinta-t-nav {
+    left: 16%; right: 16%; bottom: 3.5%; height: 7.5%; display: flex; align-items: center; justify-content: space-evenly;
+    border-radius: 99px; background: rgba(20,20,24,0.55); border: 1px solid rgba(255,255,255,0.22);
+}
+.imp-tinta-t-nav i { width: 12%; aspect-ratio: 1; border-radius: 50%; background: rgba(255,255,255,0.75); }
+.imp-tinta-t-nav i:first-child { background: #FFF; }
+body.nav-flat .imp-tinta-t-nav { left: 0; right: 0; bottom: 0; height: 8.5%; border-radius: 0; border: 0; border-top: 1px solid rgba(255,255,255,0.25); background: rgba(94,94,94,0.35); }
+body.nav-dock .imp-tinta-t-nav { left: 8%; right: 8%; height: 9%; border-radius: 14px; border-radius: 6cqw; background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.35); }
+body.nav-minimal .imp-tinta-t-nav { left: 4%; right: 4%; background: transparent; border-color: transparent; }
+/* iPad in verticale: tre card per riga */
+.imp-tinta-tel.tablet .imp-tinta-t-card { grid-template-columns: repeat(3, 1fr); }
+.imp-tinta-tel.tablet .imp-tinta-t-card i { height: 13%; height: 13cqh; }
+/* iPad in orizzontale: barra a sinistra, quattro card per riga */
+.imp-tinta-tel.oriz .imp-tinta-t-testa { left: 15%; right: 40%; top: 8%; }
+.imp-tinta-tel.oriz .imp-tinta-t-meteo { left: 15%; right: auto; width: 36%; top: 22%; height: 18%; padding: 0 4%; border-radius: 4cqw; }
+.imp-tinta-tel.oriz .imp-tinta-t-meteo > span:first-child { font-size: 7cqw; }
+.imp-tinta-tel.oriz .imp-tinta-t-card { left: 15%; right: 5%; top: 45%; grid-template-columns: repeat(3, 1fr); gap: 2.4cqw; }
+.imp-tinta-tel.oriz .imp-tinta-t-card i { height: 20cqh; border-radius: 3cqw; }
+.imp-tinta-tel.oriz .imp-tinta-t-nav, body.nav-flat .imp-tinta-tel.oriz .imp-tinta-t-nav, body.nav-dock .imp-tinta-tel.oriz .imp-tinta-t-nav {
+    left: 2.5%; right: auto; top: 16%; bottom: 16%; width: 7%; height: auto; flex-direction: column; border-radius: 3cqw;
+    background: rgba(20,20,24,0.55); border: 1px solid rgba(255,255,255,0.22);
+}
+.imp-tinta-tel.oriz .imp-tinta-t-nav i { width: 55%; }
+.imp-tinta-info { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.imp-tinta-info > small { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--imp-caldo); }
+.imp-tinta-codice { font: 700 1.45rem/1.15 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.01em; color: var(--imp-testo); font-variant-numeric: tabular-nums; }
+.imp-tinta-dettagli { font-size: 0.82rem; line-height: 1.35; color: var(--imp-testo-2); }
+.imp-tinta-inuso {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; min-height: 32px; padding: 5px 12px 5px 9px; border-radius: 99px;
+    background: rgba(48,209,88,0.13); border: 1px solid rgba(48,209,88,0.28); color: #7EE2A0; font-size: 0.8rem; font-weight: 650; line-height: 1.2;
+}
+.imp-tinta-inuso svg { width: 15px; height: 15px; flex-shrink: 0; stroke-width: 2.8; }
+.imp-tinta-usa {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; margin-top: 10px; min-height: 44px; max-width: 100%; padding: 10px 14px;
+    border: 0; border-radius: 14px; background: linear-gradient(180deg, #FFC574, #FF8A3D); color: #2A1606;
+    font-family: inherit; font-size: 0.9rem; font-weight: 700; line-height: 1.2; text-align: center; cursor: pointer;
+    box-shadow: 0 10px 24px rgba(255,138,61,0.32), inset 0 1px 0 rgba(255,255,255,0.35); transition: transform 0.15s ease;
+}
+.imp-tinta-usa:active { transform: scale(0.97); }
+.imp-tinta-usa svg { width: 17px; height: 17px; flex-shrink: 0; }
+.imp-tinta-inuso[hidden], .imp-tinta-usa[hidden] { display: none; }
+
+/* selettore: quadrato saturazione/luminosita', barra della tinta, codice */
+.imp-gruppo.imp-tinta-scelta { overflow: visible; padding: 14px; }   /* il cursore sul bordo puo' uscire un po' */
+.imp-tinta-sv {
+    --h: 211;
+    position: relative; height: clamp(150px, 24vh, 210px); border-radius: 14px; cursor: crosshair; outline: none;
+    background: linear-gradient(to top, #000 0%, rgba(0,0,0,0) 100%), linear-gradient(to right, #FFF 0%, hsl(var(--h), 100%, 50%) 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+    touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.imp-tinta-sv-cursore, .imp-tinta-hue-cursore {
+    position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; pointer-events: none;
+    background: var(--c, #0A84FF); border: 3px solid #FFF; box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 4px 14px rgba(0,0,0,0.5);
+    transition: transform 0.18s var(--imp-curva);
+}
+.imp-tinta-sv-cursore { left: 100%; top: 0; }
+.imp-tinta-sv.preso .imp-tinta-sv-cursore, .imp-tinta-hue.preso .imp-tinta-hue-cursore { transform: scale(1.2); }
+.imp-tinta-hue {
+    position: relative; display: block; margin-top: 8px; padding: 9px 0; cursor: pointer; outline: none;
+    touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.imp-tinta-hue-barra {
+    position: relative; display: block; height: 26px; border-radius: 13px;
+    background: linear-gradient(90deg, #F00 0%, #FF0 16.667%, #0F0 33.333%, #0FF 50%, #00F 66.667%, #F0F 83.333%, #F00 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);
+}
+.imp-tinta-hue-cursore { top: 50%; left: calc(13px + (100% - 26px) * var(--hp, 0.5)); }
+.imp-tinta-sv:focus-visible, .imp-tinta-hue:focus-visible .imp-tinta-hue-barra { box-shadow: 0 0 0 2px var(--imp-caldo), inset 0 0 0 1px rgba(255,255,255,0.1); }
+.imp-tinta-riga-hex { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.imp-tinta-hex {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 12px 6px 6px; border-radius: 14px;
+    background: rgba(118,118,128,0.2); cursor: text; transition: box-shadow 0.2s ease;
+}
+.imp-tinta-hex:focus-within { box-shadow: 0 0 0 2px rgba(255,179,92,0.6); }
+.imp-tinta-hex.errore { box-shadow: 0 0 0 2px rgba(255,105,97,0.75); animation: imp-tinta-no 0.32s ease; }
+@keyframes imp-tinta-no { 0%, 100% { transform: none; } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.imp-tinta-campione {
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 10px; background: var(--c, #0A84FF);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 4px 12px rgba(0,0,0,0.35);
+}
+.imp-tinta-hex-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.imp-tinta-hex-nome { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--imp-testo-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-tinta-hex-scrivi { display: flex; align-items: center; min-width: 0; font: 600 17px/1.2 ui-monospace, "SF Mono", Menlo, monospace; color: var(--imp-testo-3); }
+.imp-tinta-hex-scrivi input {
+    flex: 1; min-width: 0; width: 100%; height: 28px; margin: 0 0 0 1px; padding: 0; border: 0; outline: 0; border-radius: 0; background: transparent; box-shadow: none;
+    color: var(--imp-testo); font: inherit; letter-spacing: 0.08em; text-transform: uppercase; -webkit-appearance: none; appearance: none;
+}
+.imp-tinta-prima {
+    width: 48px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 0;
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; background: rgba(255,255,255,0.08); color: var(--imp-caldo); cursor: pointer;
+}
+.imp-tinta-prima svg { width: 20px; height: 20px; }
+.imp-tinta-prima:active { background: rgba(255,255,255,0.15); }
+.imp-tinta-prima[hidden] { display: none; }
+
+/* colori consigliati e ultimi usati */
+.imp-tinta-campioni { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; padding: 10px; }
+.imp-tinta-c {
+    position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 48px; margin: 0; padding: 0;
+    border: 0; border-radius: 14px; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.imp-tinta-c::before {
+    content: ""; width: 100%; max-width: 40px; aspect-ratio: 1; border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, rgba(255,255,255,0.34), rgba(255,255,255,0) 55%), var(--c);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.14), 0 5px 14px rgba(0,0,0,0.42);
+    transition: transform 0.2s var(--imp-curva), box-shadow 0.25s ease;
+}
+.imp-tinta-c:active::before { transform: scale(0.9); }
+@media (hover: hover) { .imp-tinta-c:hover::before { transform: scale(1.07); } }
+.imp-tinta-c[aria-pressed="true"]::before { box-shadow: 0 0 0 2.5px #121319, 0 0 0 5px var(--imp-caldo), 0 6px 16px rgba(0,0,0,0.45); }
+.imp-tinta-c[aria-pressed="true"]::after {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.35));
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center / 100% no-repeat;
+}
+.imp-tinta-c.chiaro[aria-pressed="true"]::after {
+    filter: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23141414' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+.imp-tinta-c:focus-visible { outline: 2px solid var(--imp-caldo); outline-offset: 1px; }
+#imp-tinta-recenti-blocco[hidden] { display: none; }
+@container (min-width: 600px) { .imp-tinta-campioni { grid-template-columns: repeat(12, minmax(0, 1fr)); } }
+
+/* stile: tre tessere con lo sfondo vero in piccolo */
+.imp-pagina .imp-tinta-stile {
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px; min-width: 0; min-height: 44px; margin: 0;
+    padding: 10px 4px 9px; border-radius: 15px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07);
+    color: var(--imp-testo-2); font-family: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+}
+.imp-tinta-stile > * { pointer-events: none; }
+.imp-tinta-stile > span:last-child { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.imp-pagina .imp-tinta-stile:active { transform: scale(0.97); }
+.imp-pagina .imp-tinta-stile[aria-pressed="true"] {
+    background: rgba(255,179,92,0.11); border-color: rgba(255,179,92,0.7); color: var(--imp-caldo-chiaro);
+    box-shadow: inset 0 0 0 1px rgba(255,179,92,0.3), 0 8px 22px rgba(255,138,61,0.16);
+}
+.imp-tinta-pitto { position: relative; display: block; width: 100%; max-width: 58px; aspect-ratio: 3 / 4; border-radius: 10px; overflow: hidden; background: #000; border: 1px solid rgba(255,255,255,0.1); }
+.imp-tinta-pitto i { position: absolute; left: -5%; top: -5%; width: 110%; height: 110%; }
+.imp-tinta-stile[aria-pressed="true"] .imp-tinta-pitto { border-color: rgba(255,214,163,0.45); }
+.imp-tessere + .imp-cursore::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 0.5px; background: var(--imp-sep); }
+
+/* da tablet la voce "Indietro" c'e' sulle pagine aperte da un'altra pagina (Tinta a scelta -> Schermata e sfondo) */
+.imp-dettaglio.con-genitore .imp-back { visibility: visible; }
+@media (max-width: 359px) {
+    .imp-tinta-eroe { gap: 14px; padding: 14px; }
+    .imp-tinta-codice { font-size: 1.2rem; }
+    .imp-tinta-usa { padding: 10px 12px; font-size: 0.84rem; }
+    .imp-tinta-campioni { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { .imp-tinta-sv-cursore, .imp-tinta-hue-cursore, .imp-tinta-c::before, .imp-tinta-hex.errore { transition: none; animation: none; } }
+.wh-leggera .imp-tinta-t-card i { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.wh-leggera .imp-tinta-tel { box-shadow: 0 0 0 1px rgba(255,255,255,0.14); }
 /* ---- telefono piccolo ---- */
 @media (max-width: 359px) {
     .imp-valore { display: none; }
@@ -3541,7 +3769,8 @@ html.wh-scala .imp-pagina {
                          data-step="{{ device.attributes.target_temp_step | default(0.5) }}"
                          {% elif domain == 'cover' %}
                          data-position="{{ device.attributes.current_position | default(0) }}"
-                         {% elif domain == 'media_player' %} 
+                         {% elif domain == 'media_player' %}
+                         data-state="{{ device.state }}"
                          data-title="{{ device.attributes.media_title | default('') }}" 
                          data-artist="{{ device.attributes.media_artist | default('') }}" 
                          data-volume="{{ device.attributes.volume_level | default(0.5) }}"
@@ -4200,10 +4429,12 @@ html.wh-scala .imp-pagina {
 
                 <div class="imp-etichetta">Sfondo personale</div>
                 <div class="imp-gruppo">
+                    <!-- apre la pagina "Tinta a scelta" (qui sotto, data-cat="tinta"); il pallino ha il colore scelto, con la spunta se e' lo sfondo in uso -->
                     <div class="imp-riga bg-option" id="btn-color-bg" role="button" tabindex="0">
                         <span class="acc-ico c-arcobaleno"><i data-lucide="palette"></i></span>
                         <span class="imp-testo"><b>Tinta a scelta</b><small>Una sfumatura del colore che preferisci</small></span>
-                        <i data-lucide="check" class="imp-spunta"></i>
+                        <span class="imp-valore imp-tinta-valore" id="imp-val-tinta" data-no-tr></span>
+                        <span class="imp-tinta-pallino" id="imp-tinta-pallino" aria-hidden="true" hidden></span>
                         <i data-lucide="chevron-right" class="imp-freccia"></i>
                     </div>
                     <div class="imp-riga bg-option" id="btn-upload-bg" role="button" tabindex="0">
@@ -4213,7 +4444,6 @@ html.wh-scala .imp-pagina {
                         <i data-lucide="chevron-right" class="imp-freccia"></i>
                     </div>
                     <input type="file" id="bg-file-input" accept="image/*" style="display: none;">
-                    <input type="color" id="bg-color-input" style="display: none;" value="#0a84ff">
                 </div>
 
                 <div class="imp-etichetta">Riquadro del meteo</div>
@@ -4237,6 +4467,89 @@ html.wh-scala .imp-pagina {
                 </div>
                 <div class="imp-nota">Lo stile della barra vale sul telefono; da tablet in orizzontale la barra è di lato.</div>
             </div>
+
+            <!-- ======================= TINTA A SCELTA (29/09/2026): INIZIO =======================
+                 Si apre da Schermata e sfondo > Tinta a scelta (prima quella riga apriva il selettore di colore
+                 del sistema). Il colore si sceglie tutto qui: quadrato saturazione/luminosita' e barra della tinta,
+                 codice esadecimale, colori consigliati, ultimi usati, stile e intensita'. Lo script "TINTA A SCELTA"
+                 salva mentre si sceglie (core_custom_bg_color come prima, piu' core_custom_bg_intensita,
+                 core_custom_bg_stile e core_custom_bg_recenti) e ridisegna lo sfondo con applyBackground('custom_color'). -->
+            <div class="imp-cat" data-cat="tinta">
+                <div class="imp-anteprima imp-tinta-eroe">
+                    <div class="imp-tinta-tel" id="imp-tinta-tel" aria-hidden="true">
+                        <div class="imp-tinta-sfondo"><div class="imp-tinta-luce" id="imp-tinta-luce"></div></div>
+                        <div class="imp-tinta-t-testa"><i></i><b></b><s></s></div>
+                        <div class="imp-tinta-t-meteo"><span data-no-tr>18°</span><span class="imp-tinta-t-luna"></span></div>
+                        <div class="imp-tinta-t-card"><i class="on"><u></u><b></b><s></s></i><i><u></u><b></b><s></s></i><i><u></u><b></b><s></s></i><i class="on"><u></u><b></b><s></s></i><i><u></u><b></b><s></s></i><i><u></u><b></b><s></s></i></div>
+                        <div class="imp-tinta-t-nav"><i></i><i></i><i></i><i></i></div>
+                    </div>
+                    <div class="imp-tinta-info">
+                        <small>Il tuo colore</small>
+                        <b class="imp-tinta-codice" id="imp-tinta-codice" data-no-tr>#0A84FF</b>
+                        <span class="imp-tinta-dettagli" id="imp-tinta-dettagli" data-no-tr></span>
+                        <span class="imp-tinta-inuso" id="imp-tinta-inuso" hidden><i data-lucide="check"></i><span>In uso</span></span>
+                        <button type="button" class="imp-tinta-usa" id="imp-tinta-usa" hidden>Usa come sfondo</button>
+                    </div>
+                </div>
+
+                <div class="imp-etichetta">Colore</div>
+                <div class="imp-gruppo imp-tinta-scelta">
+                    <div class="imp-tinta-sv" id="imp-tinta-sv" role="slider" tabindex="0" aria-label="Saturazione e luminosità" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+                        <span class="imp-tinta-sv-cursore" id="imp-tinta-sv-cursore"></span>
+                    </div>
+                    <div class="imp-tinta-hue" id="imp-tinta-hue" role="slider" tabindex="0" aria-label="Tinta" aria-valuemin="0" aria-valuemax="360" aria-valuenow="211">
+                        <span class="imp-tinta-hue-barra"><span class="imp-tinta-hue-cursore" id="imp-tinta-hue-cursore"></span></span>
+                    </div>
+                    <div class="imp-tinta-riga-hex">
+                        <label class="imp-tinta-hex" id="imp-tinta-hex-campo">
+                            <span class="imp-tinta-campione" id="imp-tinta-campione" aria-hidden="true"></span>
+                            <span class="imp-tinta-hex-testo">
+                                <span class="imp-tinta-hex-nome">Codice esadecimale</span>
+                                <span class="imp-tinta-hex-scrivi"><span aria-hidden="true">#</span><input type="text" id="imp-tinta-hex" maxlength="7" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done" aria-label="Codice esadecimale" data-no-tr></span>
+                            </span>
+                        </label>
+                        <button type="button" class="imp-tinta-prima" id="imp-tinta-prima" title="Torna al colore di prima" aria-label="Torna al colore di prima" hidden><i data-lucide="undo-2"></i></button>
+                    </div>
+                </div>
+
+                <div class="imp-etichetta">Consigliati per la sera</div>
+                <div class="imp-gruppo">
+                    <div class="imp-tinta-campioni" id="imp-tinta-consigliati">
+                        <button type="button" class="imp-tinta-c" data-colore="#0a84ff" style="--c: #0a84ff;" title="Blu" aria-label="Blu" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#3d5afe" style="--c: #3d5afe;" title="Zaffiro" aria-label="Zaffiro" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#7c4dff" style="--c: #7c4dff;" title="Ametista" aria-label="Ametista" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#bf5af2" style="--c: #bf5af2;" title="Orchidea" aria-label="Orchidea" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#ff2d78" style="--c: #ff2d78;" title="Fucsia" aria-label="Fucsia" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#ff453a" style="--c: #ff453a;" title="Rubino" aria-label="Rubino" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#ff7a30" style="--c: #ff7a30;" title="Brace" aria-label="Brace" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#ffb35c" style="--c: #ffb35c;" title="Ambra" aria-label="Ambra" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#ffd60a" style="--c: #ffd60a;" title="Oro" aria-label="Oro" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#30d158" style="--c: #30d158;" title="Giada" aria-label="Giada" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#1fc7c1" style="--c: #1fc7c1;" title="Turchese" aria-label="Turchese" aria-pressed="false"></button>
+                        <button type="button" class="imp-tinta-c" data-colore="#64d2ff" style="--c: #64d2ff;" title="Ghiaccio" aria-label="Ghiaccio" aria-pressed="false"></button>
+                    </div>
+                </div>
+
+                <div id="imp-tinta-recenti-blocco" hidden>
+                    <div class="imp-etichetta">Usati di recente</div>
+                    <div class="imp-gruppo"><div class="imp-tinta-campioni" id="imp-tinta-recenti" data-no-tr></div></div>
+                </div>
+
+                <div class="imp-etichetta">Stile e intensità</div>
+                <div class="imp-gruppo">
+                    <div class="imp-tessere" style="--n: 3;">
+                        <button type="button" class="imp-tinta-stile" data-stile="alone" aria-pressed="true"><span class="imp-tinta-pitto"><i></i></span><span>Alone</span></button>
+                        <button type="button" class="imp-tinta-stile" data-stile="luci" aria-pressed="false"><span class="imp-tinta-pitto"><i></i></span><span>Due luci</span></button>
+                        <button type="button" class="imp-tinta-stile" data-stile="piena" aria-pressed="false"><span class="imp-tinta-pitto"><i></i></span><span>Piena</span></button>
+                    </div>
+                    <div class="imp-cursore">
+                        <div class="imp-cursore-testa"><b id="imp-tinta-l-int">Intensità</b><output id="imp-tinta-int-val" data-no-tr>50%</output></div>
+                        <div class="imp-cursore-fila"><i data-lucide="sun-dim"></i><input type="range" id="imp-tinta-int" min="10" max="100" step="1" value="50" aria-labelledby="imp-tinta-l-int"><i data-lucide="sun"></i></div>
+                    </div>
+                </div>
+                <p class="imp-nota">Alone è la sfumatura di sempre. Il colore resta sfumato sul nero, così la sera la casa si legge bene e non abbaglia.</p>
+            </div>
+            <!-- ======================= TINTA A SCELTA: FINE ======================= -->
 
             <!-- ======================= CARD DEI DISPOSITIVI ======================= -->
             <div class="imp-cat" data-cat="card">
@@ -5183,6 +5496,86 @@ html.wh-scala .imp-pagina {
 
     <script>
 
+// =====================================================================
+// ICONE E CARD: SOLO IL LAVORO CHE SERVE (29/09/2026)
+// =====================================================================
+// whIcone(): converte solo le icone NUOVE o CAMBIATE; sostituisce lucide.createIcons() senza root.
+// lucide 1.41 lascia data-lucide anche sull'<svg> che disegna, quindi ogni createIcons() senza root
+// ridisegnava TUTTE le icone della pagina (piu' di 1.300 con tante stanze): all'apertura dell'app (una
+// volta per ogni lettore multimediale), a ogni play/pausa, ogni 4 s col pannello Sonos aperto, ogni 30 s
+// per l'amministratore. Ora a lucide si passano soltanto:
+//  - gli elementi con data-lucide che non sono ancora un <svg> (le <i data-lucide> appena inserite);
+//  - gli <svg data-lucide="x"> gia' disegnati con un altro nome (chi cambia l'attributo di un'icona che
+//    c'e' gia': meteo, schermo intero della telecamera...). lucide mette sempre per seconda la classe
+//    "lucide-<nome disegnato>": se non corrisponde piu' al data-lucide, l'icona si ridisegna.
+// Il disegno lo fa sempre lucide, con gli stessi attributi e classi di prima.
+function whIcone(root) {
+    if (typeof lucide === 'undefined' || !lucide || typeof lucide.createIcons !== 'function') return;
+    const base = root || document;
+    if (!base.querySelectorAll) return;
+    const daFare = [];
+    const tutte = base.querySelectorAll('[data-lucide]');
+    for (let i = 0; i < tutte.length; i++) {
+        const el = tutte[i];
+        if (el.localName !== 'svg') { daFare.push(el); continue; }
+        if (el.classList[1] !== 'lucide-' + el.getAttribute('data-lucide')) daFare.push(el);
+    }
+    if (!daFare.length) return;
+    let usata = false;
+    // la "radice" consegna a lucide proprio queste icone e nessun'altra
+    lucide.createIcons({ root: { querySelectorAll: function (sel) {
+        if (sel === '[data-lucide]') { usata = true; return daFare; }
+        return [];
+    } } });
+    if (!usata) {       // un lucide che cerca le icone in un altro modo: si passa dai genitori veri
+        daFare.forEach(el => { if (el.parentNode) lucide.createIcons({ root: el.parentNode }); });
+    }
+}
+
+// whCard: le card della pagina per entita' (id -> [card, ...]), raccolte con UNA ricerca.
+// La sincronizzazione ogni 2 s cercava ciascuna entita' della risposta (400 in una casa grande) con
+// querySelectorAll su TUTTA la pagina (24.000 nodi: tutte le stanze e zone). La raccolta si rifa' solo
+// quando nella pagina entrano o escono card (copia della card in un avviso, trascinamento, stanze rifatte):
+// se ne accorge un MutationObserver, e i cambi ancora in sospeso si leggono prima di ogni uso.
+const whCard = (function () {
+    let mappa = null, elenco = [], camere = [], fatta = 0;
+    const conCard = n => n.nodeType === 1 && (n.classList.contains('hk-card') ||
+        (n.firstElementChild !== null && n.getElementsByClassName('hk-card').length > 0));
+    function esamina(rec) {
+        if (!mappa) return;
+        for (let i = 0; i < rec.length; i++) {
+            const a = rec[i].addedNodes, t = rec[i].removedNodes;
+            for (let j = 0; j < a.length; j++) if (conCard(a[j])) { mappa = null; return; }
+            for (let j = 0; j < t.length; j++) if (conCard(t[j])) { mappa = null; return; }
+        }
+    }
+    let oss = null;
+    try {
+        oss = new MutationObserver(esamina);
+        oss.observe(document.documentElement, { childList: true, subtree: true });
+    } catch (e) { oss = null; }
+    function fresca() {
+        if (oss) { const r = oss.takeRecords(); if (r.length) esamina(r); }
+        else if (Date.now() - fatta > 1000) mappa = null;      // senza osservatore: al massimo una volta al secondo
+        if (mappa) return;
+        const m = new Map(), el = [], cam = [];
+        const tutte = document.querySelectorAll('.hk-card[data-id]');
+        for (let i = 0; i < tutte.length; i++) {
+            const c = tutte[i], id = c.getAttribute('data-id');
+            let a = m.get(id);
+            if (!a) m.set(id, a = []);
+            a.push(c); el.push(c);
+            if (c.classList.contains('hk-camera')) cam.push(c);
+        }
+        mappa = m; elenco = el; camere = cam; fatta = Date.now();
+    }
+    return {
+        di(id) { fresca(); return mappa.get(id); },     // le card di quell'entita' (in ordine di pagina), o undefined
+        tutte() { fresca(); return elenco; },
+        telecamere() { fresca(); return camere; }
+    };
+})();
+
 
 // =====================================================================
 // MOTORE METEO 3.0: PIOGGIA SECCA, VELOCE E SGOCCIOLAMENTI REALI
@@ -5249,14 +5642,34 @@ const WeatherEffects = {
     },
 
     resize: function() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+        // Il cambio stanza o zona manda un 'resize' finto: la tela si rifa' solo se lo schermo e' cambiato
+        // davvero, e le card si rimisurano nel ciclo di disegno (una volta per fotogramma) SOLO se piove:
+        // le misure servono solo agli schizzi e ai rivoli della pioggia. Prima si misuravano subito tutte
+        // le card della pagina (anche quelle delle stanze nascoste) a ogni cambio, anche col sereno.
+        if (this.canvas.width !== window.innerWidth) this.canvas.width = window.innerWidth;
+        if (this.canvas.height !== window.innerHeight) this.canvas.height = window.innerHeight;
         this._cards = null;
-        this.updateCardRects();
+        this._rectsDirty = true;
+    },
+
+    // le card che si vedono: stanza aperta e sua zona aperta, piu' quelle fuori dalle stanze (copia in un
+    // avviso). Quelle delle stanze e zone nascoste misurano 0x0 e la pioggia non le tocca comunque.
+    _carteVisibili: function() {
+        const out = Array.prototype.slice.call(document.querySelectorAll('.hero-weather, .glance-pill'));
+        const tutte = whCard.tutte();
+        for (let i = 0; i < tutte.length; i++) {
+            const c = tutte[i];
+            const sezione = c.closest('.room-section');
+            if (sezione && !sezione.classList.contains('active')) continue;
+            const zona = c.closest('.sub-room-content');
+            if (zona && !zona.classList.contains('active')) continue;
+            out.push(c);
+        }
+        return out;
     },
 
     updateCardRects: function() {
-        if (!this._cards) this._cards = document.querySelectorAll('.hk-card, .hero-weather, .glance-pill');
+        if (!this._cards) this._cards = this._carteVisibili();
         const nodi = this._cards;
         const out = this.cardRects;
         out.length = 0;
@@ -5293,6 +5706,10 @@ const WeatherEffects = {
         this._cards = null;
         this._rectsDirty = true;
         this._applicaVelo();
+        // il ciclo di disegno col sereno si ferma: qui riparte (non in modalita' leggera, dove la tela e' spenta)
+        if (!this.rafId && this.canvas && this._boundLoop && this.canvas.style.display !== 'none') {
+            this.rafId = requestAnimationFrame(this._boundLoop);
+        }
     },
 
     clearEffects: function() {
@@ -5369,7 +5786,8 @@ const WeatherEffects = {
         // Stesso bagliore e stesso scossone di prima. Cambia solo che il ripristino usa un
         // unico temporizzatore invece di uno per ogni card (con 40 card erano 40 timer che
         // si svegliavano tutti insieme a ogni fulmine).
-        const cards = document.querySelectorAll('.hk-card');
+        // solo le card che si vedono (quelle delle stanze nascoste non si vedono comunque)
+        const cards = this._carteVisibili().filter(c => c.classList.contains('hk-card'));
         for (let i = 0; i < cards.length; i++) {
             const card = cards[i];
             card.style.transition = 'box-shadow 0.03s, transform 0.03s';
@@ -5399,7 +5817,9 @@ const WeatherEffects = {
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
                 this._canvasSporco = false;
             }
-            this.rafId = requestAnimationFrame(this._boundLoop);
+            // niente da disegnare: il ciclo si ferma (29/09/2026). Prima girava 60 volte al secondo anche col
+            // sereno e teneva sveglia la pagina a ogni fotogramma; riparte da setWeather con pioggia, neve o temporale.
+            this.rafId = null;
             return;
         }
 
@@ -5682,6 +6102,37 @@ const ANIMATED_BGS = {
     anim_fireflies: 'bg-anim-fireflies'
 };
 
+// Tinta a scelta (Impostazioni > Schermata e sfondo > Tinta a scelta): colore '#rrggbb', intensita' 10-100 e stile
+// ('alone' = la sfumatura di sempre, 'luci' = due luci, 'piena' = tutto lo schermo tinto, scuro in basso).
+// Con intensita' 50 e stile 'alone' esce esattamente la sfumatura di prima (colore + alfa 0x50 sul nero).
+// La usa anche l'anteprima della pagina Tinta a scelta, cosi' mostra lo stesso sfondo.
+function tintaSfondoCss(colore, intensita, stile) {
+    let c = String(colore || '').trim().toLowerCase();
+    if (/^#[0-9a-f]{3}$/.test(c)) c = '#' + c[1] + c[1] + c[2] + c[2] + c[3] + c[3];
+    if (!/^#[0-9a-f]{6}$/.test(c)) c = '#0a84ff';
+    let i = parseInt(intensita, 10);
+    if (!(i >= 10 && i <= 100)) i = 50;
+    const a = i * 0.0063;                                            // 50 -> 0.315 -> 0x50
+    const al = x => ('0' + Math.round(Math.min(1, Math.max(0, x)) * 255).toString(16)).slice(-2);
+    if (stile === 'luci') {
+        const n = parseInt(c.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+        const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+        let h = 0;
+        if (d) h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        const c2 = tintaHsvHex((h * 60 + 40) % 360, max ? d / max : 0, max);   // la seconda luce: la tinta vicina
+        return { background: 'radial-gradient(circle at 16% 14%, ' + c + al(a * 1.2) + ' 0%, ' + c + '00 58%), radial-gradient(circle at 86% 88%, ' + c2 + al(a) + ' 0%, ' + c2 + '00 56%), #000', filter: 'blur(60px)' };
+    }
+    if (stile === 'piena') {
+        return { background: 'radial-gradient(150% 110% at 25% 0%, ' + c + al(a * 1.55) + ' 0%, ' + c + al(a * 0.8) + ' 48%, ' + c + al(a * 0.38) + ' 100%), #000', filter: 'blur(40px)' };
+    }
+    return { background: 'radial-gradient(circle at 20% 20%, ' + c + al(a) + ' 0%, #000 70%)', filter: 'blur(60px)' };
+}
+function tintaHsvHex(h, s, v) {
+    const f = k => { const x = (k + h / 60) % 6; return v - v * s * Math.max(0, Math.min(x, 4 - x, 1)); };
+    const e = x => ('0' + Math.round(Math.min(1, Math.max(0, x)) * 255).toString(16)).slice(-2);
+    return '#' + e(f(5)) + e(f(3)) + e(f(1));
+}
+
 function applyBackground(bg) {
     const bgEl = document.getElementById('app-background');
     if (bg === 'anim_meteors') bg = 'default';   // sfondo ritirato
@@ -5732,8 +6183,8 @@ function applyBackground(bg) {
         }
     }
     else if (bg === 'custom_color') {
-        const color = localStorage.getItem('core_custom_bg_color') || '#0a84ff';
-        bgEl.style.background = `radial-gradient(circle at 20% 20%, ${color}50 0%, #000 70%)`; bgEl.style.filter = 'blur(60px)';
+        const t = tintaSfondoCss(localStorage.getItem('core_custom_bg_color'), localStorage.getItem('core_custom_bg_intensita'), localStorage.getItem('core_custom_bg_stile'));
+        bgEl.style.background = t.background; bgEl.style.filter = t.filter;
     }
 }
         
@@ -5787,12 +6238,9 @@ function applyBackground(bg) {
             reader.readAsDataURL(file);
         });
 
-        document.getElementById('btn-color-bg').addEventListener('click', () => document.getElementById('bg-color-input').click());
-        document.getElementById('bg-color-input').addEventListener('input', (e) => {
-            const color = e.target.value; localStorage.setItem('core_custom_bg_color', color); localStorage.setItem('core_bg_theme', 'custom_color');
-            applyBackground('custom_color');
-            resetBgSelectors(); document.getElementById('btn-color-bg').classList.add('active');
-        });
+        // Tinta a scelta: apre la sua pagina nelle Impostazioni (script "TINTA A SCELTA"); prima apriva il
+        // selettore di colore del sistema (input nascosto #bg-color-input, tolto il 29/09/2026)
+        document.getElementById('btn-color-bg').addEventListener('click', () => { if (typeof window.impApri === 'function') window.impApri('tinta'); });
 
         function openSettingsModal() {
             document.getElementById('modal-overlay').classList.add('active'); 
@@ -5851,7 +6299,7 @@ function applyBackground(bg) {
 
         window.threeInstances = [];
         const saved3DSettings = JSON.parse(localStorage.getItem('core_3d_settings')) || { exposure: 1.0, ambient: 0.4, directional: 0.8 };
-        lucide.createIcons();
+        whIcone();
 
         // --- SALUTO DINAMICO ---
         // Alla prima apertura della sessione mostra il benvenuto per qualche
@@ -6276,17 +6724,20 @@ controls.addEventListener('end', function() {
                             cards.forEach(card => {
                                 card.classList.remove('state-on', 'state-off'); 
                                 card.classList.add(`state-${newState}`); 
+                                card.dataset.state = newState;   // coerente con la classe (vedi comandiTocco)
                                 const stateEl = card.querySelector('.hk-state');
                                 if (stateEl) stateEl.innerText = newState;
                             });
                             
                             updateGlanceSummary();
                             
+                            if (window.comandoToccoParte) window.comandoToccoParte(entityId);
                             fetch('/api/toggle', { 
                                 method: 'POST', 
                                 headers: { 'Content-Type': 'application/json' }, 
                                 body: JSON.stringify({ entity_id: entityId, state: newState }) 
-                            }).catch(err => console.error("Errore HA:", err));
+                            }).catch(err => console.error("Errore HA:", err))
+                              .finally(() => { if (window.comandoToccoArrivato) window.comandoToccoArrivato(entityId); });
                         }
                     }
                 });
@@ -6476,7 +6927,7 @@ async function fetchRealWeather() {
             `;
         }
 
-        lucide.createIcons();
+        whIcone();
     } catch (err) { 
         console.error("Errore recupero meteo o posizione:", err); 
     }
@@ -6510,48 +6961,49 @@ setInterval(fetchRealWeather, 300000);
                 dateStr = now.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
             }
             
-            const clockEl = document.getElementById('clock');
-            if(clockEl) clockEl.innerText = timeStr;
-            const dateDisplay = document.getElementById('date-display');
-            if(dateDisplay) dateDisplay.innerText = dateStr;
-
-            const sidebarClock = document.getElementById('sidebar-clock');
-            const sidebarDate = document.getElementById('sidebar-date');
-            if(sidebarClock) sidebarClock.innerText = timeStr;
-            if(sidebarDate) sidebarDate.innerText = dateStr;
+            // si scrive solo quando il testo cambia (una volta al minuto): riscriverlo uguale ogni secondo
+            // costringeva il browser a rifare l'impaginazione ogni secondo
+            const scrivi = (el, t) => { if (el && el.textContent !== t) el.innerText = t; };
+            scrivi(document.getElementById('clock'), timeStr);
+            scrivi(document.getElementById('date-display'), dateStr);
+            scrivi(document.getElementById('sidebar-clock'), timeStr);
+            scrivi(document.getElementById('sidebar-date'), dateStr);
         }
         setInterval(updateDateTime, 1000); updateDateTime();
 
         function updateGlanceSummary() {
-const allActive = document.querySelectorAll('.hk-card.state-on, .hk-card.state-open, .hk-card.state-heat, .hk-card.state-cool, .hk-card.state-auto');
-// Filtro via le tapparelle e le TV dal conteggio (la TV accesa non e' una luce)
-const activeNodes = Array.from(allActive).filter(card => !card.classList.contains('type-cover') && !card.classList.contains('type-tv'));
-const uniqueActive = new Set(activeNodes.map(card => card.dataset.id)).size;
-            document.getElementById('count-lights').innerText = uniqueActive;
-            const pillLights = document.getElementById('pill-lights');
-            if (uniqueActive > 0) pillLights.classList.add('active'); else pillLights.classList.remove('active');
-            
-            const mediaNodes = document.querySelectorAll('.hk-card.type-media_player.state-playing');
-            const uniqueMedia = new Set(Array.from(mediaNodes).map(card => card.dataset.id)).size;
-            document.getElementById('count-media').innerText = uniqueMedia;
-            const pillMedia = document.getElementById('pill-media');
-            if (uniqueMedia > 0) pillMedia.classList.add('active'); else pillMedia.classList.remove('active');
-            // Conteggio Tapparelle
-            const coverNodes = document.querySelectorAll('.hk-card.type-cover.state-open');
-            const uniqueCovers = new Set(Array.from(coverNodes).map(card => card.dataset.id)).size;
-            const countCoversEl = document.getElementById('count-covers');
-            if (countCoversEl) countCoversEl.innerText = uniqueCovers;
-            const pillCovers = document.getElementById('pill-covers');
-            if (pillCovers) {
-                if (uniqueCovers > 0) pillCovers.classList.add('active'); else pillCovers.classList.remove('active');
+            // Stessi conteggi di prima (una volta per entita', anche se la card compare in piu' stanze), ma
+            // passando le card della pagina una volta sola invece di tre ricerche su tutto il documento, e
+            // scrivendo i numeri solo quando cambiano (29/09/2026)
+            const accese = new Set(), inPlay = new Set(), aperte = new Set();
+            const tutte = whCard.tutte();
+            for (let i = 0; i < tutte.length; i++) {
+                const card = tutte[i], cl = card.classList;
+                // Filtro via le tapparelle e le TV dal conteggio (la TV accesa non e' una luce)
+                if ((cl.contains('state-on') || cl.contains('state-open') || cl.contains('state-heat') || cl.contains('state-cool') || cl.contains('state-auto'))
+                    && !cl.contains('type-cover') && !cl.contains('type-tv')) accese.add(card.dataset.id);
+                if (cl.contains('type-media_player') && cl.contains('state-playing')) inPlay.add(card.dataset.id);
+                if (cl.contains('type-cover') && cl.contains('state-open')) aperte.add(card.dataset.id);
             }
+            const scrivi = (el, n) => { if (el && el.textContent !== String(n)) el.innerText = n; };
+            scrivi(document.getElementById('count-lights'), accese.size);
+            document.getElementById('pill-lights').classList.toggle('active', accese.size > 0);
+            scrivi(document.getElementById('count-media'), inPlay.size);
+            document.getElementById('pill-media').classList.toggle('active', inPlay.size > 0);
+            // Conteggio Tapparelle
+            scrivi(document.getElementById('count-covers'), aperte.size);
+            const pillCovers = document.getElementById('pill-covers');
+            if (pillCovers) pillCovers.classList.toggle('active', aperte.size > 0);
         }
         setTimeout(updateGlanceSummary, 100);
         
         function switchRoom(roomId, btn) {
             document.querySelectorAll('.dock-room-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); 
-            document.querySelectorAll('.room-section').forEach(s => { s.classList.remove('active'); s.style.animation = 'none'; s.offsetHeight; s.style.animation = null; });
+            // l'animazione d'ingresso si fa ripartire solo sulla stanza che si chiude e su quella che si apre:
+            // prima si forzava un ricalcolo della pagina per OGNUNA delle stanze, anche per quelle gia' nascoste
+            document.querySelectorAll('.room-section').forEach(s => { if (!s.classList.contains('active') && s.id !== roomId) return; s.classList.remove('active'); s.style.animation = 'none'; s.offsetHeight; s.style.animation = null; });
             document.getElementById(roomId).classList.add('active');
+            setTimeout(() => aggiornaTelecamere(true), 0);   // le telecamere della stanza aperta, subito
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
             setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
@@ -6671,7 +7123,7 @@ const uniqueActive = new Set(activeNodes.map(card => card.dataset.id)).size;
             if (stato !== undefined && stato !== null) {
                 card.dataset.current = stato;
                 const st = card.querySelector('.hk-state');
-                if (st && st.innerText !== String(stato)) st.innerText = stato;
+                if (st && st.textContent !== String(stato)) st.innerText = stato;   // textContent: leggere innerText rifaceva l'impaginazione
             }
             if (attrs && Array.isArray(attrs.options)) card.dataset.options = JSON.stringify(attrs.options);
             if (selectModalEntity === card.dataset.id) disegnaOpzioni(card);
@@ -6995,7 +7447,7 @@ const uniqueActive = new Set(activeNodes.map(card => card.dataset.id)).size;
                 return `<button class="btn-hvac${m === attiva ? ' active' : ''}" data-mode="${m}" onclick="setHvacMode('${m}')">` +
                        `<i data-lucide="${info.icona}"></i><span>${info.etichetta}</span></button>`;
             }).join('');
-            if (window.lucide) lucide.createIcons();
+            whIcone();
         }
 
         function setHvacMode(mode) {
@@ -7031,6 +7483,42 @@ const uniqueActive = new Set(activeNodes.map(card => card.dataset.id)).size;
 
         let currentModalEntity = null;
         window.pendingEntities = new Map();
+        // TOCCO E POLLING (30/09/2026). Il tocco cambia la card subito, classe E data-state insieme (prima solo la
+        // classe: un data-state vecchio 'on' faceva credere al polling che una card spenta fosse gia' accesa e la
+        // lasciava spenta anche col dispositivo acceso). Per 3 s dal tocco il polling non tocca l'entita'
+        // (pendingEntities, come prima). In piu', per un'entita' comandata con un tocco, il polling la salta
+        // finche' il comando non ha avuto risposta dal server, e salta le letture partite PRIMA di quella risposta
+        // o dell'ultimo evento del WebSocket per quell'entita': portano uno stato piu' vecchio e, arrivando dopo i
+        // 3 s o dopo l'evento del WebSocket che toglie il blocco, lo rimettevano per un giro. La prima lettura
+        // partita dopo mostra lo stato vero, anche se non e' quello del tocco (comando non riuscito, scena che
+        // riaccende un gruppo...).
+        // comandiTocco: entity_id -> { inVolo: comandi senza risposta, partito: ora dell'ultimo comando,
+        //                              notizia: ora dell'ultima risposta al comando o dell'ultimo evento WebSocket }
+        // (performance.now(): un cambio dell'ora del telefono non allunga ne' accorcia l'attesa)
+        window.comandiTocco = new Map();
+        const COMANDO_TOCCO_MAX_MS = 10000;   // un comando ancora senza risposta dopo tanto non ferma piu' il polling
+        const COMANDO_TOCCO_TIENI_MS = 30000; // dopo tanto dall'ultima notizia l'entita' si dimentica
+        window.comandoToccoParte = function (entityId) {
+            const c = window.comandiTocco.get(entityId) || { inVolo: 0, partito: 0, notizia: 0 };
+            c.inVolo++; c.partito = performance.now();
+            window.comandiTocco.set(entityId, c);
+        };
+        window.comandoToccoArrivato = function (entityId) {
+            const c = window.comandiTocco.get(entityId);
+            if (!c) return;
+            c.inVolo = Math.max(0, c.inVolo - 1);
+            c.notizia = performance.now();
+        };
+        // true = la lettura degli stati partita all'ora 'inizio' e' piu' vecchia di quello che la card sa gia'
+        window.letturaPrimaDelComando = function (entityId, inizio) {
+            const c = window.comandiTocco.get(entityId);
+            if (!c) return false;
+            const ora = performance.now();
+            if (c.inVolo > 0 && ora - c.partito < COMANDO_TOCCO_MAX_MS) return true;
+            if (inizio < c.notizia) return true;
+            if (c.inVolo === 0 && ora - c.notizia > COMANDO_TOCCO_TIENI_MS) window.comandiTocco.delete(entityId);
+            return false;
+        };
 
         function closeAllModals() {
             document.getElementById('modal-overlay').classList.remove('active');
@@ -7112,6 +7600,7 @@ if (card.classList.contains('type-camera')) {
                     // Telecamera classica Home Assistant (Snapshot ogni 2s)
                     modalImg.src = `/api/camera_snapshot/${entityId}?t=${new Date().getTime()}`; 
                     modalImg.dataset.entity = entityId; 
+                    camSegna(modalImg, 'e:' + entityId);   // fotogramma chiesto adesso: quelli partiti prima non lo sostituiscono
                 }
                 
                 document.getElementById('modal-overlay').classList.add('active'); 
@@ -7144,7 +7633,7 @@ if (card.classList.contains('type-camera')) {
                 currentModalEntity = card.dataset.id;
                 document.getElementById('modal-media-title').innerText = card.dataset.title || 'Nessun media'; document.getElementById('modal-media-artist').innerText = card.dataset.artist || 'Scegli sorgente'; document.getElementById('volume-slider').value = (parseFloat(card.dataset.volume || 0.5) * 100);
                 const isPlaying = card.classList.contains('state-playing'); const modalPlayBtn = document.getElementById('modal-media-playpause');
-                if(modalPlayBtn) modalPlayBtn.innerHTML = `<i data-lucide="${isPlaying ? 'pause' : 'play'}"></i>`; lucide.createIcons();
+                if(modalPlayBtn) modalPlayBtn.innerHTML = `<i data-lucide="${isPlaying ? 'pause' : 'play'}"></i>`; whIcone();
 
                 const favList = document.getElementById('favorites-list');
                 const groupBox = document.getElementById('sonos-group-container');
@@ -7192,6 +7681,7 @@ const entityId = card.dataset.id;
             document.querySelectorAll(`.hk-card[data-id="${entityId}"]`).forEach(c => { 
                 c.classList.remove('state-on', 'state-off', 'state-open', 'state-closed'); 
                 c.classList.add(`state-${optimisticState}`); 
+                c.dataset.state = optimisticState;   // coerente con la classe (vedi comandiTocco)
                 
                 const stateEl = c.querySelector('.hk-state');
                 const iconWrapper = c.querySelector('.hk-icon-wrapper');
@@ -7216,14 +7706,23 @@ const entityId = card.dataset.id;
             });
             
             updateGlanceSummary();
+            window.comandoToccoParte(entityId);
             try { await fetch('/api/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: entityId, state: optimisticState }) }); } catch(err) {}
+            window.comandoToccoArrivato(entityId);
         });
 
 // --- ASCOLTO IN TEMPO REALE DA HOME ASSISTANT (WEBSOCKET) ---
 // =====================================================================
         // MOTORE DI SINCRONIZZAZIONE IN TEMPO REALE CON HOME ASSISTANT (BLINDATO)
         // =====================================================================
+        // UNA sola connessione (29/09/2026): prima la funzione partiva due volte all'avvio (subito e dopo
+        // 500 ms) e ognuna si ricollegava da sola, quindi c'erano SEMPRE due WebSocket verso Home Assistant e
+        // ogni evento veniva elaborato due volte. Ora una seconda chiamata non apre niente se la connessione
+        // c'e' gia' (o si sta aprendo), e alla chiusura parte un solo tentativo di riconnessione.
+        let haWs = null, haWsRiprova = null;
         function connectHAWebSocket() {
+            if (haWs && (haWs.readyState === 0 || haWs.readyState === 1)) return;   // CONNECTING o OPEN
+            clearTimeout(haWsRiprova); haWsRiprova = null;
             const haData = document.getElementById('ha-data');
             
             if (!haData || !haData.dataset.url || !haData.dataset.token) {
@@ -7238,6 +7737,7 @@ const entityId = card.dataset.id;
             
             console.log("🔄 Tentativo di connessione a:", wsUrl);
             const ws = new WebSocket(wsUrl);
+            haWs = ws;
             let msgId = 1;
 
             ws.onopen = () => console.log("🟢 WebSocket Connesso: in attesa di richieste da HA...");
@@ -7264,9 +7764,13 @@ const entityId = card.dataset.id;
                     if (window.pendingEntities && window.pendingEntities.has(eid)) {
                         window.pendingEntities.delete(eid);
                     }
+                    const toccata = window.comandiTocco && window.comandiTocco.get(eid);
+                    if (toccata) toccata.notizia = performance.now();   // le letture partite prima non la smentiscono
 
                     // 1. TROVA LA LUCE O DISPOSITIVO NELL'INTERFACCIA E AGGIORNALA
-                    const cards = document.querySelectorAll(`.hk-card[data-id="${eid}"]`);
+                    // le card dalla mappa; un'entita' che non sta nella pagina (ne' card ne' modello 3D) si scarta subito
+                    const cards = whCard.di(eid) || [];
+                    if (!cards.length && !(window.threeMeshes && window.threeMeshes[eid])) return;
                     if(cards.length > 0) {
                         cards.forEach(card => {
                             if (card.classList.contains('type-select')) { aggiornaSelectCard(card, stateObj.state, stateObj.attributes || {}); return; }
@@ -7349,8 +7853,11 @@ const entityId = card.dataset.id;
 
             // Riconnessione aggressiva: se cade il wifi, ci riprova all'infinito
             ws.onclose = (e) => {
+                if (haWs !== ws) return;          // connessione gia' sostituita: niente riconnessione in piu'
+                haWs = null;
                 console.warn("⚠️ WebSocket Disconnesso (Codice: " + e.code + "). Tento la riconnessione tra 3 secondi...");
-                setTimeout(connectHAWebSocket, 3000);
+                clearTimeout(haWsRiprova);
+                haWsRiprova = setTimeout(connectHAWebSocket, 3000);
             };
             
             ws.onerror = (err) => {
@@ -7358,9 +7865,7 @@ const entityId = card.dataset.id;
             };
         }
 
-        // Avviamo la connessione con un leggero ritardo per assicurarci che la pagina sia pronta
-        setTimeout(connectHAWebSocket, 500);
-        
+        // Una sola partenza (prima c'era anche un secondo avvio dopo 500 ms, che apriva la seconda connessione)
         connectHAWebSocket();
 
         function inlineMediaCmd(event, entityId, action) {
@@ -7373,7 +7878,7 @@ const entityId = card.dataset.id;
                 card.dataset.state = isPlaying ? 'paused' : 'playing';
                 card.classList.remove('state-playing', 'state-paused'); card.classList.add(isPlaying ? 'state-paused' : 'state-playing');
                 const playBtn = card.querySelector('.play-btn');
-                if(playBtn) playBtn.innerHTML = `<i data-lucide="${isPlaying ? 'play' : 'pause'}"></i>`; lucide.createIcons();
+                if(playBtn) playBtn.innerHTML = `<i data-lucide="${isPlaying ? 'play' : 'pause'}"></i>`; whIcone();
             }
             fetch('/api/media_control', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ entity_id: entityId, action: finalAction }) });
         }
@@ -7415,7 +7920,7 @@ document.getElementById('volume-slider').addEventListener('change', (e) => {
             card.classList.remove('state-playing', 'state-paused'); card.classList.add(isPlaying ? 'state-paused' : 'state-playing');
             const cardBtn = card.querySelector('.play-btn'); if(cardBtn) cardBtn.innerHTML = `<i data-lucide="${isPlaying ? 'play' : 'pause'}"></i>`;
             const modalBtn = document.getElementById('modal-media-playpause'); if(modalBtn) modalBtn.innerHTML = `<i data-lucide="${isPlaying ? 'play' : 'pause'}"></i>`;
-            lucide.createIcons(); fetch('/api/media_control', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ entity_id: currentModalEntity, action: action }) });
+            whIcone(); fetch('/api/media_control', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ entity_id: currentModalEntity, action: action }) });
         }
 
         function sendMediaCmd(action) {
@@ -7457,7 +7962,7 @@ document.getElementById('volume-slider').addEventListener('change', (e) => {
                         const img = document.createElement('img');
                         img.loading = 'lazy';
                         img.alt = '';
-                        img.onerror = () => { img.outerHTML = '<div class="fav-ph"><i data-lucide="music"></i></div>'; lucide.createIcons(); };
+                        img.onerror = () => { img.outerHTML = '<div class="fav-ph"><i data-lucide="music"></i></div>'; whIcone(); };
                         img.src = sonosArtSrc(fav.album_art);
                         tile.appendChild(img);
                     } else {
@@ -7473,7 +7978,7 @@ document.getElementById('volume-slider').addEventListener('change', (e) => {
                     tile.onclick = () => triggerFavorite(entityId, fav, tile);
                     listContainer.appendChild(tile);
                 });
-                lucide.createIcons();
+                whIcone();
             } catch (e) {
                 listContainer.innerHTML = '<span style="color:rgba(255,255,255,0.5); font-size:0.75rem; grid-column:1/-1;">Errore di connessione.</span>';
             }
@@ -7581,7 +8086,7 @@ document.getElementById('volume-slider').addEventListener('change', (e) => {
                 document.getElementById('modal-media-title').innerText = now.title || 'Nessun media';
                 document.getElementById('modal-media-artist').innerText = now.artist || 'Scegli un preferito per iniziare';
                 const btn = document.getElementById('modal-media-playpause');
-                if (btn) { btn.innerHTML = `<i data-lucide="${now.playing ? 'pause' : 'play'}"></i>`; lucide.createIcons(); }
+                if (btn) { btn.innerHTML = `<i data-lucide="${now.playing ? 'pause' : 'play'}"></i>`; whIcone(); }
                 document.getElementById('media-modal').classList.toggle('playing', !!now.playing);
                 const eq = document.getElementById('media-eq');
                 if (eq) eq.style.display = now.playing ? 'flex' : 'none';
@@ -7690,7 +8195,7 @@ document.getElementById('volume-slider').addEventListener('change', (e) => {
                     row.appendChild(ico); row.appendChild(txt); row.appendChild(sw);
                     list.appendChild(row);
                 });
-                lucide.createIcons();
+                whIcone();
             } catch (e) {
                 list.innerHTML = '<span style="color:rgba(255,255,255,0.5); font-size:0.75rem;">Errore di connessione.</span>';
             }
@@ -8012,6 +8517,7 @@ document.body.addEventListener('touchmove', function(e) {
             roomSection.querySelectorAll('.sub-room-content').forEach(c => c.classList.remove('active'));
             document.getElementById(contentId).classList.add('active');
             window.dispatchEvent(new Event('resize'));
+            setTimeout(() => aggiornaTelecamere(true), 0);   // le telecamere della zona aperta, subito
         }
 
         // il profilo (password e uscita) sta nelle Impostazioni: chi chiama ancora questa funzione ci arriva
@@ -8408,6 +8914,7 @@ function setTimerPreset(minutes) {
     // --- MOTORE DI SINCRONIZZAZIONE (POLLING NATIVO E TIMER) ---
     async function syncNativeDevices() {
         try {
+            const inizioLettura = performance.now();   // per scartare le entita' comandate con un tocco dopo questo momento
             const response = await fetch('/api/sync_native_states');
             if (!response.ok) return;
             
@@ -8473,6 +8980,7 @@ function setTimerPreset(minutes) {
             }
 
 // 2. SINCRONIZZA I DISPOSITIVI (Shelly, KNX, HA)
+            let iconeNuove = false;   // tasti play/pausa ridisegnati: le icone si convertono una volta, dopo il giro
             for (const [entityId, data] of Object.entries(states)) {
             
                 // --- INIZIO FIX ANTI-FLICKER ---
@@ -8486,11 +8994,17 @@ function setTimerPreset(minutes) {
                         window.pendingEntities.delete(entityId);
                     }
                 }
+                // entita' comandata con un tocco: comando ancora in volo, o lettura partita prima della sua risposta o
+                // dell'ultimo evento del WebSocket: stato piu' vecchio di quello mostrato (vedi comandiTocco)
+                if (window.letturaPrimaDelComando && window.letturaPrimaDelComando(entityId, inizioLettura)) continue;
                 // --- FINE FIX ANTI-FLICKER ---
 
                 const newState = data.state; 
                 
-const cards = document.querySelectorAll(`[data-id="${entityId}"]`);
+                // le card di questa entita' dalla mappa (prima: una ricerca su tutta la pagina per OGNI entita'
+                // della risposta); un'entita' senza card nella pagina non ha niente da aggiornare
+                const cards = whCard.di(entityId);
+                if (!cards) continue;
                 cards.forEach(card => {
                     if (card.classList.contains('hk-card')) segnaOffline(card, !!(data.attributes && data.attributes.offline));
                     if (data.attributes && data.attributes.offline) return;   // sorgente spenta: lo stato mostrato resta l'ultimo vero
@@ -8498,7 +9012,7 @@ const cards = document.querySelectorAll(`[data-id="${entityId}"]`);
                     // --- INIZIO FIX SENSORI ---
                     if (card.classList.contains('type-sensor')) {
                         const valSpan = card.querySelector('.sensor-value');
-                        if (valSpan && newState !== undefined && newState !== null && String(newState) !== '' && valSpan.innerText !== String(newState)) {
+                        if (valSpan && newState !== undefined && newState !== null && String(newState) !== '' && valSpan.textContent !== String(newState)) {
                             valSpan.innerText = newState;
                         }
                         return; // Ferma l'esecuzione qui per questa card, ignora il "100%"
@@ -8536,7 +9050,7 @@ const cards = document.querySelectorAll(`[data-id="${entityId}"]`);
                             card.classList.add(`state-${newState}`);
                             card.dataset.state = newState;
                             const playBtn = card.querySelector('.play-btn');
-                            if (playBtn) { playBtn.innerHTML = `<i data-lucide="${newState === 'playing' ? 'pause' : 'play'}"></i>`; lucide.createIcons(); }
+                            if (playBtn) { playBtn.innerHTML = `<i data-lucide="${newState === 'playing' ? 'pause' : 'play'}"></i>`; iconeNuove = true; }
                         }
                         const title = attrs.media_title || '';
                         const artist = attrs.media_artist || '';
@@ -8562,7 +9076,9 @@ const cards = document.querySelectorAll(`[data-id="${entityId}"]`);
                         return;
                     }
 
-                    const currentState = card.classList.contains('state-on') || card.dataset.state === 'on' ? 'on' : 'off';
+                    // lo stato MOSTRATO e' la classe: un data-state rimasto 'on' (WebSocket e pannello luce cambiano solo la
+                    // classe) non deve far credere accesa una card che si vede spenta
+                    const currentState = card.classList.contains('state-on') ? 'on' : 'off';
                     
                     if (currentState !== newState) {
                         card.className = card.className.replace(/\bstate-[a-zA-Z0-9_]+\b/g, '').trim();
@@ -8609,6 +9125,7 @@ if (newState === 'off' || newState === 'closed') {
                     }
                 });
             }
+            if (iconeNuove) whIcone();
             if (typeof updateGlanceSummary === 'function') {
                 updateGlanceSummary();
             }
@@ -8689,7 +9206,7 @@ function sendCoverCmd(action) {
         // Mentre il motore lavora resta scritto cosa sta facendo, non la percentuale secca
         tapDisegna(nextPos, arrivata ? null : (step > 0 ? 'IN APERTURA...' : 'IN CHIUSURA...'));
 
-        document.querySelectorAll(`.hk-card[data-id="${entitaCover}"]`).forEach(card => {
+        (whCard.di(entitaCover) || []).forEach(card => {       // ogni 150 ms: le card dalla mappa, non dal documento
             card.dataset.position = nextPos;
             const stateEl = card.querySelector('.hk-state');
             if (stateEl) {
@@ -8717,45 +9234,152 @@ function sendCoverCmd(action) {
         });
     }
 
-    // 2. Refresh periodico 
+    // 2. Refresh periodico (29/09/2026: solo cio' che si vede)
+    // Prima ogni 2 s partiva una richiesta per OGNI immagine di telecamera della pagina: tutte le stanze e
+    // zone, anche nascoste, una per ogni doppione (la stessa telecamera in stanza, zona e Preferiti) e anche
+    // con l'app in secondo piano. Ora:
+    //  - solo le immagini che si vedono: stanza aperta e sua zona aperta, finestre aperte (copia della card
+    //    in un avviso, finestra della telecamera);
+    //  - una richiesta per telecamera: l'immagine arrivata va in tutte le sue card visibili; se la richiesta
+    //    precedente non e' ancora tornata (Home Assistant lento) non se ne accoda un'altra, ma solo per
+    //    CAM_ATTESA ms: una richiesta rimasta appesa (connessione ferma sul Wi-Fi, hub remoto che non risponde,
+    //    app tornata dal secondo piano) non ferma la telecamera. Dopo CAM_ABBANDONO ms la si annulla
+    //    (AbortController), cosi' non tiene occupata una connessione;
+    //  - il fotogramma va alle immagini che si vedono QUANDO arriva, non a quelle raccolte alla partenza: se nel
+    //    frattempo si e' cambiata stanza o zona lo riceve anche l'immagine appena comparsa;
+    //  - si tiene l'ultimo fotogramma di ogni telecamera: un'immagine che compare con un fotogramma piu' vecchio
+    //    (quello dell'apertura dell'app o dell'ultima visita) lo riceve subito, senza rete;
+    //  - niente con la pagina nascosta (document.hidden); al ritorno, e al cambio di stanza o zona, le
+    //    telecamere che si vedono si aggiornano subito.
     let giroImmagini = 0;
-    setInterval(() => {
-        giroImmagini++;
-        document.querySelectorAll('.hk-camera img.cam-snapshot').forEach(img => {
-            const entityId = img.dataset.entity;
-            const tapoId = img.dataset.tapo;
-            if (entityId && entityId.startsWith('image.') && giroImmagini % 15 !== 0) return;   // immagini HA: ogni 30 s
-            
+    const CAM_ATTESA = 8000;            // telefono: senza risposta da 8 s, la telecamera si richiede lo stesso
+    const CAM_ABBANDONO = 20000;        // telefono: dopo 20 s la richiesta si annulla
+    const camInVolo = new Map();        // telecamera -> ora di partenza della richiesta in corso (telefono)
+    const camUltima = new Map();        // telecamera -> ora dell'ultima richiesta
+    const camFoto = new Map();          // telecamera -> ultimo fotogramma { ora della richiesta, blob (telefono) | src (desktop) }
+    const camMostrata = new WeakMap();  // immagine -> fotogramma che mostra { chiave, ora, url blob: da liberare }
+    function camVisibile(img) {
+        const finestra = img.closest('.bottom-modal');
+        if (finestra && !finestra.classList.contains('active')) return false;       // finestra chiusa
+        const sezione = img.closest('.room-section');
+        if (sezione) {
+            if (!sezione.classList.contains('active')) return false;                 // stanza nascosta
+            const zona = img.closest('.sub-room-content');
+            if (zona && !zona.classList.contains('active')) return false;            // zona nascosta
+        }
+        return true;
+    }
+    // le immagini di telecamera che si vedono ADESSO, per telecamera (solo: una sola telecamera)
+    function camImmagini(solo) {
+        const gruppi = new Map();
+        const aggiungi = (img, entityId, tapoId) => {
             // Su desktop, le Tapo stanno già andando in live streaming continuo. Le ignoriamo.
             if (isDesktopCamera && tapoId) return;
-
-            let newSrc = '';
-            if (entityId) newSrc = `/api/camera_snapshot/${entityId}?t=${Date.now()}`;
-            else if (tapoId && !isDesktopCamera) newSrc = `/api/tapo_snapshot/${tapoId}?t=${Date.now()}`;
+            let chiave;
+            if (entityId) chiave = 'e:' + entityId;
+            else if (tapoId && !isDesktopCamera) chiave = 't:' + tapoId;
             else return;
-
+            if ((solo && chiave !== solo) || !camVisibile(img)) return;
+            let g = gruppi.get(chiave);
+            if (!g) gruppi.set(chiave, g = { entityId: entityId, tapoId: tapoId, immagini: [] });
+            g.immagini.push(img);
+        };
+        const camere = whCard.telecamere();
+        for (let i = 0; i < camere.length; i++) {
+            camere[i].querySelectorAll('img.cam-snapshot').forEach(img => aggiungi(img, img.dataset.entity, img.dataset.tapo));
+        }
+        // la finestra della telecamera (Home Assistant; per le Tapo e' il flusso continuo e data-entity e' vuoto)
+        const finestra = document.getElementById('modal-camera-img');
+        if (finestra && finestra.dataset.entity) aggiungi(finestra, finestra.dataset.entity, '');
+        return gruppi;
+    }
+    // l'immagine mostra un fotogramma chiesto adesso con il suo indirizzo (finestra della telecamera appena aperta):
+    // i fotogrammi di richieste partite prima non lo sostituiscono
+    function camSegna(img, chiave) {
+        camMostrata.set(img, { chiave: chiave, ora: Date.now(), url: null });
+    }
+    // mette il fotogramma nell'immagine, se e' piu' nuovo di quello che mostra
+    function camMetti(img, chiave, foto) {
+        const prima = camMostrata.get(img);
+        if (prima && prima.chiave === chiave && prima.ora >= foto.ora) return;
+        if (prima && prima.url) URL.revokeObjectURL(prima.url);   // blob precedente mai caricato: si libera qui
+        if (foto.src) {
+            // desktop: stesso indirizzo per tutte le card della telecamera, il browser lo scarica una volta
+            camMostrata.set(img, { chiave: chiave, ora: foto.ora, url: null });
+            img.src = foto.src;
+            return;
+        }
+        // telefono: metodo Blob invisibile, per azzerare lo sfarfallio e salvare connessioni
+        const localUrl = URL.createObjectURL(foto.blob);
+        const segno = { chiave: chiave, ora: foto.ora, url: localUrl };
+        camMostrata.set(img, segno);
+        img.onload = () => {
+            URL.revokeObjectURL(localUrl);
+            segno.url = null;
+            img.onload = null;
+        };
+        img.src = localUrl;
+    }
+    // telefono: una richiesta per telecamera; il fotogramma va a tutte le sue immagini visibili
+    function camChiedi(chiave, newSrc, ora) {
+        const partita = camInVolo.get(chiave);
+        if (partita !== undefined && ora - partita < CAM_ATTESA) return;   // la precedente non e' ancora tornata
+        camInVolo.set(chiave, ora);
+        camUltima.set(chiave, ora);
+        const ac = typeof AbortController === 'function' ? new AbortController() : null;
+        const abbandono = ac ? setTimeout(() => ac.abort(), CAM_ABBANDONO) : 0;
+        fetch(newSrc, ac ? { signal: ac.signal } : undefined)
+            .then(response => {
+                if (!response.ok) throw new Error('Rete instabile');
+                return response.blob();
+            })
+            .then(blob => {
+                const ultima = camFoto.get(chiave);
+                if (ultima && ultima.ora >= ora) return;      // e' gia' arrivato un fotogramma piu' nuovo
+                const foto = { ora: ora, blob: blob };
+                camFoto.set(chiave, foto);
+                const g = camImmagini(chiave).get(chiave);
+                if (g) g.immagini.forEach(img => camMetti(img, chiave, foto));
+            })
+            .catch(err => console.log("Salto frame..."))
+            .then(() => {
+                clearTimeout(abbandono);
+                if (camInVolo.get(chiave) === ora) camInVolo.delete(chiave);   // non quella partita dopo
+            });
+    }
+    function aggiornaTelecamere(subito) {
+        if (document.hidden) return;                     // app in secondo piano: niente richieste
+        if (!subito) giroImmagini++;
+        const ora = Date.now();
+        camImmagini().forEach((g, chiave) => {
+            let richiedi;
+            if (g.entityId && g.entityId.startsWith('image.')) {
+                // immagini HA: ogni 30 s (al cambio stanza solo se l'ultima e' piu' vecchia di 30 s)
+                richiedi = subito ? ora - (camUltima.get(chiave) || 0) >= 30000 : giroImmagini % 15 === 0;
+            } else {
+                richiedi = ora - (camUltima.get(chiave) || 0) >= 1000;   // non se appena chiesta (cambio stanza)
+            }
+            const newSrc = g.entityId ? `/api/camera_snapshot/${g.entityId}?t=${ora}` : `/api/tapo_snapshot/${g.tapoId}?t=${ora}`;
+            let ultima = camFoto.get(chiave);
             if (isDesktopCamera) {
                 // Su Desktop, le telecamere classiche (Home Assistant) si aggiornano normalmente
-                img.src = newSrc;
-            } else {
-                // Su Mobile, usiamo il metodo Blob invisibile per azzerare lo sfarfallio e salvare connessioni
-                fetch(newSrc)
-                    .then(response => {
-                        if (!response.ok) throw new Error('Rete instabile');
-                        return response.blob();
-                    })
-                    .then(blob => {
-                        const localUrl = URL.createObjectURL(blob);
-                        img.onload = () => { 
-                            URL.revokeObjectURL(localUrl); 
-                            img.onload = null; 
-                        };
-                        img.src = localUrl;
-                    })
-                    .catch(err => console.log("Salto frame..."));
+                // (stesso indirizzo per tutte le card della telecamera: il browser lo scarica una volta).
+                // Se e' appena stata chiesta, l'immagine appena comparsa prende l'ultimo indirizzo.
+                if (richiedi) {
+                    camUltima.set(chiave, ora);
+                    camFoto.set(chiave, ultima = { ora: ora, src: newSrc });
+                }
+                if (ultima) g.immagini.forEach(img => camMetti(img, chiave, ultima));
+                return;
             }
+            // telefono: l'ultimo fotogramma arrivato va subito, senza rete, alle immagini che ne mostrano uno piu'
+            // vecchio (comparse col cambio di stanza o zona); intanto parte la richiesta nuova
+            if (ultima) g.immagini.forEach(img => camMetti(img, chiave, ultima));
+            if (richiedi) camChiedi(chiave, newSrc, ora);
         });
-    }, 2000); // Aggiorna ogni 2 secondi
+    }
+    setInterval(() => aggiornaTelecamere(false), 2000); // Aggiorna ogni 2 secondi
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) aggiornaTelecamere(true); });
 
 // ---------- TAPPARELLA: la finestra e' il comando ----------
 // Si trascina direttamente sul vetro. Il cursore orizzontale precedente
@@ -9682,7 +10306,7 @@ function checkDesktopConfig(event) {
 // 1. Genera le icone appena la struttura della pagina è pronta
 document.addEventListener('DOMContentLoaded', () => {
     // le icone sono gia' state convertite piu' sopra: si rifa' solo se ne resta qualcuna
-    if (document.querySelector('i[data-lucide]')) lucide.createIcons();
+    whIcone();
 });
 
 // 2. Nasconde il logo blu SOLO quando tutto (immagini, modelli 3D, script) ha finito di caricare
@@ -9870,7 +10494,7 @@ function toggleFullscreenCam() {
     } else {
         icon.setAttribute('data-lucide', 'maximize');
     }
-    lucide.createIcons();
+    whIcone();
 }
 
 const originalCloseAllModals = window.closeAllModals || function(){};
@@ -9880,7 +10504,7 @@ window.closeAllModals = function() {
     if (modal && modal.classList.contains('cam-fullscreen-active')) {
         modal.classList.remove('cam-fullscreen-active');
         document.getElementById('fullscreen-icon').setAttribute('data-lucide', 'maximize');
-        lucide.createIcons();
+        whIcone();
     }
     originalCloseAllModals(); 
 };
@@ -10095,7 +10719,7 @@ function updateBadgeVisibility() {
     const acc = document.getElementById('acc-system');
     if (acc) acc.classList.toggle('has-update', systemUpdateAvailable);
 
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    whIcone();
 }
 
 // Il pallino porta dritto alla pagina Sistema e richiama l'attenzione sul tasto "Installa aggiornamento ora"
@@ -10160,7 +10784,7 @@ function apriNotaAggiornamento() {
     if (document.getElementById('imp-pagina').classList.contains('aperta')) velo.classList.add('sopra-impostazioni');
     document.getElementById('update-note-modal').classList.add('active');
     document.getElementById('app-wrapper').classList.add('modal-active');
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    whIcone();
 }
 
 function renderUpdateUI() {
@@ -10194,7 +10818,7 @@ function renderUpdateUI() {
     }
 
     updateBadgeVisibility();
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    whIcone();
 }
 
 // Controllo leggero: rilegge solo lo stato dal server (per accorgersi se hai aggiornato dalla dashboard)
@@ -10634,8 +11258,11 @@ document.addEventListener('visibilitychange', () => {
         render3d: 'Planimetrie 3D',
         sistema: 'Sistema e aggiornamenti',
         account: 'Profilo',
-        automazioni: 'Automazioni'
+        automazioni: 'Automazioni',
+        tinta: 'Tinta a scelta'
     };
+    // pagine che si aprono da un'altra pagina: Indietro torna li' (anche da tablet) e nell'elenco resta scelta quella
+    const GENITORE = { tinta: 'aspetto' };
     const NOMI_SFONDO = {
         notte_citta: 'Notte in città', default: 'Classico', anim_aurora: 'Aurora', anim_mesh: 'Nebula',
         anim_stars: 'Notte stellata', anim_sunset: 'Tramonto', anim_ocean: 'Oceano', anim_aurora2: 'Aurora Boreale',
@@ -10658,40 +11285,67 @@ document.addEventListener('visibilitychange', () => {
     const T = t => (window.WH_T ? window.WH_T(t) : t);     // testi scritti dentro zone data-no-tr (in italiano: invariati)
     const duale = () => window.matchMedia('(min-width: 820px)').matches;   // elenco e dettaglio affiancati
     let aperta = null;          // categoria mostrata nel dettaglio
+    let scrollGenitore = 0;     // dove si era nella pagina di partenza (Schermata e sfondo), per tornarci
+    let testiIndietro = null;   // title e testo nascosto del tasto Indietro come li ha scritti il server (gia' tradotti)
+
+    // il tasto Indietro dice dove porta: "Impostazioni", o la pagina di partenza per le sotto-pagine
+    function tastoIndietro(nome) {
+        const b = document.querySelector('#imp-dettaglio .imp-back');
+        if (!b) return;
+        const sr = b.querySelector('.imp-sr');
+        if (!testiIndietro) testiIndietro = { title: b.getAttribute('title') || '', sr: sr ? sr.textContent : '' };
+        const g = nome && GENITORE[nome] ? T(TITOLI[GENITORE[nome]]) : '';
+        b.setAttribute('title', g || testiIndietro.title);
+        if (sr) sr.textContent = g || testiIndietro.sr;
+    }
 
     // ---------------------------------------------------------------- navigazione
     window.impApri = function (nome) {
         const c = cat(nome);
         if (!c) return;
         if (aperta === 'account' && nome !== 'account') pulisciPassword();
+        if (aperta === 'tinta' && nome !== 'tinta' && window.impTinta) window.impTinta.lascia();
+        const scroll = document.querySelector('#imp-dettaglio .imp-scroll');
+        const torna = !!aperta && GENITORE[aperta] === nome;                 // Indietro da una sotto-pagina
+        if (scroll && GENITORE[nome] && GENITORE[nome] === aperta) scrollGenitore = scroll.scrollTop;
+        const voce = GENITORE[nome] || nome;
         document.querySelectorAll('.imp-cat').forEach(x => x.classList.toggle('attiva', x === c));
-        document.querySelectorAll('#imp-elenco [data-apri]').forEach(r => r.classList.toggle('scelta', r.dataset.apri === nome));
+        document.querySelectorAll('#imp-elenco [data-apri]').forEach(r => r.classList.toggle('scelta', r.dataset.apri === voce));
         $('imp-titolo').textContent = TITOLI[nome] || 'Impostazioni';
+        $('imp-dettaglio').classList.toggle('con-genitore', !!GENITORE[nome]);
+        tastoIndietro(nome);
         $('imp-dettaglio').classList.add('aperta');
         $('imp-elenco').classList.add('via');
-        const scroll = document.querySelector('#imp-dettaglio .imp-scroll');
-        if (scroll) scroll.scrollTop = 0;
         aperta = nome;
-        aggiornaTesta(scroll);
         if (nome === 'aspetto') disegnaAspetto();
         if (nome === 'scala') disegnaScala();
         if (nome === 'card' || nome === 'render3d') riempiCursori();
         if (nome === 'automazioni' && window.impAutomazioni) window.impAutomazioni.apri();
+        if (nome === 'tinta' && window.impTinta) window.impTinta.apri();
+        if (scroll) scroll.scrollTop = torna ? scrollGenitore : 0;
+        aggiornaTesta(scroll);
     };
 
-    window.impIndietro = function () {
-        $('imp-dettaglio').classList.remove('aperta');
+    // tutto === true: chiude il dettaglio anche da una sotto-pagina (chiusura delle Impostazioni)
+    window.impIndietro = function (tutto) {
+        if (tutto !== true && aperta && GENITORE[aperta] && cat(GENITORE[aperta])) { window.impApri(GENITORE[aperta]); return; }
+        if (aperta === 'tinta' && window.impTinta) window.impTinta.lascia();
+        $('imp-dettaglio').classList.remove('aperta', 'con-genitore');
         $('imp-elenco').classList.remove('via');
         document.querySelectorAll('#imp-elenco [data-apri].scelta').forEach(r => r.classList.remove('scelta'));
         if (aperta === 'account') pulisciPassword();
         aperta = null;
+        tastoIndietro(null);
         valori();
     };
 
     window.impChiudi = function () {
         $('imp-pagina').classList.remove('aperta');
-        setTimeout(function () { if (!$('imp-pagina').classList.contains('aperta')) window.impIndietro(); }, 460);
+        setTimeout(function () { if (!$('imp-pagina').classList.contains('aperta')) window.impIndietro(true); }, 460);
     };
+
+    // i valori a destra delle righe (anche per lo script TINTA A SCELTA, che salva senza passare da un click)
+    window.impValori = function () { valori(); };
 
     window.impMostra = function () {
         valori();
@@ -11082,7 +11736,7 @@ document.addEventListener('visibilitychange', () => {
             if (document.querySelector('.bottom-modal.active')) return;
             const conferma = document.getElementById('upd-conf-no');      // popup di conferma aperto (es. Vuoi uscire?): Esc lo annulla
             if (conferma) { conferma.click(); return; }
-            if ($('imp-dettaglio').classList.contains('aperta') && !duale()) window.impIndietro(); else window.impChiudi();
+            if ($('imp-dettaglio').classList.contains('aperta') && (!duale() || GENITORE[aperta])) window.impIndietro(); else window.impChiudi();
         });
         // girando lo schermo la scala efficace puo' cambiare (script in <head>): si ridisegna
         window.addEventListener('wh-scala', () => {
@@ -11095,6 +11749,442 @@ document.addEventListener('visibilitychange', () => {
         valori();
         riapri();
     });
+})();
+</script>
+<script>
+// =====================================================================
+// --- TINTA A SCELTA (29/09/2026) ---
+// Impostazioni > Schermata e sfondo > Tinta a scelta: una pagina (.imp-cat "tinta") al posto del selettore
+// di colore del sistema. Quadrato saturazione/luminosita' e barra della tinta si trascinano con pointer
+// events (dito, mouse, pennino; touch-action: none nel CSS: la pagina non scorre mentre si trascina),
+// codice esadecimale, colori consigliati, ultimi usati, stile e intensita'.
+// Si salva mentre si sceglie, in localStorage come prima (core_custom_bg_color, core_bg_theme =
+// 'custom_color') piu' core_custom_bg_intensita, core_custom_bg_stile e core_custom_bg_recenti; lo sfondo
+// vero si ridisegna con applyBackground('custom_color') (tintaSfondoCss). Mentre si trascina lo sfondo vero
+// e' coperto dalle Impostazioni: si ridisegna al massimo ~8 volte al secondo, alla fine del gesto subito.
+// =====================================================================
+(function () {
+    const $ = id => document.getElementById(id);
+    const T = t => (window.WH_T ? window.WH_T(t) : t);
+    const leggi = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+    const scrivi = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+    const testo = (id, t) => { const el = $(id); if (el && el.textContent !== t) el.textContent = t; };
+    const tra = (x, a, b) => Math.min(b, Math.max(a, x));
+    const K = { colore: 'core_custom_bg_color', intensita: 'core_custom_bg_intensita', stile: 'core_custom_bg_stile',
+                recenti: 'core_custom_bg_recenti', tema: 'core_bg_theme' };
+    const PREDEFINITO = '#0a84ff';          // quello del vecchio selettore
+    const MAX_RECENTI = 6;
+    const STILI = { alone: 'Alone', luci: 'Due luci', piena: 'Piena' };
+
+    // ---------------------------------------------------------------- colori
+    function normHex(t) {
+        let s = String(t == null ? '' : t).trim().replace(/^#/, '').toLowerCase();
+        if (/^[0-9a-f]{3}$/.test(s)) s = s.replace(/./g, x => x + x);
+        return /^[0-9a-f]{6}$/.test(s) ? '#' + s : null;
+    }
+    function hexHsv(hex) {
+        const n = parseInt(hex.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+        const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+        let h = 0;
+        if (d) h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        return { h: h * 60, s: max ? d / max : 0, v: max };
+    }
+    // chiaro: la spunta sopra il colore va scura. Soglia 0.3 sulla luminanza: la spunta scelta (bianca sotto,
+    // scura sopra) ha sempre almeno 3:1 di contrasto (Giada, Turchese e Brace hanno la spunta scura). Vale per
+    // consigliati, usati di recente e pallino della riga, cosi' lo stesso colore ha sempre la stessa spunta.
+    function chiaro(hex) {
+        const n = parseInt(hex.slice(1), 16);
+        const l = x => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+        return 0.2126 * l(n >> 16 & 255) + 0.7152 * l(n >> 8 & 255) + 0.0722 * l(n & 255) > 0.3;
+    }
+
+    // ---------------------------------------------------------------- stato
+    let h = 211, s = 0.96, v = 1;           // il colore in HSV (la tinta resta anche sui grigi)
+    let colore = PREDEFINITO, intensita = 50, stile = 'alone';
+    let diPrima = null;                     // il colore che c'era aprendo la pagina
+    let prima = null;                       // lo sfondo com'era aprendo la pagina: { tema, colore, intensita, stile } (null = chiave assente)
+    let hexScritto = false;                 // nel campo c'e' un codice scritto a mano dopo l'ultima scelta fatta con gli altri controlli
+    let aperta = false, scalaSfocatura = 0.36;
+    const inUso = () => leggi(K.tema) === 'custom_color';
+
+    function daHex(hex) {
+        const x = hexHsv(hex);
+        if (x.s > 0.001 && x.v > 0.001) h = x.h;
+        if (x.v > 0.001) s = x.s;
+        v = x.v;
+    }
+    function carica() {
+        colore = normHex(leggi(K.colore)) || PREDEFINITO;
+        const i = parseInt(leggi(K.intensita), 10);
+        intensita = i >= 10 && i <= 100 ? i : 50;
+        const st = leggi(K.stile);
+        stile = STILI[st] ? st : 'alone';
+        daHex(colore);
+    }
+
+    // ---------------------------------------------------------------- salvataggio e sfondo vero
+    let tApplica = null, ultimaApplica = 0;
+    function applica() {
+        clearTimeout(tApplica);
+        tApplica = null;
+        ultimaApplica = Date.now();
+        scrivi(K.colore, colore);
+        scrivi(K.intensita, String(intensita));
+        scrivi(K.stile, stile);
+        scrivi(K.tema, 'custom_color');
+        if (typeof applyBackground === 'function') applyBackground('custom_color');
+        if (typeof resetBgSelectors === 'function') resetBgSelectors();       // nell'elenco degli sfondi si accende questa voce
+        const voce = $('btn-color-bg');
+        if (voce) voce.classList.add('active');
+        riga();
+        uso();
+        // iPad (elenco e dettaglio affiancati): la riga "Schermata e sfondo" a sinistra dice subito "Tinta a scelta",
+        // anche quando la scelta arriva da un trascinamento col dito o dalle frecce (niente click da seguire)
+        if (typeof window.impValori === 'function') window.impValori();
+    }
+    function salva(subito) {
+        if (subito) { applica(); return; }
+        if (!tApplica) tApplica = setTimeout(applica, Math.max(0, 120 - (Date.now() - ultimaApplica)));
+    }
+
+    // ---------------------------------------------------------------- ultimi usati
+    function recenti() {
+        let r = [];
+        try { r = JSON.parse(leggi(K.recenti) || '[]'); } catch (e) {}
+        if (!Array.isArray(r)) r = [];
+        return r.map(normHex).filter((x, i, a) => x && a.indexOf(x) === i).slice(0, MAX_RECENTI);
+    }
+    function ricorda(c) {
+        c = normHex(c);
+        if (!c) return;
+        const r = recenti().filter(x => x !== c);
+        r.unshift(c);
+        scrivi(K.recenti, JSON.stringify(r.slice(0, MAX_RECENTI)));
+    }
+    function disegnaRecenti() {
+        const box = $('imp-tinta-recenti'), blocco = $('imp-tinta-recenti-blocco');
+        if (!box) return;
+        const r = recenti();
+        box.textContent = '';
+        r.forEach(c => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'imp-tinta-c' + (chiaro(c) ? ' chiaro' : '');
+            b.dataset.colore = c;
+            b.style.setProperty('--c', c);
+            b.title = c.toUpperCase();
+            b.setAttribute('aria-label', c.toUpperCase());
+            b.setAttribute('aria-pressed', 'false');
+            box.appendChild(b);
+        });
+        if (blocco) blocco.hidden = !r.length;
+    }
+
+    // ---------------------------------------------------------------- disegno (una volta per fotogramma)
+    let raf = 0;
+    const ridisegna = () => { if (!raf) raf = requestAnimationFrame(disegna); };
+    // la sfocatura dello sfondo vero, in scala. Anche in modalita' leggera: applyBackground('custom_color') mette la
+    // sfocatura nello stile di #app-background, che vale sopra la regola .wh-leggera, quindi l'anteprima fa lo stesso
+    function sfocatura(css, scala) {
+        const m = /blur\(([\d.]+)px\)/.exec(css.filter || '');
+        return m ? 'blur(' + (m[1] * scala).toFixed(1) + 'px)' : 'none';
+    }
+    function nomeColore() {
+        const b = document.querySelector('#imp-tinta-consigliati .imp-tinta-c[data-colore="' + colore + '"]');
+        return b ? (b.getAttribute('aria-label') || '') : T('Personalizzato');
+    }
+    function uso() {
+        const si = inUso();
+        if ($('imp-tinta-inuso')) $('imp-tinta-inuso').hidden = !si;
+        if ($('imp-tinta-usa')) $('imp-tinta-usa').hidden = si;
+        // "Torna al colore di prima" se la tinta era gia' lo sfondo; "Torna allo sfondo di prima" (Aurora, una foto...)
+        // appena la tinta ha preso il suo posto, anche senza cambiare colore (per esempio con "Usa come sfondo")
+        const bp = $('imp-tinta-prima');
+        if (bp) bp.hidden = !prima || (prima.tema === 'custom_color' ? colore === diPrima : !si && colore === diPrima);
+    }
+    function disegna() {
+        raf = 0;
+        const sv = $('imp-tinta-sv'), hue = $('imp-tinta-hue');
+        if (!sv || !hue) return;
+        const HEX = colore.toUpperCase();
+        sv.style.setProperty('--h', h.toFixed(1));
+        const cs = $('imp-tinta-sv-cursore');
+        cs.style.left = (s * 100).toFixed(2) + '%';
+        cs.style.top = ((1 - v) * 100).toFixed(2) + '%';
+        cs.style.setProperty('--c', colore);
+        const ch = $('imp-tinta-hue-cursore');
+        ch.style.setProperty('--hp', (h / 360).toFixed(4));
+        ch.style.setProperty('--c', 'hsl(' + h.toFixed(1) + ', 100%, 50%)');
+        sv.setAttribute('aria-valuenow', String(Math.round(s * 100)));
+        sv.setAttribute('aria-valuetext', T('Saturazione') + ' ' + Math.round(s * 100) + '%, ' + T('Luminosità') + ' ' + Math.round(v * 100) + '%, ' + HEX);
+        hue.setAttribute('aria-valuenow', String(Math.round(h)));
+        hue.setAttribute('aria-valuetext', Math.round(h) + '°, ' + HEX);
+        $('imp-tinta-campione').style.setProperty('--c', colore);
+        const inp = $('imp-tinta-hex');
+        if ((document.activeElement !== inp || !hexScritto) && inp.value !== HEX.slice(1)) inp.value = HEX.slice(1);   // mentre si scrive non si tocca
+        testo('imp-tinta-codice', HEX);
+        testo('imp-tinta-dettagli', nomeColore() + ' · ' + T(STILI[stile]) + ' · ' + intensita + '%');
+        // anteprima: lo stesso sfondo, sfocato in proporzione
+        const css = tintaSfondoCss(colore, intensita, stile);
+        const luce = $('imp-tinta-luce');
+        luce.style.background = css.background;
+        luce.style.filter = sfocatura(css, scalaSfocatura);
+        // tessere dello stile: ognuna col suo stile, colore e intensita' di adesso
+        document.querySelectorAll('#imp-pagina .imp-tinta-stile').forEach(b => {
+            const x = tintaSfondoCss(colore, tra(Math.round(intensita * 1.5), 45, 100), b.dataset.stile);   // piu' acceso: in 58 px la forma si deve leggere
+            const i = b.querySelector('.imp-tinta-pitto i');
+            if (i) { i.style.background = x.background; i.style.filter = sfocatura(x, 0.15); }
+            b.setAttribute('aria-pressed', b.dataset.stile === stile ? 'true' : 'false');
+        });
+        document.querySelectorAll('#imp-pagina .imp-tinta-c').forEach(b => b.setAttribute('aria-pressed', b.dataset.colore === colore ? 'true' : 'false'));
+        const rng = $('imp-tinta-int');
+        if (+rng.value !== intensita) rng.value = intensita;
+        rng.style.setProperty('--p', ((intensita - 10) / 90 * 100).toFixed(1) + '%');
+        testo('imp-tinta-int-val', intensita + '%');
+        uso();
+    }
+
+    // la miniatura ha la forma di questo schermo (in verticale, o in orizzontale sull'iPad girato)
+    function misura() {
+        const tel = $('imp-tinta-tel');
+        if (!tel) return;
+        const W = window.innerWidth || 390, H = window.innerHeight || 844, r = H / W;
+        const largo = Math.max(160, (tel.parentElement.clientWidth || 358) - 32);
+        let tw, th;
+        if (r >= 1) {
+            th = Math.round(tra(H * 0.36, 190, 320));
+            tw = Math.round(th / r);
+            if (tw > largo * 0.5) { tw = Math.round(largo * 0.5); th = Math.round(tw * r); }
+        } else {
+            tw = Math.round(tra(largo * 0.5, 170, 340));
+            th = Math.round(tw * r);
+        }
+        tel.style.setProperty('--tw', tw + 'px');
+        tel.style.setProperty('--th', th + 'px');
+        tel.style.setProperty('--tr', Math.round(r > 1.7 ? tw * 0.16 : Math.min(tw, th) * 0.07 + 3) + 'px');
+        tel.classList.toggle('oriz', r < 1);
+        tel.classList.toggle('tablet', r >= 1 && r <= 1.7);
+        scalaSfocatura = tw / W;
+    }
+
+    // ---------------------------------------------------------------- scelte
+    function daHsv() { colore = tintaHsvHex(h, s, v); ridisegna(); salva(false); }
+    function usaHex(n, subito) {
+        n = normHex(n);
+        if (!n) return;
+        colore = n;
+        daHex(n);
+        ridisegna();
+        salva(!!subito);
+    }
+
+    // un altro controllo prende la scelta: prima vale quello che e' scritto nel campo e la tastiera si chiude.
+    // Serve chiederlo: il preventDefault del trascinamento non sposta il fuoco, e su WebKit ne' un trascinamento
+    // col dito ne' il tocco su un tasto lo tolgono al campo. Un codice lasciato a meta' non resta segnato in rosso
+    // attorno al colore valido che il campo mostra adesso
+    function chiudiHex() {
+        const inp = $('imp-tinta-hex'), campo = $('imp-tinta-hex-campo');
+        if (inp && document.activeElement === inp) inp.blur();
+        if (campo) campo.classList.remove('errore');
+    }
+
+    // trascinamento: un dito (o il mouse) alla volta; il rettangolo si misura all'appoggio, e di nuovo se durante il
+    // gesto la pagina si sposta (la tastiera che si chiude, uno scorrimento che finiva)
+    function trascinabile(el, punto) {
+        let id = null, rett = null;
+        const bordi = () => (el.querySelector('.imp-tinta-hue-barra') || el).getBoundingClientRect();
+        el.addEventListener('pointerdown', e => {
+            if (id !== null || (e.pointerType === 'mouse' && e.button !== 0)) return;
+            id = e.pointerId;
+            try { el.setPointerCapture(id); } catch (x) {}
+            el.classList.add('preso');
+            if (e.cancelable) e.preventDefault();          // niente selezione di testo ne' scorrimento
+            chiudiHex();
+            rett = bordi();
+            punto(e, rett);
+        });
+        el.addEventListener('pointermove', e => {
+            if (e.pointerId !== id) return;
+            if (e.cancelable) e.preventDefault();
+            if (!rett) rett = bordi();
+            punto(e, rett);
+        });
+        const spostata = () => { if (id !== null) rett = null; };
+        window.addEventListener('scroll', spostata, true);
+        window.addEventListener('resize', spostata);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', spostata);
+        const fine = e => {
+            if (e.pointerId !== id) return;
+            id = null;
+            el.classList.remove('preso');
+            salva(true);
+        };
+        el.addEventListener('pointerup', fine);
+        el.addEventListener('pointercancel', fine);
+        el.addEventListener('lostpointercapture', fine);
+    }
+
+    function prepara() {
+        const sv = $('imp-tinta-sv'), hue = $('imp-tinta-hue'), inp = $('imp-tinta-hex'), campo = $('imp-tinta-hex-campo');
+        if (!sv || !hue || !inp) return;
+        trascinabile(sv, (e, r) => {
+            s = tra((e.clientX - r.left) / r.width, 0, 1);
+            v = 1 - tra((e.clientY - r.top) / r.height, 0, 1);
+            daHsv();
+        });
+        trascinabile(hue, (e, r) => {
+            const R = r.height / 2;
+            h = tra((e.clientX - r.left - R) / Math.max(1, r.width - 2 * R), 0, 1) * 360;
+            daHsv();
+        });
+        // tastiera (iPad con tastiera, computer): frecce, con Maiuscole a passi grandi
+        sv.addEventListener('keydown', e => {
+            const p = e.shiftKey ? 0.1 : 0.02;
+            if (e.key === 'ArrowLeft') s = tra(s - p, 0, 1);
+            else if (e.key === 'ArrowRight') s = tra(s + p, 0, 1);
+            else if (e.key === 'ArrowUp') v = tra(v + p, 0, 1);
+            else if (e.key === 'ArrowDown') v = tra(v - p, 0, 1);
+            else return;
+            e.preventDefault();
+            daHsv();
+        });
+        hue.addEventListener('keydown', e => {
+            const p = e.shiftKey ? 15 : 2;
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') h = tra(h - p, 0, 360);
+            else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') h = tra(h + p, 0, 360);
+            else if (e.key === 'Home') h = 0;
+            else if (e.key === 'End') h = 360;
+            else return;
+            e.preventDefault();
+            daHsv();
+        });
+        // codice esadecimale: si applica appena ci sono 6 cifre; 3 cifre (F80) alla conferma
+        const errore = () => { campo.classList.remove('errore'); void campo.offsetWidth; campo.classList.add('errore'); };
+        inp.addEventListener('input', () => {
+            const pulito = inp.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 6);
+            if (pulito !== inp.value) inp.value = pulito;
+            hexScritto = true;
+            campo.classList.remove('errore');
+            if (pulito.length === 6) usaHex(pulito, false);
+        });
+        inp.addEventListener('focus', () => { setTimeout(() => { try { inp.select(); } catch (x) {} }, 0); });
+        inp.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+            else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); hexScritto = false; inp.value = colore.slice(1).toUpperCase(); inp.blur(); }
+        });
+        // uscendo dal campo vale solo un codice scritto a mano (3 cifre come F80, o 6 ancora da salvare):
+        // dare e togliere il fuoco senza scrivere, Esc, Indietro non cambiano lo sfondo, e non riportano indietro
+        // un colore scelto nel frattempo col quadrato, la barra o i campioni
+        inp.addEventListener('blur', () => {
+            const scritto = hexScritto;
+            hexScritto = false;
+            const n = normHex(inp.value);
+            if (scritto) {
+                if (n && n !== colore) usaHex(n, true);
+                else if (n && tApplica) salva(true);
+                else if (!n && inp.value !== '') errore();
+            }
+            inp.value = colore.slice(1).toUpperCase();
+        });
+        // colori consigliati e ultimi usati (la spunta chiara o scura si calcola come per i recenti)
+        document.querySelectorAll('#imp-tinta-consigliati .imp-tinta-c').forEach(b => b.classList.toggle('chiaro', chiaro(b.dataset.colore)));
+        ['imp-tinta-consigliati', 'imp-tinta-recenti'].forEach(id => {
+            const box = $(id);
+            if (box) box.addEventListener('click', e => {
+                const b = e.target.closest('.imp-tinta-c');
+                if (b) { chiudiHex(); usaHex(b.dataset.colore, true); }
+            });
+        });
+        // stile e intensita'
+        document.querySelectorAll('#imp-pagina .imp-tinta-stile').forEach(b => b.addEventListener('click', () => {
+            chiudiHex();
+            stile = STILI[b.dataset.stile] ? b.dataset.stile : 'alone';
+            ridisegna();
+            salva(true);
+        }));
+        const rng = $('imp-tinta-int');
+        rng.addEventListener('pointerdown', chiudiHex);
+        rng.addEventListener('input', () => { intensita = tra(parseInt(rng.value, 10) || 50, 10, 100); ridisegna(); salva(false); });
+        rng.addEventListener('change', () => salva(true));
+        $('imp-tinta-usa').addEventListener('click', () => { chiudiHex(); salva(true); });
+        $('imp-tinta-prima').addEventListener('click', () => { chiudiHex(); tornaPrima(); });
+        window.addEventListener('resize', () => { if (aperta) { misura(); ridisegna(); } });
+        // l'app va in secondo piano con la pagina aperta: quello che c'e' da salvare si salva ora
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden || !aperta) return;
+            if (tApplica) salva(true);
+            if (inUso()) ricorda(colore);
+        });
+    }
+
+    // "Torna al colore di prima": se aprendo la pagina lo sfondo era gia' la tinta, torna il colore di allora.
+    // "Torna allo sfondo di prima": se era un altro (Aurora, Notte in citta', una foto, quello dell'impianto)
+    // torna tutto com'era: tema, colore, intensita' e stile, e le chiavi che non c'erano si tolgono
+    function tornaPrima() {
+        if (!prima) return;
+        if (prima.tema === 'custom_color') { usaHex(diPrima, true); return; }
+        clearTimeout(tApplica);
+        tApplica = null;
+        [[K.colore, prima.colore], [K.intensita, prima.intensita], [K.stile, prima.stile], [K.tema, prima.tema]].forEach(x => {
+            if (x[1] === null) { try { localStorage.removeItem(x[0]); } catch (e) {} } else scrivi(x[0], x[1]);
+        });
+        const tema = prima.tema || window.__sfondoImpianto || 'notte_citta';
+        if (typeof applyBackground === 'function') applyBackground(tema);
+        // nell'elenco degli sfondi si riaccende la sua voce (come all'avvio: la foto e' il tasto "carica")
+        document.querySelectorAll('.bg-option').forEach(o => o.classList.remove('active'));
+        const esc = window.CSS && CSS.escape ? CSS.escape(tema) : tema.replace(/["\\]/g, '');
+        const voce = tema === 'custom_img' ? $('btn-upload-bg') : document.querySelector('.bg-option[data-bg="' + esc + '"]');
+        const accesa = voce || document.querySelector('.bg-option[data-bg="default"]');
+        if (accesa) accesa.classList.add('active');
+        carica();
+        if (raf) { cancelAnimationFrame(raf); raf = 0; }
+        disegna();
+        riga();
+        if (typeof window.impValori === 'function') window.impValori();
+    }
+
+    // la riga "Tinta a scelta" in Schermata e sfondo: pallino col colore scelto (e codice, da tablet)
+    function riga() {
+        const c = normHex(leggi(K.colore));
+        const p = $('imp-tinta-pallino');
+        if (p) {
+            p.hidden = !c;
+            if (c) { p.style.setProperty('--c', c); p.classList.toggle('chiaro', chiaro(c)); }
+        }
+        const val = $('imp-val-tinta');
+        if (val) val.textContent = c ? c.toUpperCase() : '';
+    }
+
+    window.impTinta = {
+        apri: function () {
+            carica();
+            diPrima = colore;
+            prima = { tema: leggi(K.tema), colore: leggi(K.colore), intensita: leggi(K.intensita), stile: leggi(K.stile) };
+            hexScritto = false;
+            if ($('imp-tinta-hex-campo')) $('imp-tinta-hex-campo').classList.remove('errore');
+            const bp = $('imp-tinta-prima'), et = T(prima.tema === 'custom_color' ? 'Torna al colore di prima' : 'Torna allo sfondo di prima');
+            if (bp && bp.getAttribute('aria-label') !== et) { bp.setAttribute('aria-label', et); bp.title = et; }
+            if (normHex(leggi(K.colore))) ricorda(colore);   // chi l'aveva gia' scelto (anche col vecchio selettore) lo ritrova
+            disegnaRecenti();
+            aperta = true;
+            misura();
+            if (raf) { cancelAnimationFrame(raf); raf = 0; }
+            disegna();
+        },
+        lascia: function () {
+            if (!aperta) return;
+            const inp = $('imp-tinta-hex');
+            if (inp && document.activeElement === inp) inp.blur();   // un codice scritto e non confermato vale
+            aperta = false;
+            if (tApplica) salva(true);
+            if (inUso()) ricorda(colore);
+            riga();
+        },
+        riga: riga
+    };
+
+    prepara();
+    riga();
 })();
 </script>
 <script>
