@@ -3674,7 +3674,22 @@
   "Grande": "Large",
   "Ampia": "Wide",
   "Consumo": "Power",
-  "Tasto": "Button"
+  "Tasto": "Button",
+  "Nascondi dal cruscotto": "Hide from the dashboard",
+  "Personalizza cruscotto": "Customise dashboard",
+  "Personalizza il cruscotto…": "Customise the dashboard…",
+  "Rimetti nel cruscotto": "Put back on the dashboard",
+  "Nessun elemento nascosto": "No hidden item",
+  "Trascina gli elementi, cambia stile o nascondi": "Drag the items, change style or hide",
+  "Ripristinare il cruscotto di questa stanza? Stili predefiniti e nessun elemento nascosto.": "Restore this room’s dashboard? Default styles and no hidden item.",
+  "Elemento nascosto dal cruscotto: lo ritrovi con «Personalizza cruscotto»": "Item hidden from the dashboard: find it again with “Customise dashboard”",
+  "Cruscotto non salvato sul server: al prossimo avvio potrebbe tornare com’era": "Dashboard not saved on the server: on the next start it may go back to how it was",
+  "Cruscotto non salvato: nessuna risposta dal server": "Dashboard not saved: no reply from the server",
+  "Normale": "Normal",
+  "Larga": "Wide",
+  "Anello e grafico": "Ring and chart",
+  "Solo anello": "Ring only",
+  "Mostra in": "Show in"
  },
  "sempre": {
   " non ": " not ",

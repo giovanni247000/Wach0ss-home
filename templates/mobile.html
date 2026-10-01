@@ -3018,14 +3018,19 @@ body.wh-personalizza .wh-plancia-barra { transform: translate(-50%, 0); opacity:
 .wh-plancia-normale { display: flex; align-items: center; gap: 10px; }
 .wh-plancia-barra svg { width: 15px; height: 15px; flex-shrink: 0; color: rgba(255,255,255,0.7); }
 /* il tastino nella testata della stanza: solo in Plancia, da 1024 px, non durante le modifiche */
-.wh-plancia-tasto { display: none; width: 32px; height: 32px; margin-left: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); align-items: center; justify-content: center; cursor: pointer; padding: 0; flex-shrink: 0; transition: background 0.2s, color 0.2s, transform 0.15s; }
-.wh-plancia-tasto:hover { background: rgba(255,255,255,0.14); color: #FFF; }
-.wh-plancia-tasto:active { transform: scale(0.9); }
-.wh-plancia-tasto svg { width: 15px; height: 15px; pointer-events: none; }
-@media (min-width: 1024px) { html.wh-vista-plancia body:not(.modifica):not(.wh-personalizza) .wh-plancia-tasto { display: inline-flex; } }
+.wh-plancia-tasto, .wh-cruscotto-tasto { display: none; width: 32px; height: 32px; margin-left: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); align-items: center; justify-content: center; cursor: pointer; padding: 0; flex-shrink: 0; transition: background 0.2s, color 0.2s, transform 0.15s; }
+.wh-plancia-tasto:hover, .wh-cruscotto-tasto:hover { background: rgba(255,255,255,0.14); color: #FFF; }
+.wh-plancia-tasto:active, .wh-cruscotto-tasto:active { transform: scale(0.9); }
+.wh-plancia-tasto svg, .wh-cruscotto-tasto svg { width: 15px; height: 15px; pointer-events: none; }
+@media (min-width: 1024px) { html.wh-vista-plancia body:not(.modifica):not(.wh-personalizza) .wh-plancia-tasto, html.wh-vista-cruscotto body:not(.modifica):not(.wh-personalizza) .wh-cruscotto-tasto { display: inline-flex; } }
 /* la sezione "Stile / Nascondi / Personalizza" del menu della card: solo dai widget della Plancia */
 .hk-menu-plancia { display: none; }
-html.wh-vista-plancia .hk-menu.da-vista .hk-menu-plancia { display: block; }
+html.wh-vista-plancia .hk-menu.da-vista .hk-menu-plancia, html.wh-vista-cruscotto .hk-menu.da-vista .hk-menu-plancia { display: block; }
+/* frasi diverse per Plancia e Cruscotto nella barra, nel menu e nelle Impostazioni (.per-v): si vede solo quella della vista */
+.per-v { display: none; }
+.wh-plancia-barra:not([data-vista="cruscotto"]) .per-v[data-v="plancia"], .wh-plancia-barra[data-vista="cruscotto"] .per-v[data-v="cruscotto"],
+#imp-plancia-personalizza:not([data-vista="cruscotto"]) .per-v[data-v="plancia"], #imp-plancia-personalizza[data-vista="cruscotto"] .per-v[data-v="cruscotto"],
+html:not(.wh-vista-cruscotto) .hk-menu .per-v[data-v="plancia"], html.wh-vista-cruscotto .hk-menu .per-v[data-v="cruscotto"] { display: inline; }
 .hk-menu.solo-stili [data-az="sposta"], .hk-menu.solo-stili [data-az="wv-nascondi"], .hk-menu.solo-stili [data-az="wv-personalizza"] { display: none; }
 .hk-menu-plancia .hk-menu-sep { height: 1px; margin: 5px 8px; background: rgba(255,255,255,0.1); }
 .hk-menu .hk-menu-stili button { padding-top: 6px; padding-bottom: 6px; }
@@ -3106,8 +3111,10 @@ body.shape-square .cr-panel { border-radius: 14px; } body.shape-round .cr-panel 
 .cr-meta b { font-weight: 700; color: #FFF; }
 
 /* --- COMANDI RAPIDI: righe compatte --- */
-.cr-list { display: flex; flex-direction: column; gap: 5px; flex: 1; justify-content: space-between; }
-.cr-comandi.cr-larga .cr-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); align-content: start; gap: 6px; }
+.cr-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 6px; flex: 1; align-content: space-between; }   /* due colonne: le righe normali le prendono tutte e due, le "compatte" una */
+.cr-list > .cr-row { grid-column: span 2; }
+.cr-list > .cr-row.st-compatta { grid-column: span 1; }
+.cr-comandi.cr-larga .cr-list { grid-template-columns: repeat(var(--cr-col, 2), minmax(0, 1fr)); align-content: start; gap: 6px; }   /* --cr-col (pari) lo mette lo script: due per ogni colonna da 240 px di prima */
 .cr-row {
     display: flex; flex-wrap: nowrap; align-items: center; gap: 10px; padding: 6px 8px 6px 6px; border-radius: 16px; min-height: 46px; position: relative;
     background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); cursor: pointer;
@@ -3215,10 +3222,10 @@ body.shape-square .cr-panel { border-radius: 14px; } body.shape-round .cr-panel 
 .cr-graf-minmax b { color: #FFF; font-weight: 700; }
 .cr-graf-minmax .vuoto { color: rgba(255,255,255,0.35); font-weight: 600; }
 
-.cr-tapp { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; align-content: start; }
-.cr-clima.cr-larga .cr-tapp { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
-.cr-tapp > .cr-tile-tapp:only-child { grid-column: 1 / -1; }
-.cr-clima.cr-larga .cr-tapp > .cr-tile-tapp:only-child { grid-column: auto; }
+.cr-tapp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; }
+.cr-tapp > .cr-tile-tapp.st-cursore:only-child, .cr-clima.cr-stretta .cr-tile-tapp.st-cursore { grid-column: 1 / -1; }
+.cr-clima.cr-larga .cr-tapp { grid-template-columns: repeat(var(--cr-col, 2), minmax(0, 1fr)); }   /* --cr-col (pari) lo mette lo script: due per ogni colonna da 280 px (260 su iPad) di prima */
+.cr-clima.cr-larga .cr-tile-tapp.st-cursore { grid-column: span 2; }
 .cr-tile-tapp { display: flex; flex-direction: column; gap: 7px; min-width: 0; padding: 10px 12px 11px; border-radius: 16px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); position: relative; transition: background 0.3s ease, border-color 0.3s ease; }
 .cr-tile-tapp.aperta { background: rgba(186,236,163,0.07); border-color: rgba(186,236,163,0.22); }
 .cr-tile-tapp.offline > :not(.cr-tag) { opacity: 0.5; }
@@ -3249,7 +3256,7 @@ body.shape-square .cr-panel { border-radius: 14px; } body.shape-round .cr-panel 
 .cr-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex: 1; align-content: start; }
 .cr-ambiente.cr-larga .cr-tiles { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); align-content: start; }
 .cr-tiles > .cr-tile:only-child { grid-column: 1 / -1; }
-.cr-ambiente.cr-larga .cr-tiles > .cr-tile:only-child { grid-column: auto; }
+.cr-ambiente.cr-larga .cr-tiles > .cr-tile:only-child:not(.st-grafico) { grid-column: auto; }
 .cr-tile { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; padding: 10px 6px 10px; border-radius: 16px; background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); min-width: 0; overflow: hidden; text-align: center; cursor: pointer; position: relative; --sc: 10,132,255; }
 .cr-tile.offline > :not(.cr-tag) { opacity: 0.5; }
 .cr-tile > .cr-tag { position: static; align-self: center; max-width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -3372,8 +3379,9 @@ html.wh-vista-cruscotto body.modifica .room-section.active > .sub-room-nav { pad
     .cr-pot { display: none; }
     .cr-graf-leg { display: none; }
     .cr-graf-minmax .ora { display: none; }
-    .cr-tapp { grid-template-columns: minmax(0,1fr); gap: 8px; }
-    .cr-clima.cr-larga .cr-tapp { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+    .cr-tapp { gap: 8px; }
+    .cr-tile-tapp.st-cursore { grid-column: 1 / -1; }
+    .cr-clima.cr-larga .cr-tile-tapp.st-cursore { grid-column: span 2; }
     .cr-tile-tapp { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "top mid" "ctl ctl"; align-items: center; gap: 6px 10px; padding: 8px 10px 9px; }
     .cr-tapp-top { grid-area: top; } .cr-tapp-mid { grid-area: mid; margin-top: 0; } .cr-tapp-ctl { grid-area: ctl; }
     .cr-tile-nome { font-size: 0.55rem; letter-spacing: 0.02em; }
@@ -3384,11 +3392,6 @@ html.wh-vista-cruscotto body.modifica .room-section.active > .sub-room-nav { pad
     html.wh-vista-cruscotto .room-section.active > .sub-room-nav .sub-room-tab { padding: 7px 14px; font-size: 0.8rem; }
 }
 @media (max-width: 1139px) {
-    .cr-comandi.cr-s4 { grid-column: span 5; }
-    .cr-clima.cr-s5 { grid-column: span 7; }
-    .cr-clima.cr-s8 { grid-column: span 12; }
-    .cr-comandi.cr-s7 { grid-column: span 12; }
-    .cr-ambiente { grid-column: span 12; }
     .cr-tiles, .cr-ambiente.cr-larga .cr-tiles { grid-template-columns: 1fr 1fr; }
     .cr-tile { flex-direction: row; text-align: left; justify-content: flex-start; gap: 12px; padding: 8px 14px; }
     .cr-tile-nome { font-size: 0.63rem; letter-spacing: 0.05em; }
@@ -3401,6 +3404,143 @@ html.wh-vista-cruscotto body.modifica .room-section.active > .sub-room-nav { pad
     html.wh-vista-cruscotto .room-section.active > .sub-room-nav .sub-room-tab { padding: 8px 10px; }
     html.wh-vista-cruscotto .room-section.active > .sub-room-nav .sub-room-tab.active span { display: inline; }
 }
+
+/* ---------- STILI DEL CRUSCOTTO (Personalizza cruscotto, 01/10/2026): classe .st-<stile> messa dallo script ----------
+   Luce: cursore | interruttore | colori. Presa/scena/generico: normale | compatta (meta' riga). Sensore: arco | stat |
+   grafico (due colonne) | compatto nell'Ambiente, oppure riga nei Comandi rapidi (.sens). Tapparella: cursore | compatta.
+   Termostato: anello | solo_anello | compatto (riga). Lettore: larga | compatta. Telecamera: larga | piccola.
+   Le larghezze dei pannelli (.cr-sN) le decide lo script, anche sotto i 1140 px. */
+.cr-s10 { grid-column: span 10; } .cr-s11 { grid-column: span 11; }
+/* righe a meta' larghezza: la lista e' una griglia a due colonne (le righe normali le prendono tutte e due) */
+.cr-row.st-compatta { padding: 5px 7px 5px 5px; gap: 8px; min-height: 40px; }
+.cr-row.st-compatta .cr-ico { width: 28px; height: 28px; border-radius: 9px; }
+.cr-row.st-compatta .cr-ico svg { width: 15px; height: 15px; }
+.cr-row.st-compatta .cr-name { font-size: 0.76rem; }
+.cr-row.st-compatta .cr-sub, .cr-row.st-compatta .cr-pot { display: none; }
+.cr-row.st-compatta .cr-sw { width: 36px; height: 21px; }
+.cr-row.st-compatta .cr-sw::before { width: 17px; height: 17px; }
+.cr-row.st-compatta .cr-sw.on::before { transform: translateX(15px); }
+.cr-row.st-compatta .cr-btn { padding: 0; width: 28px; height: 28px; justify-content: center; border-radius: 50%; }
+.cr-row.st-compatta .cr-btn span { display: none; }
+.cr-row:not(.st-compatta) .cr-btn.apri svg { display: none; }
+/* luce "colori": la fila dei colori della Plancia sotto il cursore */
+.cr-dots { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; margin: 1px 6px 1px 42px; min-width: 0; }
+.cr-dots .wv-dot { width: 15px; height: 15px; }
+.cr-dots .wv-sep { width: 1px; height: 14px; background: rgba(255,255,255,0.15); margin: 0 1px; flex-shrink: 0; }
+.cr-row:not(.on) .cr-dots { opacity: 0.55; }
+/* liste "fitte" (classi messe dallo script che misura le liste: .cr-fitta quando una mezza riga avrebbe meno di 147 px, per le
+   tapparelle 130; .cr-fitta2 sotto i 177 / 150, per Personalizza dove i tastini vogliono posto): la riga e la tapparella
+   compatte prendono una coppia di colonne (= una riga normale) e la fila dei colori si stringe (senza rientro, pallini da 14 px) */
+.cr-list.cr-fitta > .cr-row.st-compatta, body.wh-personalizza .cr-list.cr-fitta2 > .cr-row.st-compatta { grid-column: span 2; }
+.cr-tapp.cr-fitta > .cr-tile-tapp.st-compatta, body.wh-personalizza .cr-tapp.cr-fitta2 > .cr-tile-tapp.st-compatta { grid-column: span 2; }
+.cr-list.cr-fitta .cr-dots { margin-left: 0; margin-right: 0; gap: 4px 5px; }
+.cr-list.cr-fitta .cr-dots .wv-dot { width: 14px; height: 14px; }
+/* sensore nei Comandi rapidi: riga col valore a destra */
+.cr-row.sens .cr-ico { background: rgba(var(--sc, 10,132,255), 0.16); border-color: rgba(var(--sc, 10,132,255), 0.3); box-shadow: inset 0 1px 2px rgba(255,255,255,0.12); }
+.cr-row.sens .cr-ico svg { color: rgb(var(--sc, 10,132,255)); }
+.cr-val { font-size: 1rem; font-weight: 700; color: #FFF; font-variant-numeric: tabular-nums; white-space: nowrap; letter-spacing: -0.02em; text-shadow: 0 2px 6px rgba(0,0,0,0.5); flex-shrink: 0; max-width: 45%; overflow: hidden; text-overflow: ellipsis; }
+.cr-val small { font-size: 0.62rem; font-weight: 600; color: rgba(255,255,255,0.5); margin-left: 2px; }
+.cr-val.testo { font-size: 0.8rem; }
+.cr-sub.su { color: #30D158; } .cr-sub.giu { color: #FF6B60; }
+/* tessere dell'Ambiente: stat (valore e sparkline), grafico (due colonne), compatto (solo il valore): struttura dei widget della Plancia */
+.cr-tile.st-stat, .cr-tile.st-grafico, .cr-tile.st-compatto { flex-direction: column; align-items: stretch; text-align: left; justify-content: flex-start; }
+.cr-tile.st-stat { gap: 3px; padding: 10px 12px 14px; min-height: 100px; }
+.cr-tile.st-stat .wv-stat-val { font-size: 1.4rem; margin-top: 2px; }
+.cr-tile.st-stat .wv-stat-val.testo { font-size: 1rem; }
+.cr-tile.st-stat .wv-spark { height: 36px; }
+.cr-tile.st-compatto { gap: 4px; padding: 10px 12px; justify-content: center; }
+.cr-tile.st-compatto .wv-stat-val { font-size: 1.5rem; }
+.cr-tile.st-compatto .wv-stat-val.testo { font-size: 1.05rem; }
+.cr-tile.st-compatto .wv-stat-sub, .cr-tile.st-compatto .wv-spark { display: none; }
+.cr-tiles > .cr-tile.st-grafico { grid-column: span 2; }
+.cr-tile.st-grafico { gap: 0; padding: 10px 12px 9px; min-height: 118px; }
+.cr-tile.st-grafico .wv-stat-val { font-size: 1.25rem; line-height: 1; margin-top: 2px; }
+.cr-tile.st-grafico .wv-stat-val.testo { font-size: 1rem; }
+.cr-tile.st-grafico .wv-graf { min-height: 40px; }
+.cr-tile.st-grafico .wv-graf-testa .wv-stat-head svg { display: none; }   /* (.cr-panel svg.lucide lo rimetterebbe) */
+/* tapparella "compatta": finestrella, nome e stato, solo i tasti (due per riga anche nel pannello stretto e su iPad) */
+.cr-tile-tapp.st-compatta { gap: 8px; }
+.cr-tile-tapp.st-compatta .cr-tapp-tasti { flex: 1; }
+.cr-tile-tapp.st-compatta .cr-tapp-tasti button { flex: 1; border-radius: 14px; }
+/* termostato "solo anello" (anello in mezzo, pannello stretto) e "compatto" (riga con -/+ e modi a icone) */
+.cr-termo { position: relative; }
+.cr-termo.st-solo_anello { justify-content: center; }
+.cr-termo.st-compatto { flex: 0 0 auto; flex-wrap: wrap; gap: 10px; row-gap: 6px; min-height: 50px; }   /* nel pannello stretto -/+ e modi vanno a capo */
+.cr-termo.st-compatto .cr-txt { flex: 1 1 90px; }
+.cr-termo.st-compatto .cr-seg { margin-left: auto; }
+.cr-termo.st-compatto:not(.spento) { background: rgba(var(--ct), 0.09); border-color: rgba(var(--ct), 0.26); }
+.cr-termo.st-compatto:not(.spento) .cr-ico { background: rgb(var(--ct)); border-color: transparent; box-shadow: 0 0 16px rgba(var(--ct), 0.5), inset 0 2px 5px rgba(255,255,255,0.5); }
+.cr-termo.st-compatto:not(.spento) .cr-ico svg { color: #FFF; }
+.cr-termo.st-compatto:not(.spento) .cr-sub { color: rgb(var(--ct)); }
+.cr-termo.st-compatto .cr-sub b { color: #FFF; font-weight: 700; }
+.cr-tpassi { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.cr-termo.st-compatto .cr-passo { position: static; width: 28px; height: 28px; }
+.cr-tcifra { display: flex; align-items: flex-start; justify-content: center; color: #FFF; line-height: 0.95; min-width: 58px; cursor: pointer; text-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+.cr-tcifra b { font-size: 1.35rem; font-weight: 300; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+.cr-tcifra small { font-size: 0.7rem; font-weight: 300; margin-top: 1px; opacity: 0.55; }
+.cr-seg { flex-shrink: 0; }
+.cr-seg[hidden] { display: none; }
+.cr-seg button { width: 30px; flex: 0 0 auto; }
+.cr-termo.st-compatto:not(.spento) .cr-seg button.attivo { background: rgb(var(--ct)); color: #FFF; box-shadow: 0 4px 14px rgba(var(--ct), 0.45); }
+/* lettore "compatto": copertina piccola, play/pausa e volume (meta' riga, accanto alla telecamera) */
+.cr-media.st-compatta { padding: 12px 14px; gap: 12px; align-self: start; }
+.cr-media.st-compatta .cr-art { width: 64px; height: 64px; border-radius: 12px; }
+.cr-media.st-compatta .cr-art > svg { width: 26px; height: 26px; }
+.cr-media.st-compatta .cr-eq { right: 4px; bottom: 4px; height: 9px; padding: 3px 4px 2px; }
+.cr-media.st-compatta .cr-eq span { height: 9px; }
+.cr-media.st-compatta .cr-media-corpo { gap: 6px; justify-content: center; }
+.cr-media.st-compatta .cr-media-prog, .cr-media.st-compatta .cr-media-art, .cr-media.st-compatta .cr-media-sorg, .cr-media.st-compatta .cr-media-ctl button:not(.play) { display: none; }
+.cr-media.st-compatta .cr-media-tit { font-size: 0.92rem; margin-top: 2px; }
+.cr-media.st-compatta .cr-media-ctl { padding: 0; background: transparent; border: 0; }
+.cr-media.st-compatta .cr-media-ctl button.play { width: 34px; height: 34px; }
+.cr-media.st-compatta .cr-media-ctl button.play svg { width: 14px; height: 14px; }
+.cr-media.st-compatta .cr-media-basso { gap: 10px; }
+.cr-media.st-compatta .cr-media-vol { max-width: none; }
+/* telecamera "piccola" (4 colonne): in alto nella riga, alta quanto le vuole il suo 2:1 (stirata all'altezza della riga si allargherebbe oltre la griglia) */
+.cr-cam { align-self: start; }
+.cr-cam.st-piccola .cr-cam-hud { padding: 10px 12px; }
+.cr-cam.st-piccola .cr-cam-nome { font-size: 0.8rem; }
+.cr-cam.st-piccola .cr-cam-ora { display: none; }
+.cr-cam.st-piccola .cr-cam-tasti button { width: 28px; height: 28px; }
+.cr-cam.st-piccola .cr-cam-tasti button svg { width: 12px; height: 12px; }
+
+/* ---------- PERSONALIZZA CRUSCOTTO: righe, tessere, tapparelle, termostato, lettore e telecamera (.cr-w) tremano, si
+   trascinano DENTRO il loro pannello, due tastini (stile, nascondi: gli stessi della Plancia, .wv-strumenti) ---------- */
+body.wh-personalizza .cr-w { animation: hkTrema 0.24s infinite alternate ease-in-out; cursor: grab; }
+body.wh-personalizza .cr-w:nth-child(2n) { animation-delay: -0.12s; }
+body.wh-personalizza .cr-w > :not(.wv-strumenti) { pointer-events: none; }
+body.wh-personalizza .cr-w.sortable-chosen, body.wh-personalizza .cr-w.sortable-drag, .cr-w.sortable-fallback { animation: none !important; }
+body.wh-personalizza .cr-w.sortable-chosen { transform: scale(1.03); z-index: 5; box-shadow: 0 16px 40px rgba(0,0,0,0.6); border-color: rgba(255,255,255,0.4); }
+.cr-w.sortable-fallback { opacity: 0.92 !important; cursor: grabbing; }
+.cr-w.sortable-ghost { opacity: 0.25; }
+/* i tastini: nelle righe in coda (al posto di interruttore e cursore), nelle tessere in fondo, nelle tapparelle al posto dei
+   tasti, nel termostato, nel lettore e nella telecamera in alto a destra */
+.cr-row .wv-strumenti { position: static; margin-left: auto; flex-shrink: 0; }
+body.wh-personalizza .cr-row .cr-sw, body.wh-personalizza .cr-row .cr-btn, body.wh-personalizza .cr-row .cr-slider, body.wh-personalizza .cr-row .cr-dots,
+body.wh-personalizza .cr-row .cr-val, body.wh-personalizza .cr-row .cr-pot, body.wh-personalizza .cr-row .cr-tpassi, body.wh-personalizza .cr-row .cr-seg { display: none; }
+body.wh-personalizza .cr-row.dim { flex-wrap: nowrap; }
+.cr-tile .wv-strumenti { position: static; order: 9; margin-top: 2px; justify-content: center; flex-shrink: 0; }
+body.wh-personalizza .cr-tile .cr-tile-trend, body.wh-personalizza .cr-tile .wv-stat-sub, body.wh-personalizza .cr-tile .wv-spark, body.wh-personalizza .cr-tile .wv-graf-piede { display: none; }
+body.wh-personalizza .cr-tile.st-grafico .wv-graf { min-height: 18px; }
+body.wh-personalizza .cr-tile.st-stat, body.wh-personalizza .cr-tile.st-compatto { padding-bottom: 10px; }
+.cr-tile-tapp .wv-strumenti { position: static; order: 9; justify-content: flex-end; grid-area: ctl; justify-self: end; }
+body.wh-personalizza .cr-tile-tapp .cr-tapp-ctl { display: none; }
+.cr-termo .wv-strumenti { top: 0; right: 0; }
+body.wh-personalizza .cr-termo .cr-graf-leg { visibility: hidden; }
+.cr-media .wv-strumenti, .cr-cam .wv-strumenti { top: 12px; right: 14px; }
+body.wh-personalizza .cr-media .cr-media-sorg, body.wh-personalizza .cr-cam .hk-live, body.wh-personalizza .cr-media > .cr-tag, body.wh-personalizza .cr-cam > .cr-tag { visibility: hidden; }
+body.wh-personalizza .cr-media .cr-media-testa { padding-right: 62px; }
+body.wh-personalizza .cr-cam .cr-cam-riga:first-child { padding-right: 62px; }
+@media (max-width: 1359px) { body.wh-personalizza .cr-list > .cr-row.st-compatta { grid-column: span 2; } }   /* su iPad e a 1024 la riga compatta coi tastini non avrebbe posto per il nome */
+@media (max-width: 1139px) {
+    .cr-ambiente.cr-larga .cr-tiles > .cr-tile:only-child:not(.st-grafico) { grid-column: 1 / -1; }   /* qui l'Ambiente e' sempre cr-larga (12 colonne) ma su due colonne: la tessera sola prende tutta la riga, come prima */
+    .cr-tile .wv-strumenti { margin: 0 0 0 auto; }
+    .cr-tile.st-stat .wv-strumenti, .cr-tile.st-grafico .wv-strumenti, .cr-tile.st-compatto .wv-strumenti { margin: 2px 0 0; }
+}
+/* il tastino nella testata della stanza (solo in Cruscotto, da 1024 px) e le voci del menu: come per la Plancia */
+.hk-menu .hk-menu-stili.in-rapidi button .et { color: rgba(255,255,255,0.6); }
+.hk-menu .hk-menu-stili[hidden], .hk-menu .hk-menu-pannello-tit[hidden] { display: none; }
+.hk-menu .hk-menu-pannello-tit { padding-top: 4px; }
 
 /* ---------- MODALITA' LEGGERA: niente vetro, bagliori ne' animazioni, come per le card ---------- */
 .wh-leggera .cr-panel { backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: 0 4px 14px rgba(0,0,0,0.32), inset 0 1px 1px rgba(255,255,255,0.06); transition: background-color 0.22s ease, box-shadow 0.22s ease; }
@@ -3457,6 +3597,23 @@ html.wh-vista-cruscotto body.modifica .room-section.active > .sub-room-nav { pad
 .wh-leggera .hk-card.state-on::before, .wh-leggera .hk-card.state-open::before,
 .wh-leggera .hk-card.state-playing::before, .wh-leggera .hk-card.state-cool::before,
 .wh-leggera .hk-card.state-heat::before { display: none !important; }
+
+/* ANIMAZIONI IN PAUSA DIETRO IL VELO (01/10/2026). Vale per TUTTI (non solo in modalita' leggera): quando un
+   pannello e' aperto (#app-wrapper.modal-active: pagina scurita, sfocata e senza tocchi) o e' aperta la pagina
+   Impostazioni (#imp-pagina.aperta: copre tutto, fondo pieno), le animazioni infinite di cio' che sta sotto
+   (luce che scorre sulle card accese, disco e equalizzatori dei lettori, puntino LIVE, pillole, stelle, sfondo
+   che respira) non si vedono ma costano un fotogramma di ricomposizione ciascuna. Lo script in fondo alla pagina
+   mette la classe wh-dietro su <html>; le animazioni si fermano dove sono e riprendono da li' alla chiusura:
+   nessuno scatto, aspetto identico. Stesso elenco della modalita' leggera (punti 2-4) piu' le viste. */
+html.wh-dietro #app-background, html.wh-dietro #app-background::before, html.wh-dietro #app-background::after,
+html.wh-dietro .nc-brilli i,
+html.wh-dietro .g-house .smoke, html.wh-dietro .greeting-hero .g-name,
+html.wh-dietro [class*="weather-anim-"] svg,
+html.wh-dietro .glance-pill, html.wh-dietro .update-badge, html.wh-dietro .update-badge::before,
+html.wh-dietro .hk-card::before, html.wh-dietro .hk-card .hk-icon-wrapper, html.wh-dietro .media-card-eq span,
+html.wh-dietro .live-dot, html.wh-dietro .nav-nvr-ico::after,
+html.wh-dietro .wv::before, html.wh-dietro .wv-eq span,
+html.wh-dietro .cr-eq span, html.wh-dietro .cr-eyebrow .pip, html.wh-dietro .cr-glow { animation-play-state: paused !important; }
 
 /* 5. Aloni sfocati. */
 .wh-leggera [class*="weather-anim-"] svg,
@@ -4758,6 +4915,7 @@ html.wh-scala .imp-pagina {
                     <div class="section-line"></div>
                     <!-- Personalizza plancia (viste su schermi grandi): si vede solo in Plancia, da 1024 px -->
                     <button type="button" class="wh-plancia-tasto" title="Personalizza plancia" aria-label="Personalizza plancia"><i data-lucide="sliders-horizontal"></i></button>
+                    <button type="button" class="wh-cruscotto-tasto" title="Personalizza cruscotto" aria-label="Personalizza cruscotto"><i data-lucide="sliders-horizontal"></i></button>
                 </div>
                 
                 {% if room_data.sub_rooms %}
@@ -4909,10 +5067,11 @@ html.wh-scala .imp-pagina {
     </div>
 
     <div class="barra-modifica" id="barra-modifica"><span>Trascina le card dove vuoi</span><span class="salvato">&check; salvato</span><button type="button" onclick="esciModifica()">Fine</button></div>
-    <!-- PERSONALIZZA PLANCIA (viste su schermi grandi, whViste in fondo alla pagina): trascina, stile, nascondi; Ripristina con conferma nella barra -->
+    <!-- PERSONALIZZA PLANCIA / CRUSCOTTO (viste su schermi grandi, whViste in fondo alla pagina): trascina, stile, nascondi; Ripristina con conferma nella barra;
+         data-vista sulla barra (messo dallo script) sceglie le frasi della vista -->
     <div class="wh-plancia-barra" id="wh-plancia-barra">
-        <div class="wh-plancia-normale"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg><span>Trascina i widget, cambia stile o nascondi</span><span class="salvato">&check; salvato</span><button type="button" class="secondario" data-az="ripristina">Ripristina</button><button type="button" data-az="fine">Fine</button></div>
-        <div class="wh-plancia-conferma"><span>Ripristinare la plancia di questa stanza? Stili predefiniti e nessun widget nascosto.</span><button type="button" class="secondario" data-az="no">Annulla</button><button type="button" class="pericolo" data-az="si">Ripristina</button></div>
+        <div class="wh-plancia-normale"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg><span class="per-v" data-v="plancia">Trascina i widget, cambia stile o nascondi</span><span class="per-v" data-v="cruscotto">Trascina gli elementi, cambia stile o nascondi</span><span class="salvato">&check; salvato</span><button type="button" class="secondario" data-az="ripristina">Ripristina</button><button type="button" data-az="fine">Fine</button></div>
+        <div class="wh-plancia-conferma"><span class="per-v" data-v="plancia">Ripristinare la plancia di questa stanza? Stili predefiniti e nessun widget nascosto.</span><span class="per-v" data-v="cruscotto">Ripristinare il cruscotto di questa stanza? Stili predefiniti e nessun elemento nascosto.</span><button type="button" class="secondario" data-az="no">Annulla</button><button type="button" class="pericolo" data-az="si">Ripristina</button></div>
     </div>
     <!-- ===== MENU DELLA CARD (tasto destro / pressione lunga) E CARD ALLARGATE: INIZIO ===== -->
     <style>
@@ -5000,26 +5159,28 @@ html.wh-scala .imp-pagina {
             <span id="hk-menu-allarga">Allarga card</span>
         </button>
         <div class="hk-menu-nota" id="hk-menu-nota"></div>
-        <!-- dai widget della Plancia (viste su schermi grandi): Stile (scelte del tipo, riempite da whViste), Nascondi, Personalizza -->
+        <!-- dai widget della Plancia e del Cruscotto (viste su schermi grandi): Stile (scelte del tipo, riempite da whViste; per i sensori del Cruscotto anche "Mostra in"), Nascondi, Personalizza -->
         <div class="hk-menu-plancia" id="hk-menu-plancia">
             <div class="hk-menu-sep"></div>
             <div class="hk-menu-nome">Stile</div>
             <div class="hk-menu-stili" id="hk-menu-stili" role="group"></div>
+            <div class="hk-menu-nome hk-menu-pannello-tit" id="hk-menu-pannello-tit" hidden>Mostra in</div>
+            <div class="hk-menu-stili" id="hk-menu-pannello" role="group" hidden></div>
             <div class="hk-menu-sep"></div>
             <button type="button" data-az="wv-nascondi">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
-                <span>Nascondi dalla plancia</span>
+                <span class="per-v" data-v="plancia">Nascondi dalla plancia</span><span class="per-v" data-v="cruscotto">Nascondi dal cruscotto</span>
             </button>
             <button type="button" data-az="wv-personalizza">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
-                <span>Personalizza plancia</span>
+                <span class="per-v" data-v="plancia">Personalizza plancia</span><span class="per-v" data-v="cruscotto">Personalizza cruscotto</span>
             </button>
         </div>
     </div>
     <div class="hk-toast" id="hk-toast"></div>
     <!-- ===== MENU DELLA CARD E CARD ALLARGATE: FINE ===== -->
     <div class="modal-overlay" id="modal-overlay"></div>
-    <script>window.__offlineIds = {{ (offline_ids or []) | tojson }}; window.__ordiniSalvati = {{ (ordini_salvati or []) | tojson }}; window.__allargate = {{ (allargate or []) | tojson }}; window.__WH_PLANCIA__ = {{ ((plancia_salvata or {}) | tojson) if plancia_salvata is defined else 'null' }};window.__fusoCasa = {{ (fuso_casa or '') | tojson }};window.__sfondoImpianto = {{ (sfondo_impianto or '') | tojson }};</script>
+    <script>window.__offlineIds = {{ (offline_ids or []) | tojson }}; window.__ordiniSalvati = {{ (ordini_salvati or []) | tojson }}; window.__allargate = {{ (allargate or []) | tojson }}; window.__WH_PLANCIA__ = {{ ((plancia_salvata or {}) | tojson) if plancia_salvata is defined else 'null' }};{% if cruscotto_salvato is defined %}window.__WH_CRUSCOTTO__ = {{ (cruscotto_salvato or {}) | tojson }};{% endif %}window.__fusoCasa = {{ (fuso_casa or '') | tojson }};window.__sfondoImpianto = {{ (sfondo_impianto or '') | tojson }};</script>
 
     <div class="bottom-modal" id="active-entities-modal">
         <div class="modal-handle"></div>
@@ -5521,7 +5682,7 @@ html.wh-scala .imp-pagina {
                         </div>
                     </div>
                     <p class="imp-nota">Su iPad e computer (da 1024 px) i dispositivi si vedono come card, come una plancia con i comandi in vista o come un cruscotto. Sul telefono restano sempre le card.</p>
-                    <button type="button" class="imp-plancia-personalizza" id="imp-plancia-personalizza" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg><span>Personalizza la plancia…</span></button>
+                    <button type="button" class="imp-plancia-personalizza" id="imp-plancia-personalizza" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg><span class="per-v" data-v="plancia">Personalizza la plancia…</span><span class="per-v" data-v="cruscotto">Personalizza il cruscotto…</span></button>
                     <p class="imp-nota imp-vista-nota-cruscotto">Il Cruscotto è in preparazione: per ora mostra le card.</p>
                 </div>
 
@@ -13990,6 +14151,10 @@ function hkOsserva(card) {
      i widget: niente sfarfallio. whViste.riordina(griglia, ids) rimette le card nell'ordine dei widget e salva
      con salvaOrdine (lo stesso di "Sposta le card"). Lo storico del server (chiediStorico/serie) e' qui, in
      comune fra Plancia e Cruscotto.
+   - PERSONALIZZA CRUSCOTTO (01/10/2026): lo stesso per il Cruscotto, con whViste.cruscotto (window.__WH_CRUSCOTTO__,
+     POST con vista: 'cruscotto', localStorage 'wh_cruscotto'; su un server che non conosce la vista, cioe' senza
+     __WH_CRUSCOTTO__ nella pagina, solo il dispositivo). La modalita' Personalizza (barra, tastini, riga dei nascosti,
+     trascinamento, menu) e' un motore comune (creaPersonalizza) che ogni vista istanzia con le sue parti.
    COME SI REGISTRA UNA VISTA (cosi' e' fatto il Cruscotto, in fondo a questo script)
      whViste.registra('cruscotto', {
          etichetta: 'Cruscotto',
@@ -14060,13 +14225,16 @@ function hkOsserva(card) {
         return out.filter(p => ora - p.t <= GIORNO);
     }
 
-    // ------------------------------------------------------------ PLANCIA: stile e "nascosta" di ogni entita', per chiave (per dispositivo, sul server)
-    // window.__WH_PLANCIA__ = { chiave: { entity_id: { stile, nascosta } } } dal server; null = server senza l'API.
-    // POST /api/mobile/plancia { chiave, entity_id, stile, nascosta } | { chiave, entity_id, reset } | { chiave, reset }.
-    // Senza l'API (null, o risposta 404) le scelte restano in localStorage 'wh_plancia' e si mandano al server
-    // la prima volta che risponde (come l'ordine delle card la prima volta col server nuovo).
-    const PLANCIA_LS = 'wh_plancia', PLANCIA_RIP = 'wh_plancia_ripiego';
-    const plancia = (function () {
+    // ------------------------------------------------------------ PLANCIA e CRUSCOTTO: stile e "nascosta" di ogni entita', per chiave (per dispositivo, sul server)
+    // window.__WH_PLANCIA__ e window.__WH_CRUSCOTTO__ = { chiave: { entity_id: { stile, nascosta } } } dal server; null o non
+    // definito = server senza l'API di quella vista. POST /api/mobile/plancia { vista, chiave, entity_id, stile, nascosta } |
+    // { vista, chiave, entity_id, reset } | { vista, chiave, reset } (vista = 'plancia' | 'cruscotto'; un server vecchio ignora
+    // 'vista' e salverebbe il cruscotto nella tabella della plancia: per il cruscotto si parla col server SOLO se la pagina e'
+    // arrivata con __WH_CRUSCOTTO__ definito, anche vuoto, cioe' da un server che conosce la vista).
+    // Senza l'API (null/non definito, o risposta 404) le scelte restano nel dispositivo (localStorage 'wh_plancia' /
+    // 'wh_cruscotto') e si mandano al server la prima volta che risponde (come l'ordine delle card la prima volta col server nuovo).
+    function creaRegistro(cfg) {
+        const LS = cfg.ls, RIP = cfg.ls + '_ripiego';
         let dati = {}, locale = false;
         function pulisci(obj) {
             const out = {};
@@ -14084,31 +14252,33 @@ function hkOsserva(card) {
             }
             return out;
         }
-        function salvaLocale() { scrivi(PLANCIA_LS, JSON.stringify(dati)); scrivi(PLANCIA_RIP, '1'); }
-        function leggiLocale() { try { return pulisci(JSON.parse(leggi(PLANCIA_LS) || '{}')); } catch (e) { return {}; } }
+        function salvaLocale() { scrivi(LS, JSON.stringify(dati)); scrivi(RIP, '1'); }
+        function leggiLocale() { try { return pulisci(JSON.parse(leggi(LS) || '{}')); } catch (e) { return {}; } }
         function invia(corpo) {
             if (locale) { salvaLocale(); return Promise.resolve(false); }
+            corpo.vista = cfg.vista;
             return fetch('/api/mobile/plancia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(corpo) })
                 .then(r => {
                     if (r.status === 404) { locale = true; salvaLocale(); return false; }      // server senza l'API: si tiene tutto nel dispositivo
-                    if (!r.ok) { if (typeof hkToast === 'function') hkToast(T('Plancia non salvata sul server: al prossimo avvio potrebbe tornare com\u2019era')); return false; }
+                    if (!r.ok) { if (typeof hkToast === 'function') hkToast(T(cfg.frasi.nonSalvato)); return false; }
                     return true;
-                }).catch(() => { if (typeof hkToast === 'function') hkToast(T('Plancia non salvata: nessuna risposta dal server')); return false; });
+                }).catch(() => { if (typeof hkToast === 'function') hkToast(T(cfg.frasi.nessunaRisposta)); return false; });
         }
         function migra() {          // prima volta col server nuovo: le scelte tenute nel dispositivo vanno sul server
             const invii = [];
             for (const k in dati) for (const id in dati[k]) invii.push(invia({ chiave: k, entity_id: id, stile: dati[k][id].stile, nascosta: dati[k][id].nascosta }));
-            Promise.all(invii).then(ok => { if (ok.length && ok.every(Boolean)) { rimuovi(PLANCIA_LS); rimuovi(PLANCIA_RIP); } });
+            Promise.all(invii).then(ok => { if (ok.length && ok.every(Boolean)) { rimuovi(LS); rimuovi(RIP); } });
         }
         (function carica() {
-            const srv = window.__WH_PLANCIA__, ripiego = leggi(PLANCIA_RIP) === '1';
+            const srv = window[cfg.finestra], ripiego = leggi(RIP) === '1';
             if (srv === null || srv === undefined) { locale = true; dati = ripiego ? leggiLocale() : {}; return; }
             const s = pulisci(srv);
-            if (Object.keys(s).length) { dati = s; if (ripiego) { rimuovi(PLANCIA_LS); rimuovi(PLANCIA_RIP); } return; }   // il server ha le scelte: vincono
+            if (Object.keys(s).length) { dati = s; if (ripiego) { rimuovi(LS); rimuovi(RIP); } return; }   // il server ha le scelte: vincono
             dati = ripiego ? leggiLocale() : {};
             if (ripiego && Object.keys(dati).length) setTimeout(migra, 1500);
         })();
         return {
+            vista: cfg.vista,
             stile(chiave, id) { const e = dati[chiave]; return (e && e[id]) ? (e[id].stile || '') : ''; },
             nascosta(chiave, id) { const e = dati[chiave]; return !!(e && e[id] && e[id].nascosta); },
             nascoste(chiave) { const e = dati[chiave] || {}; return Object.keys(e).filter(id => e[id].nascosta); },
@@ -14128,7 +14298,11 @@ function hkOsserva(card) {
             locale: () => locale,
             tutto: () => dati
         };
-    })();
+    }
+    const plancia = creaRegistro({ vista: 'plancia', finestra: '__WH_PLANCIA__', ls: 'wh_plancia',
+        frasi: { nonSalvato: 'Plancia non salvata sul server: al prossimo avvio potrebbe tornare com’era', nessunaRisposta: 'Plancia non salvata: nessuna risposta dal server' } });
+    const cruscotto = creaRegistro({ vista: 'cruscotto', finestra: '__WH_CRUSCOTTO__', ls: 'wh_cruscotto',
+        frasi: { nonSalvato: 'Cruscotto non salvato sul server: al prossimo avvio potrebbe tornare com’era', nessunaRisposta: 'Cruscotto non salvato: nessuna risposta dal server' } });
 
     // ------------------------------------------------------------ dati letti dalla card
     function statoDi(card) {
@@ -14499,7 +14673,8 @@ function hkOsserva(card) {
             if (typeof hkApriMenu !== 'function') return;
             const m = document.getElementById('hk-menu');
             const def = attiva ? viste[attiva] : null;
-            if (m && def && typeof def.menu === 'function') { try { def.menu(card, m, opzioni || {}); } catch (e) { console.warn('[viste] menu', e); } }   // la Plancia riempie la sezione Stile
+            if (m) { const pt = m.querySelector('#hk-menu-pannello-tit'), pg = m.querySelector('#hk-menu-pannello'); if (pt) pt.hidden = true; if (pg) { pg.hidden = true; pg.innerHTML = ''; } }   // "Mostra in" solo dai sensori del Cruscotto
+            if (m && def && typeof def.menu === 'function') { try { def.menu(card, m, opzioni || {}); } catch (e) { console.warn('[viste] menu', e); } }   // la vista riempie la sezione Stile
             hkApriMenu(card, x, y);
             if (!m || !m.classList.contains('on')) return;
             m.classList.add('da-vista');
@@ -14510,13 +14685,173 @@ function hkOsserva(card) {
         }
     };
 
+    // ------------------------------------------------------------ PERSONALIZZA (Plancia e Cruscotto): la stessa modalita' per le due viste
+    // Una barra sola (#wh-plancia-barra), gli stessi tastini stile/occhio (.wv-strumenti), la stessa riga dei nascosti
+    // (.wv-nascosti, fratello subito dopo il contenitore: dentro la griglia occuperebbe una traccia intera anche vuota) e le
+    // stesse voci del menu della card. Ogni vista crea il suo motore con creaPersonalizza({ vista, registro, trascinabile,
+    // liste(cont), widgetDi(card), nascondi(w, card, cont), rimetti(cont, card), frasi }) e lo espone come def.pers; i gestori
+    // comuni qui sotto (menu, tastino della testata, rimando delle Impostazioni, barra, Esc) parlano col motore della vista attiva.
+    function chiaveDi(card) { const g = card.closest('.grid-hk'); return g ? (g.dataset.chiave || '') : ''; }
+    function cssId(id) { return (window.CSS && CSS.escape) ? CSS.escape(id) : String(id).replace(/["\\]/g, '\\$&'); }
+    function elDa(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+    function vibra(v) { if (navigator.vibrate) navigator.vibrate(v); }
+    // anteprima piccola nel menu degli stili: una griglia 4x2 con le celle che il widget occupa
+    function anteprima(m) {
+        let h = '<i class="wv-ant">';
+        for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) h += '<b' + (c < m[0] && r < m[1] ? ' class="on"' : '') + '></b>';
+        return h + '</i>';
+    }
+    const SPUNTA = '<svg class="spunta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+    function persAttivo() { const d = attiva ? viste[attiva] : null; return (d && d.pers) ? d.pers : null; }
+    function creaPersonalizza(cfg) {
+        const ordinatori = new Map();      // lista trascinabile -> Sortable (solo in Personalizza)
+        let modo = false;
+        const barra = () => document.getElementById('wh-plancia-barra');
+        const sel = '.wh-vista[data-vista="' + cfg.vista + '"]';
+        const contenitori = () => Array.from(document.querySelectorAll(sel));
+        const contenitoreAttivo = () => document.querySelector('.room-section.active .sub-room-content.active > ' + sel) || document.querySelector('.room-section.active ' + sel);
+        const rigaNascosti = cont => { const n = cont ? cont.nextElementSibling : null; return (n && n.classList.contains('wv-nascosti')) ? n : null; };
+        function pulisciRigheOrfane() { document.querySelectorAll('.wv-nascosti').forEach(n => { const p = n.previousElementSibling; if (!p || !p.matches(sel) || !p.isConnected) n.remove(); }); }
+        function imposta(si) {
+            si = si !== false;
+            if (si === modo) return;
+            if (si && attiva !== cfg.vista) return;                       // solo con la propria vista attiva (schermo grande)
+            if (si && document.body.classList.contains('modifica') && typeof esciModifica === 'function') esciModifica();
+            modo = si;
+            document.body.classList.toggle('wh-personalizza', si);
+            if (typeof hkChiudiMenu === 'function') hkChiudiMenu();
+            const b = barra(); if (b) { b.classList.remove('conferma', 'ok'); b.dataset.vista = cfg.vista; }
+            if (si) { vibra([30, 40, 30]); pulisciRigheOrfane(); contenitori().forEach(attivaOrdinatori); }
+            else { ordinatori.forEach(s => { try { s.destroy(); } catch (e) {} }); ordinatori.clear(); }
+            try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+        }
+        // un Sortable per ogni lista trascinabile del contenitore (la Plancia: la griglia; il Cruscotto: le liste dentro i pannelli)
+        function attivaOrdinatori(cont) {
+            if (!window.Sortable || !cont.isConnected) return;
+            ordinatori.forEach((s, l) => { if (!l.isConnected) { try { s.destroy(); } catch (e) {} ordinatori.delete(l); } });
+            cfg.liste(cont).forEach(lista => {
+                if (ordinatori.has(lista)) return;
+                // forceFallback: stessi gesti col mouse e col dito (niente drag nativo del browser), come le card sul telefono
+                const s = Sortable.create(lista, {
+                    draggable: cfg.trascinabile, filter: '.wv-strumenti', preventOnFilter: false,
+                    animation: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', delay: 130, delayOnTouchOnly: true, touchStartThreshold: 6,
+                    forceFallback: true, fallbackTolerance: 4, fallbackClass: 'sortable-fallback',
+                    ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', dragClass: 'sortable-drag',
+                    onEnd: () => riordinato(cont, lista)
+                });
+                ordinatori.set(lista, s);
+            });
+        }
+        // trascinamento finito: le card della griglia prendono lo stesso ordine (solo quelle della lista: fra liste diverse
+        // l'ordine non conta) e si salva come "Sposta le card"
+        function riordinato(cont, lista) {
+            const grid = grigliaDi(cont); if (!grid) return;
+            const ids = Array.from(lista.querySelectorAll(':scope > ' + cfg.trascinabile)).map(x => x.dataset.id).filter(Boolean);
+            if (riordina(grid, ids)) salvato();
+        }
+        function salvato() { const b = barra(); if (b) { b.classList.add('ok'); clearTimeout(b._t); b._t = setTimeout(() => b.classList.remove('ok'), 1500); } }
+        // i due tastini (stile, nascondi) da mettere nel widget: sempre presenti, visibili solo in Personalizza
+        function strumenti(card, chiave) {
+            const str = elDa('<div class="wv-strumenti"><button type="button" class="stile" title="Cambia stile"><i data-lucide="shapes"></i></button><button type="button" class="occhio"><i data-lucide="eye-off"></i></button></div>');
+            str.querySelector('.occhio').title = cfg.frasi.nascondi;
+            str.querySelector('.stile').addEventListener('click', ev => { ev.stopPropagation(); const r = ev.currentTarget.getBoundingClientRect(); comandi.menu(card, r.left, r.bottom + 4, { soloStili: true }); });
+            str.querySelector('.occhio').addEventListener('click', ev => { ev.stopPropagation(); nascondi(card, chiave); });
+            ['pointerdown', 'contextmenu', 'touchstart', 'mousedown'].forEach(n => str.addEventListener(n, ev => ev.stopPropagation()));
+            return str;
+        }
+        // in Personalizza il widget si trascina e basta: il tocco non comanda e non apre (i tastini si')
+        function blocca(w) { w.addEventListener('click', ev => { if (modo && !ev.target.closest('.wv-strumenti')) { ev.stopPropagation(); ev.preventDefault(); } }, true); }
+        function nascondi(card, chiave) {
+            const w = cfg.widgetDi(card), cont = w ? w.closest('.wh-vista') : null;
+            cfg.registro.imposta(chiave, card.dataset.id, { nascosta: 1 });
+            cfg.nascondi(w, card, cont);
+            if (cont && cont.isConnected) aggiornaNascosti(cont);
+            vibra(12);
+            if (!modo && typeof hkToast === 'function') hkToast(T(cfg.frasi.nascosto));
+        }
+        function rimetti(cont, id) {
+            const chiave = cont.dataset.chiave || '';
+            cfg.registro.imposta(chiave, id, { nascosta: 0 });
+            const grid = grigliaDi(cont);
+            const card = grid ? grid.querySelector(':scope > .hk-card[data-id="' + cssId(id) + '"]') : null;
+            if (card) cfg.rimetti(cont, card);
+            if (cont.isConnected) aggiornaNascosti(cont);
+            vibra(12);
+        }
+        // la riga dei nascosti: fratello subito dopo il contenitore (la base ricrea il contenitore, non i fratelli: si toglie quella vecchia)
+        function creaRigaNascosti(cont) {
+            const par = cont.parentNode;
+            if (par) Array.from(par.children).forEach(n => { if (n !== cont && n.classList.contains('wv-nascosti')) n.remove(); });
+            cont.insertAdjacentElement('afterend', elDa('<div class="wv-nascosti"><span class="wv-nascosti-tit"><i data-lucide="eye-off"></i><span>Nascosti</span> <b data-no-tr>(0)</b></span><div class="wv-nascosti-lista"></div></div>'));
+            aggiornaNascosti(cont);
+        }
+        function aggiornaNascosti(cont) {
+            const box = rigaNascosti(cont); if (!box) return;
+            const grid = grigliaDi(cont), chiave = cont.dataset.chiave || '';
+            const nascoste = grid ? Array.from(grid.children).filter(c => c.classList && c.classList.contains('hk-card') && c.dataset.id && cfg.registro.nascosta(chiave, c.dataset.id)) : [];
+            const b = box.querySelector('.wv-nascosti-tit b'), t = '(' + nascoste.length + ')';
+            if (b.textContent !== t) b.textContent = t;
+            const lista = box.querySelector('.wv-nascosti-lista'); lista.innerHTML = '';
+            if (!nascoste.length) lista.appendChild(elDa('<span class="wv-nascosti-vuoto">' + esc(cfg.frasi.vuoto) + '</span>'));
+            nascoste.forEach(c => {
+                const d = dati(c), bt = elDa('<button type="button" class="wv-nascosto"></button>');
+                bt.title = cfg.frasi.rimetti; bt.dataset.id = c.dataset.id;
+                bt.appendChild(typeof condivisi.icona === 'function' ? condivisi.icona(c, 'cpu') : elDa('<i data-lucide="cpu"></i>'));
+                bt.appendChild(elDa('<span data-no-tr>' + esc(d.nome) + '</span>')); bt.appendChild(elDa('<i data-lucide="eye" class="rimetti"></i>'));
+                bt.addEventListener('click', ev => { ev.stopPropagation(); rimetti(cont, c.dataset.id); });
+                lista.appendChild(bt);
+            });
+            if (typeof whIcone === 'function') whIcone(box);
+        }
+        // dopo la costruzione di un contenitore: la riga dei nascosti e, in Personalizza, i trascinamenti
+        function dopoCostruzione(cont) { creaRigaNascosti(cont); if (modo) attivaOrdinatori(cont); }
+        function ripristina() {
+            const cont = contenitoreAttivo(); if (!cont) return;
+            cfg.registro.reset(cont.dataset.chiave || '');
+            const grid = grigliaDi(cont);
+            if (grid) ricostruisciGriglia(grid);
+            vibra([20, 30, 20]);
+        }
+        function distruggi() { imposta(false); document.querySelectorAll('.wv-nascosti').forEach(n => n.remove()); }
+        return { vista: cfg.vista, attiva: imposta, inModo: () => modo, strumenti, blocca, nascondi, rimetti, aggiornaNascosti, dopoCostruzione, ripristina, distruggi };
+    }
+    // le voci della vista nel menu della card (stile, nascondi, personalizza): si leggono PRIMA che il gestore del menu lo chiuda (fase di cattura)
+    const hkMenuEl = document.getElementById('hk-menu');
+    if (hkMenuEl) hkMenuEl.addEventListener('click', ev => {
+        const b = ev.target.closest('button[data-az^="wv-"]'); if (!b) return;
+        const card = window.hkMenuCard, def = attiva ? viste[attiva] : null, pers = persAttivo(); if (!card || !def || !pers) return;
+        if (b.dataset.az === 'wv-stile') { if (typeof def.cambiaStile === 'function') def.cambiaStile(card, b.dataset.stile || ''); }
+        else if (b.dataset.az === 'wv-nascondi') pers.nascondi(card, chiaveDi(card));
+        else if (b.dataset.az === 'wv-personalizza') setTimeout(() => pers.attiva(true), 0);
+    }, true);
+    // il tastino nella testata della stanza (Plancia o Cruscotto) e il rimando nelle Impostazioni
+    document.addEventListener('click', ev => {
+        const b = ev.target.closest && ev.target.closest('.wh-plancia-tasto, .wh-cruscotto-tasto, #imp-plancia-personalizza'); if (!b) return;
+        ev.preventDefault(); ev.stopPropagation();
+        const pers = persAttivo(); if (!pers) return;
+        if (b.id === 'imp-plancia-personalizza' && typeof impChiudi === 'function') { impChiudi(); setTimeout(() => pers.attiva(true), 480); }
+        else pers.attiva(true);
+    });
+    // la barra: Ripristina (con conferma nella barra stessa) e Fine
+    const barraEl = document.getElementById('wh-plancia-barra');
+    if (barraEl) barraEl.addEventListener('click', ev => {
+        const b = ev.target.closest('button[data-az]'); if (!b) return;
+        ev.stopPropagation();
+        const az = b.dataset.az, pers = persAttivo();
+        if (az === 'fine') { if (pers) pers.attiva(false); }
+        else if (az === 'ripristina') barraEl.classList.add('conferma');
+        else if (az === 'no') barraEl.classList.remove('conferma');
+        else if (az === 'si') { barraEl.classList.remove('conferma'); if (pers) pers.ripristina(); }
+    });
+    document.addEventListener('keydown', ev => { const pers = persAttivo(); if (ev.key === 'Escape' && pers && pers.inModo()) pers.attiva(false); });
+
     // ------------------------------------------------------------ Impostazioni: le tre tessere
     function disegnaTessere() {
         const box = document.getElementById('imp-vista-grande'); if (!box) return;
         const s = scelta();
         box.querySelectorAll('.imp-vista-tessera').forEach(b => b.setAttribute('aria-pressed', b.dataset.vista === s ? 'true' : 'false'));
         box.dataset.cruscotto = segnaposto('cruscotto') ? 'segnaposto' : 'pronto';
-        const bp = document.getElementById('imp-plancia-personalizza'); if (bp) bp.hidden = !(s === 'plancia' && GRANDE.matches);
+        const bp = document.getElementById('imp-plancia-personalizza'); if (bp) { bp.hidden = !((s === 'plancia' || s === 'cruscotto') && GRANDE.matches && !segnaposto(s)); bp.dataset.vista = s; }
     }
     document.addEventListener('click', e => {
         const b = e.target.closest && e.target.closest('.imp-vista-tessera'); if (!b) return;
@@ -14527,7 +14862,7 @@ function hkOsserva(card) {
 
     window.whViste = {
         registra, attiva: attivaVista, attuale: () => attiva, scelta, cambiata, annota, dati, comandi, visibili, storico: id => storico.get(id) || [],
-        plancia, riordina, grigliaDi, ricostruisciGriglia, chiediStorico, serie,
+        plancia, cruscotto, riordina, grigliaDi, ricostruisciGriglia, chiediStorico, serie,
         personalizza: si => { const d = attiva ? viste[attiva] : null; if (d && typeof d.personalizza === 'function') d.personalizza(si); },
         ricostruisci: () => { if (attiva) { const n = attiva; distruggi(); costruisci(n); } },
         aggiornaTutte: () => { contenitori.forEach((c, grid) => Array.from(grid.children).forEach(card => { if (card.dataset && card.dataset.id) aggiornaCard(card, true); })); }
@@ -14553,8 +14888,7 @@ function hkOsserva(card) {
         const mappa = new WeakMap();      // card -> widget
         const media = new Set();          // widget dei lettori (per far avanzare il tempo del brano)
         const grafici = new Set();        // widget "grafico" (l'asse dei tempi scorre: rinfrescati ogni minuto)
-        const ordinatori = new Map();     // contenitore .wh-vista -> Sortable (solo in Personalizza)
-        let ticchettio = null, contatore = 0, battiti = 0, modo = false;
+        let ticchettio = null, contatore = 0, battiti = 0;
         const COLORI = [[255, 69, 58, 'Rosso'], [255, 159, 10, 'Arancio'], [255, 214, 10, 'Giallo'], [48, 209, 88, 'Verde'], [90, 120, 255, 'Blu'], [191, 90, 242, 'Viola'], [255, 45, 149, 'Rosa']];
         const BIANCO = [255, 228, 196];
         const MODI = (typeof MODI_TERMO !== 'undefined' && MODI_TERMO) ? MODI_TERMO : {
@@ -14615,8 +14949,6 @@ function hkOsserva(card) {
             const s = plancia.stile(chiave, d.id);
             return (s && stiliOfferti(d).includes(s)) ? s : stilePredefinito(d);
         }
-        function chiaveDi(card) { const g = card.closest('.grid-hk'); return g ? (g.dataset.chiave || '') : ''; }
-        function inModo() { return modo; }
 
         function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
         function icona(card, ripiego) {
@@ -14718,17 +15050,13 @@ function hkOsserva(card) {
             // etichetta Offline / Non disponibile: prende il posto della riga di stato (mai sopra l'interruttore o il nome)
             const riga = w.querySelector(RIGA_STATO), tag = el('<span class="wv-tag" hidden></span>');
             if (riga) riga.insertAdjacentElement('afterend', tag); else w.appendChild(tag);
-            // i due tastini di Personalizza (stile, nascondi): sempre nel widget, visibili solo in quella modalita'
-            const str = el('<div class="wv-strumenti"><button type="button" class="stile" title="Cambia stile"><i data-lucide="shapes"></i></button><button type="button" class="occhio" title="Nascondi dalla plancia"><i data-lucide="eye-off"></i></button></div>');
-            str.querySelector('.stile').addEventListener('click', ev => { ev.stopPropagation(); const r = ev.currentTarget.getBoundingClientRect(); comandi.menu(card, r.left, r.bottom + 4, { soloStili: true }); });
-            str.querySelector('.occhio').addEventListener('click', ev => { ev.stopPropagation(); nascondi(card, chiave); });
-            ['pointerdown', 'contextmenu', 'touchstart', 'mousedown'].forEach(n => str.addEventListener(n, ev => ev.stopPropagation()));
-            w.appendChild(str);
+            // i due tastini di Personalizza (stile, nascondi), dal motore comune: sempre nel widget, visibili solo in quella modalita'
+            w.appendChild(pers.strumenti(card, chiave)); pers.blocca(w);
             // menu della card (tasto destro / pressione lunga): Sposta le card, Stile, Nascondi, Personalizza plancia
-            w.addEventListener('contextmenu', ev => { ev.preventDefault(); comandi.menu(card, ev.clientX, ev.clientY, { soloStili: modo }); });
+            w.addEventListener('contextmenu', ev => { ev.preventDefault(); comandi.menu(card, ev.clientX, ev.clientY, { soloStili: pers.inModo() }); });
             let lp = null;
             w.addEventListener('pointerdown', ev => {
-                if (modo || ev.pointerType === 'mouse' || ev.target.closest('button, .wv-dim, .wv-vol, .wv-tog, .wv-dot')) return;
+                if (pers.inModo() || ev.pointerType === 'mouse' || ev.target.closest('button, .wv-dim, .wv-vol, .wv-tog, .wv-dot')) return;
                 lp = { x: ev.clientX, y: ev.clientY, t: setTimeout(() => { lp = null; if (navigator.vibrate) navigator.vibrate(30); window.hkSopprimiClickFino = Date.now() + 600; comandi.menu(card, ev.clientX, ev.clientY); }, 520) };
             }, { passive: true });
             w.addEventListener('pointermove', ev => { if (lp && (Math.abs(ev.clientX - lp.x) > 10 || Math.abs(ev.clientY - lp.y) > 10)) { clearTimeout(lp.t); lp = null; } }, { passive: true });
@@ -15291,7 +15619,7 @@ function hkOsserva(card) {
             const s = d.sensore, val = w.querySelector('.wv-stat-val'), sub = w.querySelector('.wv-stat-sub');
             const svg = w.querySelector('.wv-graf > svg'), punto = w.querySelector('.wv-graf-punto'), vuoto = w.querySelector('.wv-graf-vuoto');
             const mm = w.querySelector('.minmax'), fin = w.querySelector('.finestra');
-            grafici.add(w);
+            if (w.classList.contains('wv')) grafici.add(w);        // (le tessere "grafico" del Cruscotto passano di qui: hanno il loro rinfresco)
             sub.classList.remove('su', 'giu');
             const ora = Date.now(), punti = serie(d.id);
             if (d.nonDisponibile) {
@@ -15378,72 +15706,21 @@ function hkOsserva(card) {
             if (++battiti % 60 === 0) grafici.forEach(x => { if (x.isConnected && x._card) aggiornaWidget(x, x._card); else grafici.delete(x); });
         }
 
-        // ---------- PERSONALIZZA PLANCIA: stile e nascondi dal menu, trascinamento, riga dei nascosti, barra con Ripristina e Fine
-        function contenitoriPlancia() { return Array.from(document.querySelectorAll('.wh-vista[data-vista="plancia"]')); }
-        // la riga dei nascosti sta FUORI dalla griglia (fratello subito dopo il contenitore): dentro occuperebbe una traccia intera anche vuota
-        function rigaNascosti(cont) { const n = cont ? cont.nextElementSibling : null; return (n && n.classList.contains('wv-nascosti')) ? n : null; }
-        function pulisciRigheOrfane() { document.querySelectorAll('.wv-nascosti').forEach(n => { const p = n.previousElementSibling; if (!p || !p.matches('.wh-vista[data-vista="plancia"]') || !p.isConnected) n.remove(); }); }
-        function contenitoreAttivo() { return document.querySelector('.room-section.active .sub-room-content.active > .wh-vista[data-vista="plancia"]') || document.querySelector('.room-section.active .wh-vista[data-vista="plancia"]'); }
-        function cssId(id) { return (window.CSS && CSS.escape) ? CSS.escape(id) : String(id).replace(/["\\]/g, '\\$&'); }
-        function personalizza(si) {
-            si = si !== false;
-            if (si === modo) return;
-            if (si && !window.whViste.attuale()) return;                 // solo con la Plancia attiva (schermo grande)
-            if (si && document.body.classList.contains('modifica') && typeof esciModifica === 'function') esciModifica();
-            modo = si;
-            document.body.classList.toggle('wh-personalizza', si);
-            if (typeof hkChiudiMenu === 'function') hkChiudiMenu();
-            const barra = document.getElementById('wh-plancia-barra'); if (barra) barra.classList.remove('conferma', 'ok');
-            if (si) { if (navigator.vibrate) navigator.vibrate([30, 40, 30]); pulisciRigheOrfane(); contenitoriPlancia().forEach(attivaOrdinatore); }
-            else { ordinatori.forEach(s => { try { s.destroy(); } catch (e) {} }); ordinatori.clear(); }
-            try { window.dispatchEvent(new Event('resize')); } catch (e) {}
-        }
-        function attivaOrdinatore(cont) {
-            if (!window.Sortable || !cont.isConnected) return;
-            ordinatori.forEach((s, c) => { if (!c.isConnected) { try { s.destroy(); } catch (e) {} ordinatori.delete(c); } });
-            if (ordinatori.has(cont)) return;
-            // forceFallback: stessi gesti col mouse e col dito (niente drag nativo del browser), come le card sul telefono
-            const s = Sortable.create(cont, {
-                draggable: '.wv', filter: '.wv-strumenti', preventOnFilter: false,
-                animation: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', delay: 130, delayOnTouchOnly: true, touchStartThreshold: 6,
-                forceFallback: true, fallbackTolerance: 4, fallbackClass: 'sortable-fallback',
-                ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', dragClass: 'sortable-drag',
-                onEnd: () => riordinato(cont)
-            });
-            ordinatori.set(cont, s);
-        }
-        // trascinamento finito: le card della griglia prendono lo stesso ordine e si salva come "Sposta le card"
-        function riordinato(cont) {
-            const grid = window.whViste.grigliaDi(cont); if (!grid) return;
-            const ids = Array.from(cont.querySelectorAll(':scope > .wv')).map(x => x.dataset.id);
-            if (window.whViste.riordina(grid, ids)) {
-                const barra = document.getElementById('wh-plancia-barra');
-                if (barra) { barra.classList.add('ok'); clearTimeout(barra._t); barra._t = setTimeout(() => barra.classList.remove('ok'), 1500); }
-            }
-        }
+        // ---------- PERSONALIZZA PLANCIA: il motore comune (base) con le parti della Plancia; qui restano lo stile (il widget si
+        // rifa' sul posto) e il rientro di un widget nascosto (al posto della sua card)
+        const pers = creaPersonalizza({
+            vista: 'plancia', registro: plancia, trascinabile: '.wv', liste: cont => [cont],
+            widgetDi: card => mappa.get(card),
+            nascondi(w) { if (w) { media.delete(w); grafici.delete(w); w.remove(); } },
+            rimetti(cont, card) { inserisci(cont, card); },
+            frasi: { nascondi: 'Nascondi dalla plancia', nascosto: 'Widget nascosto dalla plancia: lo ritrovi con «Personalizza plancia»', vuoto: 'Nessun widget nascosto', rimetti: 'Rimetti nella plancia' }
+        });
         function cambiaStile(card, stile) {
             const chiave = chiaveDi(card), w = mappa.get(card), d = dati(card);
             if (!stiliOfferti(d).includes(stile)) return;
             plancia.imposta(chiave, card.dataset.id, { stile });
-            if (navigator.vibrate) navigator.vibrate(12);
+            vibra(12);
             if (w && w.isConnected) aggiornaWidget(rifai(w, card), card);
-        }
-        function nascondi(card, chiave) {
-            const w = mappa.get(card), cont = w ? w.closest('.wh-vista') : null;
-            plancia.imposta(chiave, card.dataset.id, { nascosta: 1 });
-            if (w) { media.delete(w); grafici.delete(w); w.remove(); }
-            if (cont) aggiornaNascosti(cont);
-            if (navigator.vibrate) navigator.vibrate(12);
-            if (!modo && typeof hkToast === 'function') hkToast(T('Widget nascosto dalla plancia: lo ritrovi con «Personalizza plancia»'));
-        }
-        function rimetti(cont, id) {
-            const chiave = cont.dataset.chiave || '';
-            plancia.imposta(chiave, id, { nascosta: 0 });
-            const grid = window.whViste.grigliaDi(cont);
-            const card = grid ? grid.querySelector(':scope > .hk-card[data-id="' + cssId(id) + '"]') : null;
-            if (card) inserisci(cont, card);
-            aggiornaNascosti(cont);
-            if (navigator.vibrate) navigator.vibrate(12);
         }
         // un widget che torna: al posto che ha la sua card (prima del widget della card visibile che segue)
         function inserisci(cont, card) {
@@ -15457,74 +15734,17 @@ function hkOsserva(card) {
             aggiornaWidget(w, card);
             if (typeof whIcone === 'function') whIcone(w);
         }
-        function aggiornaNascosti(cont) {
-            const box = rigaNascosti(cont); if (!box) return;
-            const grid = window.whViste.grigliaDi(cont), chiave = cont.dataset.chiave || '';
-            const nascoste = grid ? Array.from(grid.children).filter(c => c.classList && c.classList.contains('hk-card') && c.dataset.id && plancia.nascosta(chiave, c.dataset.id)) : [];
-            scriviTesto(box.querySelector('.wv-nascosti-tit b'), '(' + nascoste.length + ')');
-            const lista = box.querySelector('.wv-nascosti-lista'); lista.innerHTML = '';
-            if (!nascoste.length) lista.appendChild(el('<span class="wv-nascosti-vuoto">Nessun widget nascosto</span>'));
-            nascoste.forEach(c => {
-                const d = dati(c), b = el('<button type="button" class="wv-nascosto" title="Rimetti nella plancia"></button>');
-                b.dataset.id = c.dataset.id;
-                b.appendChild(icona(c, 'cpu')); b.appendChild(el('<span data-no-tr>' + esc(d.nome) + '</span>')); b.appendChild(el('<i data-lucide="eye" class="rimetti"></i>'));
-                b.addEventListener('click', ev => { ev.stopPropagation(); rimetti(cont, c.dataset.id); });
-                lista.appendChild(b);
-            });
-            if (typeof whIcone === 'function') whIcone(box);
-        }
-        function ripristina() {
-            const cont = contenitoreAttivo(); if (!cont) return;
-            plancia.reset(cont.dataset.chiave || '');
-            const grid = window.whViste.grigliaDi(cont);
-            if (grid) window.whViste.ricostruisciGriglia(grid);
-            if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
-        }
-        // anteprima piccola nel menu: una griglia 4x2 con le celle che il widget occupa
-        function anteprima(m) {
-            let h = '<i class="wv-ant">';
-            for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) h += '<b' + (c < m[0] && r < m[1] ? ' class="on"' : '') + '></b>';
-            return h + '</i>';
-        }
         // il menu della card aperto da un widget: la sezione Stile (scelte del tipo, con l'attuale segnato)
         function menu(card, m) {
             const box = m.querySelector('#hk-menu-stili'); if (!box) return;
             const d = dati(card), g = genere(d), attuale = stileEffettivo(d, chiaveDi(card));
+            box.classList.remove('in-rapidi');
             box.innerHTML = stiliOfferti(d).map(s => '<button type="button" role="menuitemradio" data-az="wv-stile" data-stile="' + s + '" aria-checked="' + (s === attuale ? 'true' : 'false') + '"' + (s === attuale ? ' class="attivo"' : '') + '>' +
-                anteprima(STILI[g][s]) + '<span class="et">' + esc(ETICHETTE[s]) + '</span><span class="mis" data-no-tr>' + STILI[g][s][0] + '×' + STILI[g][s][1] + '</span>' +
-                '<svg class="spunta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>').join('');
+                anteprima(STILI[g][s]) + '<span class="et">' + esc(ETICHETTE[s]) + '</span><span class="mis" data-no-tr>' + STILI[g][s][0] + '×' + STILI[g][s][1] + '</span>' + SPUNTA + '</button>').join('');
         }
-        // le voci della Plancia nel menu della card: si leggono PRIMA che il gestore del menu lo chiuda (fase di cattura)
-        const hkMenuEl = document.getElementById('hk-menu');
-        if (hkMenuEl) hkMenuEl.addEventListener('click', ev => {
-            const b = ev.target.closest('button[data-az^="wv-"]'); if (!b) return;
-            const card = window.hkMenuCard; if (!card) return;
-            if (b.dataset.az === 'wv-stile') cambiaStile(card, b.dataset.stile || '');
-            else if (b.dataset.az === 'wv-nascondi') nascondi(card, chiaveDi(card));
-            else if (b.dataset.az === 'wv-personalizza') setTimeout(() => personalizza(true), 0);
-        }, true);
-        // il tastino nella testata della stanza e il rimando nelle Impostazioni
-        document.addEventListener('click', ev => {
-            const b = ev.target.closest && ev.target.closest('.wh-plancia-tasto, #imp-plancia-personalizza'); if (!b) return;
-            ev.preventDefault(); ev.stopPropagation();
-            if (b.id === 'imp-plancia-personalizza' && typeof impChiudi === 'function') { impChiudi(); setTimeout(() => personalizza(true), 480); }
-            else personalizza(true);
-        });
-        // la barra: Ripristina (con conferma nella barra stessa) e Fine
-        const barraEl = document.getElementById('wh-plancia-barra');
-        if (barraEl) barraEl.addEventListener('click', ev => {
-            const b = ev.target.closest('button[data-az]'); if (!b) return;
-            ev.stopPropagation();
-            const az = b.dataset.az;
-            if (az === 'fine') personalizza(false);
-            else if (az === 'ripristina') barraEl.classList.add('conferma');
-            else if (az === 'no') barraEl.classList.remove('conferma');
-            else if (az === 'si') { barraEl.classList.remove('conferma'); ripristina(); }
-        });
-        document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && modo) personalizza(false); });
 
         // helper a disposizione delle altre viste (Cruscotto)
-        Object.assign(condivisi, { el, icona, cursore, nomeColore, eBianco, conInterruttore, fmtTempo, sparkline, frazioneSensore, COLORI, BIANCO, MODI, MODI_CLASSICI, BINARI, COLORE_SENSORE });
+        Object.assign(condivisi, { el, icona, cursore, nomeColore, eBianco, conInterruttore, fmtTempo, sparkline, frazioneSensore, aggiornaStat, tendenza, valoreHtml, ultimoCambio, COLORI, BIANCO, MODI, MODI_CLASSICI, BINARI, COLORE_SENSORE });
 
         window.whViste.registra('plancia', {
             etichetta: 'Plancia',
@@ -15536,13 +15756,8 @@ function hkOsserva(card) {
                     const w = crea(card, chiave); mappa.set(card, w); frag.appendChild(w); aggiornaWidget(w, card);
                 });
                 contenitore.appendChild(frag);
-                // la riga dei nascosti: fratello subito dopo la griglia (la base ricrea il contenitore, non i fratelli: si toglie quella vecchia)
-                const par = contenitore.parentNode;
-                if (par) Array.from(par.children).forEach(n => { if (n !== contenitore && n.classList.contains('wv-nascosti')) n.remove(); });
-                contenitore.insertAdjacentElement('afterend', el('<div class="wv-nascosti"><span class="wv-nascosti-tit"><i data-lucide="eye-off"></i><span>Nascosti</span> <b data-no-tr>(0)</b></span><div class="wv-nascosti-lista"></div></div>'));
-                aggiornaNascosti(contenitore);
                 if (typeof whIcone === 'function') whIcone(contenitore);
-                if (modo) attivaOrdinatore(contenitore);
+                pers.dopoCostruzione(contenitore);         // la riga dei nascosti (fratello dopo la griglia) e, in Personalizza, il trascinamento
                 if (!ticchettio) ticchettio = setInterval(batti, 1000);
             },
             aggiorna(id, card) {
@@ -15550,8 +15765,8 @@ function hkOsserva(card) {
                 if (!w || !w.isConnected) return;
                 aggiornaWidget(w, card);
             },
-            menu, personalizza, inPersonalizza: () => modo, stili: { STILI, ETICHETTE, offerti: card => stiliOfferti(dati(card)), effettivo: card => stileEffettivo(dati(card), chiaveDi(card)) },
-            distruggi() { personalizza(false); media.clear(); grafici.clear(); if (ticchettio) { clearInterval(ticchettio); ticchettio = null; } document.querySelectorAll('.wv-nascosti').forEach(n => n.remove()); }
+            menu, cambiaStile, pers, personalizza: pers.attiva, inPersonalizza: pers.inModo, stili: { STILI, ETICHETTE, offerti: card => stiliOfferti(dati(card)), effettivo: card => stileEffettivo(dati(card), chiaveDi(card)) },
+            distruggi() { pers.distruggi(); media.clear(); grafici.clear(); if (ticchettio) { clearInterval(ticchettio); ticchettio = null; } }
         });
     })();
 
@@ -15565,12 +15780,25 @@ function hkOsserva(card) {
        multimediale (7 colonne) e la telecamera larga (5). Quando in una stanza mancano dei tipi i
        pannelli si allargano (classi .cr-sN: niente riquadri vuoti). Dentro ogni pannello l'ordine e'
        quello delle card. Ogni widget legge SOLO dalla card (dati(card)) e comanda con whViste.comandi.
+       PERSONALIZZA CRUSCOTTO (01/10/2026, come la Plancia: motore comune creaPersonalizza nella base):
+       per ogni entita' lo STILE (classe .st-<stile>), la posizione (trascinando DENTRO il suo pannello:
+       l'ordine e' quello delle card, salvato come "Sposta le card") e se NASCONDERLA dal cruscotto
+       (resta nelle card e nella Plancia). Stili (il primo e' il predefinito, com'era prima; la luce
+       senza scelta segue la sua natura):
+         luce: cursore | interruttore | colori (solo luci a colori)     presa/scena/generico: normale | compatta (meta' riga)
+         sensore: arco | stat | grafico (due colonne) | compatto, in 'Ambiente' (predefinito) oppure nei 'Comandi rapidi'
+                  come riga col valore a destra (stile salvato '<stile>_rapidi')
+         tapparella: cursore | compatta (solo tasti, due per riga)     termostato: anello (con grafico) | solo_anello | compatto (riga)
+         lettore: larga | compatta (meta' riga)                         telecamera: larga | piccola
+       Senza il grafico del termostato il pannello del clima si stringe (.cr-stretta); lettori e telecamere
+       in basso si impaginano a righe da 12 colonne (impagina). Le scelte stanno in whViste.cruscotto.
+       Le larghezze dei pannelli le decide lo script anche sotto i 1140 px (prima erano regole CSS).
        ================================================================= */
     (function () {
-        const K = condivisi;                    // helper della Plancia: el, icona, cursore, nomeColore, MODI, BINARI...
+        const K = condivisi;                    // helper della Plancia: el, icona, cursore, nomeColore, MODI, BINARI, aggiornaStat...
         const mappa = new WeakMap();            // card -> widget (riga, termostato, tapparella, tessera, lettore, telecamera)
         const media = new Set();                // barre multimediali (avanzamento del brano)
-        const lenti = new Set();                // termostati e tessere: asse dei tempi e "agg." rinfrescati ogni minuto
+        const lenti = new Set();                // termostati col grafico e tessere: asse dei tempi e "agg." rinfrescati ogni minuto
         let ticchettio = null, battiti = 0, contatore = 0;
         const LOCALE = INGLESE ? 'en-GB' : 'it-IT';
         const ORA = t => new Date(t).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
@@ -15583,6 +15811,52 @@ function hkOsserva(card) {
         function scriviH(elx, h) { if (elx && elx._h !== h) { elx._h = h; elx.innerHTML = h; } }
         function svgEl(n, a) { const e = document.createElementNS('http://www.w3.org/2000/svg', n); for (const k in a) e.setAttribute(k, a[k]); return e; }
         function polare(cx, cy, r, gradi) { const a = gradi * Math.PI / 180; return [(cx + r * Math.cos(a)).toFixed(1), (cy + r * Math.sin(a)).toFixed(1)]; }
+
+        // ---------- gli stili di ogni genere: nome -> anteprima [colonne, righe] su 4x2 per il menu; il primo e' il predefinito
+        const STILI = {
+            luce: { cursore: [4, 2], interruttore: [4, 1], colori: [4, 2] },
+            riga: { normale: [4, 1], compatta: [2, 1] },
+            sens: { arco: [2, 2], stat: [2, 2], grafico: [4, 2], compatto: [2, 1] },
+            tapp: { cursore: [4, 2], compatta: [2, 1] },
+            termo: { anello: [4, 2], solo_anello: [2, 2], compatto: [4, 1] },
+            media: { larga: [4, 2], compatta: [2, 1] },
+            cam: { larga: [4, 2], piccola: [2, 2] }
+        };
+        // etichette nel menu (frasi intere: i18n le traduce); accanto, quando serve, la misura
+        const ETICHETTE = { cursore: 'Cursore', interruttore: 'Interruttore', colori: 'Colori', normale: 'Normale', compatta: 'Compatta', arco: 'Arco', stat: 'Valore e andamento', grafico: 'Grafico', compatto: 'Compatto', anello: 'Anello e grafico', solo_anello: 'Solo anello', larga: 'Larga', piccola: 'Piccola' };
+        const MISURE = { riga: { compatta: '½' }, tapp: { compatta: '½' }, media: { compatta: '½' }, cam: { piccola: '½' }, sens: { grafico: '×2' } };
+        function genere(d) {
+            switch (d.tipo) {
+                case 'light': return 'luce';
+                case 'cover': return 'tapp';
+                case 'climate': return 'termo';
+                case 'media_player': return 'media';
+                case 'camera': return 'cam';
+                case 'sensor': return 'sens';
+                default: return 'riga';
+            }
+        }
+        function stiliOfferti(d) {
+            const g = genere(d);
+            let l = Object.keys(STILI[g]);
+            if (g === 'luce') {
+                if (!d.luce.colori) l = l.filter(s => s !== 'colori');       // senza colori la fila dei colori non ha senso
+                if (!d.luce.dimmer) l = l.filter(s => s !== 'cursore');      // solo on/off: niente cursore
+            }
+            return l;
+        }
+        function stilePredefinito(d) {
+            if (d.tipo === 'light') return d.luce.dimmer ? 'cursore' : 'interruttore';   // com'era: segue la natura della luce
+            return Object.keys(STILI[genere(d)])[0];
+        }
+        // il sensore porta anche il pannello: '<stile>' (Ambiente) oppure '<stile>_rapidi' (Comandi rapidi)
+        function spezza(s) { const m = /^(.*?)(_rapidi)?$/.exec(String(s || '')); return { stile: m[1], rapidi: !!m[2] }; }
+        function codifica(sc) { return sc.stile + (sc.rapidi ? '_rapidi' : ''); }
+        function scelta(d, chiave) {                 // -> { stile, rapidi } effettivi (lo stile salvato vale solo se offerto)
+            const salvato = spezza(cruscotto.stile(chiave, d.id));
+            const stile = (salvato.stile && stiliOfferti(d).includes(salvato.stile)) ? salvato.stile : stilePredefinito(d);
+            return { stile, rapidi: genere(d) === 'sens' && salvato.rapidi };
+        }
 
         // ---------- che cos'e' ogni card e in quale pannello va
         function forma(d) {
@@ -15598,60 +15872,111 @@ function hkOsserva(card) {
                 default: return 'gen:' + (K.conInterruttore(d) ? 'tog' : 'apri');
             }
         }
-        function pannelloDi(f) {
+        function pannelloDi(f, sc) {
             if (f === 'termo' || f === 'tapp') return 'clima';
-            if (f.startsWith('sens')) return 'ambiente';
+            if (f.startsWith('sens')) return (sc && sc.rapidi) ? 'comandi' : 'ambiente';
             if (f === 'media' || f === 'cam') return 'fondo';
             return 'comandi';
         }
 
         // ---------- costruzione della stanza
-        function costruisci(cont, cards) {
-            const g = { comandi: [], clima: [], ambiente: [], fondo: [] };
-            cards.forEach(card => g[pannelloDi(forma(dati(card)))].push(card));
+        const STRETTO = window.matchMedia('(max-width: 1139px)');     // 1024: Ambiente su una riga sua, come nel mockup
+        // larghezze [comandi, clima, ambiente] (0 = pannello assente): 4 + 5 + 3 come nel mockup quando ci sono tutti e tre,
+        // altrimenti lo spazio si ridistribuisce; col clima stretto (termostato senza grafico) 5 + 4 + 3
+        function larghezze(haC, haK, haA, stretta) {
+            const s = STRETTO.matches;
+            if (haC && haK && haA) return s ? [5, 7, 12] : (stretta ? [5, 4, 3] : [4, 5, 3]);
+            if (haC && haK) return stretta ? [7, 5, 0] : [5, 7, 0];
+            if (haC && haA) return s ? [12, 0, 12] : [7, 0, 5];
+            if (haK && haA) return s ? [0, 12, 12] : (stretta ? [0, 5, 7] : [0, 8, 4]);
+            return [haC ? 12 : 0, haK ? 12 : 0, haA ? 12 : 0];
+        }
+        // ---------- colonne delle liste nei pannelli larghi (cr-larga): tante COPPIE di colonne quante erano le colonne da 240 px
+        // (tapparelle 280, 260 su iPad) di prima, cosi' il numero e' sempre pari: righe normali e tapparelle col cursore ne
+        // prendono due (= una colonna di prima), le compatte una, e nessuna colonna resta vuota. Si misura alla costruzione e
+        // quando cambia la larghezza (ResizeObserver sulla testata del pannello: e' larga quanto la lista ma non ne segue
+        // l'altezza, cosi' si applica subito senza il "loop" dell'osservatore). Se una mezza riga sarebbe stretta la lista e'
+        // "fitta" (.cr-fitta; .cr-fitta2 per Personalizza): le compatte prendono una coppia e la fila dei colori si stringe
+        const IPAD = window.matchMedia('(max-width: 1359px)');
+        function misuraLista(lista) {
+            const larghezza = lista.getBoundingClientRect().width;
+            if (!larghezza) return;                                           // stanza non visibile: si misura quando appare
+            const tapp = lista.classList.contains('cr-tapp'), larga = !!lista.closest('.cr-panel.cr-larga');
+            const min = tapp ? (IPAD.matches ? 260 : 280) : 240, gap = tapp ? (IPAD.matches ? 8 : 10) : 6;
+            const colonne = larga ? 2 * Math.max(1, Math.floor((larghezza + gap) / (min + gap))) : 2;
+            const mezza = (larghezza - gap * (colonne - 1)) / colonne;
+            if (lista.style.getPropertyValue('--cr-col') !== String(colonne)) lista.style.setProperty('--cr-col', String(colonne));
+            lista.classList.toggle('cr-fitta', mezza < (tapp ? 130 : 147));
+            lista.classList.toggle('cr-fitta2', mezza < (tapp ? 150 : 177));
+        }
+        function misuraPannello(p) { p.querySelectorAll('.cr-list, .cr-tapp').forEach(misuraLista); }
+        const RO = window.ResizeObserver ? new ResizeObserver(voci => voci.forEach(v => { const p = v.target.closest('.cr-panel'); if (p && p.isConnected) misuraPannello(p); else RO.unobserve(v.target); })) : null;
+        function osservaPannello(p) { if (RO) RO.observe(p.querySelector('.cr-head')); }
+        function rimisura() { document.querySelectorAll('.wh-vista[data-vista="cruscotto"] > .cr-panel').forEach(misuraPannello); }
+        // lettori e telecamere in basso: righe da 12 colonne nell'ordine delle card. Larghezza naturale (lettore 7 / compatto 6,
+        // telecamera 5 / piccola 4), da soli 12 / 6 / 6 / 4; lo spazio che avanza va al lettore largo, poi alle telecamere
+        // larghe (una colonna a testa: due telecamere = 6 + 6), poi al lettore compatto
+        const NAT = { 'media:larga': 7, 'media:compatta': 6, 'cam:larga': 5, 'cam:piccola': 4 }, SOLO = { 'media:larga': 12, 'media:compatta': 6, 'cam:larga': 6, 'cam:piccola': 4 };
+        function impagina(cards, scelte) {
+            const righe = [], out = [];
+            let riga = [], somma = 0;
+            cards.forEach(card => {
+                const g = genere(dati(card)), k = g + ':' + scelte.get(card).stile, n = NAT[k] || 6;
+                if (riga.length && somma + n > 12) { righe.push(riga); riga = []; somma = 0; }
+                riga.push({ card, g, k, n }); somma += n;
+            });
+            if (riga.length) righe.push(riga);
+            righe.forEach(r => {
+                if (r.length === 1) { out.push([r[0].card, r[0].g, SOLO[r[0].k] || 12]); return; }
+                let resto = 12 - r.reduce((s, x) => s + x.n, 0);
+                const ml = r.find(x => x.k === 'media:larga');
+                if (ml) { ml.n += resto; resto = 0; }
+                const cl = r.filter(x => x.k === 'cam:larga');
+                for (let i = 0; resto > 0 && cl.length; i++) { cl[i % cl.length].n++; resto--; }
+                const mc = r.find(x => x.k === 'media:compatta');
+                if (resto > 0 && mc) { mc.n += resto; resto = 0; }
+                r.forEach(x => out.push([x.card, x.g, x.n]));
+            });
+            return out;
+        }
+        function costruisci(cont, cards, chiave) {
+            const g = { comandi: [], clima: [], ambiente: [], fondo: [] }, scelte = new Map();
+            cards.forEach(card => {
+                if (cruscotto.nascosta(chiave, card.dataset.id)) return;        // nascosta dal cruscotto (resta nelle card e nella Plancia)
+                const d = dati(card), sc = scelta(d, chiave);
+                scelte.set(card, sc);
+                g[pannelloDi(forma(d), sc)].push(card);
+            });
             const haC = g.comandi.length > 0, haK = g.clima.length > 0, haA = g.ambiente.length > 0;
-            // larghezze: 4 + 5 + 3 come nel mockup quando ci sono tutti e tre; altrimenti lo spazio si ridistribuisce
-            let sC = 4, sK = 5, sA = 3;
-            if (haC && haK && !haA) { sC = 5; sK = 7; }
-            else if (haC && !haK && haA) { sC = 7; sA = 5; }
-            else if (!haC && haK && haA) { sK = 8; sA = 4; }
-            else if (haC && !haK && !haA) sC = 12;
-            else if (!haC && haK && !haA) sK = 12;
-            else if (!haC && !haK && haA) sA = 12;
+            const termo = g.clima.filter(c => dati(c).tipo === 'climate');
+            const stretta = termo.length > 0 && !termo.some(c => scelte.get(c).stile === 'anello');   // nessun termostato col grafico: il clima si stringe
+            const L = larghezze(haC, haK, haA, stretta);
             const frag = document.createDocumentFragment();
-            if (haC) frag.appendChild(creaComandi(g.comandi, sC));
-            if (haK) frag.appendChild(creaClima(g.clima, sK));
-            if (haA) frag.appendChild(creaAmbiente(g.ambiente, sA));
-            // in basso: lettore 7 + telecamera 5 quando si seguono (nell'ordine delle card); da soli: lettore 12, telecamera 6
-            const f = g.fondo;
-            for (let i = 0; i < f.length; i++) {
-                const tipo = forma(dati(f[i]));
-                const prossimo = i + 1 < f.length ? forma(dati(f[i + 1])) : '';
-                if (prossimo && prossimo !== tipo) {
-                    frag.appendChild(creaFondo(f[i], tipo, tipo === 'media' ? 7 : 5));
-                    frag.appendChild(creaFondo(f[i + 1], prossimo, prossimo === 'media' ? 7 : 5));
-                    i++;
-                } else frag.appendChild(creaFondo(f[i], tipo, tipo === 'media' ? 12 : 6));
-            }
+            if (haC) frag.appendChild(creaComandi(g.comandi, L[0], scelte, chiave));
+            if (haK) frag.appendChild(creaClima(g.clima, L[1], scelte, stretta, chiave));
+            if (haA) frag.appendChild(creaAmbiente(g.ambiente, L[2], scelte, chiave));
+            impagina(g.fondo, scelte).forEach(x => frag.appendChild(x[1] === 'media' ? creaMedia(x[0], x[2], scelte.get(x[0]), chiave) : creaTelecamera(x[0], x[2], scelte.get(x[0]), chiave)));
             cont.appendChild(frag);
-            cont.querySelectorAll(':scope > .cr-panel').forEach(p => aggiornaPannello(p));
+            cont.querySelectorAll(':scope > .cr-panel').forEach(p => { misuraPannello(p); aggiornaPannello(p); });   // colonne delle liste prima del disegno
             if (typeof whIcone === 'function') whIcone(cont);
         }
-        function creaFondo(card, tipo, span) { return tipo === 'media' ? creaMedia(card, span) : creaTelecamera(card, span); }
         function creaPannello(genere, span, icona, titolo, cards) {
             const p = el('<section class="cr-panel cr-' + genere + ' cr-s' + span + (span >= 7 ? ' cr-larga' : '') + '"><div class="cr-head"><div class="cr-head-l"><i data-lucide="' + icona + '"></i><div class="cr-title"></div></div><div class="cr-meta"></div></div></section>');
             scriviT(p.querySelector('.cr-title'), titolo);
             p._genere = genere; p._cards = cards;
             return p;
         }
-        // chiusura comune di ogni widget: legame con la card, etichetta offline, menu della card (tasto destro / pressione lunga)
-        function fine(w, card, f) {
-            w._card = card; w.dataset.id = card.dataset.id || ''; w.dataset.forma = f;
+        // chiusura comune di ogni widget: legame con la card, stile, etichetta offline, tastini di Personalizza,
+        // menu della card (tasto destro / pressione lunga)
+        function fine(w, card, f, sc, chiave) {
+            w._card = card; w._chiave = chiave; w.dataset.id = card.dataset.id || ''; w.dataset.forma = f; w.dataset.stile = codifica(sc);
+            w.classList.add('cr-w', 'st-' + sc.stile); if (sc.rapidi) w.classList.add('st-rapidi');
             w.appendChild(el('<span class="cr-tag" hidden></span>'));
-            w.addEventListener('contextmenu', ev => { ev.preventDefault(); comandi.menu(card, ev.clientX, ev.clientY); });
+            w.appendChild(pers.strumenti(card, chiave)); pers.blocca(w);
+            w.addEventListener('contextmenu', ev => { ev.preventDefault(); comandi.menu(card, ev.clientX, ev.clientY, { soloStili: pers.inModo() }); });
             let lp = null;
             w.addEventListener('pointerdown', ev => {
-                if (ev.pointerType === 'mouse' || ev.target.closest('button, .cr-slider, .cr-sw')) return;
+                if (pers.inModo() || ev.pointerType === 'mouse' || ev.target.closest('button, .cr-slider, .cr-sw')) return;
                 lp = { x: ev.clientX, y: ev.clientY, t: setTimeout(() => { lp = null; if (navigator.vibrate) navigator.vibrate(30); window.hkSopprimiClickFino = Date.now() + 600; comandi.menu(card, ev.clientX, ev.clientY); }, 520) };
             }, { passive: true });
             w.addEventListener('pointermove', ev => { if (lp && (Math.abs(ev.clientX - lp.x) > 10 || Math.abs(ev.clientY - lp.y) > 10)) { clearTimeout(lp.t); lp = null; } }, { passive: true });
@@ -15665,18 +15990,20 @@ function hkOsserva(card) {
             w.classList.toggle('offline', !!t);
             if (t) { scriviT(tag, t); tag.hidden = false; } else tag.hidden = true;
         }
+        function classeSensore(s) { return s.classe || (s.unita === '°C' || s.unita === '°F' ? 'temperature' : (s.unita === '%' ? 'humidity' : (s.unita === 'W' || s.unita === 'kW' ? 'power' : ''))); }
 
-        // ---------- COMANDI RAPIDI: una riga per luce, presa, scena o dispositivo generico
-        function creaComandi(cards, span) {
+        // ---------- COMANDI RAPIDI: una riga per luce, presa, scena o dispositivo generico (e per i sensori spostati qui)
+        function creaComandi(cards, span, scelte, chiave) {
             const p = creaPannello('comandi', span, 'sliders-horizontal', 'Comandi rapidi', cards);
             const lista = el('<div class="cr-list"></div>');
-            cards.forEach(card => lista.appendChild(creaRiga(card)));
+            cards.forEach(card => lista.appendChild(dati(card).tipo === 'sensor' ? creaRigaSensore(card, scelte.get(card), chiave) : creaRiga(card, scelte.get(card), chiave)));
             p.appendChild(lista);
+            osservaPannello(p);
             return p;
         }
-        function creaRiga(card) {
-            const d = dati(card), f = forma(d);
-            const luce = f.startsWith('luce'), dim = f === 'luce:dim' || f === 'luce:rgb';
+        function creaRiga(card, sc, chiave) {
+            const d = dati(card), f = forma(d), st = sc.stile;
+            const luce = f.startsWith('luce'), dim = luce && st !== 'interruttore' && f !== 'luce:onoff', colori = luce && st === 'colori';
             const w = el('<div class="cr-row' + (dim ? ' dim' : '') + '"><div class="cr-ico"></div><div class="cr-txt"><div class="cr-name" data-no-tr></div><div class="cr-sub"></div></div></div>');
             w.querySelector('.cr-ico').appendChild(K.icona(card, luce ? 'lightbulb' : (f === 'presa' ? 'plug-zap' : (f === 'scena' ? 'clapperboard' : 'cpu'))));
             if (f === 'presa') w.appendChild(el('<div class="cr-pot" data-no-tr hidden></div>'));
@@ -15689,7 +16016,8 @@ function hkOsserva(card) {
                 b.addEventListener('click', ev => { ev.stopPropagation(); if (navigator.vibrate) navigator.vibrate(20); comandi.toggle(card); });
                 w.appendChild(b);
             } else {
-                const b = el('<button type="button" class="cr-btn"><span>' + (d.tipo === 'button' ? 'Premi' : 'Apri') + '</span></button>');
+                // nello stile compatto resta solo l'icona (la scritta e' nascosta dal foglio di stile)
+                const b = el('<button type="button" class="cr-btn apri"><i data-lucide="arrow-up-right"></i><span>' + (d.tipo === 'button' ? 'Premi' : 'Apri') + '</span></button>');
                 b.addEventListener('click', ev => { ev.stopPropagation(); comandi.apri(card); });
                 w.appendChild(b);
             }
@@ -15699,11 +16027,40 @@ function hkOsserva(card) {
                 const applica = (p, subito) => { p = Math.max(1, p); cur.style.setProperty('--v', p + '%'); comandi.luceLivello(d.id, p / 100 * 255, subito); };
                 K.cursore(cur, p => { w._trascina = true; applica(p, false); }, p => { applica(p, true); w._trascina = false; });
             }
+            if (colori) {
+                // la fila dei colori della Plancia, sotto il cursore: i pallini, il bianco e l'arcobaleno che apre il pannello
+                const fila = el('<div class="cr-dots"></div>');
+                K.COLORI.forEach(c => {
+                    const dot = el('<button type="button" class="wv-dot" style="background: rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')" title="' + esc(c[3]) + '"></button>');
+                    dot.dataset.c = c.slice(0, 3).join(',');
+                    dot.addEventListener('click', ev => { ev.stopPropagation(); if (navigator.vibrate) navigator.vibrate(12); comandi.luceColore(d.id, c.slice(0, 3), true); });
+                    fila.appendChild(dot);
+                });
+                const bianco = el('<button type="button" class="wv-dot bianco" title="Bianco"></button>');
+                bianco.dataset.c = K.BIANCO.join(',');
+                bianco.addEventListener('click', ev => { ev.stopPropagation(); comandi.luceColore(d.id, K.BIANCO.slice(), true); });
+                fila.appendChild(bianco);
+                fila.appendChild(el('<span class="wv-sep"></span>'));
+                const arco = el('<button type="button" class="wv-dot arco" title="Altro colore"></button>');
+                arco.addEventListener('click', ev => { ev.stopPropagation(); comandi.apri(card); });
+                fila.appendChild(arco);
+                w.appendChild(fila);
+            }
             // l'icona accende/spegne (o apre); il resto della riga: le luci solo on/off, le prese e le scene si commutano, gli altri aprono il pannello
             const semplice = f === 'luce:onoff' || f === 'presa' || f === 'scena';
             w.querySelector('.cr-ico').addEventListener('click', ev => { ev.stopPropagation(); if (f === 'gen:apri') comandi.apri(card); else comandi.toggle(card); });
-            w.addEventListener('click', ev => { if (ev.target.closest('.cr-sw, .cr-btn, .cr-slider, .cr-ico')) return; if (semplice) { if (navigator.vibrate) navigator.vibrate(12); comandi.toggle(card); } else comandi.apri(card); });
-            fine(w, card, f);
+            w.addEventListener('click', ev => { if (ev.target.closest('.cr-sw, .cr-btn, .cr-slider, .cr-ico, .cr-dots')) return; if (semplice) { if (navigator.vibrate) navigator.vibrate(12); comandi.toggle(card); } else comandi.apri(card); });
+            fine(w, card, f, sc, chiave);
+            return w;
+        }
+        // il sensore spostato nei Comandi rapidi: riga col valore a destra (tocco: il grafico)
+        function creaRigaSensore(card, sc, chiave) {
+            const d = dati(card), f = forma(d);
+            const w = el('<div class="cr-row sens" title="Apri il grafico"><div class="cr-ico"></div><div class="cr-txt"><div class="cr-name" data-no-tr></div><div class="cr-sub"></div></div><div class="cr-val"></div></div>');
+            w.querySelector('.cr-ico').appendChild(K.icona(card, 'activity'));
+            w.addEventListener('click', () => comandi.apri(card));
+            fine(w, card, f, sc, chiave);
+            chiediStorico(d.id);
             return w;
         }
         function aggiornaRiga(w, d, f) {
@@ -15718,6 +16075,7 @@ function hkOsserva(card) {
                 if (on && f !== 'luce:onoff') sub += ' · ' + N(l.pct + '%');
                 const cur = w.querySelector('.cr-slider');
                 if (cur) { if (!w._trascina) cur.style.setProperty('--v', l.pct + '%'); cur.setAttribute('aria-valuenow', l.pct); cur.classList.toggle('rgb', colorata); }
+                w.querySelectorAll('.wv-dot[data-c]').forEach(dot => dot.classList.toggle('sel', on && dot.dataset.c === l.rgb.join(',')));
             } else if (f === 'presa') {
                 w.classList.toggle('on-blu', on);
                 sub = S(on ? 'Accesa' : 'Spenta');
@@ -15734,6 +16092,23 @@ function hkOsserva(card) {
             const sw = w.querySelector('.cr-sw'); if (sw) { sw.classList.toggle('on', on); sw.setAttribute('aria-checked', on ? 'true' : 'false'); }
             etichetta(w, d);
         }
+        function aggiornaRigaSensore(w, d) {
+            const s = d.sensore, classe = classeSensore(s);
+            w.style.setProperty('--sc', K.COLORE_SENSORE[classe] || '10,132,255');
+            scriviT(w.querySelector('.cr-name'), d.nome);
+            const val = w.querySelector('.cr-val'), sub = w.querySelector('.cr-sub');
+            sub.classList.remove('su', 'giu');
+            if (d.nonDisponibile) { val.classList.remove('testo'); scriviH(val, N('--')); scriviH(sub, '&nbsp;'); }
+            else {
+                const coppia = K.BINARI[classe] || ['Attivo', 'Inattivo'], punti = serie(d.id);
+                val.classList.toggle('testo', s.binario);
+                scriviH(val, K.valoreHtml(s, coppia));
+                if (s.binario) { const tc = K.ultimoCambio(punti); scriviH(sub, tc ? S('Cambiato alle') + ' ' + N(ORA(tc)) : S('Nessun cambio')); }
+                else { const t = K.tendenza(punti, s); if (t) { scriviH(sub, t.html); if (t.cls) sub.classList.add(t.cls); } else scriviH(sub, '&nbsp;'); }
+            }
+            chiediStorico(d.id);
+            etichetta(w, d);
+        }
         function metaComandi(p) {
             let luci = 0, prese = 0, nLuci = 0, nPrese = 0;
             p._cards.forEach(c => { const d = dati(c); if (d.tipo === 'light') { nLuci++; if (d.stato === 'on') luci++; } else if (d.tipo === 'switch') { nPrese++; if (d.stato === 'on') prese++; } });
@@ -15747,17 +16122,21 @@ function hkOsserva(card) {
         }
 
         // ---------- CLIMA E TAPPARELLE
-        function creaClima(cards, span) {
+        function creaClima(cards, span, scelte, stretta, chiave) {
             const termo = cards.filter(c => forma(dati(c)) === 'termo'), tapp = cards.filter(c => forma(dati(c)) === 'tapp');
             const p = creaPannello('clima', span, termo.length ? 'thermometer' : 'blinds', termo.length ? (tapp.length ? 'Clima e tapparelle' : 'Clima') : 'Tapparelle', cards);
+            if (stretta) p.classList.add('cr-stretta');
             const corpo = el('<div class="cr-corpo"></div>');
-            termo.forEach(c => corpo.appendChild(creaTermo(c)));
-            if (tapp.length) { const griglia = el('<div class="cr-tapp"></div>'); tapp.forEach(c => griglia.appendChild(creaTapparella(c))); corpo.appendChild(griglia); }
+            termo.forEach(c => corpo.appendChild(creaTermo(c, scelte.get(c), chiave)));
+            if (tapp.length) { const griglia = el('<div class="cr-tapp"></div>'); tapp.forEach(c => griglia.appendChild(creaTapparella(c, scelte.get(c), chiave))); corpo.appendChild(griglia); }
             p.appendChild(corpo);
+            if (tapp.length) osservaPannello(p);
             return p;
         }
-        function creaTermo(card) {
-            const n = ++contatore;
+        const TASTI_COVER = '<div class="cr-tapp-tasti"><button type="button" data-cmd="up" title="Su"><i data-lucide="chevron-up"></i></button><button type="button" data-cmd="stop" class="stop" title="Stop"><i data-lucide="square"></i></button><button type="button" data-cmd="down" title="Giù"><i data-lucide="chevron-down"></i></button></div>';
+        function creaTermo(card, sc, chiave) {
+            if (sc.stile === 'compatto') return creaTermoRiga(card, sc, chiave);
+            const n = ++contatore, conGrafico = sc.stile === 'anello';
             const w = el('<div class="cr-termo"><div class="cr-ring"><div class="cr-glow"></div>' +
                 '<svg viewBox="0 0 160 160"><defs><linearGradient id="crg' + n + '" x1="0" y1="1" x2="1" y2="0"><stop offset="0" class="g1" stop-opacity="0.55"/><stop offset="1" class="g2"/></linearGradient></defs>' +
                 '<g class="tacche"></g><circle class="traccia" cx="80" cy="80" r="64" stroke-dasharray="301.6 402.1" transform="rotate(135 80 80)"/>' +
@@ -15765,9 +16144,9 @@ function hkOsserva(card) {
                 '<line class="attuale" x1="0" y1="0" x2="0" y2="0"/><circle class="pomello" cx="80" cy="16" r="8"/></svg>' +
                 '<div class="cr-centro" title="Apri il pannello"><div class="cr-cifra" data-no-tr><b></b><small>°</small></div><div class="cr-att"></div><div class="cr-tstato"></div></div>' +
                 '<button type="button" class="cr-passo meno" title="Meno"><i data-lucide="minus"></i></button><button type="button" class="cr-passo piu" title="Più"><i data-lucide="plus"></i></button></div>' +
-                '<div class="cr-grafico"><div class="cr-graf-testa"><div class="cr-graf-tit"></div><div class="cr-graf-leg"><span><i></i><span>Attuale</span></span><span><i class="tratt"></i><span>Obiettivo</span></span></div></div>' +
+                (conGrafico ? '<div class="cr-grafico"><div class="cr-graf-testa"><div class="cr-graf-tit"></div><div class="cr-graf-leg"><span><i></i><span>Attuale</span></span><span><i class="tratt"></i><span>Obiettivo</span></span></div></div>' +
                 '<svg viewBox="0 0 260 100" preserveAspectRatio="none"><defs><linearGradient id="cra' + n + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="a1" stop-opacity="0.38"/><stop offset="1" class="a2" stop-opacity="0"/></linearGradient></defs><g class="disegno"></g></svg>' +
-                '<div class="cr-graf-ass"></div><div class="cr-graf-minmax"></div></div></div>');
+                '<div class="cr-graf-ass"></div><div class="cr-graf-minmax"></div></div>' : '') + '</div>');
             const tacche = w.querySelector('.tacche');
             for (let i = 0; i <= 25; i++) {
                 const gradi = 135 + 270 * i / 25, grande = i % 5 === 0;
@@ -15778,8 +16157,21 @@ function hkOsserva(card) {
             w.querySelector('.cr-passo.meno').addEventListener('click', ev => { ev.stopPropagation(); comandi.climaPasso(card, -1); });
             w.querySelector('.cr-passo.piu').addEventListener('click', ev => { ev.stopPropagation(); comandi.climaPasso(card, 1); });
             w.querySelector('.cr-centro').addEventListener('click', () => comandi.apri(card));
-            fine(w, card, 'termo');
-            lenti.add(w);
+            fine(w, card, 'termo', sc, chiave);
+            if (conGrafico) lenti.add(w);
+            return w;
+        }
+        // termostato "compatto": una riga come quelle dei Comandi rapidi, con - temperatura + e i modi a icone
+        function creaTermoRiga(card, sc, chiave) {
+            const d = dati(card);
+            const w = el('<div class="cr-termo cr-row"><div class="cr-ico"></div><div class="cr-txt"><div class="cr-name" data-no-tr></div><div class="cr-sub"></div></div>' +
+                '<div class="cr-tpassi"><button type="button" class="cr-passo meno" title="Meno"><i data-lucide="minus"></i></button><div class="cr-tcifra" data-no-tr title="Apri il pannello"><b></b><small>°</small></div><button type="button" class="cr-passo piu" title="Più"><i data-lucide="plus"></i></button></div>' +
+                '<div class="wv-seg icone cr-seg" hidden></div></div>');
+            w.querySelector('.cr-ico').appendChild(K.icona(card, 'thermometer'));
+            w.querySelector('.cr-passo.meno').addEventListener('click', ev => { ev.stopPropagation(); comandi.climaPasso(card, -1); });
+            w.querySelector('.cr-passo.piu').addEventListener('click', ev => { ev.stopPropagation(); comandi.climaPasso(card, 1); });
+            w.addEventListener('click', ev => { if (ev.target.closest('button, .cr-seg')) return; comandi.apri(card); });
+            fine(w, card, 'termo', sc, chiave);
             return w;
         }
         const FINESTRE = [[15 * 60e3, 'Ultimi 15 min'], [30 * 60e3, 'Ultimi 30 min'], [3600e3, 'Ultima ora'], [3 * 3600e3, 'Ultime 3 ore'], [6 * 3600e3, 'Ultime 6 ore'], [12 * 3600e3, 'Ultime 12 ore'], [GIORNO, 'Ultime 24 ore']];
@@ -15792,25 +16184,47 @@ function hkOsserva(card) {
             const ct = attivo ? info.rgb.replace(/\s+/g, '') : '142,142,147';
             w.style.setProperty('--ct', ct);
             w.classList.toggle('spento', !attivo);
-            const svg = w.querySelector('.cr-ring > svg');
-            svg.querySelectorAll('.g1, .g2, .a1, .a2').forEach(s => s.setAttribute('stop-color', 'rgb(' + ct + ')'));
-            w.querySelectorAll('.cr-grafico .a1, .cr-grafico .a2').forEach(s => s.setAttribute('stop-color', 'rgb(' + ct + ')'));
-            // anello: scala min..max del termostato, arco di 270 gradi da 135
             const target = c.target === null ? c.min : c.target;
-            const fr = fra(target, c.min, c.max);
-            svg.querySelector('.pieno').setAttribute('stroke-dasharray', (301.6 * fr).toFixed(1) + ' 402.1');
-            const pom = polare(80, 80, 64, 135 + 270 * fr), pomello = svg.querySelector('.pomello');
-            pomello.setAttribute('cx', pom[0]); pomello.setAttribute('cy', pom[1]);
-            svg.querySelectorAll('.tacca').forEach((t, i) => t.classList.toggle('accesa', i / 25 <= fr + 1e-6));
-            const att = svg.querySelector('.attuale');
-            if (c.attuale === null) att.style.display = 'none';
-            else { att.style.display = ''; const g = 135 + 270 * fra(c.attuale, c.min, c.max), p1 = polare(80, 80, 72, g), p2 = polare(80, 80, 78, g); att.setAttribute('x1', p1[0]); att.setAttribute('y1', p1[1]); att.setAttribute('x2', p2[0]); att.setAttribute('y2', p2[1]); }
-            scriviT(w.querySelector('.cr-cifra b'), c.target === null ? '--' : virgola(c.target.toFixed(1)));
-            scriviH(w.querySelector('.cr-att'), c.attuale === null ? '&nbsp;' : S('Attuale') + ' ' + N(virgola(c.attuale.toFixed(1)) + '°'));
-            scriviH(w.querySelector('.cr-tstato'), S(d.offline ? 'Offline' : (d.nonDisponibile ? 'Non disponibile' : (azione === 'heating' ? 'Riscalda' : (azione === 'cooling' ? 'Raffredda' : (!attivo ? 'Spento' : (K.MODI[modo] ? K.MODI[modo].etichetta : modo)))))));
+            const testoT = c.target === null ? '--' : virgola(c.target.toFixed(1));
+            const breve = d.offline ? 'Offline' : (d.nonDisponibile ? 'Non disponibile' : (azione === 'heating' ? 'Riscalda' : (azione === 'cooling' ? 'Raffredda' : (!attivo ? 'Spento' : (K.MODI[modo] ? K.MODI[modo].etichetta : modo)))));
+            if (w.dataset.stile === 'compatto') {
+                scriviT(w.querySelector('.cr-name'), d.nome);
+                scriviH(w.querySelector('.cr-sub'), S(breve) + (c.attuale !== null && !fermo ? ' · ' + S('Attuale') + ' <b data-no-tr>' + esc(virgola(c.attuale.toFixed(1)) + '°') + '</b>' : ''));
+                scriviT(w.querySelector('.cr-tcifra b'), testoT);
+                // modalita': solo quelle che il termostato ha davvero (come il pannello), a icone
+                const seg = w.querySelector('.cr-seg');
+                let elenco = c.modi.filter(m => K.MODI[m]);
+                if (!elenco.length) elenco = K.MODI_CLASSICI.slice();
+                if (!elenco.includes(modo) && K.MODI[modo]) elenco.push(modo);
+                const chiaveSeg = elenco.join(',');
+                if (seg.dataset.modi !== chiaveSeg) {
+                    seg.dataset.modi = chiaveSeg;
+                    seg.innerHTML = elenco.length < 2 ? '' : elenco.map(m => '<button type="button" data-modo="' + esc(m) + '" title="' + esc(m === 'off' ? 'Off' : K.MODI[m].etichetta) + '"><i data-lucide="' + esc(K.MODI[m].icona) + '"></i></button>').join('');
+                    seg.querySelectorAll('button').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); if (b.dataset.modo === dati(d.card).clima.modo) return; if (navigator.vibrate) navigator.vibrate(14); comandi.climaModo(d.id, b.dataset.modo); }));
+                    if (typeof whIcone === 'function') whIcone(seg);
+                    seg.hidden = elenco.length < 2;
+                }
+                seg.querySelectorAll('button').forEach(b => b.classList.toggle('attivo', b.dataset.modo === modo));
+            } else {
+                const svg = w.querySelector('.cr-ring > svg');
+                svg.querySelectorAll('.g1, .g2').forEach(s => s.setAttribute('stop-color', 'rgb(' + ct + ')'));
+                w.querySelectorAll('.cr-grafico .a1, .cr-grafico .a2').forEach(s => s.setAttribute('stop-color', 'rgb(' + ct + ')'));
+                // anello: scala min..max del termostato, arco di 270 gradi da 135
+                const fr = fra(target, c.min, c.max);
+                svg.querySelector('.pieno').setAttribute('stroke-dasharray', (301.6 * fr).toFixed(1) + ' 402.1');
+                const pom = polare(80, 80, 64, 135 + 270 * fr), pomello = svg.querySelector('.pomello');
+                pomello.setAttribute('cx', pom[0]); pomello.setAttribute('cy', pom[1]);
+                svg.querySelectorAll('.tacca').forEach((t, i) => t.classList.toggle('accesa', i / 25 <= fr + 1e-6));
+                const att = svg.querySelector('.attuale');
+                if (c.attuale === null) att.style.display = 'none';
+                else { att.style.display = ''; const g = 135 + 270 * fra(c.attuale, c.min, c.max), p1 = polare(80, 80, 72, g), p2 = polare(80, 80, 78, g); att.setAttribute('x1', p1[0]); att.setAttribute('y1', p1[1]); att.setAttribute('x2', p2[0]); att.setAttribute('y2', p2[1]); }
+                scriviT(w.querySelector('.cr-cifra b'), testoT);
+                scriviH(w.querySelector('.cr-att'), c.attuale === null ? '&nbsp;' : S('Attuale') + ' ' + N(virgola(c.attuale.toFixed(1)) + '°'));
+                scriviH(w.querySelector('.cr-tstato'), S(breve));
+                if (w.querySelector('.cr-grafico')) disegnaGrafico(w, d);
+            }
             w.querySelector('.cr-passo.meno').disabled = fermo || target <= c.min + 0.001;
             w.querySelector('.cr-passo.piu').disabled = fermo || target >= c.max - 0.001;
-            disegnaGrafico(w, d);
             etichetta(w, d);
         }
         // grafico della temperatura attuale: i valori che la pagina ha ricevuto (whViste.storico), finestra che
@@ -15876,23 +16290,28 @@ function hkOsserva(card) {
                             '<span>' + S('max') + ' <b data-no-tr>' + esc(virgola(mx.v.toFixed(1))) + '°</b> <span class="ora" data-no-tr>(' + ORA(mx.t) + ')</span></span>');
             } else scriviH(mm, '<span class="vuoto">' + S('In attesa di dati') + '</span>');
         }
-        function creaTapparella(card) {
-            const d = dati(card);
-            const w = el('<div class="cr-tile-tapp"><div class="cr-tapp-top" title="Apri il pannello"><div class="cr-fin"></div><div class="cr-tapp-txt"><div class="cr-tapp-nome" data-no-tr></div></div></div>' +
-                '<div class="cr-tapp-mid"><div class="cr-tapp-stato"></div><div class="cr-tapp-pos" data-no-tr><b></b><small>%</small></div></div>' +
-                '<div class="cr-tapp-ctl"><div class="cr-tapp-tasti"><button type="button" data-cmd="up" title="Su"><i data-lucide="chevron-up"></i></button><button type="button" data-cmd="stop" class="stop" title="Stop"><i data-lucide="square"></i></button><button type="button" data-cmd="down" title="Giù"><i data-lucide="chevron-down"></i></button></div>' +
-                '<div class="cr-slider bianco" role="slider" aria-label="Posizione" aria-valuemin="0" aria-valuemax="100"><span class="tr"></span><span class="fi"></span><span class="kn"></span></div></div></div>');
+        function creaTapparella(card, sc, chiave) {
+            const d = dati(card), compatta = sc.stile === 'compatta';
+            // "compatta": finestrella, nome e stato, solo i tasti (due per riga); "cursore": com'era (posizione e cursore)
+            const w = compatta
+                ? el('<div class="cr-tile-tapp"><div class="cr-tapp-top" title="Apri il pannello"><div class="cr-fin"></div><div class="cr-tapp-txt"><div class="cr-tapp-nome" data-no-tr></div><div class="cr-tapp-stato"></div></div></div><div class="cr-tapp-ctl">' + TASTI_COVER + '</div></div>')
+                : el('<div class="cr-tile-tapp"><div class="cr-tapp-top" title="Apri il pannello"><div class="cr-fin"></div><div class="cr-tapp-txt"><div class="cr-tapp-nome" data-no-tr></div></div></div>' +
+                     '<div class="cr-tapp-mid"><div class="cr-tapp-stato"></div><div class="cr-tapp-pos" data-no-tr><b></b><small>%</small></div></div>' +
+                     '<div class="cr-tapp-ctl">' + TASTI_COVER + '<div class="cr-slider bianco" role="slider" aria-label="Posizione" aria-valuemin="0" aria-valuemax="100"><span class="tr"></span><span class="fi"></span><span class="kn"></span></div></div></div>');
             w.querySelector('.cr-tapp-top').addEventListener('click', () => comandi.apri(card));
             w.querySelectorAll('button[data-cmd]').forEach(b => b.addEventListener('click', ev => comandi.cover(ev, d.id, b.dataset.cmd)));
             const cur = w.querySelector('.cr-slider');
-            const mostra = p => { cur.style.setProperty('--v', p + '%'); w.querySelector('.cr-fin').style.setProperty('--chiuso', (100 - p) + '%'); scriviT(w.querySelector('.cr-tapp-pos b'), String(p)); };
-            K.cursore(cur, p => { w._trascina = true; mostra(p); }, p => { w._trascina = false; mostra(p); if (navigator.vibrate) navigator.vibrate(14); comandi.coverPosizione(d.id, p); });
-            fine(w, card, 'tapp');
+            if (cur) {
+                const mostra = p => { cur.style.setProperty('--v', p + '%'); w.querySelector('.cr-fin').style.setProperty('--chiuso', (100 - p) + '%'); scriviT(w.querySelector('.cr-tapp-pos b'), String(p)); };
+                K.cursore(cur, p => { w._trascina = true; mostra(p); }, p => { w._trascina = false; mostra(p); if (navigator.vibrate) navigator.vibrate(14); comandi.coverPosizione(d.id, p); });
+            }
+            fine(w, card, 'tapp', sc, chiave);
             return w;
         }
         function aggiornaTapparella(w, d) {
             const c = d.cover, classe = c.classe || '';
             const cancello = classe === 'gate' || classe === 'garage' || classe === 'door';
+            const compatta = w.dataset.stile === 'compatta';
             w.classList.toggle('cancello', cancello);
             w.classList.toggle('aperta', c.aperta); w.classList.toggle('chiusa', !c.aperta);
             scriviT(w.querySelector('.cr-tapp-nome'), d.nome);
@@ -15900,10 +16319,12 @@ function hkOsserva(card) {
             if (c.movimento === 'apre') st = 'In apertura'; else if (c.movimento === 'chiude') st = 'In chiusura';
             else if (cancello) st = c.aperta ? 'Aperto' : 'Chiuso';
             else st = c.pos <= 0 ? 'Chiusa' : 'Aperta';
-            scriviH(w.querySelector('.cr-tapp-stato'), S(st));
-            if (!w._trascina) { w.querySelector('.cr-slider').style.setProperty('--v', c.pos + '%'); w.querySelector('.cr-fin').style.setProperty('--chiuso', (100 - c.pos) + '%'); scriviT(w.querySelector('.cr-tapp-pos b'), String(c.pos)); }
-            w.querySelector('.cr-slider').setAttribute('aria-valuenow', c.pos);
-            w.querySelector('.cr-tapp-pos').hidden = cancello;
+            // nella compatta la posizione (quando e' a meta') sta accanto allo stato: non c'e' la cifra grande
+            scriviH(w.querySelector('.cr-tapp-stato'), S(st) + (compatta && !cancello && c.pos > 0 && c.pos < 100 ? ' · ' + N(c.pos + '%') : ''));
+            const cur = w.querySelector('.cr-slider'), pos = w.querySelector('.cr-tapp-pos');
+            if (!w._trascina) { if (cur) cur.style.setProperty('--v', c.pos + '%'); w.querySelector('.cr-fin').style.setProperty('--chiuso', (100 - c.pos) + '%'); if (pos) scriviT(pos.querySelector('b'), String(c.pos)); }
+            if (cur) cur.setAttribute('aria-valuenow', c.pos);
+            if (pos) pos.hidden = cancello;
             w.querySelector('button[data-cmd="up"]').classList.toggle('att', c.movimento === 'apre');
             w.querySelector('button[data-cmd="down"]').classList.toggle('att', c.movimento === 'chiude');
             etichetta(w, d);
@@ -15932,22 +16353,33 @@ function hkOsserva(card) {
             }
         }
 
-        // ---------- AMBIENTE: i sensori come indicatori ad arco
-        function creaAmbiente(cards, span) {
+        // ---------- AMBIENTE: i sensori come indicatori ad arco (o valore e andamento, grafico, solo valore)
+        function creaAmbiente(cards, span, scelte, chiave) {
             const p = creaPannello('ambiente', span, 'activity', 'Ambiente', cards);
             const tiles = el('<div class="cr-tiles"></div>');
-            cards.forEach(c => tiles.appendChild(creaTessera(c)));
+            cards.forEach(c => tiles.appendChild(creaTessera(c, scelte.get(c), chiave)));
             p.appendChild(tiles);
             return p;
         }
-        function creaTessera(card) {
-            const d = dati(card), f = forma(d);
-            const w = el('<div class="cr-tile" title="Apri il grafico"><div class="cr-gauge' + (f === 'sens:bin' ? ' mov' : '') + '"><svg viewBox="0 0 78 78"><circle class="track" cx="39" cy="39" r="32" stroke-dasharray="150.8 201.1" transform="rotate(135 39 39)"/><circle class="arc" cx="39" cy="39" r="32" stroke-dasharray="0 201.1" transform="rotate(135 39 39)"/><circle class="pallino" cx="39" cy="7" r="4"/></svg>' +
-                '<div class="cr-gval"><b></b><small data-no-tr></small></div><div class="cr-gico"></div></div>' +
-                '<div class="cr-tile-testi"><div class="cr-tile-nome" data-no-tr></div><div class="cr-tile-trend"><svg viewBox="0 0 44 16" preserveAspectRatio="none"></svg><span class="cr-tile-delta"></span></div></div></div>');
-            w.querySelector('.cr-gico').appendChild(K.icona(card, 'activity'));
+        function creaTessera(card, sc, chiave) {
+            const d = dati(card), f = forma(d), st = sc.stile;
+            let w;
+            if (st === 'arco') {
+                w = el('<div class="cr-tile" title="Apri il grafico"><div class="cr-gauge' + (f === 'sens:bin' ? ' mov' : '') + '"><svg viewBox="0 0 78 78"><circle class="track" cx="39" cy="39" r="32" stroke-dasharray="150.8 201.1" transform="rotate(135 39 39)"/><circle class="arc" cx="39" cy="39" r="32" stroke-dasharray="0 201.1" transform="rotate(135 39 39)"/><circle class="pallino" cx="39" cy="7" r="4"/></svg>' +
+                    '<div class="cr-gval"><b></b><small data-no-tr></small></div><div class="cr-gico"></div></div>' +
+                    '<div class="cr-tile-testi"><div class="cr-tile-nome" data-no-tr></div><div class="cr-tile-trend"><svg viewBox="0 0 44 16" preserveAspectRatio="none"></svg><span class="cr-tile-delta"></span></div></div></div>');
+                w.querySelector('.cr-gico').appendChild(K.icona(card, 'activity'));
+            } else {
+                // "stat", "grafico" e "compatto": la stessa struttura dei widget della Plancia, aggiornata da K.aggiornaStat
+                if (st === 'grafico') w = el('<div class="cr-tile" title="Apri il grafico"><div class="wv-graf-testa"><div class="wv-stat-head"><span data-no-tr></span></div><div class="wv-graf-dx"><div class="wv-stat-val"></div><div class="wv-stat-sub"></div></div></div>' +
+                    '<div class="wv-graf"><svg viewBox="0 0 100 100" preserveAspectRatio="none"></svg><i class="wv-graf-punto" hidden></i><span class="wv-graf-vuoto" hidden></span></div>' +
+                    '<div class="wv-graf-piede"><span class="minmax"></span><span class="finestra"></span></div></div>');
+                else w = el('<div class="cr-tile" title="Apri il grafico"><div class="wv-stat-head"><span data-no-tr></span></div><div class="wv-stat-val"></div><div class="wv-stat-sub"></div><svg class="wv-spark" viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>');
+                w.querySelector('.wv-stat-head').appendChild(K.icona(card, 'activity'));
+                w._sfumId = 'crsp' + (++contatore);       // id della sfumatura sotto la linea (uno per tessera)
+            }
             w.addEventListener('click', () => comandi.apri(card));
-            fine(w, card, f);
+            fine(w, card, f, sc, chiave);
             lenti.add(w);
             chiediStorico(d.id);
             return w;
@@ -15969,8 +16401,8 @@ function hkOsserva(card) {
             if (svg.innerHTML !== html) svg.innerHTML = html;
         }
         function aggiornaTessera(w, d) {
-            const s = d.sensore;
-            const classe = s.classe || (s.unita === '°C' || s.unita === '°F' ? 'temperature' : (s.unita === '%' ? 'humidity' : (s.unita === 'W' || s.unita === 'kW' ? 'power' : '')));
+            if (w.dataset.stile !== 'arco') { K.aggiornaStat(w, d); etichetta(w, d); return; }
+            const s = d.sensore, classe = classeSensore(s);
             w.style.setProperty('--sc', K.COLORE_SENSORE[classe] || '10,132,255');
             scriviT(w.querySelector('.cr-tile-nome'), d.nome);
             const punti = serie(d.id), ora = Date.now();
@@ -16026,8 +16458,8 @@ function hkOsserva(card) {
             scriviH(p.querySelector('.cr-meta'), t ? S('agg.') + ' ' + N(ORA(t)) : '');
         }
 
-        // ---------- MEDIA: la barra multimediale
-        function creaMedia(card, span) {
+        // ---------- MEDIA: la barra multimediale (larga) o la barretta compatta (copertina piccola, play/pausa, volume)
+        function creaMedia(card, span, sc, chiave) {
             const d = dati(card);
             const w = el('<section class="cr-panel cr-media cr-s' + span + '"><div class="cr-art" title="Apri il pannello"><div class="cr-art-sfondo"></div><img alt=""><i data-lucide="audio-lines"></i><div class="cr-eq"><span></span><span></span><span></span><span></span></div></div>' +
                 '<div class="cr-media-corpo"><div class="cr-media-testa"><div><div class="cr-eyebrow"><span class="pip"></span><span class="cassa" data-no-tr></span><span class="sep">·</span><span class="stato"></span></div><div class="cr-media-tit" data-no-tr></div><div class="cr-media-art" data-no-tr></div></div><div class="cr-media-sorg" hidden><i data-lucide="list-music"></i><span data-no-tr></span></div></div>' +
@@ -16044,7 +16476,7 @@ function hkOsserva(card) {
             K.cursore(vol, p => { mostra(p); w._volTocco = Date.now(); if (Date.now() - ultimoInvio > 250) { ultimoInvio = Date.now(); comandi.mediaVolume(d.id, p / 100); } },
                            p => { mostra(p); w._volTocco = Date.now(); comandi.mediaVolume(d.id, p / 100); });
             media.add(w);
-            fine(w, card, 'media');
+            fine(w, card, 'media', sc, chiave);
             return w;
         }
         function avanzamento(w, m) {
@@ -16079,8 +16511,8 @@ function hkOsserva(card) {
             etichetta(w, d);
         }
 
-        // ---------- TELECAMERA: il riquadro largo
-        function creaTelecamera(card, span) {
+        // ---------- TELECAMERA: il riquadro largo (o piccolo)
+        function creaTelecamera(card, span, sc, chiave) {
             const d = dati(card);
             const w = el('<section class="cr-panel cr-cam cr-s' + span + '"><div class="cr-cam-img"><img alt="" decoding="async"></div><div class="cr-cam-hud"><div class="cr-cam-riga"><div class="cr-cam-nome"><i data-lucide="video"></i><span data-no-tr></span></div><span class="hk-live"><span class="live-dot"></span>LIVE</span></div>' +
                 '<div class="cr-cam-riga"><div class="cr-cam-ora" data-no-tr></div><div class="cr-cam-tasti"><button type="button" data-az="apri" title="Apri la telecamera"><i data-lucide="camera"></i></button><button type="button" data-az="intero" title="Schermo intero"><i data-lucide="maximize-2"></i></button></div></div></div></section>');
@@ -16089,7 +16521,7 @@ function hkOsserva(card) {
             w.addEventListener('click', () => comandi.apri(card));
             w.querySelectorAll('.cr-cam-tasti button').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); comandi.telecamera(card, b.dataset.az === 'intero'); }));
             w.querySelector('img').addEventListener('load', () => { const t = new Date(); scriviH(w.querySelector('.cr-cam-ora'), '<span>' + esc(t.toLocaleDateString(LOCALE)) + '</span><span>' + esc(t.toLocaleTimeString(LOCALE)) + '</span>'); });
-            fine(w, card, 'cam');
+            fine(w, card, 'cam', sc, chiave);
             return w;
         }
         function aggiornaTelecamera(w, d) {
@@ -16100,18 +16532,29 @@ function hkOsserva(card) {
         }
 
         // ---------- aggiornamento dai dati della card
+        function creaWidget(card, g, sc, chiave) {
+            if (g === 'sens') return sc.rapidi ? creaRigaSensore(card, sc, chiave) : creaTessera(card, sc, chiave);
+            if (g === 'tapp') return creaTapparella(card, sc, chiave);
+            return creaRiga(card, sc, chiave);
+        }
         function aggiornaWidget(w, card) {
-            const d = dati(card), f = forma(d), g = w.dataset.forma;
-            if (g !== f && w.classList.contains('cr-row') && pannelloDi(f) === 'comandi') {     // la riga ha cambiato natura (es. arrivano i modi della luce): rifatta
-                const nuovo = creaRiga(card); w.replaceWith(nuovo); if (typeof whIcone === 'function') whIcone(nuovo);
-                return aggiornaWidget(nuovo, card);
+            const d = dati(card), f = forma(d), chiave = w._chiave || '', sc = scelta(d, chiave), st = codifica(sc), g = genere(d);
+            if (w.dataset.forma !== f || w.dataset.stile !== st) {
+                // la card ha cambiato natura (es. arrivano i modi della luce) o lo stile effettivo: riga, tessera e tapparella si
+                // rifanno sul posto; se cambia pannello, o e' un termostato/lettore/telecamera (da loro dipendono le larghezze), si rifa' la stanza
+                if (pannelloDi(w.dataset.forma || f, spezza(w.dataset.stile)) === pannelloDi(f, sc) && (g === 'luce' || g === 'riga' || g === 'sens' || g === 'tapp')) {
+                    const nuovo = creaWidget(card, g, sc, chiave); lenti.delete(w); w.replaceWith(nuovo); if (typeof whIcone === 'function') whIcone(nuovo);
+                    return aggiornaWidget(nuovo, card);
+                }
+                programmaRifacimento(w.closest('.wh-vista'));
+                return;
             }
-            if (g === 'termo') aggiornaTermo(w, d);
-            else if (g === 'tapp') aggiornaTapparella(w, d);
-            else if (g.startsWith('sens')) aggiornaTessera(w, d);
-            else if (g === 'media') aggiornaMedia(w, d);
-            else if (g === 'cam') aggiornaTelecamera(w, d);
-            else aggiornaRiga(w, d, g);
+            if (f === 'termo') aggiornaTermo(w, d);
+            else if (f === 'tapp') aggiornaTapparella(w, d);
+            else if (f.startsWith('sens')) { if (sc.rapidi) aggiornaRigaSensore(w, d); else aggiornaTessera(w, d); }
+            else if (f === 'media') aggiornaMedia(w, d);
+            else if (f === 'cam') aggiornaTelecamera(w, d);
+            else aggiornaRiga(w, d, f);
             const p = w.closest('.cr-panel'); if (p) metaPannello(p);
         }
         function metaPannello(p) { if (p._genere === 'comandi') metaComandi(p); else if (p._genere === 'clima') metaClima(p); else if (p._genere === 'ambiente') metaAmbiente(p); }
@@ -16129,10 +16572,56 @@ function hkOsserva(card) {
         let ridisegnoT = null;
         window.addEventListener('resize', () => { clearTimeout(ridisegnoT); ridisegnoT = setTimeout(ridisegnaGrafici, 120); });
 
+        // ---------- PERSONALIZZA CRUSCOTTO: il motore comune (base) con le parti del Cruscotto. Stile, nascondi e rimetti
+        // rifanno la stanza intera (le larghezze dei pannelli dipendono da cosa c'e' dentro): la base ricrea il contenitore
+        // e costruisci() rimette riga dei nascosti e trascinamenti
+        function rifaiGriglia(cont) { const g = cont ? grigliaDi(cont) : null; if (g && g.isConnected) ricostruisciGriglia(g); }
+        function programmaRifacimento(cont) { if (cont && !cont._rifacendo) { cont._rifacendo = true; requestAnimationFrame(() => rifaiGriglia(cont)); } }
+        const pers = creaPersonalizza({
+            vista: 'cruscotto', registro: cruscotto, trascinabile: '.cr-w',
+            liste: cont => Array.from(cont.querySelectorAll(':scope > .cr-panel .cr-list, :scope > .cr-panel .cr-corpo, :scope > .cr-panel .cr-tapp, :scope > .cr-panel .cr-tiles')),
+            widgetDi: card => mappa.get(card),
+            nascondi(w, card, cont) { rifaiGriglia(cont); },
+            rimetti(cont) { rifaiGriglia(cont); },
+            frasi: { nascondi: 'Nascondi dal cruscotto', nascosto: 'Elemento nascosto dal cruscotto: lo ritrovi con «Personalizza cruscotto»', vuoto: 'Nessun elemento nascosto', rimetti: 'Rimetti nel cruscotto' }
+        });
+        function cambiaStile(card, stile) {
+            const d = dati(card), chiave = chiaveDi(card), sc = spezza(stile);
+            if (!stiliOfferti(d).includes(sc.stile)) return;
+            if (genere(d) !== 'sens') sc.rapidi = false;
+            cruscotto.imposta(chiave, card.dataset.id, { stile: codifica(sc) });
+            vibra(12);
+            const grid = card.closest('.grid-hk'); if (grid) ricostruisciGriglia(grid);
+        }
+        // il menu della card aperto da un elemento: la sezione Stile (scelte del genere, con l'attuale segnato) e, per i
+        // sensori, "Mostra in" Ambiente / Comandi rapidi
+        function menu(card, m) {
+            const box = m.querySelector('#hk-menu-stili'); if (!box) return;
+            const d = dati(card), g = genere(d), sc = scelta(d, chiaveDi(card)), mis = MISURE[g] || {};
+            const voce = (stile, etich, ant, att) => '<button type="button" role="menuitemradio" data-az="wv-stile" data-stile="' + esc(stile) + '" aria-checked="' + (att ? 'true' : 'false') + '"' + (att ? ' class="attivo"' : '') + '>' +
+                anteprima(ant) + '<span class="et">' + esc(etich) + '</span><span class="mis" data-no-tr>' + (mis[stile] || '') + '</span>' + SPUNTA + '</button>';
+            // in Comandi rapidi lo stile della tessera non si vede: scegliendone uno il sensore torna in Ambiente con quello
+            box.innerHTML = stiliOfferti(d).map(s => voce(s, ETICHETTE[s], STILI[g][s], s === sc.stile && !sc.rapidi)).join('');
+            box.classList.toggle('in-rapidi', sc.rapidi);
+            const pt = m.querySelector('#hk-menu-pannello-tit'), pg = m.querySelector('#hk-menu-pannello');
+            if (pt && pg) {
+                if (g === 'sens') {
+                    pg.innerHTML = voce(sc.stile, 'Ambiente', [2, 2], !sc.rapidi) + voce(sc.stile + '_rapidi', 'Comandi rapidi', [4, 1], sc.rapidi);
+                    pt.hidden = false; pg.hidden = false;
+                } else { pt.hidden = true; pg.hidden = true; pg.innerHTML = ''; }
+            }
+        }
+        // sotto i 1140 px le larghezze cambiano (Ambiente su una riga sua): si rifanno i contenitori quando si passa la soglia
+        const ascolta = (mq, f) => { if (mq.addEventListener) mq.addEventListener('change', f); else if (mq.addListener) mq.addListener(f); };
+        ascolta(STRETTO, () => { if (attiva === 'cruscotto') document.querySelectorAll('.wh-vista[data-vista="cruscotto"]').forEach(rifaiGriglia); });
+        ascolta(IPAD, () => { if (attiva === 'cruscotto') rimisura(); });                       // a 1359 cambiano misura e spazio delle tapparelle
+        if (!RO) window.addEventListener('resize', () => { if (attiva === 'cruscotto') rimisura(); });
+
         window.whViste.registra('cruscotto', {
             etichetta: 'Cruscotto',
-            costruisci(contenitore, cards) {
-                costruisci(contenitore, cards);
+            costruisci(contenitore, cards, info) {
+                costruisci(contenitore, cards, (info && info.chiave) || contenitore.dataset.chiave || '');
+                pers.dopoCostruzione(contenitore);         // la riga dei nascosti (fratello dopo la griglia) e, in Personalizza, il trascinamento
                 if (!ticchettio) ticchettio = setInterval(batti, 1000);
             },
             aggiorna(id, card) {
@@ -16140,7 +16629,9 @@ function hkOsserva(card) {
                 if (!w || !w.isConnected) return;
                 aggiornaWidget(w, card);
             },
-            distruggi() { media.clear(); lenti.clear(); if (ticchettio) { clearInterval(ticchettio); ticchettio = null; } }
+            menu, cambiaStile, pers, personalizza: pers.attiva, inPersonalizza: pers.inModo,
+            stili: { STILI, ETICHETTE, offerti: card => stiliOfferti(dati(card)), effettivo: card => codifica(scelta(dati(card), chiaveDi(card))) },
+            distruggi() { pers.distruggi(); media.clear(); lenti.clear(); if (RO) RO.disconnect(); if (ticchettio) { clearInterval(ticchettio); ticchettio = null; } }
         });
     })();
 
@@ -16155,6 +16646,19 @@ function hkOsserva(card) {
 
     applica();
     disegnaTessere();
+})();
+// ANIMAZIONI IN PAUSA DIETRO IL VELO (01/10/2026): rispecchia su <html> (classe wh-dietro) lo stato "c'e' un pannello
+// aperto" (#app-wrapper.modal-active) o "Impostazioni aperte" (#imp-pagina.aperta), cosi' il CSS (vedi wh-dietro) ferma
+// le animazioni che nessuno vede. Si osserva solo l'attributo class dei due elementi: costo nullo.
+(function () {
+    const wrapper = document.getElementById('app-wrapper'), imp = document.getElementById('imp-pagina');
+    if (!wrapper || typeof MutationObserver === 'undefined') return;
+    const aggiorna = () => document.documentElement.classList.toggle('wh-dietro',
+        wrapper.classList.contains('modal-active') || !!(imp && imp.classList.contains('aperta')));
+    const oss = new MutationObserver(aggiorna);
+    oss.observe(wrapper, { attributes: true, attributeFilter: ['class'] });
+    if (imp) oss.observe(imp, { attributes: true, attributeFilter: ['class'] });
+    aggiorna();
 })();
 </script>
 </body>
