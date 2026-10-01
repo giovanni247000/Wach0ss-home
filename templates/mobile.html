@@ -2566,7 +2566,7 @@
 
 /* ---------- LA PLANCIA: griglia a 8 colonne (1440), 6 (iPad orizzontale), 5 (1024) ---------- */
 .wh-vista[data-vista="plancia"] { --u: 124px; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-auto-rows: var(--u); grid-auto-flow: dense; gap: var(--grid-gap); }
-@media (max-width: 1399px) { .wh-vista[data-vista="plancia"] { grid-template-columns: repeat(6, minmax(0, 1fr)); } .wh-vista[data-vista="plancia"] .wv.cam { grid-column: span 3; } }
+@media (max-width: 1399px) { .wh-vista[data-vista="plancia"] { grid-template-columns: repeat(6, minmax(0, 1fr)); } .wh-vista[data-vista="plancia"] .wv.cam.h2 { grid-column: span 3; } }
 @media (max-width: 1099px) { .wh-vista[data-vista="plancia"] { --u: 120px; grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 
 .wv {
@@ -2800,6 +2800,260 @@ body.shape-square .wv { border-radius: 14px; } body.shape-round .wv { border-rad
 .wv.gen.on .wv-ico svg { color: #000; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3)); }
 .wv.gen.on .wv-state { color: rgb(var(--lc)); }
 .wv.gen .wv-state { text-transform: capitalize; }
+
+/* ---------- STILI DEI WIDGET (Personalizza plancia, 01/10/2026): ogni entita' puo' avere un widget
+   diverso (classe .st-<stile> messa dallo script; le misure s2/s3/s4/h2 le decide lo stile).
+   Luce: cursore | interruttore | colori. Sensore: stat | arco | grafico | compatto. Tapparella: tenda |
+   compatta | cursore. Termostato: anello | compatto | minimo. Lettore: largo | pieno | quadrato.
+   Telecamera: grande | media | ampia. Presa: interruttore | consumo | largo. Scena: tasto | largo.
+   Generico: compatto | largo. ---------- */
+
+/* luce "cursore" con i colori disponibili: tinta della luce ma niente fila dei colori (padding normale) */
+.wv.luce.st-interruttore .wv-state b { font-weight: 700; }
+
+/* sensore "compatto": solo il valore, grande, in mezzo */
+.wv.stat.st-compatto { justify-content: flex-start; }
+.wv.stat.st-compatto .wv-stat-val { font-size: 1.9rem; margin: auto 0; letter-spacing: -0.035em; }
+.wv.stat.st-compatto .wv-stat-val.testo { font-size: 1.25rem; }
+.wv.stat.st-compatto .wv-stat-val small { font-size: 0.8rem; }
+.wv.stat.st-compatto .wv-stat-sub, .wv.stat.st-compatto .wv-spark { display: none; }
+.wv.stat.st-compatto .wv-tag { margin-top: auto; }
+
+/* sensore "arco": l'indicatore ad arco del Cruscotto, in un 1x1 */
+.wv.stat.st-arco { padding: 11px 12px 10px; gap: 2px; }
+.wv.stat.st-arco .wv-spark { display: none; }
+.wv-arco { position: relative; width: 66px; height: 54px; margin: 4px auto 0; flex-shrink: 0; }
+.wv-arco > svg { width: 66px; height: 66px; position: absolute; left: 0; top: 0; overflow: visible; }
+.wv-arco .track { fill: none; stroke: rgba(var(--sc), 0.14); stroke-width: 6; stroke-linecap: round; }
+.wv-arco .arc { fill: none; stroke: rgb(var(--sc)); stroke-width: 6; stroke-linecap: round; filter: drop-shadow(0 0 5px rgba(var(--sc), 0.8)); transition: stroke-dasharray 0.5s cubic-bezier(0.32, 0.72, 0, 1); }
+.wv-arco.mov .arc { stroke: rgba(var(--sc), 0.5); } .wv-arco.mov.on .arc { stroke: rgb(var(--sc)); }
+.wv-arco .pallino { fill: #FFF; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6)); transition: cx 0.5s, cy 0.5s; }
+.wv-arco.mov .pallino { display: none; }
+.wv-arco-val { position: absolute; left: 0; right: 0; top: 21px; display: flex; align-items: baseline; justify-content: center; gap: 1px; color: #FFF; text-shadow: 0 2px 8px rgba(0,0,0,0.5); padding: 0 3px; }
+.wv-arco-val b { font-size: 1rem; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
+.wv-arco-val.lungo b { font-size: 0.84rem; } .wv-arco-val.lunghissimo b { font-size: 0.68rem; letter-spacing: -0.02em; }
+.wv-arco-val small { font-size: 0.55rem; font-weight: 600; color: rgba(255,255,255,0.55); }
+.wv-arco.mov .wv-arco-val { top: 24px; } .wv-arco.mov .wv-arco-val b { font-size: 0.7rem; letter-spacing: 0; }
+.wv.stat.st-arco .wv-stat-sub { text-align: center; margin-top: auto; }
+
+/* sensore "grafico" (2x1): valore in alto a destra, grafico grande con min/max e finestra dei tempi */
+.wv.stat.st-grafico { padding: 11px 13px 9px; gap: 0; }
+.wv.stat.st-grafico .wv-spark { display: none; }
+.wv-graf-testa { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; position: relative; z-index: 2; }
+.wv-graf-testa .wv-stat-head { flex: 1; min-width: 0; padding-right: 0; }
+.wv-graf-testa .wv-stat-head svg { display: none; }
+.wv.stat.st-grafico .wv-stat-val { font-size: 1.32rem; line-height: 1; margin-top: 2px; }
+.wv.stat.st-grafico .wv-stat-val.testo { font-size: 1.05rem; }
+.wv-graf-dx { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; max-width: 55%; }
+.wv-graf-dx .wv-stat-sub { font-size: 0.58rem; }
+.wv-graf { position: relative; flex: 1; min-height: 34px; margin: 4px 0 3px; z-index: 1; }
+.wv-graf > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.wv-graf .linea { fill: none; stroke: rgb(var(--sc)); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 5px rgba(var(--sc), 0.45)); }
+.wv-graf .griglia { stroke: rgba(255,255,255,0.07); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.wv-graf .scalino { fill: rgb(var(--sc)); opacity: 0.55; }
+.wv-graf-punto { position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: #FFF; box-shadow: 0 0 0 2px rgb(var(--sc)), 0 0 8px rgba(var(--sc), 0.8); pointer-events: none; }
+.wv-graf-punto[hidden] { display: none; }
+.wv-graf-vuoto { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.66rem; font-weight: 600; color: rgba(255,255,255,0.4); }
+.wv-graf-vuoto[hidden] { display: none; }
+.wv-graf-piede { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.58rem; font-weight: 600; color: rgba(255,255,255,0.45); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; position: relative; z-index: 2; }
+.wv-graf-piede > span { overflow: hidden; text-overflow: ellipsis; }
+.wv-graf-piede b { color: #FFF; font-weight: 700; }
+
+/* tapparella "compatta" (1x1): icona piccola e stato in testa, nome su due righe, su/stop/giu' in fila */
+.wv.tapp.st-compatta { padding: 11px 12px 10px; gap: 5px; }
+.wv.tapp.st-compatta .wv-ico { width: 28px; height: 28px; border-radius: 9px; }
+.wv.tapp.st-compatta .wv-ico svg { width: 15px; height: 15px; }
+.wv.tapp.st-compatta .wv-head { gap: 8px; }
+.wv.tapp.st-compatta .wv-head .wv-state { font-size: 0.68rem; }
+.wv.tapp.st-compatta > .wv-name.wrap { font-size: 0.76rem; line-height: 1.18; position: relative; z-index: 2; }
+.wv.tapp.st-compatta .wv-tapp-tasti { padding: 2px; }
+.wv.tapp.st-compatta .wv-tapp-tasti button { height: 26px; }
+.wv-tapp-riga { margin-top: auto; display: flex; align-items: center; gap: 8px; position: relative; z-index: 2; }
+.wv-tapp-tasti { display: flex; flex: 1; gap: 2px; padding: 3px; border-radius: 20px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); box-shadow: inset 0 2px 5px rgba(0,0,0,0.2); min-width: 0; }
+.wv-tapp-tasti button { flex: 1; min-width: 0; height: 28px; border-radius: 14px; border: 0; background: transparent; color: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; transition: background 0.2s, transform 0.15s; }
+.wv-tapp-tasti button:hover { color: #FFF; background: rgba(255,255,255,0.12); }
+.wv-tapp-tasti button:active { transform: scale(0.88); }
+.wv-tapp-tasti button svg { width: 15px; height: 15px; pointer-events: none; }
+.wv-tapp-tasti button.stop svg { width: 11px; height: 11px; fill: currentColor; }
+.wv-tapp-tasti button.att { background: rgba(255,255,255,0.15); color: #FFF; }
+/* tapparella "cursore" (2x1): tasti nella testata, cursore della posizione in basso */
+.wv.tapp.st-cursore .wv-head .wv-tapp-tasti { flex: 0 0 auto; width: 96px; }
+.wv.tapp .wv-dim-fill { background: linear-gradient(90deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.62) 100%); box-shadow: none; }
+.wv.tapp .wv-dim-ico { color: rgba(255,255,255,0.75); }
+.wv.tapp .wv-dim-val { color: #FFF; }
+
+/* termostato "compatto" (2x1) e "minimo" (1x1): temperatura con -/+ (e i modi, nel compatto) */
+.wv.clima.st-compatto { padding: 12px 12px 11px; }
+.wv-clima-riga { margin-top: auto; display: flex; align-items: center; gap: 8px; position: relative; z-index: 2; min-width: 0; }
+.wv-clima-temp { display: flex; align-items: flex-start; justify-content: center; color: #FFF; line-height: 0.95; text-shadow: 0 4px 18px rgba(0,0,0,0.45); min-width: 0; flex: 0 1 auto; }
+.wv-clima-temp .val { font-size: 1.7rem; font-weight: 250; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.wv-clima-temp small { font-size: 0.85rem; font-weight: 300; margin-top: 2px; opacity: 0.55; }
+.wv.clima.st-compatto .wv-clima-riga .wv-passo { width: 32px; height: 32px; }
+.wv.clima.st-compatto .wv-seg { flex: 1; min-width: 0; margin-left: 6px; }
+.wv.clima.st-compatto .wv-seg button { min-width: 0; padding: 0; gap: 0; }
+.wv.clima.st-compatto .wv-seg button span { display: none; }
+/* "minimo" (1x1, 114-118 px): come la tapparella compatta, icona piccola e stato BREVE in testa (Riscalda, Spento...),
+   nome su due righe a tutta larghezza, in fondo la fila - temperatura +. Alla cifra restano 44-48 px (a 1024 il widget
+   e' 114 px): 1.08rem per "21,5°", 0.84rem con 5+ caratteri ("-10,5°", "100,5°": classe .lungo messa dallo script) */
+.wv.clima.st-minimo { padding: 11px 12px 10px; gap: 5px; }
+.wv.clima.st-minimo .wv-ico { width: 28px; height: 28px; border-radius: 9px; }
+.wv.clima.st-minimo .wv-ico svg { width: 15px; height: 15px; }
+.wv.clima.st-minimo .wv-head { gap: 8px; }
+.wv.clima.st-minimo .wv-head .wv-state { font-size: 0.68rem; }
+.wv.clima.st-minimo > .wv-name.wrap { font-size: 0.76rem; line-height: 1.18; position: relative; z-index: 2; }
+.wv.clima.st-minimo .wv-clima-riga { justify-content: space-between; gap: 0; }
+.wv.clima.st-minimo .wv-passo { width: 22px; height: 22px; }
+.wv.clima.st-minimo .wv-passo svg { width: 12px; height: 12px; }
+.wv.clima.st-minimo .wv-clima-temp { flex: 1; padding: 0 1px; }
+.wv.clima.st-minimo .wv-clima-temp .val { font-size: 1.08rem; letter-spacing: -0.5px; }
+.wv.clima.st-minimo .wv-clima-temp small { font-size: 0.62rem; margin-top: 1px; }
+.wv.clima.st-minimo .wv-clima-temp.lungo .val { font-size: 0.84rem; letter-spacing: -0.4px; }
+.wv.clima.st-minimo .wv-clima-temp.lungo small { font-size: 0.5rem; }
+.wv.clima .wv-state b { font-weight: 700; color: #FFF; }
+
+/* lettore "pieno" (4x1): copertina a tutta altezza, sfondo sfumato dalla copertina */
+.wv.media.st-pieno { padding: 0; gap: 0; overflow: hidden; }
+.wv-media-fondo { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; filter: blur(22px) saturate(160%); opacity: 0; transition: opacity 0.5s; pointer-events: none; }   /* niente inset negativi ne' scale: gonfierebbero lo scrollHeight; il blur sfuma da solo ai bordi */
+.wv.media.st-pieno.con-fondo .wv-media-fondo { opacity: 0.5; }
+.wv.media.st-pieno .wv-art { width: var(--u); height: 100%; align-self: stretch; border-radius: 0; border: 0; border-right: 1px solid rgba(255,255,255,0.12); box-shadow: 4px 0 20px rgba(0,0,0,0.35); }
+.wv.media.st-pieno .wv-art > svg { width: 42px; height: 42px; }
+.wv.media.st-pieno .wv-media-col { padding: 11px 16px 10px 16px; }
+.wv.media.st-pieno .wv-media-titolo { font-size: 1.02rem; }
+.wv-media-testa { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; min-width: 0; }
+.wv-media-testa > div:first-child { min-width: 0; flex: 1; }
+.wv-media-sorg { display: flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); font-size: 0.62rem; font-weight: 700; color: rgba(255,255,255,0.75); white-space: nowrap; flex-shrink: 0; max-width: 40%; overflow: hidden; text-overflow: ellipsis; }
+.wv-media-sorg[hidden] { display: none; }
+.wv-media-sorg svg { width: 11px; height: 11px; flex-shrink: 0; }
+/* lettore "quadrato" (2x2): copertina in alto, comandi sotto */
+.wv.media.st-quadrato { flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
+.wv-media-alto { display: flex; align-items: center; gap: 12px; min-width: 0; position: relative; z-index: 2; }
+.wv.media.st-quadrato .wv-art { width: 84px; height: 84px; border-radius: 14px; align-self: auto; }
+.wv-media-titoli { min-width: 0; flex: 1; }
+.wv.media.st-quadrato .wv-media-titolo { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.2; }
+.wv.media.st-quadrato .wv-media-col { justify-content: flex-end; gap: 8px; }
+.wv.media.st-quadrato .wv-media-riga { flex-wrap: wrap; row-gap: 8px; }
+.wv.media.st-quadrato .wv-media-ctrl { margin: 0 auto; }
+.wv.media.st-quadrato .wv-media-vol { flex: 1 1 100%; }
+
+/* telecamera "media" (2x1): solo l'immagine e il nome; "ampia" (4x1): striscia larga con i tasti */
+.wv.cam.st-media .wv-cam-overlay { padding: 28px 12px 10px; }
+.wv.cam.st-media .wv-cam-title { font-size: 0.8rem; }
+.wv.cam.st-media .wv-cam-sub, .wv.cam.st-media .wv-cam-azioni, .wv.cam.st-media .wv-cam-ts { display: none; }
+.wv.cam.st-media .wv-cam-top { top: 9px; left: 10px; right: 10px; }
+.wv.cam.st-ampia .wv-cam-overlay { padding-top: 30px; }
+
+/* presa "consumo" (1x1): i watt in evidenza; "largo" (2x1): testata col nome, consumo in basso */
+.wv.presa.st-consumo { padding: 11px 12px 9px; gap: 4px; }
+.wv.presa.st-consumo .wv-ico { width: 32px; height: 32px; border-radius: 11px; }
+.wv.presa.st-consumo .wv-tog { width: 40px; height: 24px; }
+.wv.presa.st-consumo .wv-tog::after { width: 20px; height: 20px; }
+.wv.presa.st-consumo .wv-tog.on::after { transform: translateX(16px); }
+.wv.presa.st-consumo .wv-fondo { gap: 2px; }
+.wv.presa.st-consumo .wv-watt { font-size: 1.4rem; line-height: 1; }
+.wv.presa.st-consumo .wv-state { font-size: 0.66rem; }
+.wv.presa.st-consumo .wv-watt.vuoto { color: rgba(255,255,255,0.35); }
+.wv.presa.st-largo .wv-fondo { flex-direction: row; align-items: baseline; gap: 6px; }
+.wv.presa.st-largo .wv-watt { font-size: 1.4rem; }
+.wv.presa.st-largo .wv-watt-et { font-size: 0.62rem; font-weight: 600; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.05em; }
+.wv.presa.st-largo .wv-fondo[hidden] { display: none; }
+
+/* scena "largo" (2x1): icona a sinistra, nome e stato, tasto Avvia */
+.wv.scena.st-largo { flex-direction: row; align-items: center; text-align: left; gap: 12px; }
+.wv.scena.st-largo .wv-scena-ico { margin-bottom: 0; flex-shrink: 0; }
+.wv.scena.st-largo .wv-txt { flex: 1; min-width: 0; }
+.wv.scena.st-largo .wv-name, .wv.scena.st-largo .wv-state { max-width: none; }
+.wv-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); color: #FFF; font-size: 0.72rem; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: transform 0.15s; position: relative; z-index: 2; }
+.wv-btn:active { transform: scale(0.94); }
+.wv-btn svg { width: 12px; height: 12px; pointer-events: none; }
+.wv-btn.pieno { background: #FFF; color: #000; border-color: transparent; box-shadow: 0 6px 18px rgba(255,255,255,0.25); }
+.wv-btn.pieno svg { fill: #000; color: #000; }
+
+/* generico "largo" (2x1): tutto su una riga */
+.wv.gen.st-largo { justify-content: center; }
+.wv.gen.st-largo .wv-head { gap: 12px; }
+.wv.gen.st-largo .wv-fondo { display: none; }
+
+/* ---------- PERSONALIZZA PLANCIA: i widget tremano, si trascinano, due tastini (stile, nascondi) ---------- */
+.wv-strumenti { position: absolute; top: 7px; right: 7px; z-index: 7; display: none; gap: 5px; }
+body.wh-personalizza .wv-strumenti { display: flex; }
+.wv-strumenti button { width: 27px; height: 27px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.28); background: rgba(18,18,24,0.88); color: #FFF; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: transform 0.15s, background 0.2s; }
+.wv-strumenti button:hover { background: rgba(60,60,70,0.95); }
+.wv-strumenti button:active { transform: scale(0.88); }
+.wv-strumenti button svg { width: 13px; height: 13px; pointer-events: none; }
+.wv-strumenti button.occhio { color: #FF9F0A; }
+body.wh-personalizza .wv { animation: hkTrema 0.24s infinite alternate ease-in-out; cursor: grab; transition: none; }
+body.wh-personalizza .wv:nth-child(2n) { animation-delay: -0.12s; }
+body.wh-personalizza .wv > :not(.wv-strumenti) { pointer-events: none; }
+body.wh-personalizza .wv:hover { transform: none; box-shadow: 0 12px 35px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.1); }
+body.wh-personalizza .wv.sortable-chosen, body.wh-personalizza .wv.sortable-drag, .wv.sortable-fallback { animation: none !important; }
+body.wh-personalizza .wv.sortable-chosen { transform: scale(1.04); z-index: 5; box-shadow: 0 20px 50px rgba(0,0,0,0.7); border-color: rgba(255,255,255,0.45); }
+.wv.sortable-fallback { opacity: 0.92 !important; cursor: grabbing; }
+.wv.sortable-ghost { opacity: 0.25; }
+/* la riga dei nascosti, sotto la plancia (solo in Personalizza): sta FUORI dalla griglia, fratello subito dopo .wh-vista,
+   cosi' e' alta quanto il suo contenuto (dentro la griglia occuperebbe una traccia intera da 124 px anche vuota) */
+.wv-nascosti { display: none; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-top: var(--grid-gap, 12px); padding: 9px 14px; border-radius: 18px; border: 1px dashed rgba(255,255,255,0.22); background: rgba(255,255,255,0.03); color: #FFF; }
+body.wh-personalizza .wv-nascosti { display: flex; }
+body.modifica .wv-nascosti { display: none !important; }      /* "Sposta le card" rimostra la griglia: la riga segue la plancia */
+.wv-nascosti-tit { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.55); white-space: nowrap; margin-right: 4px; }
+.wv-nascosti-tit svg { width: 14px; height: 14px; }
+.wv-nascosti-tit b { color: #FFF; }
+.wv-nascosti-vuoto { font-size: 0.74rem; font-weight: 600; color: rgba(255,255,255,0.4); }
+.wv-nascosto { display: flex; align-items: center; gap: 7px; max-width: 260px; padding: 6px 10px 6px 8px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.08); color: #FFF; font-family: inherit; font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+.wv-nascosto:hover { background: rgba(255,255,255,0.16); }
+.wv-nascosto:active { transform: scale(0.96); }
+.wv-nascosto > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wv-nascosto svg { width: 14px; height: 14px; flex-shrink: 0; pointer-events: none; }
+.wv-nascosto svg.rimetti { color: #34C759; }
+/* la barra in alto (uguale a .barra-modifica di "Sposta le card") con Ripristina e Fine */
+.wh-plancia-barra { position: fixed; top: calc(var(--safe-top, 0px) + 12px); left: 50%; transform: translate(-50%, -40px); opacity: 0; visibility: hidden; pointer-events: none; z-index: 3000; display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 18px; border-radius: 40px; background: rgba(22,22,26,0.82); backdrop-filter: blur(30px) saturate(200%); -webkit-backdrop-filter: blur(30px) saturate(200%); border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 15px 40px rgba(0,0,0,0.6); color: #FFF; font-size: 0.86rem; font-weight: 600; white-space: nowrap; max-width: calc(100vw - 32px); transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease, visibility 0s linear 0.35s; }
+body.wh-personalizza .wh-plancia-barra { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: auto; transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease, visibility 0s; }
+.wh-plancia-barra button { border: none; border-radius: 30px; padding: 9px 18px; background: #FFF; color: #000; font-family: inherit; font-weight: 800; font-size: 0.84rem; cursor: pointer; }
+.wh-plancia-barra .salvato { color: #30D158; font-size: 0.74rem; font-weight: 700; display: none; }
+.wh-plancia-barra.ok .salvato { display: inline; }
+.wh-plancia-barra button.secondario { background: rgba(255,255,255,0.12); color: #FFF; border: 1px solid rgba(255,255,255,0.2); font-weight: 700; }
+.wh-plancia-barra button.pericolo { background: #FF453A; color: #FFF; }
+.wh-plancia-barra .wh-plancia-conferma { display: none; align-items: center; gap: 10px; }
+.wh-plancia-barra.conferma .wh-plancia-conferma { display: flex; }
+.wh-plancia-barra.conferma .wh-plancia-normale { display: none; }
+.wh-plancia-normale { display: flex; align-items: center; gap: 10px; }
+.wh-plancia-barra svg { width: 15px; height: 15px; flex-shrink: 0; color: rgba(255,255,255,0.7); }
+/* il tastino nella testata della stanza: solo in Plancia, da 1024 px, non durante le modifiche */
+.wh-plancia-tasto { display: none; width: 32px; height: 32px; margin-left: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.7); align-items: center; justify-content: center; cursor: pointer; padding: 0; flex-shrink: 0; transition: background 0.2s, color 0.2s, transform 0.15s; }
+.wh-plancia-tasto:hover { background: rgba(255,255,255,0.14); color: #FFF; }
+.wh-plancia-tasto:active { transform: scale(0.9); }
+.wh-plancia-tasto svg { width: 15px; height: 15px; pointer-events: none; }
+@media (min-width: 1024px) { html.wh-vista-plancia body:not(.modifica):not(.wh-personalizza) .wh-plancia-tasto { display: inline-flex; } }
+/* la sezione "Stile / Nascondi / Personalizza" del menu della card: solo dai widget della Plancia */
+.hk-menu-plancia { display: none; }
+html.wh-vista-plancia .hk-menu.da-vista .hk-menu-plancia { display: block; }
+.hk-menu.solo-stili [data-az="sposta"], .hk-menu.solo-stili [data-az="wv-nascondi"], .hk-menu.solo-stili [data-az="wv-personalizza"] { display: none; }
+.hk-menu-plancia .hk-menu-sep { height: 1px; margin: 5px 8px; background: rgba(255,255,255,0.1); }
+.hk-menu .hk-menu-stili button { padding-top: 6px; padding-bottom: 6px; }
+.hk-menu .hk-menu-stili button .wv-ant { display: grid; grid-template-columns: repeat(4, 6px); grid-template-rows: repeat(2, 6px); gap: 2px; flex-shrink: 0; }
+.hk-menu .hk-menu-stili button .wv-ant b { display: block; border-radius: 1.5px; background: rgba(255,255,255,0.12); }
+.hk-menu .hk-menu-stili button .wv-ant b.on { background: rgba(255,214,10,0.7); }
+.hk-menu .hk-menu-stili button.attivo .wv-ant b.on { background: #FFD60A; box-shadow: 0 0 6px rgba(255,214,10,0.6); }
+.hk-menu .hk-menu-stili button .et { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hk-menu .hk-menu-stili button .mis { font-size: 0.68rem; font-weight: 600; color: rgba(255,255,255,0.4); font-variant-numeric: tabular-nums; }
+.hk-menu .hk-menu-stili button .spunta { width: 16px; height: 16px; opacity: 0; color: #34C759; }
+.hk-menu .hk-menu-stili button.attivo .spunta { opacity: 1; }
+.hk-menu .hk-menu-stili button.attivo { color: #FFF; }
+/* Impostazioni: il rimando a Personalizza dalla tessera Plancia */
+.imp-pagina .imp-plancia-personalizza { display: inline-flex; align-items: center; gap: 8px; margin: 10px 0 0; padding: 9px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.16); background: rgba(255,255,255,0.07); color: #FFF; font-family: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+.imp-pagina .imp-plancia-personalizza[hidden] { display: none; }
+.imp-pagina .imp-plancia-personalizza svg { width: 15px; height: 15px; }
+.wv-nascosto > svg:last-child { color: #34C759; }
+.wv-graf .area { opacity: 1; }
+/* in Personalizza i tastini stanno in alto a destra: quello che ci sta sotto si nasconde o si stringe */
+body.wh-personalizza .wv > .wv-head .wv-tog, body.wh-personalizza .wv > .wv-head .wv-tapp-tasti, body.wh-personalizza .wv > .wv-head .wv-btn,
+body.wh-personalizza .wv .wv-cam-top, body.wh-personalizza .wv .wv-media-sorg, body.wh-personalizza .wv .wv-stat-head > svg { visibility: hidden; }
+body.wh-personalizza .wv > .wv-head, body.wh-personalizza .wv > .wv-stat-head, body.wh-personalizza .wv .wv-graf-testa,
+body.wh-personalizza .wv.media .wv-media-col > div:first-child, body.wh-personalizza .wv.media .wv-media-titoli, body.wh-personalizza .wv.scena.st-largo .wv-txt { padding-right: 58px; }
+body.wh-personalizza .wv.scena.st-tasto { padding-top: 34px; }
+body.wh-personalizza .wv.scena.st-tasto .wv-scena-ico { width: 36px; height: 36px; }
+body.wh-personalizza .wv.scena.st-tasto .wv-scena-ico svg { width: 18px; height: 18px; }
+body.wh-personalizza .wv.clima.st-minimo .wv-head .wv-state { visibility: hidden; }  /* nel 1x1 sotto i tastini c'e' solo lo stato breve: nome e temperatura restano in vista */
+body.wh-personalizza .wv.stat.st-stat .wv-stat-val { margin-top: 8px; }             /* il valore scende sotto i tastini */
 
 /* menu della card aperto da un widget: "Allarga card" non ha senso (la card e' nascosta) */
 .hk-menu.da-vista [data-az="allarga"], .hk-menu.da-vista .hk-menu-nota { display: none; }
@@ -4502,6 +4756,8 @@ html.wh-scala .imp-pagina {
                 <div class="section-header" style="margin-bottom: 16px;">
                     <div class="section-title" data-no-tr>{{ room_name }}</div>
                     <div class="section-line"></div>
+                    <!-- Personalizza plancia (viste su schermi grandi): si vede solo in Plancia, da 1024 px -->
+                    <button type="button" class="wh-plancia-tasto" title="Personalizza plancia" aria-label="Personalizza plancia"><i data-lucide="sliders-horizontal"></i></button>
                 </div>
                 
                 {% if room_data.sub_rooms %}
@@ -4653,6 +4909,11 @@ html.wh-scala .imp-pagina {
     </div>
 
     <div class="barra-modifica" id="barra-modifica"><span>Trascina le card dove vuoi</span><span class="salvato">&check; salvato</span><button type="button" onclick="esciModifica()">Fine</button></div>
+    <!-- PERSONALIZZA PLANCIA (viste su schermi grandi, whViste in fondo alla pagina): trascina, stile, nascondi; Ripristina con conferma nella barra -->
+    <div class="wh-plancia-barra" id="wh-plancia-barra">
+        <div class="wh-plancia-normale"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg><span>Trascina i widget, cambia stile o nascondi</span><span class="salvato">&check; salvato</span><button type="button" class="secondario" data-az="ripristina">Ripristina</button><button type="button" data-az="fine">Fine</button></div>
+        <div class="wh-plancia-conferma"><span>Ripristinare la plancia di questa stanza? Stili predefiniti e nessun widget nascosto.</span><button type="button" class="secondario" data-az="no">Annulla</button><button type="button" class="pericolo" data-az="si">Ripristina</button></div>
+    </div>
     <!-- ===== MENU DELLA CARD (tasto destro / pressione lunga) E CARD ALLARGATE: INIZIO ===== -->
     <style>
         .hk-card { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
@@ -4739,11 +5000,26 @@ html.wh-scala .imp-pagina {
             <span id="hk-menu-allarga">Allarga card</span>
         </button>
         <div class="hk-menu-nota" id="hk-menu-nota"></div>
+        <!-- dai widget della Plancia (viste su schermi grandi): Stile (scelte del tipo, riempite da whViste), Nascondi, Personalizza -->
+        <div class="hk-menu-plancia" id="hk-menu-plancia">
+            <div class="hk-menu-sep"></div>
+            <div class="hk-menu-nome">Stile</div>
+            <div class="hk-menu-stili" id="hk-menu-stili" role="group"></div>
+            <div class="hk-menu-sep"></div>
+            <button type="button" data-az="wv-nascondi">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                <span>Nascondi dalla plancia</span>
+            </button>
+            <button type="button" data-az="wv-personalizza">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
+                <span>Personalizza plancia</span>
+            </button>
+        </div>
     </div>
     <div class="hk-toast" id="hk-toast"></div>
     <!-- ===== MENU DELLA CARD E CARD ALLARGATE: FINE ===== -->
     <div class="modal-overlay" id="modal-overlay"></div>
-    <script>window.__offlineIds = {{ (offline_ids or []) | tojson }}; window.__ordiniSalvati = {{ (ordini_salvati or []) | tojson }}; window.__allargate = {{ (allargate or []) | tojson }};window.__fusoCasa = {{ (fuso_casa or '') | tojson }};window.__sfondoImpianto = {{ (sfondo_impianto or '') | tojson }};</script>
+    <script>window.__offlineIds = {{ (offline_ids or []) | tojson }}; window.__ordiniSalvati = {{ (ordini_salvati or []) | tojson }}; window.__allargate = {{ (allargate or []) | tojson }}; window.__WH_PLANCIA__ = {{ ((plancia_salvata or {}) | tojson) if plancia_salvata is defined else 'null' }};window.__fusoCasa = {{ (fuso_casa or '') | tojson }};window.__sfondoImpianto = {{ (sfondo_impianto or '') | tojson }};</script>
 
     <div class="bottom-modal" id="active-entities-modal">
         <div class="modal-handle"></div>
@@ -5245,6 +5521,7 @@ html.wh-scala .imp-pagina {
                         </div>
                     </div>
                     <p class="imp-nota">Su iPad e computer (da 1024 px) i dispositivi si vedono come card, come una plancia con i comandi in vista o come un cruscotto. Sul telefono restano sempre le card.</p>
+                    <button type="button" class="imp-plancia-personalizza" id="imp-plancia-personalizza" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg><span>Personalizza la plancia…</span></button>
                     <p class="imp-nota imp-vista-nota-cruscotto">Il Cruscotto è in preparazione: per ora mostra le card.</p>
                 </div>
 
@@ -13385,7 +13662,7 @@ function hkApriMenu(card, x, y) {
 }
 function hkChiudiMenu() {
     const menu = document.getElementById('hk-menu'); if (!menu) return;
-    menu.classList.remove('on', 'da-vista'); hkMenuCard = null;
+    menu.classList.remove('on', 'da-vista', 'solo-stili'); hkMenuCard = null;
 }
 document.getElementById('hk-menu').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-az]'); if (!b || b.disabled) return;
@@ -13705,6 +13982,14 @@ function hkOsserva(card) {
    - La Plancia mette i suoi helper in 'condivisi' (el, icona, cursore, nomeColore, MODI, BINARI, fmtTempo...):
      il Cruscotto li riusa, cosi' le due viste hanno gli stessi colori, nomi e gesti.
 
+   - PERSONALIZZA PLANCIA (01/10/2026): whViste.plancia tiene, per chiave (stanza, zona, preferiti) ed entita',
+     lo stile del widget e se e' nascosta dalla plancia. Arriva dal server con la pagina (window.__WH_PLANCIA__,
+     per dispositivo come l'ordine delle card) e ogni cambio va in POST /api/mobile/plancia; se il server non ha
+     l'API (__WH_PLANCIA__ null o risposta 404) le scelte restano nel dispositivo (localStorage 'wh_plancia') e
+     vengono mandate al server la prima volta che risponde. La Plancia legge whViste.plancia quando costruisce
+     i widget: niente sfarfallio. whViste.riordina(griglia, ids) rimette le card nell'ordine dei widget e salva
+     con salvaOrdine (lo stesso di "Sposta le card"). Lo storico del server (chiediStorico/serie) e' qui, in
+     comune fra Plancia e Cruscotto.
    COME SI REGISTRA UNA VISTA (cosi' e' fatto il Cruscotto, in fondo a questo script)
      whViste.registra('cruscotto', {
          etichetta: 'Cruscotto',
@@ -13747,6 +14032,103 @@ function hkOsserva(card) {
     function scelta() { const v = leggi(CHIAVE); return NOMI.includes(v) ? v : 'card'; }
     function segnaposto(nome) { const d = viste[nome]; return !d || !!d.segnaposto || typeof d.costruisci !== 'function'; }
     function effettiva() { const s = scelta(); return (GRANDE.matches && s !== 'card' && !segnaposto(s)) ? s : null; }
+    const rimuovi = k => { try { localStorage.removeItem(k); } catch (e) {} };
+
+    // ------------------------------------------------------------ storico del server (24 h, /api/sensor_history): in comune fra le viste
+    const GIORNO = 24 * 3600e3;
+    const storicoServer = new Map();   // entity_id -> { quando, punti: [{ t, v }] }
+    // Una sola richiesta per entita' ogni 5 minuti (la prima chiamata segna subito la voce): quando lo storico arriva si
+    // ridisegnano TUTTI i widget di quell'entita' (stanza, zona, Preferiti; Plancia o Cruscotto), non solo chi ha chiesto.
+    function chiediStorico(id) {
+        const c = storicoServer.get(id);
+        if (c && Date.now() - c.quando < 5 * 60e3) return;
+        storicoServer.set(id, { quando: Date.now(), punti: c ? c.punti : [] });
+        fetch('/api/sensor_history/' + encodeURIComponent(id) + '?hours=24', { credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : [])
+            .then(l => {
+                const punti = (Array.isArray(l) ? l : []).map(p => ({ t: p.t * 1000, v: num(p.v) })).filter(p => p.v !== null);
+                storicoServer.set(id, { quando: Date.now(), punti });
+                if (punti.length) (whCard.di(id) || []).forEach(card => aggiornaCard(card, true));   // forza: la firma della card non e' cambiata
+            }).catch(() => {});
+    }
+    // i punti del server uniti ai valori vivi ricevuti dalla pagina (on/off -> 1/0), ultime 24 ore
+    function serie(id) {
+        const srv = storicoServer.get(id), ora = Date.now(), out = [];
+        if (srv && srv.punti) srv.punti.forEach(p => out.push(p));
+        const ultimo = out.length ? out[out.length - 1].t : 0;
+        (storico.get(id) || []).forEach(x => { const v = x.v === 'on' ? 1 : (x.v === 'off' ? 0 : num(x.v)); if (v !== null && x.t > ultimo) out.push({ t: x.t, v }); });
+        return out.filter(p => ora - p.t <= GIORNO);
+    }
+
+    // ------------------------------------------------------------ PLANCIA: stile e "nascosta" di ogni entita', per chiave (per dispositivo, sul server)
+    // window.__WH_PLANCIA__ = { chiave: { entity_id: { stile, nascosta } } } dal server; null = server senza l'API.
+    // POST /api/mobile/plancia { chiave, entity_id, stile, nascosta } | { chiave, entity_id, reset } | { chiave, reset }.
+    // Senza l'API (null, o risposta 404) le scelte restano in localStorage 'wh_plancia' e si mandano al server
+    // la prima volta che risponde (come l'ordine delle card la prima volta col server nuovo).
+    const PLANCIA_LS = 'wh_plancia', PLANCIA_RIP = 'wh_plancia_ripiego';
+    const plancia = (function () {
+        let dati = {}, locale = false;
+        function pulisci(obj) {
+            const out = {};
+            if (!obj || typeof obj !== 'object') return out;
+            for (const k in obj) {
+                const e = obj[k]; if (!e || typeof e !== 'object') continue;
+                const o = {};
+                for (const id in e) {
+                    const v = e[id] || {};
+                    const s = (typeof v.stile === 'string' && /^[a-z0-9_-]{0,40}$/.test(v.stile)) ? v.stile : '';
+                    const n = v.nascosta ? 1 : 0;
+                    if (s || n) o[id] = { stile: s, nascosta: n };
+                }
+                if (Object.keys(o).length) out[k] = o;
+            }
+            return out;
+        }
+        function salvaLocale() { scrivi(PLANCIA_LS, JSON.stringify(dati)); scrivi(PLANCIA_RIP, '1'); }
+        function leggiLocale() { try { return pulisci(JSON.parse(leggi(PLANCIA_LS) || '{}')); } catch (e) { return {}; } }
+        function invia(corpo) {
+            if (locale) { salvaLocale(); return Promise.resolve(false); }
+            return fetch('/api/mobile/plancia', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(corpo) })
+                .then(r => {
+                    if (r.status === 404) { locale = true; salvaLocale(); return false; }      // server senza l'API: si tiene tutto nel dispositivo
+                    if (!r.ok) { if (typeof hkToast === 'function') hkToast(T('Plancia non salvata sul server: al prossimo avvio potrebbe tornare com\u2019era')); return false; }
+                    return true;
+                }).catch(() => { if (typeof hkToast === 'function') hkToast(T('Plancia non salvata: nessuna risposta dal server')); return false; });
+        }
+        function migra() {          // prima volta col server nuovo: le scelte tenute nel dispositivo vanno sul server
+            const invii = [];
+            for (const k in dati) for (const id in dati[k]) invii.push(invia({ chiave: k, entity_id: id, stile: dati[k][id].stile, nascosta: dati[k][id].nascosta }));
+            Promise.all(invii).then(ok => { if (ok.length && ok.every(Boolean)) { rimuovi(PLANCIA_LS); rimuovi(PLANCIA_RIP); } });
+        }
+        (function carica() {
+            const srv = window.__WH_PLANCIA__, ripiego = leggi(PLANCIA_RIP) === '1';
+            if (srv === null || srv === undefined) { locale = true; dati = ripiego ? leggiLocale() : {}; return; }
+            const s = pulisci(srv);
+            if (Object.keys(s).length) { dati = s; if (ripiego) { rimuovi(PLANCIA_LS); rimuovi(PLANCIA_RIP); } return; }   // il server ha le scelte: vincono
+            dati = ripiego ? leggiLocale() : {};
+            if (ripiego && Object.keys(dati).length) setTimeout(migra, 1500);
+        })();
+        return {
+            stile(chiave, id) { const e = dati[chiave]; return (e && e[id]) ? (e[id].stile || '') : ''; },
+            nascosta(chiave, id) { const e = dati[chiave]; return !!(e && e[id] && e[id].nascosta); },
+            nascoste(chiave) { const e = dati[chiave] || {}; return Object.keys(e).filter(id => e[id].nascosta); },
+            imposta(chiave, id, cambio) {
+                if (!chiave || !id || !cambio) return Promise.resolve(false);
+                const e = dati[chiave] || (dati[chiave] = {}), v = e[id] || { stile: '', nascosta: 0 };
+                if (cambio.stile !== undefined) v.stile = String(cambio.stile || '');
+                if (cambio.nascosta !== undefined) v.nascosta = cambio.nascosta ? 1 : 0;
+                if (!v.stile && !v.nascosta) {
+                    delete e[id]; if (!Object.keys(e).length) delete dati[chiave];
+                    return invia({ chiave, entity_id: id, reset: true });
+                }
+                e[id] = v;
+                return invia({ chiave, entity_id: id, stile: v.stile, nascosta: v.nascosta });
+            },
+            reset(chiave) { delete dati[chiave]; return invia({ chiave, reset: true }); },
+            locale: () => locale,
+            tutto: () => dati
+        };
+    })();
 
     // ------------------------------------------------------------ dati letti dalla card
     function statoDi(card) {
@@ -13966,6 +14348,42 @@ function hkOsserva(card) {
         sporche.clear(); daRifare.clear();
         attiva = null;
     }
+    // ------------------------------------------------------------ riordino dalla Plancia: le card prendono l'ordine dei widget e si salva come "Sposta le card"
+    function grigliaDi(cont) { let g = null; contenitori.forEach((c, grid) => { if (c === cont) g = grid; }); return g; }
+    function ricostruisciGriglia(grid) { if (attiva && grid && grid.isConnected) { costruisciGriglia(grid, attiva); if (typeof whIcone === 'function') whIcone(); } }
+    function riordina(grid, ids) {
+        if (!grid || !Array.isArray(ids)) return false;
+        const cards = Array.from(grid.children).filter(c => c.classList && c.classList.contains('hk-card') && c.dataset.id);
+        if (!cards.length) return false;
+        const perId = new Map(); cards.forEach(c => { if (!perId.has(c.dataset.id)) perId.set(c.dataset.id, c); });
+        const mosse = ids.map(id => perId.get(id)).filter(Boolean), insieme = new Set(mosse);
+        let k = 0;
+        const nuovo = cards.map(c => insieme.has(c) ? mosse[k++] : c);      // le card senza widget (nascoste) restano dove sono
+        if (!nuovo.some((c, i) => c !== cards[i])) return false;
+        const segnaposto = document.createComment('riordino');
+        grid.insertBefore(segnaposto, cards[0]);
+        nuovo.forEach(c => grid.insertBefore(c, segnaposto));
+        segnaposto.remove();
+        // la griglia non va ricostruita (i widget sono gia' nell'ordine giusto): le mutazioni di questo spostamento si scartano
+        const oss = osservatori.get(grid);
+        if (oss) {
+            oss.takeRecords().forEach(r => {
+                if (r.type === 'childList' && r.target === grid) return;
+                const elx = r.target.nodeType === 1 ? r.target : r.target.parentElement;
+                const card = elx && elx.closest ? elx.closest('.hk-card') : null;
+                if (card) sporche.add(card);
+            });
+            if (sporche.size) programma();
+        }
+        let fatto = false;
+        try {
+            if (typeof salvaOrdine === 'function' && window.Sortable && typeof Sortable.get === 'function') { const s = Sortable.get(grid); if (s) { salvaOrdine(grid, s); fatto = true; } }
+        } catch (e) {}
+        if (!fatto && grid.dataset.chiave) {
+            fetch('/api/mobile/ordine', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chiave: grid.dataset.chiave, ordine: Array.from(grid.children).filter(c => c.classList && c.classList.contains('hk-card') && c.dataset.id).map(c => c.dataset.id) }) }).catch(() => {});
+        }
+        return true;
+    }
     function applica() {
         const nome = effettiva();
         const h = document.documentElement;
@@ -14077,10 +14495,18 @@ function hkOsserva(card) {
                 if (m && !m.classList.contains('cam-fullscreen-active')) toggleFullscreenCam();
             }
         },
-        menu(card, x, y) {
+        menu(card, x, y, opzioni) {
             if (typeof hkApriMenu !== 'function') return;
+            const m = document.getElementById('hk-menu');
+            const def = attiva ? viste[attiva] : null;
+            if (m && def && typeof def.menu === 'function') { try { def.menu(card, m, opzioni || {}); } catch (e) { console.warn('[viste] menu', e); } }   // la Plancia riempie la sezione Stile
             hkApriMenu(card, x, y);
-            const m = document.getElementById('hk-menu'); if (m) m.classList.add('da-vista');
+            if (!m || !m.classList.contains('on')) return;
+            m.classList.add('da-vista');
+            if (opzioni && opzioni.soloStili) m.classList.add('solo-stili');      // dal tastino "stile" di Personalizza: solo le scelte dello stile
+            // con le voci in piu' il menu e' piu' alto: si riposiziona come fa hkApriMenu (sopra l'indicatore Home)
+            const top = Math.max(8, Math.min(y, window.innerHeight - m.offsetHeight - 8 - (typeof hkSafeBottom === 'function' ? hkSafeBottom() : 0)));
+            m.style.top = top + 'px';
         }
     };
 
@@ -14090,6 +14516,7 @@ function hkOsserva(card) {
         const s = scelta();
         box.querySelectorAll('.imp-vista-tessera').forEach(b => b.setAttribute('aria-pressed', b.dataset.vista === s ? 'true' : 'false'));
         box.dataset.cruscotto = segnaposto('cruscotto') ? 'segnaposto' : 'pronto';
+        const bp = document.getElementById('imp-plancia-personalizza'); if (bp) bp.hidden = !(s === 'plancia' && GRANDE.matches);
     }
     document.addEventListener('click', e => {
         const b = e.target.closest && e.target.closest('.imp-vista-tessera'); if (!b) return;
@@ -14100,6 +14527,8 @@ function hkOsserva(card) {
 
     window.whViste = {
         registra, attiva: attivaVista, attuale: () => attiva, scelta, cambiata, annota, dati, comandi, visibili, storico: id => storico.get(id) || [],
+        plancia, riordina, grigliaDi, ricostruisciGriglia, chiediStorico, serie,
+        personalizza: si => { const d = attiva ? viste[attiva] : null; if (d && typeof d.personalizza === 'function') d.personalizza(si); },
         ricostruisci: () => { if (attiva) { const n = attiva; distruggi(); costruisci(n); } },
         aggiornaTutte: () => { contenitori.forEach((c, grid) => Array.from(grid.children).forEach(card => { if (card.dataset && card.dataset.id) aggiornaCard(card, true); })); }
     };
@@ -14108,14 +14537,24 @@ function hkOsserva(card) {
 
     /* =================================================================
        VISTA "PLANCIA": ogni entita' e' un widget aperto con i controlli in vista (mockup plancia.html).
-       Griglia 8/6/5 colonne, righe da 124 px, grid-auto-flow: dense. Misure: luce 2x1 (1x1 se solo on/off),
-       tapparella 1x2, termostato 2x2, lettore 3x1, telecamera 4x2 (3x2 sotto i 1400), sensore 1x1,
-       presa 1x1, scena 1x1, generico 1x1.
+       Griglia 8/6/5 colonne, righe da 124 px, grid-auto-flow: dense.
+       PERSONALIZZA PLANCIA (01/10/2026): per ogni entita' si sceglie lo STILE del widget (e la misura che
+       ne deriva), la posizione (trascinando: l'ordine e' quello delle card, salvato con lo stesso
+       meccanismo di "Sposta le card") e se NASCONDERLA dalla plancia (resta nelle card e nel Cruscotto).
+       Stili (il primo e' il predefinito, com'era prima; la luce senza scelta segue la sua natura):
+         luce: cursore 2x1 | interruttore 1x1 | colori 2x1 (solo luci a colori)
+         sensore: stat 1x1 | arco 1x1 | grafico 2x1 | compatto 1x1
+         tapparella: tenda 1x2 | compatta 1x1 | cursore 2x1        termostato: anello 2x2 | compatto 2x1 | minimo 1x1
+         lettore: largo 3x1 | pieno 4x1 | quadrato 2x2             telecamera: grande 4x2 (3x2 sotto i 1400) | media 2x1 | ampia 4x1
+         presa: interruttore 1x1 | consumo 1x1 | largo 2x1          scena/script: tasto 1x1 | largo 2x1     generico: compatto 1x1 | largo 2x1
+       Le scelte stanno in whViste.plancia (per dispositivo sul server: /api/mobile/plancia; vedi la base).
        ================================================================= */
     (function () {
         const mappa = new WeakMap();      // card -> widget
         const media = new Set();          // widget dei lettori (per far avanzare il tempo del brano)
-        let ticchettio = null, contatore = 0;
+        const grafici = new Set();        // widget "grafico" (l'asse dei tempi scorre: rinfrescati ogni minuto)
+        const ordinatori = new Map();     // contenitore .wh-vista -> Sortable (solo in Personalizza)
+        let ticchettio = null, contatore = 0, battiti = 0, modo = false;
         const COLORI = [[255, 69, 58, 'Rosso'], [255, 159, 10, 'Arancio'], [255, 214, 10, 'Giallo'], [48, 209, 88, 'Verde'], [90, 120, 255, 'Blu'], [191, 90, 242, 'Viola'], [255, 45, 149, 'Rosa']];
         const BIANCO = [255, 228, 196];
         const MODI = (typeof MODI_TERMO !== 'undefined' && MODI_TERMO) ? MODI_TERMO : {
@@ -14128,6 +14567,56 @@ function hkOsserva(card) {
         const decimali = v => { const m = String(v == null ? '' : v).match(/[.,](\d+)$/); return m ? m[1].length : 0; };
         const COLORE_SENSORE = { temperature: '255,159,10', humidity: '100,210,255', power: '255,214,10', energy: '255,214,10', motion: '48,209,88', occupancy: '48,209,88', battery: '48,209,88', carbon_dioxide: '191,90,242', illuminance: '255,214,10', door: '100,210,255', window: '100,210,255', moisture: '100,210,255' };
         const BINARI = { door: ['Aperta', 'Chiusa'], window: ['Aperta', 'Chiusa'], garage_door: ['Aperta', 'Chiusa'], opening: ['Aperto', 'Chiuso'], motion: ['Movimento', 'Nessuno'], occupancy: ['Presenza', 'Nessuno'], moisture: ['Bagnato', 'Asciutto'], smoke: ['Fumo', 'Nessuno'], gas: ['Gas', 'Nessuno'], presence: ['In casa', 'Fuori casa'], connectivity: ['Collegato', 'Scollegato'], power: ['Acceso', 'Spento'], plug: ['Collegata', 'Scollegata'], light: ['Luce', 'Buio'], lock: ['Aperta', 'Chiusa'], problem: ['Problema', 'Tutto bene'], vibration: ['Vibrazione', 'Nessuna'] };
+        const LOCALE = INGLESE ? 'en-GB' : 'it-IT';
+        const ORA = t => new Date(t).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
+        const FINESTRE = [[15 * 60e3, 'Ultimi 15 min'], [30 * 60e3, 'Ultimi 30 min'], [3600e3, 'Ultima ora'], [3 * 3600e3, 'Ultime 3 ore'], [6 * 3600e3, 'Ultime 6 ore'], [12 * 3600e3, 'Ultime 12 ore'], [GIORNO, 'Ultime 24 ore']];
+
+        // ---------- gli stili di ogni genere di widget: nome -> [colonne, righe]; il primo e' il predefinito
+        const STILI = {
+            luce: { cursore: [2, 1], interruttore: [1, 1], colori: [2, 1] },
+            stat: { stat: [1, 1], arco: [1, 1], grafico: [2, 1], compatto: [1, 1] },
+            tapp: { tenda: [1, 2], compatta: [1, 1], cursore: [2, 1] },
+            clima: { anello: [2, 2], compatto: [2, 1], minimo: [1, 1] },
+            media: { largo: [3, 1], pieno: [4, 1], quadrato: [2, 2] },
+            cam: { grande: [4, 2], media: [2, 1], ampia: [4, 1] },
+            presa: { interruttore: [1, 1], consumo: [1, 1], largo: [2, 1] },
+            scena: { tasto: [1, 1], largo: [2, 1] },
+            gen: { compatto: [1, 1], largo: [2, 1] }
+        };
+        // etichette nel menu (frasi intere: i18n le traduce); 'media' della telecamera si chiama Piccola per non confonderla con i lettori
+        const ETICHETTE = { cursore: 'Cursore', interruttore: 'Interruttore', colori: 'Colori', stat: 'Valore e andamento', arco: 'Arco', grafico: 'Grafico', compatto: 'Compatto', tenda: 'Tenda', compatta: 'Compatta', anello: 'Anello', minimo: 'Minimo', largo: 'Largo', pieno: 'Pieno', quadrato: 'Quadrato', grande: 'Grande', media: 'Piccola', ampia: 'Ampia', consumo: 'Consumo', tasto: 'Tasto' };
+        function genere(d) {
+            switch (d.tipo) {
+                case 'light': return 'luce';
+                case 'cover': return 'tapp';
+                case 'climate': return 'clima';
+                case 'media_player': return 'media';
+                case 'camera': return 'cam';
+                case 'sensor': return 'stat';
+                case 'switch': return 'presa';
+                case 'scene': case 'script': return 'scena';
+                default: return 'gen';
+            }
+        }
+        function stiliOfferti(d) {
+            const g = genere(d);
+            let l = Object.keys(STILI[g]);
+            if (g === 'luce') {
+                if (!d.luce.colori) l = l.filter(s => s !== 'colori');       // senza colori la fila dei colori non ha senso
+                if (!d.luce.dimmer) l = l.filter(s => s !== 'cursore');      // solo on/off: niente cursore
+            }
+            return l;
+        }
+        function stilePredefinito(d) {
+            if (d.tipo === 'light') return d.luce.dimmer ? (d.luce.colori ? 'colori' : 'cursore') : 'interruttore';   // com'era: segue la natura della luce
+            return Object.keys(STILI[genere(d)])[0];
+        }
+        function stileEffettivo(d, chiave) {
+            const s = plancia.stile(chiave, d.id);
+            return (s && stiliOfferti(d).includes(s)) ? s : stilePredefinito(d);
+        }
+        function chiaveDi(card) { const g = card.closest('.grid-hk'); return g ? (g.dataset.chiave || '') : ''; }
+        function inModo() { return modo; }
 
         function el(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
         function icona(card, ripiego) {
@@ -14139,6 +14628,7 @@ function hkOsserva(card) {
             const i = document.createElement('i'); i.setAttribute('data-lucide', ripiego); return i;
         }
         function spanT(t) { return '<span>' + esc(t) + '</span>'; }
+        const N = t => '<span data-no-tr>' + esc(t) + '</span>';
         function nomeColore(rgb) {
             let migliore = null, dist = Infinity;
             COLORI.concat([[BIANCO[0], BIANCO[1], BIANCO[2], 'Bianco'], [255, 255, 255, 'Bianco']]).forEach(c => {
@@ -14166,8 +14656,25 @@ function hkOsserva(card) {
             if (d.tipo === 'tv') return true;
             return d.stato === 'on' || d.stato === 'off' || ['switch', 'input_boolean', 'group', 'fan', 'automation', 'humidifier', 'siren', 'remote'].includes(d.dominio);
         }
+        const fra = (v, a, b) => Math.max(0, Math.min(1, (v - a) / ((b - a) || 1)));
+        function polare(cx, cy, r, gradi) { const a = gradi * Math.PI / 180; return [(cx + r * Math.cos(a)).toFixed(1), (cy + r * Math.sin(a)).toFixed(1)]; }
+        // quanto e' "pieno" l'arco di un sensore: scale note per temperatura, umidita', CO2, luce, pressione; altrimenti sul massimo visto
+        function frazioneSensore(s, classe, punti) {
+            const v = s.numero; if (v === null) return 0;
+            const u = s.unita || '';
+            if (classe === 'temperature' || u === '°C') return fra(v, -10, 40);
+            if (u === '°F') return fra(v, 14, 104);
+            if (u === '%') return fra(v, 0, 100);
+            if (classe === 'carbon_dioxide' || u === 'ppm') return fra(v, 0, 2000);
+            if (classe === 'illuminance' || u === 'lx') return fra(Math.log(1 + Math.max(0, v)) / Math.LN10, 0, 5);
+            if (classe === 'pressure' || u === 'hPa' || u === 'mbar') return fra(v, 950, 1050);
+            let max = 0; (punti || []).forEach(p => { if (Math.abs(p.v) > max) max = Math.abs(p.v); });
+            if (u === 'W') max = Math.max(max, 1000); else if (u === 'kW') max = Math.max(max, 1);
+            return fra(Math.abs(v), 0, Math.max(max, Math.abs(v), 1));
+        }
+        function classeSensore(s) { return s.classe || (s.unita === '°C' || s.unita === '°F' ? 'temperature' : (s.unita === '%' ? 'humidity' : (s.unita === 'W' || s.unita === 'kW' ? 'power' : ''))); }
 
-        // ---------- cursori orizzontali (luminosita', volume): clic e trascinamento, come la barra del pannello
+        // ---------- cursori orizzontali (luminosita', volume, posizione): clic e trascinamento, come la barra del pannello
         function cursore(elc, suMossa, suFine) {
             let giu = false, ultimo = null;
             const pct = ev => { const r = elc.getBoundingClientRect(); return Math.round(Math.min(100, Math.max(0, (ev.clientX - r.left) / r.width * 100))); };
@@ -14189,28 +14696,39 @@ function hkOsserva(card) {
         }
 
         // ---------- costruzione dei widget
-        function crea(card) {
+        function misura(w, m) { ['s2', 's3', 's4', 'h2'].forEach(c => w.classList.remove(c)); if (m[0] > 1) w.classList.add('s' + m[0]); if (m[1] > 1) w.classList.add('h2'); }
+        function crea(card, chiave) {
             const d = dati(card);
-            const f = forma(d);
+            const f = forma(d), g = genere(d), st = stileEffettivo(d, chiave);
             let w;
-            if (f.startsWith('luce')) w = creaLuce(card, d, f);
-            else if (f === 'tapp') w = creaTapparella(card, d);
-            else if (f === 'clima') w = creaClima(card, d);
-            else if (f === 'media') w = creaMedia(card, d);
-            else if (f === 'cam') w = creaTelecamera(card, d);
-            else if (f.startsWith('stat')) w = creaStat(card, d, f);
-            else if (f === 'presa') w = creaPresa(card, d);
-            else if (f === 'scena') w = creaScena(card, d);
-            else w = creaGenerico(card, d, f);
-            w.dataset.id = d.id; w.dataset.forma = f;
+            switch (g) {
+                case 'luce': w = creaLuce(card, d, st); break;
+                case 'tapp': w = creaTapparella(card, d, st); break;
+                case 'clima': w = creaClima(card, d, st); break;
+                case 'media': w = creaMedia(card, d, st); break;
+                case 'cam': w = creaTelecamera(card, d, st); break;
+                case 'stat': w = creaStat(card, d, f, st); break;
+                case 'presa': w = creaPresa(card, d, st); break;
+                case 'scena': w = creaScena(card, d, st); break;
+                default: w = creaGenerico(card, d, f, st);
+            }
+            w.dataset.id = d.id; w.dataset.forma = f; w.dataset.stile = st; w._card = card; w._chiave = chiave;
+            w.classList.add('st-' + st);
+            misura(w, STILI[g][st]);
             // etichetta Offline / Non disponibile: prende il posto della riga di stato (mai sopra l'interruttore o il nome)
             const riga = w.querySelector(RIGA_STATO), tag = el('<span class="wv-tag" hidden></span>');
             if (riga) riga.insertAdjacentElement('afterend', tag); else w.appendChild(tag);
-            // menu della card (tasto destro / pressione lunga): "Sposta le card"
-            w.addEventListener('contextmenu', ev => { ev.preventDefault(); comandi.menu(card, ev.clientX, ev.clientY); });
+            // i due tastini di Personalizza (stile, nascondi): sempre nel widget, visibili solo in quella modalita'
+            const str = el('<div class="wv-strumenti"><button type="button" class="stile" title="Cambia stile"><i data-lucide="shapes"></i></button><button type="button" class="occhio" title="Nascondi dalla plancia"><i data-lucide="eye-off"></i></button></div>');
+            str.querySelector('.stile').addEventListener('click', ev => { ev.stopPropagation(); const r = ev.currentTarget.getBoundingClientRect(); comandi.menu(card, r.left, r.bottom + 4, { soloStili: true }); });
+            str.querySelector('.occhio').addEventListener('click', ev => { ev.stopPropagation(); nascondi(card, chiave); });
+            ['pointerdown', 'contextmenu', 'touchstart', 'mousedown'].forEach(n => str.addEventListener(n, ev => ev.stopPropagation()));
+            w.appendChild(str);
+            // menu della card (tasto destro / pressione lunga): Sposta le card, Stile, Nascondi, Personalizza plancia
+            w.addEventListener('contextmenu', ev => { ev.preventDefault(); comandi.menu(card, ev.clientX, ev.clientY, { soloStili: modo }); });
             let lp = null;
             w.addEventListener('pointerdown', ev => {
-                if (ev.pointerType === 'mouse' || ev.target.closest('button, .wv-dim, .wv-vol, .wv-tog, .wv-dot')) return;
+                if (modo || ev.pointerType === 'mouse' || ev.target.closest('button, .wv-dim, .wv-vol, .wv-tog, .wv-dot')) return;
                 lp = { x: ev.clientX, y: ev.clientY, t: setTimeout(() => { lp = null; if (navigator.vibrate) navigator.vibrate(30); window.hkSopprimiClickFino = Date.now() + 600; comandi.menu(card, ev.clientX, ev.clientY); }, 520) };
             }, { passive: true });
             w.addEventListener('pointermove', ev => { if (lp && (Math.abs(ev.clientX - lp.x) > 10 || Math.abs(ev.clientY - lp.y) > 10)) { clearTimeout(lp.t); lp = null; } }, { passive: true });
@@ -14228,18 +14746,23 @@ function hkOsserva(card) {
             t.addEventListener('click', ev => { ev.stopPropagation(); if (navigator.vibrate) navigator.vibrate(12); comandi.toggle(card); });
             return t;
         }
-        function creaLuce(card, d, f) {
-            const dim = f !== 'luce:onoff', rgb = f === 'luce:rgb';
-            const w = el('<div class="wv luce' + (dim ? ' s2' : '') + (rgb ? ' rgb compatta' : '') + '"></div>');
+        function cursoreDim(iconaNome, etichetta) {
+            return el('<div class="wv-dim" role="slider" aria-label="' + esc(etichetta) + '" aria-valuemin="0" aria-valuemax="100"><div class="wv-dim-fill"></div><span class="wv-dim-ico"><i data-lucide="' + esc(iconaNome) + '"></i></span><span class="wv-dim-val"></span></div>');
+        }
+        function creaLuce(card, d, st) {
+            const dim = st !== 'interruttore', colori = st === 'colori';
+            const w = el('<div class="wv luce' + (d.luce.colori ? ' rgb' : '') + (colori ? ' compatta' : '') + '"></div>');
             const testa = testaComune(card, d, dim);
             testa.appendChild(interruttore(card));
             w.appendChild(testa);
             testa.querySelector('.wv-ico').addEventListener('click', ev => { ev.stopPropagation(); comandi.toggle(card); });
             if (!dim) {
+                // interruttore: il testo commuta una luce solo on/off; su una luce regolabile apre il pannello (l'intensita' sta li')
                 w.appendChild(el('<div class="wv-fondo wv-tocca"><div class="wv-name" data-no-tr></div><div class="wv-state"></div></div>'));
-                w.querySelector('.wv-fondo').addEventListener('click', () => comandi.toggle(card));
+                w.querySelector('.wv-fondo').addEventListener('click', () => { if (d.luce.dimmer) comandi.apri(card); else comandi.toggle(card); });
             } else {
-                const cur = el('<div class="wv-dim" role="slider" aria-label="Intensità" aria-valuemin="1" aria-valuemax="100"><div class="wv-dim-fill"></div><span class="wv-dim-ico"><i data-lucide="sun"></i></span><span class="wv-dim-val"></span></div>');
+                const cur = cursoreDim('sun', 'Intensità');
+                cur.setAttribute('aria-valuemin', '1');
                 w.appendChild(cur);
                 // il cursore scrive da solo riempimento e percentuale a ogni mossa (la card segue con luceCardScrivi);
                 // 'trascina' sul widget dice ad aggiornaLuce di non riportare indietro il riempimento finche' il dito e' giu'
@@ -14248,7 +14771,7 @@ function hkOsserva(card) {
                 cursore(cur, p => { w.classList.add('trascina'); applica(p, false); }, p => { w.classList.remove('trascina'); applica(p, true); });
                 testa.querySelector('.wv-txt').addEventListener('click', () => comandi.apri(card));
                 testa.querySelector('.wv-txt').classList.add('wv-tocca');
-                if (rgb) {
+                if (colori) {
                     const fila = el('<div class="wv-rgb"></div>');
                     COLORI.forEach(c => {
                         const dot = el('<button type="button" class="wv-dot" style="background: rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')" title="' + esc(c[3]) + '"></button>');
@@ -14269,8 +14792,37 @@ function hkOsserva(card) {
             }
             return w;
         }
-        function creaTapparella(card, d) {
-            const w = el('<div class="wv h2 tapp"></div>');
+        function tastiCover(d) {
+            const t = el('<div class="wv-tapp-tasti"><button type="button" data-cmd="up" title="Su"><i data-lucide="chevron-up"></i></button>' +
+                '<button type="button" data-cmd="stop" class="stop" title="Stop"><i data-lucide="square"></i></button>' +
+                '<button type="button" data-cmd="down" title="Giù"><i data-lucide="chevron-down"></i></button></div>');
+            t.querySelectorAll('button[data-cmd]').forEach(b => b.addEventListener('click', ev => comandi.cover(ev, d.id, b.dataset.cmd)));
+            return t;
+        }
+        function creaTapparella(card, d, st) {
+            if (st === 'compatta' || st === 'cursore') {
+                const w = el('<div class="wv tapp"></div>');
+                const testa = testaComune(card, d, true);
+                testa.querySelector('.wv-txt').classList.add('wv-tocca');
+                testa.querySelector('.wv-txt').addEventListener('click', () => comandi.apri(card));
+                testa.querySelector('.wv-ico').addEventListener('click', ev => { ev.stopPropagation(); comandi.apri(card); });
+                w.appendChild(testa);
+                if (st === 'compatta') {
+                    // icona piccola e stato in testa, nome su due righe (le tapparelle hanno nomi lunghi), tasti in fondo
+                    testa.querySelector('.wv-txt').innerHTML = '<div class="wv-state"></div>';
+                    testa.insertAdjacentElement('afterend', el('<div class="wv-name wrap wv-tocca" data-no-tr></div>'));
+                    w.querySelector(':scope > .wv-name').addEventListener('click', () => comandi.apri(card));
+                    const riga = el('<div class="wv-tapp-riga"></div>'); riga.appendChild(tastiCover(d)); w.appendChild(riga);
+                } else {
+                    testa.appendChild(tastiCover(d));
+                    const cur = cursoreDim('blinds', 'Posizione');
+                    w.appendChild(cur);
+                    const mostra = p => { cur.style.setProperty('--p', p + '%'); scriviTesto(cur.querySelector('.wv-dim-val'), p + '%'); cur.setAttribute('aria-valuenow', p); };
+                    cursore(cur, p => { w.classList.add('trascina'); mostra(p); }, p => { w.classList.remove('trascina'); mostra(p); if (navigator.vibrate) navigator.vibrate(14); comandi.coverPosizione(d.id, p); });
+                }
+                return w;
+            }
+            const w = el('<div class="wv tapp"></div>');
             w.appendChild(testaComune(card, d, false));
             w.querySelector('.wv-ico').addEventListener('click', ev => { ev.stopPropagation(); comandi.apri(card); });
             w.appendChild(el('<div class="wv-txt wv-tocca"><div class="wv-name wrap" data-no-tr></div><div class="wv-state"></div></div>'));
@@ -14284,13 +14836,29 @@ function hkOsserva(card) {
             w.appendChild(corpo);
             return w;
         }
-        function creaClima(card, d) {
-            const n = ++contatore;
-            const w = el('<div class="wv s2 h2 clima"></div>');
+        function creaClima(card, d, st) {
+            const w = el('<div class="wv clima"></div>');
             w.appendChild(testaComune(card, d, true));
             w.querySelector('.wv-txt').classList.add('wv-tocca');
             w.querySelector('.wv-txt').addEventListener('click', () => comandi.apri(card));
             w.querySelector('.wv-ico').addEventListener('click', ev => { ev.stopPropagation(); comandi.apri(card); });
+            if (st !== 'anello') {
+                // compatto (2x1): -/+, temperatura, modi come icone; minimo (1x1): solo -/+ e temperatura
+                if (st === 'minimo') {
+                    // come la tapparella compatta: in testa icona piccola e stato breve, nome su due righe sotto (in 1x1 accanto all'icona non ci sta)
+                    w.querySelector('.wv-txt').innerHTML = '<div class="wv-state"></div>';
+                    w.querySelector('.wv-head').insertAdjacentElement('afterend', el('<div class="wv-name wrap wv-tocca" data-no-tr></div>'));
+                    w.querySelector(':scope > .wv-name').addEventListener('click', () => comandi.apri(card));
+                }
+                const riga = el('<div class="wv-clima-riga"><button class="wv-passo" type="button" data-d="-1" title="Meno"><i data-lucide="minus"></i></button>' +
+                    '<div class="wv-clima-temp" data-no-tr title="Apri il pannello"><span class="val"></span><small>°</small></div>' +
+                    '<button class="wv-passo" type="button" data-d="1" title="Più"><i data-lucide="plus"></i></button>' + (st === 'compatto' ? '<div class="wv-seg icone"></div>' : '') + '</div>');
+                riga.querySelectorAll('.wv-passo').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); comandi.climaPasso(card, +b.dataset.d); }));
+                riga.querySelector('.wv-clima-temp').addEventListener('click', () => comandi.apri(card));
+                w.appendChild(riga);
+                return w;
+            }
+            const n = ++contatore;
             const corpo = el('<div class="wv-clima-body">' +
                 '<button class="wv-passo" type="button" data-d="-1" title="Meno"><i data-lucide="minus"></i></button>' +
                 '<div class="wv-anello" title="Apri il pannello"><svg viewBox="0 0 200 200"><defs><linearGradient id="wvg' + n + '" x1="0" y1="1" x2="1" y2="0"><stop offset="0" class="g1"/><stop offset="1" class="g2"/></linearGradient></defs>' +
@@ -14314,14 +14882,18 @@ function hkOsserva(card) {
             w.appendChild(el('<div class="wv-seg"></div>'));
             return w;
         }
-        function creaMedia(card, d) {
-            const w = el('<div class="wv s3 media"><div class="wv-art" title="Apri il pannello"><div class="wv-art-sfondo"></div><img alt=""><i data-lucide="audio-lines"></i><div class="wv-eq"><span></span><span></span><span></span></div></div>' +
-                '<div class="wv-media-col"><div><div class="wv-media-titolo" data-no-tr></div><div class="wv-media-artista"></div></div>' +
-                '<div class="wv-media-prog"><div class="barra"><i></i></div><div class="tempi" data-no-tr><span class="cur">0:00</span><span class="tot">0:00</span></div></div>' +
-                '<div class="wv-media-riga"><div class="wv-media-ctrl"><button type="button" data-az="media_previous_track" title="Precedente"><i data-lucide="skip-back"></i></button>' +
+        function creaMedia(card, d, st) {
+            const arte = '<div class="wv-art" title="Apri il pannello"><div class="wv-art-sfondo"></div><img alt=""><i data-lucide="audio-lines"></i><div class="wv-eq"><span></span><span></span><span></span></div></div>';
+            const titoli = '<div class="wv-media-titolo" data-no-tr></div><div class="wv-media-artista"></div>';
+            const prog = '<div class="wv-media-prog"><div class="barra"><i></i></div><div class="tempi" data-no-tr><span class="cur">0:00</span><span class="tot">0:00</span></div></div>';
+            const riga = '<div class="wv-media-riga"><div class="wv-media-ctrl"><button type="button" data-az="media_previous_track" title="Precedente"><i data-lucide="skip-back"></i></button>' +
                 '<button type="button" class="play" data-az="media_play_pause" title="Riproduci"><i data-lucide="play"></i></button>' +
                 '<button type="button" data-az="media_next_track" title="Successivo"><i data-lucide="skip-forward"></i></button></div>' +
-                '<div class="wv-media-vol"><i data-lucide="volume-2"></i><div class="wv-vol" role="slider" aria-label="Volume"><i></i></div><span class="vol-val"></span></div></div></div></div>');
+                '<div class="wv-media-vol"><i data-lucide="volume-2"></i><div class="wv-vol" role="slider" aria-label="Volume"><i></i></div><span class="vol-val"></span></div></div>';
+            let w;
+            if (st === 'quadrato') w = el('<div class="wv media"><div class="wv-media-alto">' + arte + '<div class="wv-media-titoli">' + titoli + '</div></div><div class="wv-media-col">' + prog + riga + '</div></div>');
+            else if (st === 'pieno') w = el('<div class="wv media"><div class="wv-media-fondo"></div>' + arte + '<div class="wv-media-col"><div class="wv-media-testa"><div>' + titoli + '</div><div class="wv-media-sorg" hidden><i data-lucide="list-music"></i><span data-no-tr></span></div></div>' + prog + riga + '</div></div>');
+            else w = el('<div class="wv media">' + arte + '<div class="wv-media-col"><div>' + titoli + '</div>' + prog + riga + '</div></div>');
             w.querySelector('.wv-art').addEventListener('click', () => comandi.apri(card));
             w.querySelector('.wv-media-titolo').addEventListener('click', () => comandi.apri(card));
             w.querySelectorAll('.wv-media-ctrl button').forEach(b => b.addEventListener('click', ev => comandi.media(ev, d.id, b.dataset.az)));
@@ -14333,48 +14905,87 @@ function hkOsserva(card) {
             media.add(w);
             return w;
         }
-        function creaTelecamera(card, d) {
-            const w = el('<div class="wv s4 h2 cam"><img alt="" decoding="async"><div class="wv-cam-top"><span class="wv-cam-ts" data-no-tr></span><span class="hk-live"><span class="live-dot"></span>LIVE</span></div>' +
+        function creaTelecamera(card, d, st) {
+            const w = el('<div class="wv cam"><img alt="" decoding="async"><div class="wv-cam-top"><span class="wv-cam-ts" data-no-tr></span><span class="hk-live"><span class="live-dot"></span>LIVE</span></div>' +
                 '<div class="wv-cam-overlay"><div><div class="wv-cam-title" data-no-tr></div><div class="wv-cam-sub"><span>Ultimo fotogramma</span> <b data-no-tr></b></div></div>' +
                 '<div class="wv-cam-azioni"><button type="button" data-az="apri" title="Apri la telecamera"><i data-lucide="camera"></i></button><button type="button" data-az="intero" title="Schermo intero"><i data-lucide="maximize-2"></i></button></div></div></div>');
             if (d.telecamera && d.telecamera.immagine) { const live = w.querySelector('.hk-live'); live.style.background = 'rgba(10,132,255,0.35)'; live.innerHTML = 'IMMAGINE'; }
             w.addEventListener('click', () => comandi.apri(card));
             w.querySelectorAll('.wv-cam-azioni button').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); comandi.telecamera(card, b.dataset.az === 'intero'); }));
             const img = w.querySelector('img');
-            img.addEventListener('load', () => { const t = new Date(); w.querySelector('.wv-cam-ts').textContent = t.toLocaleDateString('it-IT') + ' · ' + t.toLocaleTimeString('it-IT'); w.querySelector('.wv-cam-sub b').textContent = t.toLocaleTimeString('it-IT'); });
+            img.addEventListener('load', () => { const t = new Date(); w.querySelector('.wv-cam-ts').textContent = t.toLocaleDateString(LOCALE) + ' · ' + t.toLocaleTimeString(LOCALE); w.querySelector('.wv-cam-sub b').textContent = t.toLocaleTimeString(LOCALE); });
             return w;
         }
-        function creaStat(card, d, f) {
-            const w = el('<div class="wv stat' + (f === 'stat:bin' ? ' bin' : '') + '" title="Apri il grafico"><div class="wv-stat-head"><span data-no-tr></span></div><div class="wv-stat-val"></div><div class="wv-stat-sub"></div><svg class="wv-spark" viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>');
+        function creaStat(card, d, f, st) {
+            const bin = f === 'stat:bin' ? ' bin' : '';
+            let w;
+            if (st === 'arco') {
+                // l'indicatore ad arco del Cruscotto (r=27: 270 gradi = 127.2 su 169.6)
+                w = el('<div class="wv stat' + bin + '" title="Apri il grafico"><div class="wv-stat-head"><span data-no-tr></span></div>' +
+                    '<div class="wv-arco' + (bin ? ' mov' : '') + '"><svg viewBox="0 0 66 66"><circle class="track" cx="33" cy="33" r="27" stroke-dasharray="127.2 169.6" transform="rotate(135 33 33)"/><circle class="arc" cx="33" cy="33" r="27" stroke-dasharray="0 169.6" transform="rotate(135 33 33)"/><circle class="pallino" cx="33" cy="6" r="3.5"/></svg>' +
+                    '<div class="wv-arco-val"><b></b><small data-no-tr></small></div></div><div class="wv-stat-sub"></div></div>');
+                w.querySelector('.wv-stat-head').appendChild(icona(card, 'activity'));
+            } else if (st === 'grafico') {
+                w = el('<div class="wv stat' + bin + '" title="Apri il grafico"><div class="wv-graf-testa"><div class="wv-stat-head"><span data-no-tr></span></div><div class="wv-graf-dx"><div class="wv-stat-val"></div><div class="wv-stat-sub"></div></div></div>' +
+                    '<div class="wv-graf"><svg viewBox="0 0 100 100" preserveAspectRatio="none"></svg><i class="wv-graf-punto" hidden></i><span class="wv-graf-vuoto" hidden></span></div>' +
+                    '<div class="wv-graf-piede"><span class="minmax"></span><span class="finestra"></span></div></div>');
+                w.querySelector('.wv-stat-head').appendChild(icona(card, 'activity'));
+            } else {
+                w = el('<div class="wv stat' + bin + '" title="Apri il grafico"><div class="wv-stat-head"><span data-no-tr></span></div><div class="wv-stat-val"></div><div class="wv-stat-sub"></div><svg class="wv-spark" viewBox="0 0 100 40" preserveAspectRatio="none"></svg></div>');
+                w.querySelector('.wv-stat-head').appendChild(icona(card, 'activity'));
+            }
             w._sfumId = 'wvsp' + (++contatore);       // id della sfumatura sotto la linea (uno per widget, come l'anello del termostato)
-            w.querySelector('.wv-stat-head').appendChild(icona(card, 'activity'));
             w.addEventListener('click', () => comandi.apri(card));
             return w;
         }
-        function creaPresa(card, d) {
+        function creaPresa(card, d, st) {
             const w = el('<div class="wv presa"></div>');
-            const testa = testaComune(card, d, false);
+            const testa = testaComune(card, d, st === 'largo');
             testa.appendChild(interruttore(card));
             testa.querySelector('.wv-ico').addEventListener('click', ev => { ev.stopPropagation(); comandi.toggle(card); });
             w.appendChild(testa);
-            w.appendChild(el('<div class="wv-fondo wv-tocca"><div class="wv-watt" hidden data-no-tr></div><div class="wv-name" data-no-tr></div><div class="wv-state"></div></div>'));
-            w.querySelector('.wv-fondo').addEventListener('click', () => comandi.toggle(card));
+            if (st === 'largo') {
+                testa.querySelector('.wv-txt').classList.add('wv-tocca');
+                testa.querySelector('.wv-txt').addEventListener('click', () => comandi.toggle(card));
+                w.appendChild(el('<div class="wv-fondo" hidden><div class="wv-watt" data-no-tr></div><span class="wv-watt-et">Consumo</span></div>'));
+            } else if (st === 'consumo') {
+                w.appendChild(el('<div class="wv-fondo wv-tocca"><div class="wv-watt" data-no-tr></div><div class="wv-name" data-no-tr></div><div class="wv-state"></div></div>'));
+                w.querySelector('.wv-fondo').addEventListener('click', () => comandi.toggle(card));
+            } else {
+                w.appendChild(el('<div class="wv-fondo wv-tocca"><div class="wv-watt" hidden data-no-tr></div><div class="wv-name" data-no-tr></div><div class="wv-state"></div></div>'));
+                w.querySelector('.wv-fondo').addEventListener('click', () => comandi.toggle(card));
+            }
             return w;
         }
-        function creaScena(card, d) {
-            const w = el('<div class="wv scena" title="Avvia"><div class="wv-scena-ico"></div><div class="wv-name" data-no-tr></div><div class="wv-state"></div></div>');
+        function creaScena(card, d, st) {
+            let w;
+            if (st === 'largo') {
+                w = el('<div class="wv scena" title="Avvia"><div class="wv-scena-ico"></div><div class="wv-txt"><div class="wv-name" data-no-tr></div><div class="wv-state"></div></div><button type="button" class="wv-btn pieno"><i data-lucide="play"></i><span>Avvia</span></button></div>');
+                w.querySelector('.wv-btn').addEventListener('click', ev => { ev.stopPropagation(); if (navigator.vibrate) navigator.vibrate(20); comandi.toggle(card); });
+            } else w = el('<div class="wv scena" title="Avvia"><div class="wv-scena-ico"></div><div class="wv-name" data-no-tr></div><div class="wv-state"></div></div>');
             w.querySelector('.wv-scena-ico').appendChild(icona(card, 'clapperboard'));
             w.addEventListener('click', () => { if (navigator.vibrate) navigator.vibrate(20); comandi.toggle(card); });
             return w;
         }
-        function creaGenerico(card, d, f) {
-            const w = el('<div class="wv gen"></div>');
-            const testa = testaComune(card, d, false);
-            if (f === 'gen:tog') testa.appendChild(interruttore(card));
-            testa.querySelector('.wv-ico').addEventListener('click', ev => { ev.stopPropagation(); if (f === 'gen:tog') comandi.toggle(card); else comandi.apri(card); });
+        function creaGenerico(card, d, f, st) {
+            const w = el('<div class="wv gen"></div>'), tog = f === 'gen:tog';
+            const testa = testaComune(card, d, st === 'largo');
+            if (tog) testa.appendChild(interruttore(card));
+            else if (st === 'largo') {
+                const b = el('<button type="button" class="wv-btn"><span>' + (d.tipo === 'button' ? 'Premi' : 'Apri') + '</span></button>');
+                b.addEventListener('click', ev => { ev.stopPropagation(); comandi.apri(card); });
+                testa.appendChild(b);
+            }
+            testa.querySelector('.wv-ico').addEventListener('click', ev => { ev.stopPropagation(); if (tog) comandi.toggle(card); else comandi.apri(card); });
             w.appendChild(testa);
-            w.appendChild(el('<div class="wv-fondo wv-tocca"><div class="wv-name" data-no-tr></div><div class="wv-state" data-no-tr></div></div>'));
-            w.querySelector('.wv-fondo').addEventListener('click', () => comandi.apri(card));
+            if (st === 'largo') {
+                testa.querySelector('.wv-txt').classList.add('wv-tocca');
+                testa.querySelector('.wv-txt').addEventListener('click', () => comandi.apri(card));
+                testa.querySelector('.wv-state').setAttribute('data-no-tr', '');
+            } else {
+                w.appendChild(el('<div class="wv-fondo wv-tocca"><div class="wv-name" data-no-tr></div><div class="wv-state" data-no-tr></div></div>'));
+                w.querySelector('.wv-fondo').addEventListener('click', () => comandi.apri(card));
+            }
             return w;
         }
 
@@ -14392,25 +15003,29 @@ function hkOsserva(card) {
             if (riga && riga.matches(RIGA_STATO)) riga.hidden = !!t;
             if (t) { scriviTesto(tag, t); tag.hidden = false; } else tag.hidden = true;
         }
+        // il widget viene rifatto (stesso posto) quando cambia la natura della card o lo stile scelto
+        function rifai(w, card) {
+            const nuovo = crea(card, w._chiave);
+            w.replaceWith(nuovo); media.delete(w); grafici.delete(w); mappa.set(card, nuovo);
+            if (typeof whIcone === 'function') whIcone(nuovo);
+            return nuovo;
+        }
         function aggiornaWidget(w, card) {
             const d = dati(card);
-            const f = forma(d);
-            if (w.dataset.forma !== f) {         // la card ha cambiato natura (es. arrivano i modi della luce): widget rifatto
-                const nuovo = crea(card);
-                w.replaceWith(nuovo); media.delete(w); mappa.set(card, nuovo);
-                if (typeof whIcone === 'function') whIcone(nuovo);
-                return aggiornaWidget(nuovo, card);
-            }
+            const f = forma(d), st = stileEffettivo(d, w._chiave);
+            if (w.dataset.forma !== f || w.dataset.stile !== st) return aggiornaWidget(rifai(w, card), card);
             etichetta(w, d);
-            if (f.startsWith('luce')) aggiornaLuce(w, d, f);
-            else if (f === 'tapp') aggiornaTapparella(w, d);
-            else if (f === 'clima') aggiornaClima(w, d);
-            else if (f === 'media') aggiornaMedia(w, d);
-            else if (f === 'cam') aggiornaTelecamera(w, d);
-            else if (f.startsWith('stat')) aggiornaStat(w, d);
-            else if (f === 'presa') aggiornaPresa(w, d);
-            else if (f === 'scena') aggiornaScena(w, d);
-            else aggiornaGenerico(w, d);
+            switch (genere(d)) {
+                case 'luce': aggiornaLuce(w, d, f); break;
+                case 'tapp': aggiornaTapparella(w, d); break;
+                case 'clima': aggiornaClima(w, d); break;
+                case 'media': aggiornaMedia(w, d); break;
+                case 'cam': aggiornaTelecamera(w, d); break;
+                case 'stat': aggiornaStat(w, d); break;
+                case 'presa': aggiornaPresa(w, d); break;
+                case 'scena': aggiornaScena(w, d); break;
+                default: aggiornaGenerico(w, d);
+            }
         }
         function aggiornaLuce(w, d, f) {
             const l = d.luce, on = d.stato === 'on';
@@ -14418,7 +15033,7 @@ function hkOsserva(card) {
             w.classList.toggle('on', on);
             w.style.setProperty('--lc', colorata ? l.rgb.join(',') : '255,214,10');
             scriviTesto(w.querySelector('.wv-name'), d.nome);
-            let st = on ? spanT(f === 'luce:onoff' ? 'Accesa' : 'Accesa') : spanT('Spenta');
+            let st = on ? spanT('Accesa') : spanT('Spenta');
             if (on && f !== 'luce:onoff') st += ' · <b class="pct" data-no-tr>' + l.pct + '%</b>';
             if (on && colorata) st += ' · ' + spanT(nomeColore(l.rgb));
             scriviHtml(w.querySelector('.wv-state'), st);
@@ -14440,9 +15055,14 @@ function hkOsserva(card) {
             else if (c.movimento === 'chiude') st = spanT('In chiusura…');
             else if (c.pos <= 0) st = spanT('Chiusa');
             else if (c.pos >= 100) st = spanT('Aperta');
+            else if (w.dataset.stile === 'compatta') st = '<b class="pos" data-no-tr>' + c.pos + '%</b>';     // nel 1x1 non c'e' posto: solo la posizione
             else st = spanT('Aperta') + ' · <b class="pos" data-no-tr>' + c.pos + '%</b>';
             scriviHtml(w.querySelector('.wv-state'), st);
-            w.querySelector('.wv-tenda').style.setProperty('--pos', c.pos);
+            const tenda = w.querySelector('.wv-tenda'); if (tenda) tenda.style.setProperty('--pos', c.pos);
+            const dim = w.querySelector('.wv-dim');
+            if (dim) { if (!w.classList.contains('trascina')) { dim.style.setProperty('--p', c.pos + '%'); scriviTesto(dim.querySelector('.wv-dim-val'), c.pos + '%'); } dim.setAttribute('aria-valuenow', c.pos); }
+            const su = w.querySelector('button[data-cmd="up"]'), giu = w.querySelector('button[data-cmd="down"]');
+            if (su) su.classList.toggle('att', c.movimento === 'apre'); if (giu) giu.classList.toggle('att', c.movimento === 'chiude');
         }
         function aggiornaClima(w, d) {
             const c = d.clima;
@@ -14464,41 +15084,52 @@ function hkOsserva(card) {
             else if (azione === 'cooling') stTesto = 'Raffreddamento attivo';
             else if (modo === 'off') stTesto = 'Spento';
             else stTesto = (MODI[modo] ? MODI[modo].etichetta : modo);
-            scriviHtml(w.querySelector('.wv-state'), spanT(stTesto));
-            // anello
+            const anello = w.querySelector('.wv-anello');
+            // stato breve (Riscalda, Raffredda, Spento, il modo): sotto l'anello e nella testata del minimo (1x1), dove "Riscaldamento attivo" non ci sta
+            const breve = fermo ? stTesto : (azione === 'heating' ? 'Riscalda' : (azione === 'cooling' ? 'Raffredda' : (modo === 'off' ? 'Spento' : (MODI[modo] ? MODI[modo].etichetta : modo))));
+            // nel compatto (2x1) la temperatura misurata sta nella riga di stato; nel minimo (1x1) non c'e' posto
+            scriviHtml(w.querySelector('.wv-state'), spanT(w.dataset.stile === 'minimo' ? breve : stTesto) + (w.dataset.stile === 'compatto' && c.attuale !== null && !fermo ? ' · <b data-no-tr>' + virgola(c.attuale.toFixed(1)) + '°</b>' : ''));
             const C = 2 * Math.PI * 82, SWEEP = 270, START = 135;
             const target = c.target === null ? c.min : c.target;
             const fr = Math.max(0, Math.min(1, (target - c.min) / ((c.max - c.min) || 1)));
-            const svg = w.querySelector('.wv-anello svg');   // non il primo svg del widget: l'icona lucide sta prima
-            const pieno = svg.querySelector('.pieno');
-            pieno.setAttribute('stroke-dasharray', (fr * C * SWEEP / 360).toFixed(1) + ' ' + C.toFixed(1));
-            const posiziona = (elc, frac, raggio) => { const a = (START + frac * SWEEP) * Math.PI / 180; elc.setAttribute('cx', (100 + raggio * Math.cos(a)).toFixed(1)); elc.setAttribute('cy', (100 + raggio * Math.sin(a)).toFixed(1)); };
-            posiziona(svg.querySelector('.pomello'), fr, 82);
-            const att = svg.querySelector('.attuale');
-            if (c.attuale === null) att.style.display = 'none'; else { att.style.display = ''; posiziona(att, Math.max(0, Math.min(1, (c.attuale - c.min) / ((c.max - c.min) || 1))), 97); }
-            const g1 = svg.querySelector('.g1'), g2 = svg.querySelector('.g2');
-            const sfum = chiave === 'cool' ? ['#3DA9FF', '#7EE0FF'] : (chiave === 'auto' ? ['#22B14C', '#7CE38B'] : (attivo ? ['#FF6B3D', '#FFB340'] : ['#6E6E73', '#A0A0A6']));
-            g1.setAttribute('stop-color', sfum[0]); g2.setAttribute('stop-color', sfum[1]);
-            scriviTesto(w.querySelector('.wv-anello-val .val'), c.target === null ? '--' : virgola(c.target.toFixed(1).replace(/\.0$/, '')));
-            scriviHtml(w.querySelector('.wv-anello-sub'), c.attuale === null ? '&nbsp;' : spanT('Attuale') + ' <span data-no-tr>' + virgola(c.attuale.toFixed(1)) + '°</span>');
-            scriviTesto(w.querySelector('.wv-anello-stato'), fermo ? stTesto : (azione === 'heating' ? 'Riscalda' : (azione === 'cooling' ? 'Raffredda' : (modo === 'off' ? 'Spento' : (MODI[modo] ? MODI[modo].etichetta : modo)))));
+            if (anello) {
+                const svg = anello.querySelector('svg');   // non il primo svg del widget: l'icona lucide sta prima
+                const pieno = svg.querySelector('.pieno');
+                pieno.setAttribute('stroke-dasharray', (fr * C * SWEEP / 360).toFixed(1) + ' ' + C.toFixed(1));
+                const posiziona = (elc, frac, raggio) => { const a = (START + frac * SWEEP) * Math.PI / 180; elc.setAttribute('cx', (100 + raggio * Math.cos(a)).toFixed(1)); elc.setAttribute('cy', (100 + raggio * Math.sin(a)).toFixed(1)); };
+                posiziona(svg.querySelector('.pomello'), fr, 82);
+                const att = svg.querySelector('.attuale');
+                if (c.attuale === null) att.style.display = 'none'; else { att.style.display = ''; posiziona(att, Math.max(0, Math.min(1, (c.attuale - c.min) / ((c.max - c.min) || 1))), 97); }
+                const g1 = svg.querySelector('.g1'), g2 = svg.querySelector('.g2');
+                const sfum = chiave === 'cool' ? ['#3DA9FF', '#7EE0FF'] : (chiave === 'auto' ? ['#22B14C', '#7CE38B'] : (attivo ? ['#FF6B3D', '#FFB340'] : ['#6E6E73', '#A0A0A6']));
+                g1.setAttribute('stop-color', sfum[0]); g2.setAttribute('stop-color', sfum[1]);
+                scriviTesto(w.querySelector('.wv-anello-val .val'), c.target === null ? '--' : virgola(c.target.toFixed(1).replace(/\.0$/, '')));
+                scriviHtml(w.querySelector('.wv-anello-sub'), c.attuale === null ? '&nbsp;' : spanT('Attuale') + ' <span data-no-tr>' + virgola(c.attuale.toFixed(1)) + '°</span>');
+                scriviTesto(w.querySelector('.wv-anello-stato'), breve);
+            } else {
+                const testoTemp = c.target === null ? '--' : virgola(c.target.toFixed(1).replace(/\.0$/, ''));
+                scriviTesto(w.querySelector('.wv-clima-temp .val'), testoTemp);
+                w.querySelector('.wv-clima-temp').classList.toggle('lungo', testoTemp.length >= 5);     // "-10,5", "100,5": nel minimo la cifra si stringe
+            }
             const giu = w.querySelector('.wv-passo[data-d="-1"]'), su = w.querySelector('.wv-passo[data-d="1"]');
             if (giu) giu.disabled = fermo || target <= c.min + 0.001; if (su) su.disabled = fermo || target >= c.max - 0.001;
             // modalita': solo quelle che il termostato ha davvero (come il pannello)
-            let elenco = c.modi.filter(m => MODI[m]);
-            if (!elenco.length) elenco = MODI_CLASSICI.slice();
-            if (!elenco.includes(modo) && MODI[modo]) elenco.push(modo);
             const seg = w.querySelector('.wv-seg');
-            const chiaveSeg = elenco.join(',');
-            if (seg.dataset.modi !== chiaveSeg) {
-                seg.dataset.modi = chiaveSeg;
-                seg.innerHTML = elenco.length < 2 ? '' : elenco.map(m => '<button type="button" data-modo="' + esc(m) + '" title="' + esc(etichettaModo(m)) + '"><i data-lucide="' + esc(MODI[m].icona) + '"></i><span>' + esc(etichettaModo(m)) + '</span></button>').join('');
-                seg.classList.toggle('icone', elenco.length > 3);   // con piu' di 3 modi le scritte non ci stanno: solo icone (etichetta nel title)
-                seg.querySelectorAll('button').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); if (b.dataset.modo === dati(d.card).clima.modo) return; if (navigator.vibrate) navigator.vibrate(14); comandi.climaModo(d.id, b.dataset.modo); }));
-                if (typeof whIcone === 'function') whIcone(seg);
-                seg.hidden = elenco.length < 2;
+            if (seg) {
+                let elenco = c.modi.filter(m => MODI[m]);
+                if (!elenco.length) elenco = MODI_CLASSICI.slice();
+                if (!elenco.includes(modo) && MODI[modo]) elenco.push(modo);
+                const chiaveSeg = elenco.join(',');
+                if (seg.dataset.modi !== chiaveSeg) {
+                    seg.dataset.modi = chiaveSeg;
+                    seg.innerHTML = elenco.length < 2 ? '' : elenco.map(m => '<button type="button" data-modo="' + esc(m) + '" title="' + esc(etichettaModo(m)) + '"><i data-lucide="' + esc(MODI[m].icona) + '"></i><span>' + esc(etichettaModo(m)) + '</span></button>').join('');
+                    if (w.dataset.stile === 'anello') seg.classList.toggle('icone', elenco.length > 3);   // con piu' di 3 modi le scritte non ci stanno: solo icone (etichetta nel title); nel compatto sempre icone
+                    seg.querySelectorAll('button').forEach(b => b.addEventListener('click', ev => { ev.stopPropagation(); if (b.dataset.modo === dati(d.card).clima.modo) return; if (navigator.vibrate) navigator.vibrate(14); comandi.climaModo(d.id, b.dataset.modo); }));
+                    if (typeof whIcone === 'function') whIcone(seg);
+                    seg.hidden = elenco.length < 2;
+                }
+                seg.querySelectorAll('button').forEach(b => b.classList.toggle('attivo', b.dataset.modo === modo));
             }
-            seg.querySelectorAll('button').forEach(b => b.classList.toggle('attivo', b.dataset.modo === modo));
         }
         function fmtTempo(sec) {
             sec = Math.max(0, Math.round(sec));
@@ -14528,6 +15159,10 @@ function hkOsserva(card) {
             const arte = w.querySelector('.wv-art'), img = arte.querySelector('img');
             if (m.arte) { if (img.getAttribute('src') !== m.arte) img.setAttribute('src', m.arte); arte.classList.add('con-arte'); }
             else { arte.classList.remove('con-arte'); if (img.hasAttribute('src')) img.removeAttribute('src'); }
+            const fondo = w.querySelector('.wv-media-fondo');     // stile "pieno": la copertina sfumata dietro a tutto
+            if (fondo) { const bg = m.arte ? 'url("' + m.arte.replace(/["\\]/g, '') + '")' : ''; if (fondo._bg !== bg) { fondo._bg = bg; fondo.style.backgroundImage = bg; } w.classList.toggle('con-fondo', !!m.arte); }
+            const sorg = w.querySelector('.wv-media-sorg');
+            if (sorg) { const s = d.card.dataset.sorgente || ''; sorg.hidden = !s; scriviTesto(sorg.querySelector('span'), s); }
             const play = w.querySelector('button.play');
             const ic = play.querySelector('[data-lucide]');
             const voluta = m.suona ? 'pause' : 'play';
@@ -14539,7 +15174,6 @@ function hkOsserva(card) {
                 scriviTesto(w.querySelector('.vol-val'), String(p));
             }
             avanzamento(w, m);
-            if (!ticchettio) ticchettio = setInterval(() => { media.forEach(x => { if (!x.isConnected) { media.delete(x); return; } if (x._media && x._media.suona) avanzamento(x, x._media); }); }, 1000);
         }
         function aggiornaTelecamera(w, d) {
             const t = d.telecamera, img = w.querySelector('img');
@@ -14572,14 +15206,33 @@ function hkOsserva(card) {
             }
             if (svg.innerHTML !== html) svg.innerHTML = html;
         }
+        // variazione rispetto a un'ora fa (o al valore piu' vecchio che si ha, con i minuti trascorsi): '▲ 0,3° in 1 h' come nel mockup
+        function tendenza(punti, s) {
+            if (punti.length < 2 || s.numero === null) return null;
+            const ora = Date.now();
+            let rif = punti[0];
+            for (let i = punti.length - 1; i >= 0; i--) if (ora - punti[i].t >= 3600e3) { rif = punti[i]; break; }
+            const delta = s.numero - rif.v, minuti = Math.max(1, Math.round((ora - rif.t) / 60e3));
+            const dec = decimali(s.valore);                  // gli stessi decimali del valore mostrato ('▲ 5 W', '▲ 0,3°')
+            const unita = s.unita === '°C' || s.unita === '°F' ? '°' : (s.unita ? ' ' + s.unita : '');
+            const quando = minuti >= 90 ? 'in ' + Math.round(minuti / 60) + ' h' : (minuti >= 60 ? 'in 1 h' : 'in ' + minuti + ' min');
+            if (Math.abs(delta) < Math.pow(10, -dec) / 2) return { html: spanT('stabile'), cls: '' };
+            return { html: '<span data-no-tr>' + (delta > 0 ? '▲ ' : '▼ ') + virgola(Math.abs(delta).toFixed(dec)) + esc(unita) + ' ' + quando + '</span>', cls: delta > 0 ? 'su' : 'giu' };
+        }
+        function ultimoCambio(punti) { for (let i = punti.length - 1; i > 0; i--) if (punti[i].v !== punti[i - 1].v) return punti[i].t; return null; }
+        function valoreHtml(s, coppia) {
+            if (s.binario) return spanT(s.valore === 'on' || s.valore === 'off' ? coppia[s.valore === 'on' ? 0 : 1] : s.valore);
+            if (s.numero === null) return N(s.valore || '--');
+            return N(virgola(s.valore)) + (s.unita ? '<small data-no-tr>' + esc(s.unita) + '</small>' : '');
+        }
         function aggiornaStat(w, d) {
-            const s = d.sensore;
-            const classe = s.classe || (s.unita === '°C' || s.unita === '°F' ? 'temperature' : (s.unita === '%' ? 'humidity' : (s.unita === 'W' || s.unita === 'kW' ? 'power' : '')));
-            const colore = COLORE_SENSORE[classe] || '10,132,255';
+            const s = d.sensore, classe = classeSensore(s), colore = COLORE_SENSORE[classe] || '10,132,255';
             w.style.setProperty('--sc', colore);
             scriviTesto(w.querySelector('.wv-stat-head span'), d.nome);
+            const st = w.dataset.stile;
+            if (st === 'arco') return aggiornaArco(w, d, classe);
+            if (st === 'grafico') return aggiornaGrafico(w, d, classe, colore);
             const val = w.querySelector('.wv-stat-val'), sub = w.querySelector('.wv-stat-sub'), spark = w.querySelector('.wv-spark');
-            const l = storico.get(d.id) || [];
             if (d.nonDisponibile) {                   // sensore fermo: '--', niente tendenza ne' grafico (l'etichetta la mette etichetta())
                 val.classList.remove('testo');
                 scriviHtml(val, '<span data-no-tr>--</span>');
@@ -14587,35 +15240,110 @@ function hkOsserva(card) {
                 if (spark.innerHTML !== '') spark.innerHTML = '';
                 return;
             }
+            const coppia = BINARI[classe] || ['Attivo', 'Inattivo'];
+            val.classList.toggle('testo', s.binario);
+            scriviHtml(val, valoreHtml(s, coppia));
+            if (st === 'compatto') return;            // solo il valore
+            const punti = serie(d.id);
+            sub.classList.remove('su', 'giu');
             if (s.binario) {
-                const on = s.valore === 'on';
-                const coppia = BINARI[classe] || ['Attivo', 'Inattivo'];
-                val.classList.add('testo');
-                scriviHtml(val, spanT(s.valore === 'on' || s.valore === 'off' ? coppia[on ? 0 : 1] : s.valore));
-                const ultimo = l.length >= 2 ? new Date(l[l.length - 1].t) : null;
-                scriviHtml(sub, ultimo ? spanT('Cambiato alle') + ' <span data-no-tr>' + ultimo.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) + '</span>' : '&nbsp;');
-                sub.classList.remove('su', 'giu');
-                sparkline(w.querySelector('.wv-spark'), l.map(x => x.v === 'on' ? 1 : 0), true);
+                const tc = ultimoCambio(punti);
+                scriviHtml(sub, tc ? spanT('Cambiato alle') + ' <span data-no-tr>' + ORA(tc) + '</span>' : '&nbsp;');
+                sparkline(spark, punti.map(x => x.v > 0.5 ? 1 : 0), true);
             } else {
-                val.classList.remove('testo');
-                if (s.numero === null) scriviHtml(val, '<span data-no-tr>' + esc(s.valore || '--') + '</span>');
-                else scriviHtml(val, '<span data-no-tr>' + esc(virgola(s.valore)) + '</span>' + (s.unita ? '<small data-no-tr>' + esc(s.unita) + '</small>' : ''));
-                const pts = l.map(x => ({ t: x.t, v: num(x.v) })).filter(x => x.v !== null);
-                sub.classList.remove('su', 'giu');
-                if (pts.length >= 2) {
-                    // variazione rispetto a un'ora fa (o al valore piu' vecchio che si ha, con i minuti trascorsi): '▲ 0,3° in 1 h' come nel mockup
-                    const ora = Date.now();
-                    let rif = pts[0];
-                    for (let i = pts.length - 1; i >= 0; i--) if (ora - pts[i].t >= 3600e3) { rif = pts[i]; break; }
-                    const delta = pts[pts.length - 1].v - rif.v, minuti = Math.max(1, Math.round((ora - rif.t) / 60e3));
-                    const dec = decimali(s.valore);                  // gli stessi decimali del valore mostrato ('▲ 5 W', '▲ 0,3°')
-                    const unita = s.unita === '°C' || s.unita === '°F' ? '°' : (s.unita ? ' ' + s.unita : '');
-                    const quando = minuti >= 90 ? 'in ' + Math.round(minuti / 60) + ' h' : (minuti >= 60 ? 'in 1 h' : 'in ' + minuti + ' min');
-                    if (Math.abs(delta) < Math.pow(10, -dec) / 2) scriviHtml(sub, spanT('stabile'));
-                    else { scriviHtml(sub, '<span data-no-tr>' + (delta > 0 ? '▲ ' : '▼ ') + virgola(Math.abs(delta).toFixed(dec)) + esc(unita) + ' ' + quando + '</span>'); sub.classList.add(delta > 0 ? 'su' : 'giu'); }
-                } else scriviHtml(sub, '&nbsp;');
-                sparkline(spark, pts.map(x => x.v), false, { id: w._sfumId, colore });
+                const t = tendenza(punti, s);
+                if (t) { scriviHtml(sub, t.html); if (t.cls) sub.classList.add(t.cls); } else scriviHtml(sub, '&nbsp;');
+                sparkline(spark, punti.map(x => x.v), false, { id: w._sfumId, colore });
             }
+            chiediStorico(d.id);                    // al ritorno la base ridisegna TUTTI i widget dell'entita' (anche in altre griglie)
+        }
+        function aggiornaArco(w, d, classe) {
+            const s = d.sensore, g = w.querySelector('.wv-arco'), arc = g.querySelector('.arc'), pal = g.querySelector('.pallino');
+            const val = g.querySelector('.wv-arco-val'), sub = w.querySelector('.wv-stat-sub');
+            const punti = serie(d.id);
+            sub.classList.remove('su', 'giu');
+            val.classList.remove('lungo', 'lunghissimo');
+            if (d.nonDisponibile) {
+                g.classList.remove('on'); arc.setAttribute('stroke-dasharray', '0 169.6');
+                scriviHtml(val, '<b>' + N('--') + '</b>'); scriviHtml(sub, '&nbsp;');
+            } else if (s.binario) {
+                const on = s.valore === 'on', coppia = BINARI[classe] || ['Attivo', 'Inattivo'];
+                g.classList.toggle('on', on);
+                arc.setAttribute('stroke-dasharray', '127.2 169.6');
+                scriviHtml(val, '<b>' + valoreHtml(s, coppia) + '</b>');
+                const tc = ultimoCambio(punti);
+                scriviHtml(sub, tc ? spanT('Cambiato alle') + ' <span data-no-tr>' + ORA(tc) + '</span>' : spanT('Nessun cambio'));
+            } else {
+                g.classList.remove('on');
+                const fr = frazioneSensore(s, classe, punti), pos = polare(33, 33, 27, 135 + 270 * fr);
+                arc.setAttribute('stroke-dasharray', (127.2 * fr).toFixed(1) + ' 169.6');
+                pal.setAttribute('cx', pos[0]); pal.setAttribute('cy', pos[1]);
+                const testoVal = s.numero === null ? (s.valore || '--') : virgola(s.valore), lung = testoVal.length + (s.numero !== null ? (s.unita || '').length : 0);
+                scriviHtml(val, '<b>' + N(testoVal) + '</b>' + (s.unita && s.numero !== null ? '<small data-no-tr>' + esc(s.unita) + '</small>' : ''));
+                val.classList.toggle('lungo', lung >= 7 && lung < 9); val.classList.toggle('lunghissimo', lung >= 9);
+                const t = tendenza(punti, s);
+                if (t) { scriviHtml(sub, t.html); if (t.cls) sub.classList.add(t.cls); } else scriviHtml(sub, '&nbsp;');
+            }
+            chiediStorico(d.id);
+        }
+        // grafico grande (2x1): la finestra dei tempi cresce con i dati (15 min ... 24 ore), min e max, ultimo punto in evidenza
+        function aggiornaGrafico(w, d, classe, colore) {
+            const s = d.sensore, val = w.querySelector('.wv-stat-val'), sub = w.querySelector('.wv-stat-sub');
+            const svg = w.querySelector('.wv-graf > svg'), punto = w.querySelector('.wv-graf-punto'), vuoto = w.querySelector('.wv-graf-vuoto');
+            const mm = w.querySelector('.minmax'), fin = w.querySelector('.finestra');
+            grafici.add(w);
+            sub.classList.remove('su', 'giu');
+            const ora = Date.now(), punti = serie(d.id);
+            if (d.nonDisponibile) {
+                val.classList.remove('testo'); scriviHtml(val, '<span data-no-tr>--</span>'); scriviHtml(sub, '&nbsp;');
+                if (svg.innerHTML !== '') svg.innerHTML = '';
+                punto.hidden = true; vuoto.hidden = true; scriviHtml(mm, ''); scriviTesto(fin, '');
+                chiediStorico(d.id);
+                return;
+            }
+            const coppia = BINARI[classe] || ['Attivo', 'Inattivo'];
+            val.classList.toggle('testo', s.binario);
+            scriviHtml(val, valoreHtml(s, coppia));
+            if (s.binario) { const tc = ultimoCambio(punti); scriviHtml(sub, tc ? spanT('Cambiato alle') + ' <span data-no-tr>' + ORA(tc) + '</span>' : '&nbsp;'); }
+            else { const t = tendenza(punti, s); if (t) { scriviHtml(sub, t.html); if (t.cls) sub.classList.add(t.cls); } else scriviHtml(sub, '&nbsp;'); }
+            const span = punti.length ? ora - punti[0].t : 0;
+            let f = FINESTRE[FINESTRE.length - 1];
+            for (let i = 0; i < FINESTRE.length; i++) if (span <= FINESTRE[i][0]) { f = FINESTRE[i]; break; }
+            const W = f[0], da = ora - W;
+            let h = '';
+            for (let i = 1; i <= 3; i++) h += '<line class="griglia" x1="0" x2="100" y1="' + (i * 25) + '" y2="' + (i * 25) + '"/>';
+            if (punti.length >= 2) {
+                scriviTesto(fin, f[1]);
+                const X = t => ((t - da) / W * 100).toFixed(2);
+                if (s.binario) {
+                    for (let i = 0; i < punti.length; i++) {
+                        if (punti[i].v <= 0.5) continue;
+                        const t0 = punti[i].t, t1 = i + 1 < punti.length ? punti[i + 1].t : ora;
+                        h += '<rect class="scalino" x="' + X(t0) + '" y="18" width="' + Math.max(0.4, (t1 - t0) / W * 100).toFixed(2) + '" height="74"/>';
+                    }
+                    punto.hidden = true; scriviHtml(mm, '');
+                } else {
+                    let lo = Infinity, hi = -Infinity, mn = punti[0], mx = punti[0];
+                    punti.forEach(p => { if (p.v < lo) lo = p.v; if (p.v > hi) hi = p.v; if (p.v < mn.v) mn = p; if (p.v > mx.v) mx = p; });
+                    if (hi - lo < 1e-9) { lo -= 1; hi += 1; }
+                    const marg = (hi - lo) * 0.12; lo -= marg; hi += marg;
+                    const Y = v => (92 - (v - lo) / (hi - lo) * 84).toFixed(2);
+                    const linea = punti.map(p => X(p.t) + ',' + Y(p.v));
+                    h += '<defs><linearGradient id="' + w._sfumId + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(' + colore + ')" stop-opacity="0.35"/><stop offset="1" stop-color="rgb(' + colore + ')" stop-opacity="0"/></linearGradient></defs>' +
+                         '<path class="area" style="fill:url(#' + w._sfumId + ')" d="M' + linea.join(' L') + ' L' + X(punti[punti.length - 1].t) + ',100 L' + X(punti[0].t) + ',100 Z"/>' +
+                         '<path class="linea" d="M' + linea.join(' L') + '"/>';
+                    const u = punti[punti.length - 1];
+                    punto.style.left = X(u.t) + '%'; punto.style.top = Y(u.v) + '%'; punto.hidden = false;
+                    const dec = Math.max(decimali(s.valore), (Math.abs(mx.v - mn.v) < 1 ? 1 : 0));
+                    scriviHtml(mm, spanT('min') + ' <b data-no-tr>' + esc(virgola(mn.v.toFixed(dec))) + '</b> · ' + spanT('max') + ' <b data-no-tr>' + esc(virgola(mx.v.toFixed(dec))) + '</b>');
+                }
+                vuoto.hidden = true;
+            } else {
+                scriviTesto(fin, ''); punto.hidden = true; scriviHtml(mm, '');
+                scriviHtml(vuoto, spanT('In attesa di dati')); vuoto.hidden = false;
+            }
+            if (svg.innerHTML !== h) svg.innerHTML = h;
+            chiediStorico(d.id);
         }
         function aggiornaPresa(w, d) {
             const on = d.stato === 'on';
@@ -14623,14 +15351,18 @@ function hkOsserva(card) {
             scriviTesto(w.querySelector('.wv-name'), d.nome);
             scriviHtml(w.querySelector('.wv-state'), spanT(on ? 'Accesa' : 'Spenta'));
             const tog = w.querySelector('.wv-tog'); tog.classList.toggle('on', on); tog.setAttribute('aria-checked', on ? 'true' : 'false');
-            const watt = w.querySelector('.wv-watt');
-            if (d.presa.potenza !== null) { scriviHtml(watt, esc(virgola(Math.round(d.presa.potenza * 10) / 10)) + '<small>W</small>'); watt.hidden = false; } else watt.hidden = true;
+            const watt = w.querySelector('.wv-watt'), st = w.dataset.stile, noto = d.presa.potenza !== null;
+            if (noto) scriviHtml(watt, esc(virgola(Math.round(d.presa.potenza * 10) / 10)) + '<small>W</small>');
+            else if (st === 'consumo') scriviHtml(watt, '--<small>W</small>');
+            watt.classList.toggle('vuoto', !noto);
+            if (st === 'largo') w.querySelector('.wv-fondo').hidden = !noto;
+            else if (st !== 'consumo') watt.hidden = !noto;
         }
         function aggiornaScena(w, d) {
             const on = d.stato === 'on';
             w.classList.toggle('on', on);
             scriviTesto(w.querySelector('.wv-name'), d.nome);
-            scriviHtml(w.querySelector('.wv-state'), spanT(on ? (d.tipo === 'script' ? 'In esecuzione' : 'Avviata') : 'Tocca per avviare'));
+            scriviHtml(w.querySelector('.wv-state'), spanT(on ? (d.tipo === 'script' ? 'In esecuzione' : 'Avviata') : (w.dataset.stile === 'largo' ? (d.tipo === 'script' ? 'Script' : 'Scena') : 'Tocca per avviare')));
         }
         function aggiornaGenerico(w, d) {
             const on = d.acceso;
@@ -14640,24 +15372,186 @@ function hkOsserva(card) {
             const tog = w.querySelector('.wv-tog');
             if (tog) { tog.classList.toggle('on', on); tog.setAttribute('aria-checked', on ? 'true' : 'false'); }
         }
+        // ogni secondo avanza il brano; ogni minuto scorre l'asse dei tempi dei grafici
+        function batti() {
+            media.forEach(x => { if (!x.isConnected) { media.delete(x); return; } if (x._media && x._media.suona) avanzamento(x, x._media); });
+            if (++battiti % 60 === 0) grafici.forEach(x => { if (x.isConnected && x._card) aggiornaWidget(x, x._card); else grafici.delete(x); });
+        }
+
+        // ---------- PERSONALIZZA PLANCIA: stile e nascondi dal menu, trascinamento, riga dei nascosti, barra con Ripristina e Fine
+        function contenitoriPlancia() { return Array.from(document.querySelectorAll('.wh-vista[data-vista="plancia"]')); }
+        // la riga dei nascosti sta FUORI dalla griglia (fratello subito dopo il contenitore): dentro occuperebbe una traccia intera anche vuota
+        function rigaNascosti(cont) { const n = cont ? cont.nextElementSibling : null; return (n && n.classList.contains('wv-nascosti')) ? n : null; }
+        function pulisciRigheOrfane() { document.querySelectorAll('.wv-nascosti').forEach(n => { const p = n.previousElementSibling; if (!p || !p.matches('.wh-vista[data-vista="plancia"]') || !p.isConnected) n.remove(); }); }
+        function contenitoreAttivo() { return document.querySelector('.room-section.active .sub-room-content.active > .wh-vista[data-vista="plancia"]') || document.querySelector('.room-section.active .wh-vista[data-vista="plancia"]'); }
+        function cssId(id) { return (window.CSS && CSS.escape) ? CSS.escape(id) : String(id).replace(/["\\]/g, '\\$&'); }
+        function personalizza(si) {
+            si = si !== false;
+            if (si === modo) return;
+            if (si && !window.whViste.attuale()) return;                 // solo con la Plancia attiva (schermo grande)
+            if (si && document.body.classList.contains('modifica') && typeof esciModifica === 'function') esciModifica();
+            modo = si;
+            document.body.classList.toggle('wh-personalizza', si);
+            if (typeof hkChiudiMenu === 'function') hkChiudiMenu();
+            const barra = document.getElementById('wh-plancia-barra'); if (barra) barra.classList.remove('conferma', 'ok');
+            if (si) { if (navigator.vibrate) navigator.vibrate([30, 40, 30]); pulisciRigheOrfane(); contenitoriPlancia().forEach(attivaOrdinatore); }
+            else { ordinatori.forEach(s => { try { s.destroy(); } catch (e) {} }); ordinatori.clear(); }
+            try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+        }
+        function attivaOrdinatore(cont) {
+            if (!window.Sortable || !cont.isConnected) return;
+            ordinatori.forEach((s, c) => { if (!c.isConnected) { try { s.destroy(); } catch (e) {} ordinatori.delete(c); } });
+            if (ordinatori.has(cont)) return;
+            // forceFallback: stessi gesti col mouse e col dito (niente drag nativo del browser), come le card sul telefono
+            const s = Sortable.create(cont, {
+                draggable: '.wv', filter: '.wv-strumenti', preventOnFilter: false,
+                animation: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', delay: 130, delayOnTouchOnly: true, touchStartThreshold: 6,
+                forceFallback: true, fallbackTolerance: 4, fallbackClass: 'sortable-fallback',
+                ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', dragClass: 'sortable-drag',
+                onEnd: () => riordinato(cont)
+            });
+            ordinatori.set(cont, s);
+        }
+        // trascinamento finito: le card della griglia prendono lo stesso ordine e si salva come "Sposta le card"
+        function riordinato(cont) {
+            const grid = window.whViste.grigliaDi(cont); if (!grid) return;
+            const ids = Array.from(cont.querySelectorAll(':scope > .wv')).map(x => x.dataset.id);
+            if (window.whViste.riordina(grid, ids)) {
+                const barra = document.getElementById('wh-plancia-barra');
+                if (barra) { barra.classList.add('ok'); clearTimeout(barra._t); barra._t = setTimeout(() => barra.classList.remove('ok'), 1500); }
+            }
+        }
+        function cambiaStile(card, stile) {
+            const chiave = chiaveDi(card), w = mappa.get(card), d = dati(card);
+            if (!stiliOfferti(d).includes(stile)) return;
+            plancia.imposta(chiave, card.dataset.id, { stile });
+            if (navigator.vibrate) navigator.vibrate(12);
+            if (w && w.isConnected) aggiornaWidget(rifai(w, card), card);
+        }
+        function nascondi(card, chiave) {
+            const w = mappa.get(card), cont = w ? w.closest('.wh-vista') : null;
+            plancia.imposta(chiave, card.dataset.id, { nascosta: 1 });
+            if (w) { media.delete(w); grafici.delete(w); w.remove(); }
+            if (cont) aggiornaNascosti(cont);
+            if (navigator.vibrate) navigator.vibrate(12);
+            if (!modo && typeof hkToast === 'function') hkToast(T('Widget nascosto dalla plancia: lo ritrovi con «Personalizza plancia»'));
+        }
+        function rimetti(cont, id) {
+            const chiave = cont.dataset.chiave || '';
+            plancia.imposta(chiave, id, { nascosta: 0 });
+            const grid = window.whViste.grigliaDi(cont);
+            const card = grid ? grid.querySelector(':scope > .hk-card[data-id="' + cssId(id) + '"]') : null;
+            if (card) inserisci(cont, card);
+            aggiornaNascosti(cont);
+            if (navigator.vibrate) navigator.vibrate(12);
+        }
+        // un widget che torna: al posto che ha la sua card (prima del widget della card visibile che segue)
+        function inserisci(cont, card) {
+            const w = crea(card, cont.dataset.chiave || ''); mappa.set(card, w);
+            let rif = null;
+            for (let n = card.nextElementSibling; n; n = n.nextElementSibling) {
+                const x = n.classList && n.classList.contains('hk-card') ? mappa.get(n) : null;
+                if (x && x.parentNode === cont) { rif = x; break; }
+            }
+            cont.insertBefore(w, rif);                 // rif null = in fondo (la riga dei nascosti non sta nella griglia)
+            aggiornaWidget(w, card);
+            if (typeof whIcone === 'function') whIcone(w);
+        }
+        function aggiornaNascosti(cont) {
+            const box = rigaNascosti(cont); if (!box) return;
+            const grid = window.whViste.grigliaDi(cont), chiave = cont.dataset.chiave || '';
+            const nascoste = grid ? Array.from(grid.children).filter(c => c.classList && c.classList.contains('hk-card') && c.dataset.id && plancia.nascosta(chiave, c.dataset.id)) : [];
+            scriviTesto(box.querySelector('.wv-nascosti-tit b'), '(' + nascoste.length + ')');
+            const lista = box.querySelector('.wv-nascosti-lista'); lista.innerHTML = '';
+            if (!nascoste.length) lista.appendChild(el('<span class="wv-nascosti-vuoto">Nessun widget nascosto</span>'));
+            nascoste.forEach(c => {
+                const d = dati(c), b = el('<button type="button" class="wv-nascosto" title="Rimetti nella plancia"></button>');
+                b.dataset.id = c.dataset.id;
+                b.appendChild(icona(c, 'cpu')); b.appendChild(el('<span data-no-tr>' + esc(d.nome) + '</span>')); b.appendChild(el('<i data-lucide="eye" class="rimetti"></i>'));
+                b.addEventListener('click', ev => { ev.stopPropagation(); rimetti(cont, c.dataset.id); });
+                lista.appendChild(b);
+            });
+            if (typeof whIcone === 'function') whIcone(box);
+        }
+        function ripristina() {
+            const cont = contenitoreAttivo(); if (!cont) return;
+            plancia.reset(cont.dataset.chiave || '');
+            const grid = window.whViste.grigliaDi(cont);
+            if (grid) window.whViste.ricostruisciGriglia(grid);
+            if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
+        }
+        // anteprima piccola nel menu: una griglia 4x2 con le celle che il widget occupa
+        function anteprima(m) {
+            let h = '<i class="wv-ant">';
+            for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) h += '<b' + (c < m[0] && r < m[1] ? ' class="on"' : '') + '></b>';
+            return h + '</i>';
+        }
+        // il menu della card aperto da un widget: la sezione Stile (scelte del tipo, con l'attuale segnato)
+        function menu(card, m) {
+            const box = m.querySelector('#hk-menu-stili'); if (!box) return;
+            const d = dati(card), g = genere(d), attuale = stileEffettivo(d, chiaveDi(card));
+            box.innerHTML = stiliOfferti(d).map(s => '<button type="button" role="menuitemradio" data-az="wv-stile" data-stile="' + s + '" aria-checked="' + (s === attuale ? 'true' : 'false') + '"' + (s === attuale ? ' class="attivo"' : '') + '>' +
+                anteprima(STILI[g][s]) + '<span class="et">' + esc(ETICHETTE[s]) + '</span><span class="mis" data-no-tr>' + STILI[g][s][0] + '×' + STILI[g][s][1] + '</span>' +
+                '<svg class="spunta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button>').join('');
+        }
+        // le voci della Plancia nel menu della card: si leggono PRIMA che il gestore del menu lo chiuda (fase di cattura)
+        const hkMenuEl = document.getElementById('hk-menu');
+        if (hkMenuEl) hkMenuEl.addEventListener('click', ev => {
+            const b = ev.target.closest('button[data-az^="wv-"]'); if (!b) return;
+            const card = window.hkMenuCard; if (!card) return;
+            if (b.dataset.az === 'wv-stile') cambiaStile(card, b.dataset.stile || '');
+            else if (b.dataset.az === 'wv-nascondi') nascondi(card, chiaveDi(card));
+            else if (b.dataset.az === 'wv-personalizza') setTimeout(() => personalizza(true), 0);
+        }, true);
+        // il tastino nella testata della stanza e il rimando nelle Impostazioni
+        document.addEventListener('click', ev => {
+            const b = ev.target.closest && ev.target.closest('.wh-plancia-tasto, #imp-plancia-personalizza'); if (!b) return;
+            ev.preventDefault(); ev.stopPropagation();
+            if (b.id === 'imp-plancia-personalizza' && typeof impChiudi === 'function') { impChiudi(); setTimeout(() => personalizza(true), 480); }
+            else personalizza(true);
+        });
+        // la barra: Ripristina (con conferma nella barra stessa) e Fine
+        const barraEl = document.getElementById('wh-plancia-barra');
+        if (barraEl) barraEl.addEventListener('click', ev => {
+            const b = ev.target.closest('button[data-az]'); if (!b) return;
+            ev.stopPropagation();
+            const az = b.dataset.az;
+            if (az === 'fine') personalizza(false);
+            else if (az === 'ripristina') barraEl.classList.add('conferma');
+            else if (az === 'no') barraEl.classList.remove('conferma');
+            else if (az === 'si') { barraEl.classList.remove('conferma'); ripristina(); }
+        });
+        document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && modo) personalizza(false); });
 
         // helper a disposizione delle altre viste (Cruscotto)
-        Object.assign(condivisi, { el, icona, cursore, nomeColore, eBianco, conInterruttore, fmtTempo, sparkline, COLORI, BIANCO, MODI, MODI_CLASSICI, BINARI, COLORE_SENSORE });
+        Object.assign(condivisi, { el, icona, cursore, nomeColore, eBianco, conInterruttore, fmtTempo, sparkline, frazioneSensore, COLORI, BIANCO, MODI, MODI_CLASSICI, BINARI, COLORE_SENSORE });
 
         window.whViste.registra('plancia', {
             etichetta: 'Plancia',
-            costruisci(contenitore, cards) {
+            costruisci(contenitore, cards, info) {
+                const chiave = (info && info.chiave) || contenitore.dataset.chiave || '';
                 const frag = document.createDocumentFragment();
-                cards.forEach(card => { const w = crea(card); mappa.set(card, w); frag.appendChild(w); aggiornaWidget(w, card); });
+                cards.forEach(card => {
+                    if (plancia.nascosta(chiave, card.dataset.id)) return;        // nascosta dalla plancia (resta nelle card e nel Cruscotto)
+                    const w = crea(card, chiave); mappa.set(card, w); frag.appendChild(w); aggiornaWidget(w, card);
+                });
                 contenitore.appendChild(frag);
+                // la riga dei nascosti: fratello subito dopo la griglia (la base ricrea il contenitore, non i fratelli: si toglie quella vecchia)
+                const par = contenitore.parentNode;
+                if (par) Array.from(par.children).forEach(n => { if (n !== contenitore && n.classList.contains('wv-nascosti')) n.remove(); });
+                contenitore.insertAdjacentElement('afterend', el('<div class="wv-nascosti"><span class="wv-nascosti-tit"><i data-lucide="eye-off"></i><span>Nascosti</span> <b data-no-tr>(0)</b></span><div class="wv-nascosti-lista"></div></div>'));
+                aggiornaNascosti(contenitore);
                 if (typeof whIcone === 'function') whIcone(contenitore);
+                if (modo) attivaOrdinatore(contenitore);
+                if (!ticchettio) ticchettio = setInterval(batti, 1000);
             },
             aggiorna(id, card) {
                 const w = mappa.get(card);
                 if (!w || !w.isConnected) return;
                 aggiornaWidget(w, card);
             },
-            distruggi() { media.clear(); if (ticchettio) { clearInterval(ticchettio); ticchettio = null; } }
+            menu, personalizza, inPersonalizza: () => modo, stili: { STILI, ETICHETTE, offerti: card => stiliOfferti(dati(card)), effettivo: card => stileEffettivo(dati(card), chiaveDi(card)) },
+            distruggi() { personalizza(false); media.clear(); grafici.clear(); if (ticchettio) { clearInterval(ticchettio); ticchettio = null; } document.querySelectorAll('.wv-nascosti').forEach(n => n.remove()); }
         });
     })();
 
@@ -14677,7 +15571,6 @@ function hkOsserva(card) {
         const mappa = new WeakMap();            // card -> widget (riga, termostato, tapparella, tessera, lettore, telecamera)
         const media = new Set();                // barre multimediali (avanzamento del brano)
         const lenti = new Set();                // termostati e tessere: asse dei tempi e "agg." rinfrescati ogni minuto
-        const storicoServer = new Map();        // entity_id -> { quando, punti: [{t, v}] } da /api/sensor_history (24 h)
         let ticchettio = null, battiti = 0, contatore = 0;
         const LOCALE = INGLESE ? 'en-GB' : 'it-IT';
         const ORA = t => new Date(t).toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
@@ -15056,42 +15949,13 @@ function hkOsserva(card) {
             w.addEventListener('click', () => comandi.apri(card));
             fine(w, card, f);
             lenti.add(w);
-            chiediStorico(d.id, w);
+            chiediStorico(d.id);
             return w;
         }
-        // lo storico del server (24 h, campionato dal motore dei sensori) unito ai valori vivi ricevuti dalla pagina
-        function chiediStorico(id, w) {
-            const c = storicoServer.get(id);
-            if (c && Date.now() - c.quando < 5 * 60e3) return;
-            storicoServer.set(id, { quando: Date.now(), punti: c ? c.punti : [] });
-            fetch('/api/sensor_history/' + encodeURIComponent(id) + '?hours=24', { credentials: 'same-origin' })
-                .then(r => r.ok ? r.json() : [])
-                .then(l => {
-                    const punti = (Array.isArray(l) ? l : []).map(p => ({ t: p.t * 1000, v: num(p.v) })).filter(p => p.v !== null);
-                    storicoServer.set(id, { quando: Date.now(), punti });
-                    if (punti.length && w.isConnected && w._card) aggiornaWidget(w, w._card);
-                }).catch(() => {});
-        }
-        function serie(id) {
-            const srv = storicoServer.get(id), ora = Date.now(), out = [];
-            if (srv && srv.punti) srv.punti.forEach(p => out.push(p));
-            const ultimo = out.length ? out[out.length - 1].t : 0;
-            (storico.get(id) || []).forEach(x => { const v = x.v === 'on' ? 1 : (x.v === 'off' ? 0 : num(x.v)); if (v !== null && x.t > ultimo) out.push({ t: x.t, v }); });
-            return out.filter(p => ora - p.t <= GIORNO);
-        }
-        function frazione(s, classe, punti) {
-            const v = s.numero; if (v === null) return 0;
-            const u = s.unita || '';
-            if (classe === 'temperature' || u === '°C') return fra(v, -10, 40);
-            if (u === '°F') return fra(v, 14, 104);
-            if (u === '%') return fra(v, 0, 100);
-            if (classe === 'carbon_dioxide' || u === 'ppm') return fra(v, 0, 2000);
-            if (classe === 'illuminance' || u === 'lx') return fra(Math.log(1 + Math.max(0, v)) / Math.LN10, 0, 5);
-            if (classe === 'pressure' || u === 'hPa' || u === 'mbar') return fra(v, 950, 1050);
-            let max = 0; punti.forEach(p => { if (Math.abs(p.v) > max) max = Math.abs(p.v); });
-            if (u === 'W') max = Math.max(max, 1000); else if (u === 'kW') max = Math.max(max, 1);
-            return fra(Math.abs(v), 0, Math.max(max, Math.abs(v), 1));
-        }
+        // lo storico del server (24 h) e i valori vivi: chiediStorico() e serie() della base, in comune con la Plancia
+        // (al ritorno la base ridisegna tutti i widget dell'entita', anche questi); la scala degli archi e' la stessa
+        // della Plancia (K.frazioneSensore)
+        const frazione = (s, classe, punti) => K.frazioneSensore(s, classe, punti);
         function sparkline(svg, v, scalino) {
             const w = 44, h = 16; let html = '';
             if (v.length >= 2) {
@@ -15120,7 +15984,7 @@ function hkOsserva(card) {
                 val.classList.remove('lungo', 'lunghissimo');
                 scriviH(delta, '&nbsp;');
                 if (spark.innerHTML !== '') spark.innerHTML = '';
-                chiediStorico(d.id, w);
+                chiediStorico(d.id);
                 etichetta(w, d);
                 return;
             }
@@ -15153,7 +16017,7 @@ function hkOsserva(card) {
                 } else scriviH(delta, '&nbsp;');
                 sparkline(spark, punti.slice(-12).map(p => p.v), false);
             }
-            chiediStorico(d.id, w);
+            chiediStorico(d.id);
             etichetta(w, d);
         }
         function metaAmbiente(p) {
