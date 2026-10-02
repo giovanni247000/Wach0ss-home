@@ -46,3 +46,13 @@ numpy==2.4.6
 pycparser==3.0
 urllib3==2.7.0
 xmltodict==1.0.4
+
+# --- Tuya / Smart Life in locale (tuya.py): tinytuya e' puro Python (wheel py3-none-any) e usa la
+#     cryptography gia' bloccata sopra; colorama e' una sua dipendenza dichiarata (solo colori a terminale).
+tinytuya==1.20.0
+colorama==0.4.6
+
+# --- [INVERTER] Inverter fotovoltaici (inverter.py): Modbus TCP per SunSpec, Huawei, SMA, Kostal, Sungrow
+#     e Growatt. Ruota universale py3-none-any, nessuna dipendenza. Senza, inverter.py legge comunque
+#     Fronius, Enphase, SolaX (requests c'e' gia'), GoodWe e i logger Solarman (fatti in casa). ---
+pymodbus==3.15.0

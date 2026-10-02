@@ -1,0 +1,13 @@
+# Annunci vocali (annunci.py): pacchetti del motore vocale Piper, installati SU RICHIESTA (non da update.sh).
+# Piper e' GPL-3: gira come PROGRAMMA SEPARATO (python -m piper.http_server su 127.0.0.1), nessun modulo compilato lo importa.
+# onnxruntime 1.30.0: wheel manylinux_2_28 (glibc >= 2.28, come opencv e cryptography gia' presenti) e Python >= 3.11.
+# Il modulo li installa all'attivazione dalla card o col tasto "Installa motore"; a mano:
+#   cd /opt/wach_os && python/bin/python3.11 -m pip install -r requirements_annunci.txt
+# (sul server questo file sta nella radice di /opt/wach_os, accanto a requirements.txt che update.sh installa da li';
+#  nel progetto sta in linux/: dalla cartella del progetto il comando diventa  pip install -r linux/requirements_annunci.txt)
+# Generato da applica_annunci.py da annunci.PIPER_PACCHETTI: non modificare a mano.
+piper-tts==1.8.0
+onnxruntime==1.30.0
+pathvalidate==3.3.1
+flatbuffers==25.12.19
+packaging==26.3

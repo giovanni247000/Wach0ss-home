@@ -72,7 +72,10 @@ fi
 echo ""
 echo "--- Moduli che verranno caricati ---"
 CONTROLLO_ASSENTE=0
-for MODULO in app controllo_impianto knx_monitor smart_tv nvr rete; do
+# integrazioni del 02/10/2026: FACOLTATIVE (il rollback di una sola si fa togliendo il suo .py e il suo .so):
+# se mancano non e' un errore
+MODULI_FACOLTATIVI=" annunci tuya myhome inverter hue tplink sonoff "
+for MODULO in app controllo_impianto knx_monitor smart_tv nvr rete annunci tuya myhome inverter hue tplink sonoff; do
     SO=$(ls "$INSTALL_DIR/$MODULO".*.so "$INSTALL_DIR/$MODULO.so" 2>/dev/null | head -1)
     PY="$INSTALL_DIR/$MODULO.py"
     if [ -n "$SO" ] && [ -f "$PY" ]; then
@@ -88,8 +91,11 @@ for MODULO in app controllo_impianto knx_monitor smart_tv nvr rete; do
     elif [ -f "$PY" ]; then
         echo "[ok] $MODULO: sorgente ($MODULO.py, non compilato)"
     else
-        echo "[X] $MODULO: NON TROVATO ne' compilato ne' sorgente."
-        [ "$MODULO" = "controllo_impianto" ] && CONTROLLO_ASSENTE=1
+        case "$MODULI_FACOLTATIVI" in
+            *" $MODULO "*) echo "[--] $MODULO: modulo facoltativo non installato" ;;
+            *) echo "[X] $MODULO: NON TROVATO ne' compilato ne' sorgente."
+               [ "$MODULO" = "controllo_impianto" ] && CONTROLLO_ASSENTE=1 ;;
+        esac
     fi
 done
 
