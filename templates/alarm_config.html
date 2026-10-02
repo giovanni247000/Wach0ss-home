@@ -283,7 +283,19 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
 .lista .riga::after { content: ""; position: absolute; bottom: 0; left: 57px; right: 0; height: 0.5px; background: var(--sep); }
 .riga-info { cursor: default; }
 .riga-info .testo b { color: var(--testo-2); }
-
+{% if annunci_modulo %}/* ANNUNCI VOCALI (annunci.py): blocco nel passo «Quando scatta» */
+.ann-num { width: 76px; height: 38px; padding: 0 10px; border-radius: 10px; background: rgba(118,118,128,0.24); border: 1px solid transparent; color: var(--testo); font: inherit; font-weight: 600; text-align: center; -moz-appearance: textfield; }
+.ann-num:focus { outline: none; box-shadow: 0 0 0 2px rgba(255,179,92,0.55); }
+#ann-casse .sirena { color: var(--rosso-chiaro); }
+#ann-sotto.ann-ko { color: var(--caldo); }
+.ann-frasi summary { padding: 13px 14px 13px 57px; cursor: pointer; font-size: 0.9rem; color: var(--testo-2); list-style: none; }
+.ann-frasi summary::-webkit-details-marker { display: none; }
+.ann-frasi .riga { flex-direction: column; align-items: stretch; gap: 6px; cursor: text; }
+.ann-frasi .riga + .riga::before { left: 14px; }
+.ann-frasi input[type=text] { width: 100%; height: 40px; padding: 0 12px; border-radius: 10px; background: rgba(118,118,128,0.24); border: 1px solid transparent; color: var(--testo); font: inherit; font-size: 0.92rem; }
+.ann-frasi input[type=text]:focus { outline: none; box-shadow: 0 0 0 2px rgba(255,179,92,0.55); }
+#ann-prova-box { padding: 10px 14px 14px; }
+{% endif %}
 /* ---- cerca + filtro ---- */
 .strumenti { display: flex; gap: 10px; align-items: center; margin-top: 16px; }
 .cerca { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; height: 44px; border-radius: 12px; background: rgba(118,118,128,0.24); transition: box-shadow 0.2s ease; }
@@ -922,7 +934,33 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
                         <input type="checkbox" class="interr" role="switch" id="notifica-arm">
                     </label>
                 </div>
-                <p class="nota">Arrivano a tutti i telefoni con l'app Wach0ss Home e le notifiche attive.</p>
+                <p class="nota">Arrivano a tutti i telefoni con l'app Wach0ss Home e le notifiche attive.</p>{% if annunci_modulo %}
+                <!-- ANNUNCI VOCALI (annunci.py): la configurazione viaggia in GET/POST /api/alarm/config come "announce" -->
+                <div class="etichetta" id="annunci-eti"><span>Annunci vocali sulle casse Sonos</span></div>
+                <div class="gruppo" id="annunci-gruppo">
+                    <label class="riga" for="ann-attivo">
+                        <span class="acc-ico c-orange"><i data-lucide="megaphone"></i></span>
+                        <span class="testo"><b>Annuncia gli eventi a voce</b><small id="ann-sotto">Serve l'integrazione «Annunci vocali» attiva nel Pannello di controllo.</small></span>
+                        <input type="checkbox" class="interr" role="switch" id="ann-attivo">
+                    </label>
+                    <div id="ann-corpo" hidden>
+                        <div class="riga riga-fissa riga-info"><span class="acc-ico c-pink"><i data-lucide="speaker"></i></span><span class="testo"><b>Casse</b><small>Dove parlare. Una cassa che fa da sirena non annuncia intrusione e allarme scattato.</small></span></div>
+                        <div id="ann-casse" class="lista"></div>
+                        <label class="riga" for="ann-volume"><span class="acc-ico c-gray"><i data-lucide="volume-2"></i></span><span class="testo"><b>Volume</b><small>Vuoto = quello predefinito degli annunci.</small></span><input type="number" class="ann-num" id="ann-volume" min="0" max="100" inputmode="numeric" placeholder="35" aria-label="Volume"></label>
+                        <label class="riga" for="ann-ev-intrusione"><span class="acc-ico c-orange"><i data-lucide="footprints"></i></span><span class="testo"><b>Intrusione (tempo per entrare)</b><small>Sempre, anche nella fascia «non disturbare».</small></span><input type="checkbox" class="interr" role="switch" id="ann-ev-intrusione"></label>
+                        <label class="riga" for="ann-ev-scattato"><span class="acc-ico c-red"><i data-lucide="siren"></i></span><span class="testo"><b>Allarme scattato</b><small>Sempre.</small></span><input type="checkbox" class="interr" role="switch" id="ann-ev-scattato"></label>
+                        <label class="riga" for="ann-ev-inserito"><span class="acc-ico c-blue"><i data-lucide="shield-check"></i></span><span class="testo"><b>Inserimento</b><small>Rispetta la fascia «non disturbare».</small></span><input type="checkbox" class="interr" role="switch" id="ann-ev-inserito"></label>
+                        <label class="riga" for="ann-ev-disinserito"><span class="acc-ico c-green"><i data-lucide="shield-off"></i></span><span class="testo"><b>Disinserimento</b><small>Rispetta la fascia «non disturbare».</small></span><input type="checkbox" class="interr" role="switch" id="ann-ev-disinserito"></label>
+                        <details class="ann-frasi"><summary>Frasi (vuoto = predefinita; {nome} = sensore o persona)</summary>
+                            <label class="riga" for="ann-t-intrusione"><span class="testo"><b>Intrusione</b></span><input type="text" id="ann-t-intrusione" maxlength="200" placeholder="Attenzione: intrusione rilevata, {nome}" autocomplete="off" data-no-tr></label>
+                            <label class="riga" for="ann-t-scattato"><span class="testo"><b>Scattato</b></span><input type="text" id="ann-t-scattato" maxlength="200" placeholder="Allarme! Intrusione in casa, {nome}" autocomplete="off" data-no-tr></label>
+                            <label class="riga" for="ann-t-inserito"><span class="testo"><b>Inserito</b></span><input type="text" id="ann-t-inserito" maxlength="200" placeholder="Allarme inserito" autocomplete="off" data-no-tr></label>
+                            <label class="riga" for="ann-t-disinserito"><span class="testo"><b>Disinserito</b></span><input type="text" id="ann-t-disinserito" maxlength="200" placeholder="Allarme disinserito" autocomplete="off" data-no-tr></label>
+                        </details>
+                        <div id="ann-prova-box"><button type="button" class="btn btn-secondario btn-largo" id="ann-prova"><i data-lucide="megaphone"></i><span>Prova un annuncio sulle casse scelte</span></button></div>
+                    </div>
+                </div>
+                <p class="nota" id="ann-nota">Le casse si scelgono qui; voce, volume predefinito e fascia «non disturbare» sono nella card «Annunci vocali» del Pannello di controllo.</p>{% endif %}
                 <button type="button" class="btn btn-primario btn-largo avanti avanti-riepilogo" data-vai="riepilogo"><span>Vedi il riepilogo</span><i data-lucide="chevron-right"></i></button>
             </section>
             </div>
@@ -1142,7 +1180,8 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         entita: [], chat: [], entitaOk: true, chatOk: true,
         salvato: { pin: '', trigger: [], azioni: [], immediati: [], notte: [], uscita: 60, entrata: 60, sirena: 5, notifica: true },
         trigger: new Set(), azioni: new Set(), immediati: new Set(), notte: new Set(),
-        tempi: { uscita: 60, entrata: 60, sirena: 5 }, notifica: true,
+        tempi: { uscita: 60, entrata: 60, sirena: 5 }, notifica: true,{% if annunci_modulo %}
+        annunci: null,          // ANNUNCI VOCALI: {attivo, casse, volume, eventi, testi} (null finche' non letto){% endif %}
         pin: { editor: false, nuovo: '', ripeti: '', mostra: false, sbaglio: false },
         passo: 'pin', vista: 'config',
         filtro: { sensori: 'tutti', azioni: 'tutti' },
@@ -1611,7 +1650,117 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         scrivi($('rie-avvisi'), S.notifica ? T('Avvisi nell\'app: intrusioni e allarmi, inserimento e disinserimento.') : T('Avvisi nell\'app: solo intrusioni e allarmi.'));
     }
 
-    /* ------------------------------------------------------------------ passi, contatori, modifiche */
+{% if annunci_modulo %}    /* ------------------------------------------------------------------ ANNUNCI VOCALI (annunci.py) */
+    // {attivo, casse, volume|null, eventi:{intrusione,scattato,inserito,disinserito}, testi:{evento: frase}}: arriva da
+    // GET /api/alarm/config come "announce" e si salva con il POST (stessa chiave). Qui solo la forma: a parlare e' il modulo.
+    const ANN_EVENTI = ['intrusione', 'scattato', 'inserito', 'disinserito'];
+    const ANN_PREDEFINITI = { intrusione: true, scattato: true, inserito: false, disinserito: false };
+    let annStato = null, annCasseFirma = '';
+    function annunciNorm(c) {
+        c = (c && typeof c === 'object') ? c : {};
+        const out = { attivo: !!c.attivo, casse: Array.isArray(c.casse) ? c.casse.filter(x => typeof x === 'string' && x.includes('media_player.sonos_')) : [], volume: null, eventi: {}, testi: {} };
+        const v = c.volume;
+        if (v !== null && v !== undefined && v !== '' && isFinite(+v)) out.volume = Math.max(0, Math.min(100, Math.round(+v)));
+        ANN_EVENTI.forEach(e => { out.eventi[e] = (c.eventi && typeof c.eventi === 'object' && e in c.eventi) ? !!c.eventi[e] : ANN_PREDEFINITI[e]; });
+        ANN_EVENTI.forEach(e => { const t = c.testi && c.testi[e]; if (typeof t === 'string' && t.trim()) out.testi[e] = t.trim().replace(/\s+/g, ' ').slice(0, 200); });
+        return out;
+    }
+    function annunciCopia(a) { return annunciNorm(JSON.parse(JSON.stringify(annunciNorm(a)))); }
+    function annunciUguali(a, b) {
+        a = annunciNorm(a); b = annunciNorm(b);
+        if (a.attivo !== b.attivo || a.volume !== b.volume) return false;
+        if (a.casse.length !== b.casse.length || !a.casse.every(x => b.casse.includes(x))) return false;
+        return ANN_EVENTI.every(e => a.eventi[e] === b.eventi[e] && (a.testi[e] || '') === (b.testi[e] || ''));
+    }
+    function annCasseSonos() { return S.entita.filter(e => e.domain === 'media_player' && String(e.entity_id).includes('sonos_')); }
+    function disegnaAnnunci() {
+        const sw = $('ann-attivo'); if (!sw) return;
+        const a = S.annunci = annunciNorm(S.annunci);
+        sw.checked = a.attivo; sw.disabled = !S.pronto;
+        $('ann-corpo').hidden = !a.attivo;
+        ANN_EVENTI.forEach(e => {
+            const cb = $('ann-ev-' + e); if (cb) { cb.checked = !!a.eventi[e]; cb.disabled = !S.pronto; }
+            const t = $('ann-t-' + e); if (t && document.activeElement !== t && t.value !== (a.testi[e] || '')) t.value = a.testi[e] || '';
+        });
+        const vol = $('ann-volume');
+        if (vol && document.activeElement !== vol) { const v = a.volume == null ? '' : String(a.volume); if (vol.value !== v) vol.value = v; }
+        // elenco delle casse: si ridisegna solo se cambia qualcosa (aggiorna() gira a ogni tasto)
+        const casse = annCasseSonos();
+        const salvate = a.casse.filter(id => !casse.some(e => e.entity_id === id));   // scelte ma non in elenco adesso
+        const firma = JSON.stringify([casse.map(e => [e.entity_id, e.name]), salvate, Array.from(S.azioni).filter(x => x.includes('sonos_')), S.pronto, S.entitaOk]);
+        if (firma !== annCasseFirma) {
+            annCasseFirma = firma;
+            let h = '';
+            if (!casse.length && !salvate.length) {
+                h = '<div class="riga riga-info riga-fissa"><span class="acc-ico c-gray">' + ic('speaker') + '</span><span class="testo"><b>' + esc(T('Nessuna cassa Sonos trovata')) + '</b><small>' +
+                    esc(T(S.entitaOk ? 'Collega Sonos dal Pannello di controllo: le casse compariranno qui da sole.' : 'Non riesco a leggere i dispositivi dal server. Quelli già scelti restano scelti.')) + '</small></span></div>';
+            }
+            casse.map(e => ({ id: e.entity_id, nome: e.name || e.entity_id, c: true })).concat(salvate.map(id => ({ id, nome: id, c: false }))).forEach(x => {
+                const sirena = S.azioni.has(x.id);
+                h += '<label class="riga ent" data-id="' + esc(x.id) + '"><span class="acc-ico ' + (x.c ? 'c-pink' : 'c-gray') + '">' + ic(x.c ? 'speaker' : 'wifi-off') + '</span>' +
+                    '<span class="testo"><b data-no-tr>' + esc(x.nome) + '</b><small>' + (sirena ? '<span class="sirena">' + esc(T('Fa da sirena: non annuncia intrusione e allarme scattato')) + '</span>' : '<span>' + esc(T(x.c ? 'Cassa Sonos' : 'Non risponde adesso')) + '</span>') + '</small></span>' +
+                    '<input type="checkbox" class="interr" role="switch" data-cassa="' + esc(x.id) + '"' + (a.casse.includes(x.id) ? ' checked' : '') + (S.pronto ? '' : ' disabled') + '></label>';
+            });
+            $('ann-casse').innerHTML = h;
+        } else {
+            $('ann-casse').querySelectorAll('input[data-cassa]').forEach(cb => { const on = a.casse.includes(cb.dataset.cassa); if (cb.checked !== on) cb.checked = on; cb.disabled = !S.pronto; });
+        }
+        const prova = $('ann-prova'); if (prova) prova.disabled = !S.pronto || !a.casse.length || !!(annStato && annStato.disponibile === false);
+    }
+    function annScriviSotto() {
+        const el = $('ann-sotto'); if (!el) return;
+        const st = annStato;
+        if (!st || st.assente) scrivi(el, T('Serve l\'integrazione «Annunci vocali» attiva nel Pannello di controllo.'));
+        else if (!st.attivo) scrivi(el, T('Integrazione non attiva: accendila dalla card «Annunci vocali» del Pannello di controllo.'));
+        else if (!st.disponibile) scrivi(el, T(!st.sonos ? 'Sonos non collegato: collegalo dal Pannello di controllo.' : st.motivo === 'motore_non_installato' ? 'Il motore vocale (Piper) non è installato: installalo dalla card «Annunci vocali» (Avanzate).' : 'Il motore vocale non è pronto: scarica una voce dalla card «Annunci vocali».'));
+        else scrivi(el, T('Pronto') + ' · ' + T('Voce') + ': ' + ((st.voce && st.voce.nome) || '') + (st.non_disturbare && st.non_disturbare.attivo ? ' · ' + T('non disturbare') + ' ' + st.non_disturbare.dalle + '-' + st.non_disturbare.alle : ''));
+        el.classList.toggle('ann-ko', !!st && !(st.attivo && st.disponibile));
+        const vol = $('ann-volume'); if (vol && st && st.volume_predefinito != null) vol.placeholder = String(st.volume_predefinito);
+        // segnaposto = frase predefinita come la dira' la voce scelta (italiana anche su un impianto in inglese)
+        const fp = st && st.frasi_predefinite;
+        if (fp) ['intrusione', 'scattato', 'inserito', 'disinserito'].forEach(ev => { const i = $('ann-t-' + ev); if (i && fp[ev] && i.placeholder !== fp[ev]) i.placeholder = fp[ev]; });
+    }
+    async function annLeggiStato() {
+        try { annStato = await chiama('/api/annunci/stato'); }
+        catch (e) { annStato = (e && e.http === 404) ? { assente: true } : null; }
+        annScriviSotto(); disegnaAnnunci();
+    }
+    async function annProva() {
+        const a = annunciNorm(S.annunci);
+        if (!a.casse.length) { avvisa(T('Scegli almeno una cassa'), { titolo: 'Nessuna cassa scelta', icona: 'alert-triangle' }); return; }
+        const b = $('ann-prova'); b.disabled = true;
+        try {
+            const r = await chiama('/api/annunci/prova', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ casse: a.casse, volume: a.volume }) });
+            mostraToast(T('Annuncio in corso') + (r && r.casse ? ' (' + r.casse + ')' : ''));
+        } catch (e) {
+            const msg = e && e.dati && typeof e.dati.message === 'string' ? e.dati.message : '';
+            avvisa((e && e.http === 404) ? T('Integrazione «Annunci vocali» non attiva: installala dal Pannello di controllo')
+                   : (msg || T('Non riesco a raggiungere il server. Controlla la connessione e riprova.')), { titolo: 'Annuncio non partito', icona: 'alert-circle' });
+        } finally { b.disabled = false; disegnaAnnunci(); }
+    }
+    function collegaAnnunci() {
+        const sw = $('ann-attivo'); if (!sw) return;
+        sw.addEventListener('change', e => { S.annunci = annunciNorm(S.annunci); S.annunci.attivo = !!e.target.checked; aggiorna(); });
+        ANN_EVENTI.forEach(ev => {
+            $('ann-ev-' + ev).addEventListener('change', e => { S.annunci = annunciNorm(S.annunci); S.annunci.eventi[ev] = !!e.target.checked; aggiorna(); });
+            const t = $('ann-t-' + ev);
+            t.addEventListener('input', () => { S.annunci = annunciNorm(S.annunci); const v = t.value.trim().replace(/\s+/g, ' ').slice(0, 200); if (v) S.annunci.testi[ev] = v; else delete S.annunci.testi[ev]; aggiorna(); });
+        });
+        const vol = $('ann-volume');
+        vol.addEventListener('input', () => { S.annunci = annunciNorm(S.annunci); const v = vol.value.trim(); S.annunci.volume = (v === '' || !isFinite(+v)) ? null : Math.max(0, Math.min(100, Math.round(+v))); aggiorna(); });
+        vol.addEventListener('blur', () => { vol.value = S.annunci && S.annunci.volume != null ? String(S.annunci.volume) : ''; });
+        $('ann-casse').addEventListener('change', e => {
+            const cb = e.target && e.target.closest ? e.target.closest('input[data-cassa]') : null; if (!cb) return;
+            S.annunci = annunciNorm(S.annunci);
+            const set = new Set(S.annunci.casse);
+            if (cb.checked) set.add(cb.dataset.cassa); else set.delete(cb.dataset.cassa);
+            S.annunci.casse = Array.from(set); aggiorna();
+        });
+        $('ann-prova').addEventListener('click', annProva);
+        annLeggiStato();
+    }
+
+{% endif %}    /* ------------------------------------------------------------------ passi, contatori, modifiche */
     function stessi(set, arr) { if (set.size !== arr.length) return false; return arr.every(x => set.has(x)); }
     function sporco() {
         if (!S.pronto) return false;
@@ -1619,7 +1768,7 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         return pinCambiato() || !stessi(S.trigger, sv.trigger) || !stessi(S.azioni, sv.azioni)
             || !stessi(new Set(soloScelti(S.immediati)), sv.immediati) || !stessi(new Set(soloScelti(S.notte)), sv.notte)
             || S.tempi.uscita !== sv.uscita || S.tempi.entrata !== sv.entrata || S.tempi.sirena !== sv.sirena
-            || S.notifica !== sv.notifica;
+{% if annunci_modulo %}            || S.notifica !== sv.notifica || !annunciUguali(S.annunci, sv.annunci);{% else %}            || S.notifica !== sv.notifica;{% endif %}
     }
 
     function aggiorna() {
@@ -1628,7 +1777,8 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         disegnaLegenda();
         disegnaRiepilogo();
         const cb = $('notifica-arm');
-        cb.checked = S.notifica; cb.disabled = !S.pronto;
+        cb.checked = S.notifica; cb.disabled = !S.pronto;{% if annunci_modulo %}
+        disegnaAnnunci();          // ANNUNCI VOCALI (L8){% endif %}
         // cerchi dei passi
         const fatto = { pin: S.pronto && pinValido(), sensori: S.trigger.size > 0, tempi: S.pronto, azioni: S.azioni.size > 0 };
         document.querySelectorAll('.passo-tab').forEach(b => {
@@ -1766,7 +1916,8 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         S.immediati = new Set(S.salvato.immediati);
         S.notte = new Set(S.salvato.notte);
         S.tempi = { uscita: S.salvato.uscita, entrata: S.salvato.entrata, sirena: S.salvato.sirena };
-        S.notifica = S.salvato.notifica;
+        S.notifica = S.salvato.notifica;{% if annunci_modulo %}
+        S.salvato.annunci = annunciNorm(c.announce); S.annunci = annunciCopia(S.salvato.annunci);   // ANNUNCI VOCALI{% endif %}
         S.pin.editor = false; S.pin.nuovo = ''; S.pin.ripeti = ''; S.pin.sbaglio = false;
         $('pin-nuovo').value = ''; $('pin-ripeti').value = '';
     }
@@ -2086,7 +2237,9 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         'La durata della sirena deve essere fra 0 e 30 minuti.': 'tempi',
         'Elenco di dispositivi non valido.': 'sensori',
         'Dati non validi.': '',
-        'Salvataggio non riuscito: riprova.': ''
+{% if annunci_modulo %}        'Il volume degli annunci deve essere fra 0 e 100.': 'azioni',
+        'Una frase degli annunci supera i 200 caratteri.': 'azioni',
+{% endif %}        'Salvataggio non riuscito: riprova.': ''
     };
     function datiDaSalvare(pin) {
         return {
@@ -2098,8 +2251,10 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
             exit_delay: S.tempi.uscita,
             entry_delay: S.tempi.entrata,
             siren_minutes: S.tempi.sirena,
-            notify_arm: !!S.notifica
-        };
+{% if annunci_modulo %}            notify_arm: !!S.notifica,
+            announce: annunciCopia(S.annunci)
+        };{% else %}            notify_arm: !!S.notifica
+        };{% endif %}
     }
     async function invia(dati) {
         const r = await chiama('/api/alarm/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dati) });
@@ -2113,7 +2268,8 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
             && (dati.exit_delay === undefined || +letto.exit_delay === dati.exit_delay)
             && (dati.entry_delay === undefined || +letto.entry_delay === dati.entry_delay)
             && (dati.siren_minutes === undefined || +letto.siren_minutes === dati.siren_minutes)
-            && (dati.notify_arm === undefined || !!letto.notify_arm === dati.notify_arm);
+{% if annunci_modulo %}            && (dati.notify_arm === undefined || !!letto.notify_arm === dati.notify_arm)
+            && (dati.announce === undefined || annunciUguali(annunciNorm(letto.announce), dati.announce));{% else %}            && (dati.notify_arm === undefined || !!letto.notify_arm === dati.notify_arm);{% endif %}
         return { letto, ok };
     }
     function occupa(si, testo) {
@@ -2250,8 +2406,9 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         S.trigger = new Set(sv.trigger); S.azioni = new Set(sv.azioni);
         S.immediati = new Set(sv.immediati); S.notte = new Set(sv.notte);
         S.tempi = { uscita: sv.uscita, entrata: sv.entrata, sirena: sv.sirena };
-        S.notifica = sv.notifica;
-        S.pin.editor = !PIN4.test(sv.pin); S.pin.nuovo = ''; S.pin.ripeti = ''; S.pin.sbaglio = false;
+{% if annunci_modulo %}        S.notifica = sv.notifica; S.annunci = annunciCopia(sv.annunci);
+        S.pin.editor = !PIN4.test(sv.pin);{% else %}        S.notifica = sv.notifica;
+        S.pin.editor = !PIN4.test(sv.pin);{% endif %} S.pin.nuovo = ''; S.pin.ripeti = ''; S.pin.sbaglio = false;
         $('pin-nuovo').value = ''; $('pin-ripeti').value = '';
         disegnaLista('sensori'); disegnaLista('azioni'); aggiorna();
         mostraToast('Modifiche annullate');
@@ -2439,7 +2596,8 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
                 aggiorna();
             });
         });
-        $('notifica-arm').addEventListener('change', e => { S.notifica = !!e.target.checked; aggiorna(); });
+        $('notifica-arm').addEventListener('change', e => { S.notifica = !!e.target.checked; aggiorna(); });{% if annunci_modulo %}
+        collegaAnnunci();          // ANNUNCI VOCALI{% endif %}
 
         // PIN
         $('btn-occhio').addEventListener('click', () => { S.pin.mostra = !S.pin.mostra; aggiorna(); });

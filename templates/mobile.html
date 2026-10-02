@@ -2420,6 +2420,12 @@
             }
             body.nav-minimal .nav-item { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); }
             body.nav-minimal .nav-item.active { background: #FFF; border-color: transparent; }
+            /* M7 - barra con TANTE voci (stanze, Energia, NVR...): classi messe da whAdattaBarra() SOLO se la barra non ci
+               sta nemmeno con le voci a 36 px: 1) voci piu' strette; 2) se ancora non basta, la barra scorre col dito in
+               orizzontale dentro lo schermo. Dove ci sta, nessuna classe: resa identica a prima (02/10/2026) */
+            html.wh-nav-stretta .floating-nav-wrapper .floating-nav { gap: 4px; padding-left: 8px; padding-right: 8px; }
+            html.wh-nav-scorre .floating-nav-wrapper .floating-nav { justify-content: flex-start; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-x; }
+            html.wh-nav-scorre .floating-nav-wrapper .floating-nav::-webkit-scrollbar { display: none; }
         }
         /* =========================================
            VERSIONE DESKTOP (SIDEBAR & LAYOUT FIX)
@@ -3935,7 +3941,18 @@ button.imp-info:active { background: rgba(255,255,255,0.06); }
 .imp-p-forma[data-v="square"] i { border-radius: 4px; } .imp-p-forma[data-v="default"] i { border-radius: 9px; } .imp-p-forma[data-v="round"] i { border-radius: 50%; }
 
 /* ---- cursori ---- */
-.imp-cursore { position: relative; padding: 12px 14px 14px; }
+{% if annunci_attivo %}
+/* ANNUNCI VOCALI (annunci.py): Impostazioni > Annunci (niente animazioni, niente backdrop-filter) */
+.imp-campo-area textarea { width: 100%; min-height: 84px; resize: vertical; background: transparent; border: 0; padding: 0; color: var(--imp-testo); font: inherit; font-size: 1rem; line-height: 1.4; outline: none; }
+.imp-campo-area textarea::placeholder { color: var(--imp-testo-4); opacity: 1; }
+.imp-ann-cassa.offline .acc-ico { filter: grayscale(1); opacity: 0.45; }
+.imp-ann-esito { font-weight: 600; color: var(--imp-testo-2); }
+.imp-ann-esito:empty { display: none; }
+#imp-ann-avviso[hidden] { display: none; }
+#imp-ann-parla { margin-top: 14px; }
+#imp-ann-parla[disabled] { opacity: 0.55; cursor: default; transform: none; }
+.imp-ann-ultimo .imp-testo b { overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+{% endif %}.imp-cursore { position: relative; padding: 12px 14px 14px; }
 .imp-cursore-testa { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; min-height: 30px; }
 .imp-cursore-testa b { flex: 1; min-width: 0; font-size: 0.99rem; font-weight: 560; letter-spacing: -0.012em; }
 .imp-cursore-testa output { font-size: 0.88rem; font-weight: 600; color: var(--imp-testo-2); font-variant-numeric: tabular-nums; }
@@ -4648,6 +4665,7 @@ html.wh-scala .imp-pagina {
     html.wh-scala #app-background.bg-notte-citta { --nc-luna-y: calc(var(--wh-sa-t) + 22px); }
 }
 </style>
+{%- if inverter_attivo %}{# [ENERGIA] M1 #}<link rel="stylesheet" href="/static/energia.css?v=2026-10-02f">{% endif %}
 </head>
 <body>
     
@@ -4955,6 +4973,279 @@ html.wh-scala .imp-pagina {
 
             </div>
             {% endfor %}
+{%- if inverter_attivo %}{# [ENERGIA] M3: sezione Energia #}
+            <!-- [ENERGIA] sezione Energia (solo con inverter configurato): si apre come una stanza (switchRoom) dalla voce
+                 "Energia" della barra; stile e animazione in /static/energia.css e /static/energia.js -->
+            <div class="room-section en-pagina" id="room-energia">
+                <svg class="en-simboli" aria-hidden="true" focusable="false">
+                    <symbol id="en-i-sole" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+                    <symbol id="en-i-batt" viewBox="0 0 24 24"><rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 10.5v3"/><path d="M11.5 9.5 9.5 12.5h4l-2 3"/></symbol>
+                    <symbol id="en-i-rete" viewBox="0 0 24 24"><path d="M9 21 10.5 3h3L15 21"/><path d="M6 21h12"/><path d="M4 9h16"/><path d="M6 14h12"/><path d="M4 9l5.5 5M20 9l-5.5 5"/></symbol>
+                    <symbol id="en-i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></symbol>
+                    <symbol id="en-i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 10h18M8 2v4M16 2v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></symbol>
+                    <symbol id="en-i-area" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-6v9H7z"/></symbol>
+                    <symbol id="en-i-euro" viewBox="0 0 24 24"><path d="M4 10h11M4 14h9"/><path d="M19 6a7 7 0 0 0-10 0 8 8 0 0 0 0 12 7 7 0 0 0 10 0"/></symbol>
+                    <symbol id="en-i-giu" viewBox="0 0 24 24"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></symbol>
+                    <symbol id="en-i-su" viewBox="0 0 24 24"><path d="m18 9-6-6-6 6"/><path d="M12 3v14"/><path d="M5 21h14"/></symbol>
+                    <symbol id="en-i-risp" viewBox="0 0 24 24"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/></symbol>
+                    <symbol id="en-i-gauge" viewBox="0 0 24 24"><path d="m12 15 3.5-3.5"/><path d="M20.3 18c.4-1 .7-2.2.7-3.4C21 9.8 17 6 12 6s-9 3.8-9 8.6c0 1.2.3 2.4.7 3.4"/></symbol>
+                    <symbol id="en-i-barre" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></symbol>
+                    <symbol id="en-i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></symbol>
+                    <symbol id="en-i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17.5v.5"/></symbol>
+                    <symbol id="en-i-dx" viewBox="0 0 24 24"><path d="m18 8 4 4-4 4"/><path d="M2 12h20"/></symbol>
+                    <symbol id="en-i-sx" viewBox="0 0 24 24"><path d="m6 8-4 4 4 4"/><path d="M2 12h20"/></symbol>
+                    <symbol id="en-i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+                </svg>
+
+                <header class="en-testata">
+                    <div class="en-mh-brand">Wach0ss Home</div>
+                    <h1>Energia</h1>
+                    <div class="en-mh-data" id="en-data" data-no-tr></div>
+                </header>
+
+                <!-- pillole: fotovoltaico, batteria, rete -->
+                <div class="glance-row en-pillole">
+                    <div class="glance-pill" id="en-pill-sole" style="--pc: var(--c-sole)"><div class="glance-icon"><svg class="en-ic"><use href="#en-i-sole"/></svg></div><div class="glance-text"><div class="glance-val" id="en-p-sole" data-no-tr>—</div><div class="glance-lbl"><span class="en-solo-grande">Fotovoltaico</span><span class="en-solo-tel">Solare</span></div></div></div>
+                    <div class="glance-pill" id="en-pill-batt" style="--pc: var(--c-batt)"><div class="glance-icon"><svg class="en-ic"><use href="#en-i-batt"/></svg></div><div class="glance-text"><div class="glance-val" data-no-tr><span id="en-p-batt">—</span><span class="en-solo-grande" id="en-p-batt-w"></span></div><div class="glance-lbl" id="en-p-batt-l" data-no-tr>—</div></div></div>
+                    <div class="glance-pill en-chiara" id="en-pill-rete" style="--pc: var(--c-imm)"><div class="glance-icon"><svg class="en-ic"><use href="#en-i-rete"/></svg></div><div class="glance-text"><div class="glance-val" id="en-p-rete" data-no-tr>—</div><div class="glance-lbl" id="en-p-rete-l" data-no-tr>—</div></div></div>
+                </div>
+
+                <div class="section-header en-sez-testa">
+                    <div class="section-title">Energia</div>
+                    <div class="section-line"></div>
+                    <div class="en-meta"><span class="en-dot" id="en-meta-dot"></span><span data-no-tr id="en-meta-inv">—</span><span class="en-sep en-solo-grande-m" id="en-meta-temp-sep">•</span><span class="en-solo-grande-m"><b id="en-meta-temp" data-no-tr>—</b></span><span class="en-sep">•</span><span data-no-tr id="en-meta-agg">—</span></div>
+                </div>
+
+                <!-- striscione di soglia: compare solo oltre la percentuale di avviso della potenza contrattuale -->
+                <div class="en-striscione" id="en-striscione" role="alert" data-no-tr>
+                    <div class="en-ico"><svg class="en-ic"><use href="#en-i-alert"/></svg></div>
+                    <div><div class="en-t1" id="en-str-t1"></div><div class="en-t2" id="en-str-t2"></div></div>
+                </div>
+
+                <!-- LA SCENA -->
+                <div class="en-scena" id="en-scena">
+                    <svg class="en-film" id="en-film" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+                        <defs>
+                            <linearGradient id="en-gNotte" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05081A"/><stop offset="0.6" stop-color="#0B1230"/><stop offset="1" stop-color="#141A3C"/></linearGradient>
+                            <linearGradient id="en-gGiorno" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10224E"/><stop offset="0.65" stop-color="#1F4176"/><stop offset="1" stop-color="#3A6494"/></linearGradient>
+                            <linearGradient id="en-gSera" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17133A"/><stop offset="0.55" stop-color="#3E2654"/><stop offset="1" stop-color="#A65C48"/></linearGradient>
+                            <linearGradient id="en-gSuolo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B0F22"/><stop offset="1" stop-color="#04060F"/></linearGradient>
+                            <linearGradient id="en-gLontani" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1A2146"/><stop offset="1" stop-color="#101532"/></linearGradient>
+                            <linearGradient id="en-gMuro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#121A3C"/><stop offset="1" stop-color="#090D20"/></linearGradient>
+                            <linearGradient id="en-gLuce" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE2A8"/><stop offset="1" stop-color="#F2A955"/></linearGradient>
+                            <linearGradient id="en-gPannello" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E4D9A"/><stop offset="0.5" stop-color="#153A78"/><stop offset="1" stop-color="#0E2A58"/></linearGradient>
+                            <linearGradient id="en-gBattCorpo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B2450"/><stop offset="1" stop-color="#0E1430"/></linearGradient>
+                            <radialGradient id="en-gSoleGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FFE98A" stop-opacity="0.7"/><stop offset="0.35" stop-color="#FFD60A" stop-opacity="0.2"/><stop offset="1" stop-color="#FFD60A" stop-opacity="0"/></radialGradient>
+                            <radialGradient id="en-gSoleDisco" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#FFF6C8"/><stop offset="0.6" stop-color="#FFD94A"/><stop offset="1" stop-color="#FFB800"/></radialGradient>
+                            <radialGradient id="en-gAloneCasa" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#64D2FF" stop-opacity="0.4"/><stop offset="1" stop-color="#64D2FF" stop-opacity="0"/></radialGradient>
+                            <radialGradient id="en-gAloneBatt" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#30D158" stop-opacity="0.45"/><stop offset="1" stop-color="#30D158" stop-opacity="0"/></radialGradient>
+                            <radialGradient id="en-gAloneRete" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#BF5AF2" stop-opacity="0.4"/><stop offset="1" stop-color="#BF5AF2" stop-opacity="0"/></radialGradient>
+                            <radialGradient id="en-gAloneRosso" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FF453A" stop-opacity="0.5"/><stop offset="1" stop-color="#FF453A" stop-opacity="0"/></radialGradient>
+                            <radialGradient id="en-gLuna" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#DCE6FF" stop-opacity="0.35"/><stop offset="1" stop-color="#DCE6FF" stop-opacity="0"/></radialGradient>
+                            <radialGradient id="en-gSpill" cx="0.5" cy="1" r="0.6"><stop offset="0" stop-color="#FFC27A" stop-opacity="0.3"/><stop offset="1" stop-color="#FFC27A" stop-opacity="0"/></radialGradient>
+                        </defs>
+                        <rect id="en-cielo" width="1000" height="400" fill="url(#en-gNotte)"/>
+                        <rect class="en-cielo-sera" width="1000" height="400" fill="url(#en-gSera)"/>
+                        <rect class="en-cielo-giorno" width="1000" height="400" fill="url(#en-gGiorno)"/>
+                        <g class="en-stelle" id="en-stelle" fill="#F2F6FF"></g>
+                        <g class="en-luna" id="en-luna"><circle r="70" fill="url(#en-gLuna)"/><circle r="13" fill="#E9EEFF"/><circle cx="-4" cy="3" r="2.2" fill="#C9D3F2"/><circle cx="4" cy="-4" r="1.5" fill="#C9D3F2"/><circle cx="3" cy="5" r="1.2" fill="#C9D3F2"/></g>
+                        <path id="en-skyline" fill="url(#en-gLontani)" opacity="0.9" d=""/>
+                        <g id="en-skyline-luci" fill="#F2C88E" opacity="0.5"></g>
+                        <rect id="en-suolo" x="0" y="330" width="1000" height="70" fill="url(#en-gSuolo)"/>
+                        <line id="en-orizzonte" x1="0" y1="330" x2="1000" y2="330" stroke="rgba(180,198,248,0.14)" stroke-width="1"/>
+                        <g id="en-aloni">
+                            <ellipse class="en-alone" id="en-alone-casa" rx="150" ry="34" fill="url(#en-gAloneCasa)" opacity="0"/>
+                            <ellipse class="en-alone" id="en-alone-batt" rx="90" ry="28" fill="url(#en-gAloneBatt)" opacity="0"/>
+                            <ellipse class="en-alone" id="en-alone-rete" rx="90" ry="30" fill="url(#en-gAloneRete)" opacity="0"/>
+                            <ellipse class="en-alone" id="en-alone-rete-rosso" rx="90" ry="30" fill="url(#en-gAloneRosso)" opacity="0"/>
+                        </g>
+                        <g id="en-link-sole" class="en-link"><path class="en-via" id="en-via-sole"/><path class="en-via-glow" id="en-glow-sole" stroke="#FFD60A"/><path class="en-via-glow2" id="en-glow2-sole" stroke="#FFD60A"/><g class="en-frecce" id="en-frecce-sole" stroke="#FFD60A"></g></g>
+                        <g id="en-link-batt" class="en-link"><path class="en-via" id="en-via-batt"/><path class="en-via-glow" id="en-glow-batt" stroke="#30D158"/><path class="en-via-glow2" id="en-glow2-batt" stroke="#30D158"/><g class="en-frecce" id="en-frecce-batt" stroke="#30D158"></g></g>
+                        <g id="en-link-rete" class="en-link"><path class="en-via" id="en-via-rete"/><path class="en-via-glow" id="en-glow-rete" stroke="#BF5AF2"/><path class="en-via-glow2" id="en-glow2-rete" stroke="#BF5AF2"/><g class="en-frecce" id="en-frecce-rete" stroke="#BF5AF2"></g></g>
+                        <g class="en-nodo" id="en-nodo-sole">
+                            <circle class="en-sole-disco" r="95" fill="url(#en-gSoleGlow)"/>
+                            <g class="en-raggi" stroke="#FFD94A" stroke-width="2.4" stroke-linecap="round" opacity="0.9">
+                                <line x1="0" y1="-44" x2="0" y2="-58"/><line x1="0" y1="44" x2="0" y2="58"/><line x1="-44" y1="0" x2="-58" y2="0"/><line x1="44" y1="0" x2="58" y2="0"/>
+                                <line x1="31" y1="-31" x2="41" y2="-41"/><line x1="-31" y1="31" x2="-41" y2="41"/><line x1="-31" y1="-31" x2="-41" y2="-41"/><line x1="31" y1="31" x2="41" y2="41"/>
+                                <g opacity="0.5" stroke-width="2"><line x1="17" y1="-45" x2="21" y2="-55"/><line x1="-17" y1="45" x2="-21" y2="55"/><line x1="45" y1="-17" x2="55" y2="-21"/><line x1="-45" y1="17" x2="-55" y2="21"/><line x1="-17" y1="-45" x2="-21" y2="-55"/><line x1="17" y1="45" x2="21" y2="55"/><line x1="-45" y1="-17" x2="-55" y2="-21"/><line x1="45" y1="17" x2="55" y2="21"/></g>
+                            </g>
+                            <circle class="en-sole-disco" r="34" fill="url(#en-gSoleDisco)"/>
+                            <g class="en-sole-spento"><circle r="34" fill="#1B2240" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/><path d="M-14 -4 Q0 -16 14 -4 M-14 6 Q0 -6 14 6" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round"/></g>
+                        </g>
+                        <g class="en-nodo" id="en-nodo-casa">
+                            <ellipse cx="0" cy="0" rx="150" ry="30" fill="url(#en-gSpill)"/>
+                            <path fill="#04060F" d="M-124 0 C-128 -10 -120 -19 -110 -16 C-106 -26 -92 -27 -87 -19 C-81 -24 -69 -20 -69 -10 C-63 -9 -61 -3 -62 0 Z"/>
+                            <path fill="#04060F" d="M66 0 C64 -7 70 -13 77 -11 C81 -18 91 -17 93 -10 C99 -10 102 -4 100 0 Z"/>
+                            <rect x="36" y="-130" width="13" height="34" fill="#0A0D20"/><rect x="34" y="-132" width="17" height="4" fill="#0C1024"/>
+                            <rect x="-62" y="-90" width="124" height="90" fill="url(#en-gMuro)"/>
+                            <path d="M-76 -86 L0 -138 L76 -86 Z" fill="#0A0E22"/>
+                            <path d="M-76 -86 L0 -138 L76 -86" fill="none" stroke="#B4C6F8" stroke-opacity="0.30" stroke-width="1.3" stroke-linejoin="round"/>
+                            <rect x="-62" y="-86" width="124" height="3" fill="#05070F" opacity="0.8"/>
+                            <g>
+                                <polygon points="-58,-92 -14,-122 4,-110 -40,-80" fill="url(#en-gPannello)" stroke="#6FA6FF" stroke-opacity="0.55" stroke-width="1"/>
+                                <g stroke="#9CC4FF" stroke-opacity="0.35" stroke-width="0.8"><line x1="-49" y1="-86" x2="-5" y2="-116"/><line x1="-36" y1="-98" x2="-18" y2="-86"/><line x1="-25" y1="-105" x2="-7" y2="-93"/></g>
+                                <polygon points="-58,-92 -14,-122 4,-110 -40,-80" fill="#FFF" opacity="0.06"/>
+                            </g>
+                            <circle cx="0" cy="-107" r="6.5" fill="#131A38"/><circle cx="0" cy="-107" r="6.5" fill="url(#en-gLuce)"/><path d="M-6.5 -107 H6.5 M0 -113.5 V-100.5" stroke="#070A18" stroke-width="1.2"/>
+                            <g><rect x="-48" y="-74" width="17" height="21" rx="1" fill="#131A38"/><rect x="-8.5" y="-74" width="17" height="21" rx="1" fill="#131A38"/><rect x="31" y="-74" width="17" height="21" rx="1" fill="#131A38"/><rect x="-50" y="-38" width="21" height="25" rx="1" fill="#131A38"/><rect x="29" y="-38" width="21" height="25" rx="1" fill="#131A38"/></g>
+                            <g class="en-finestre" id="en-finestre"><rect x="-50" y="-38" width="21" height="25" rx="1" fill="url(#en-gLuce)"/><rect x="29" y="-38" width="21" height="25" rx="1" fill="url(#en-gLuce)"/><rect x="-8.5" y="-74" width="17" height="21" rx="1" fill="url(#en-gLuce)"/><rect x="-48" y="-74" width="17" height="21" rx="1" fill="url(#en-gLuce)"/><rect x="31" y="-74" width="17" height="21" rx="1" fill="url(#en-gLuce)"/></g>
+                            <path stroke="#070A18" stroke-width="1.3" d="M-39.5 -74 V-53 M-48 -63.5 H-31 M0 -74 V-53 M-8.5 -63.5 H8.5 M39.5 -74 V-53 M31 -63.5 H48 M-39.5 -38 V-13 M-50 -25.5 H-29 M39.5 -38 V-13 M29 -25.5 H50"/>
+                            <rect x="-11" y="-42" width="22" height="42" rx="2" fill="#080B1C"/><rect x="-11" y="-42" width="22" height="42" rx="2" fill="none" stroke="#1C2550" stroke-width="1"/>
+                            <rect x="-17" y="-2" width="34" height="2" fill="#10152E"/>
+                            <circle cx="5" cy="-20" r="1.5" fill="#FFD9A0"/>
+                        </g>
+                        <g class="en-nodo" id="en-nodo-batt">
+                            <rect x="-36" y="-88" width="72" height="90" rx="12" fill="#04060F" opacity="0.55"/>
+                            <rect x="-28" y="-80" width="56" height="80" rx="8" fill="url(#en-gBattCorpo)" stroke="rgba(255,255,255,0.32)" stroke-width="1.5"/>
+                            <rect x="-21" y="-71" width="42" height="56" rx="4" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
+                            <rect class="en-batt-livello" id="en-batt-livello" x="-18" y="-15" width="36" height="0" rx="3" fill="#30D158"/>
+                            <g stroke="rgba(255,255,255,0.16)" stroke-width="1"><line x1="-21" y1="-29" x2="21" y2="-29"/><line x1="-21" y1="-43" x2="21" y2="-43"/><line x1="-21" y1="-57" x2="21" y2="-57"/></g>
+                            <path d="M3 -61 L-5 -46 H1 L-2 -33 L6 -48 H0 Z" fill="#FFF" opacity="0.9"/>
+                            <circle cx="0" cy="-7" r="2.2" fill="#30D158" id="en-batt-led"/>
+                            <rect x="-32" y="-1" width="64" height="2" fill="#10152E"/>
+                        </g>
+                        <g class="en-nodo" id="en-nodo-rete">
+                            <g fill="none" stroke="#8A95C4" stroke-opacity="0.75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M-20 0 L-7 -118 H7 L20 0"/>
+                                <path d="M-30 -92 H30 M-24 -64 H24 M-16 -36 H16"/>
+                                <path d="M-18 0 L18 -36 M18 0 L-18 -36 M-16 -36 L16 -64 M16 -36 L-16 -64 M-14 -64 L14 -92 M14 -64 L-14 -92 M-7 -118 L7 -104 M7 -118 L-7 -104"/>
+                            </g>
+                            <g fill="#C9D3F2"><circle cx="-30" cy="-92" r="2"/><circle cx="30" cy="-92" r="2"/><circle cx="-24" cy="-64" r="2"/><circle cx="24" cy="-64" r="2"/></g>
+                            <path id="en-fili" d="M30 -92 C 80 -80, 110 -84, 160 -70 M24 -64 C 80 -54, 110 -58, 160 -44" fill="none" stroke="#8A95C4" stroke-opacity="0.45" stroke-width="1.2"/>
+                            <circle class="en-rete-allarme" cx="0" cy="-126" r="4" fill="#FF453A"/>
+                        </g>
+                    </svg>
+                    <canvas id="en-tela"></canvas>
+                    <div class="en-sentinella" id="en-sentinella"></div>
+                    <div class="en-scena-nota"><span class="en-pip" id="en-pip"></span><span id="en-nota-stato" data-no-tr></span></div>
+                    <div class="en-scena-ora" data-no-tr><span id="en-scena-ora">—</span><small id="en-scena-fascia"></small></div>
+                    <div class="en-eti en-eti-nodo" id="en-e-sole" style="--nc: var(--c-sole)"><div class="en-val" id="en-v-sole" data-no-tr>—</div><div class="en-lbl">Fotovoltaico</div><div class="en-sub" id="en-s-sole" data-no-tr></div></div>
+                    <div class="en-eti en-eti-nodo" id="en-e-casa" style="--nc: var(--c-casa)"><div class="en-val" id="en-v-casa" data-no-tr>—</div><div class="en-lbl">Casa</div><div class="en-sub" id="en-s-casa" data-no-tr></div></div>
+                    <div class="en-eti en-eti-nodo" id="en-e-batt" style="--nc: var(--c-batt)"><div class="en-val" id="en-v-batt" data-no-tr>—</div><div class="en-lbl">Batteria</div><div class="en-sub" id="en-s-batt" data-no-tr></div></div>
+                    <div class="en-eti en-eti-nodo" id="en-e-rete" style="--nc: var(--c-imm)"><div class="en-val" id="en-v-rete" data-no-tr>—</div><div class="en-lbl" id="en-lbl-rete" data-no-tr>—</div><div class="en-sub" id="en-s-rete" data-no-tr></div></div>
+                    <div class="en-eti en-eti-linea" id="en-l-sole" style="--lc: var(--c-sole)" data-no-tr><span class="en-freccia"><svg class="en-ic"><use href="#en-i-dx"/></svg></span><span id="en-lv-sole">—</span></div>
+                    <div class="en-eti en-eti-linea" id="en-l-batt" style="--lc: var(--c-batt)" data-no-tr><span class="en-freccia"><svg class="en-ic"><use href="#en-i-dx"/></svg></span><span id="en-lv-batt">—</span></div>
+                    <div class="en-eti en-eti-linea" id="en-l-rete" style="--lc: var(--c-imm)" data-no-tr><span class="en-freccia"><svg class="en-ic"><use href="#en-i-sx"/></svg></span><span id="en-lv-rete">—</span></div>
+                    <div class="en-eti en-eti-avviso" id="en-avviso" data-no-tr><svg class="en-ic"><use href="#en-i-alert"/></svg><span id="en-avviso-testo"></span></div>
+                </div>
+
+                <!-- LE CARD -->
+                <div class="en-griglia" id="en-griglia">
+                    <section class="en-card en-c-oggi" id="en-c-oggi">
+                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-cal"/></svg><div class="en-c-title">Oggi</div></div><div class="en-c-meta" id="en-oggi-meta" data-no-tr></div></div>
+                        <div class="en-oggi-corpo">
+                            <div class="en-oggi-riga">
+                                <div class="en-oggi-nums">
+                                    <div class="en-num en-sole"><div class="en-n-lbl">Prodotta</div><div class="en-n-val" id="en-o-prod" data-no-tr>—</div><div class="en-n-ieri" id="en-o-prod-i" data-no-tr></div></div>
+                                    <div class="en-num en-casa"><div class="en-n-lbl">Consumata</div><div class="en-n-val" id="en-o-cons" data-no-tr>—</div><div class="en-n-ieri" id="en-o-cons-i" data-no-tr></div></div>
+                                    <div class="en-num en-imm en-se-rete"><div class="en-n-lbl">Immessa</div><div class="en-n-val" id="en-o-imm" data-no-tr>—</div><div class="en-n-ieri" id="en-o-imm-i" data-no-tr></div></div>
+                                    <div class="en-num en-prel en-se-rete"><div class="en-n-lbl">Prelevata</div><div class="en-n-val" id="en-o-prel" data-no-tr>—</div><div class="en-n-ieri" id="en-o-prel-i" data-no-tr></div></div>
+                                </div>
+                                <div class="en-anello">
+                                    <svg viewBox="0 0 120 120"><defs><linearGradient id="en-gAuto" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE680"/><stop offset="1" stop-color="#FFB800"/></linearGradient></defs>
+                                        <circle class="en-traccia" cx="60" cy="60" r="50"/>
+                                        <circle class="en-pieno" id="en-an-auto" cx="60" cy="60" r="50" stroke-dasharray="0 314.2"/>
+                                        <circle class="en-pieno2" id="en-an-suff" cx="60" cy="60" r="42" stroke-dasharray="0 263.9"/>
+                                    </svg>
+                                    <div class="en-anello-testo"><div class="en-anello-val"><span id="en-an-auto-v" data-no-tr>—</span><small>%</small></div><div class="en-anello-lbl">Autoconsumo</div></div>
+                                </div>
+                                <div class="en-oggi-vuoto">Ancora nessuna produzione</div>
+                            </div>
+                            <div class="en-oggi-piede"><span class="en-pal en-pal-g"></span><span>Sole usato in casa</span><span class="en-sep"></span><span class="en-pal en-pal-c"></span><span>Autosufficienza</span> <b data-no-tr><span id="en-an-suff-v">—</span>%</b></div>
+                        </div>
+                    </section>
+
+                    <section class="en-card en-c-grafico">
+                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-area"/></svg><div class="en-c-title">La giornata</div></div><div class="en-c-meta" id="en-graf-meta" data-no-tr></div></div>
+                        <div class="en-grafico" id="en-grafico" data-no-tr><svg id="en-graf" viewBox="0 0 400 150" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="en-gPv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD60A" stop-opacity="0.45"/><stop offset="1" stop-color="#FFD60A" stop-opacity="0.02"/></linearGradient>
+                                <linearGradient id="en-gCasa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#64D2FF" stop-opacity="0.35"/><stop offset="1" stop-color="#64D2FF" stop-opacity="0.02"/></linearGradient>
+                            </defs>
+                            <g id="en-graf-assi"></g>
+                            <path class="en-area-pv" id="en-g-area-pv" d=""/>
+                            <path class="en-area-casa" id="en-g-area-casa" d=""/>
+                            <path class="en-futuro" id="en-g-fut-pv" d=""/>
+                            <path class="en-futuro" id="en-g-fut-casa" d=""/>
+                            <path class="en-linea-pv" id="en-g-linea-pv" d=""/>
+                            <path class="en-linea-casa" id="en-g-linea-casa" d=""/>
+                            <line class="en-adesso" id="en-g-adesso" x1="0" y1="0" x2="0" y2="130"/>
+                            <line class="en-cursore" id="en-g-cursore" x1="0" y1="0" x2="0" y2="130"/>
+                            <circle class="en-punto" id="en-g-punto-pv" r="2.6"/><circle class="en-punto" id="en-g-punto-casa" r="2.6"/>
+                            <g id="en-graf-etichette"></g>
+                        </svg><div class="en-tooltip" id="en-g-tip"></div></div>
+                        <div class="en-legenda"><span class="en-l-pv"><i></i>Produzione</span><span class="en-l-casa"><i></i><span id="en-g-leg-casa" data-no-tr>Consumo</span></span><span class="en-l-fut"><i></i>Previsione</span><span class="en-picco"><span>picco</span> <b id="en-g-picco" data-no-tr>—</b></span></div>
+                    </section>
+
+                    <section class="en-card en-c-costo" id="en-c-costo">
+                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-euro"/></svg><div class="en-c-title">Costo</div></div><div class="en-fascia en-se-rete-si" data-no-tr><b id="en-costo-fascia">—</b><span id="en-costo-prezzo"></span></div></div>
+                        <div class="en-costo-righe en-se-rete-si">
+                            <div class="en-costo-riga en-prel"><div class="en-cr-l"><div class="en-cr-ico"><svg class="en-ic"><use href="#en-i-giu"/></svg></div><div><div class="en-cr-t">Prelievo</div><div class="en-cr-s" id="en-costo-prel-s" data-no-tr>—</div></div></div><div class="en-cr-v" id="en-costo-prel" data-no-tr>—</div></div>
+                            <div class="en-costo-riga en-imm"><div class="en-cr-l"><div class="en-cr-ico"><svg class="en-ic"><use href="#en-i-su"/></svg></div><div><div class="en-cr-t">Immissione</div><div class="en-cr-s" id="en-costo-imm-s" data-no-tr>—</div></div></div><div class="en-cr-v" id="en-costo-imm" data-no-tr>—</div></div>
+                        </div>
+                        <div class="en-tariffe en-se-rete-si" id="en-tariffe" data-no-tr></div>
+                        <div class="en-costo-righe en-se-rete-no">
+                            <div class="en-nota-card">Senza il misuratore di rete non si sa quanto entra e quanto esce: resta solo il risparmio stimato dell'energia del sole usata in casa.</div>
+                        </div>
+                        <div class="en-costo-righe">
+                            <div class="en-costo-riga en-risp"><div class="en-cr-l"><div class="en-cr-ico"><svg class="en-ic"><use href="#en-i-risp"/></svg></div><div><div class="en-cr-t">Risparmio</div><div class="en-cr-s" id="en-costo-risp-s" data-no-tr>—</div></div></div><div class="en-cr-v" id="en-costo-risp" data-no-tr>—</div></div>
+                        </div>
+                        <div class="en-costo-saldo en-se-rete-si"><div class="en-sub">Saldo di oggi</div><div class="en-big" id="en-costo-saldo" data-no-tr>—</div></div>
+                    </section>
+
+                    <section class="en-card en-c-batt" id="en-c-batt">
+                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-batt"/></svg><div class="en-c-title">Batteria</div></div><div class="en-c-meta" id="en-batt-meta" data-no-tr></div></div>
+                        <div class="en-batt-corpo">
+                            <div class="en-batt-pila"><div class="en-polo"></div><div class="en-corpo"><div class="en-livello" id="en-batt-pila-liv"></div><div class="en-riserva" id="en-batt-riserva"></div></div></div>
+                            <div class="en-batt-info" data-no-tr>
+                                <div class="en-big"><span id="en-b-soc">—</span><small>%</small></div>
+                                <div class="en-batt-stato"><svg class="en-ic" id="en-b-stato-i"><use href="#en-i-zap"/></svg><span id="en-b-stato-t">—</span></div>
+                                <div class="en-sub" id="en-b-sub">—</div>
+                                <div class="en-sub" id="en-b-sub2"></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="en-card en-c-soglia" id="en-c-soglia">
+                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-gauge"/></svg><div class="en-c-title"><span>Soglia</span> <span id="en-soglia-kw" data-no-tr></span></div></div><div class="en-c-meta">prelievo adesso</div></div>
+                        <div class="en-soglia-corpo">
+                            <div class="en-tachi">
+                                <svg viewBox="0 0 200 106" aria-hidden="true">
+                                    <path class="en-zona" id="en-zona-1" d="" stroke="rgba(52,199,89,0.5)"/>
+                                    <path class="en-zona" id="en-zona-2" d="" stroke="rgba(255,214,10,0.7)"/>
+                                    <path class="en-zona" id="en-zona-3" d="" stroke="rgba(255,159,10,0.75)"/>
+                                    <path class="en-zona" id="en-zona-4" d="" stroke="rgba(255,69,58,0.8)"/>
+                                    <g id="en-tacche"></g>
+                                    <line class="en-ago" id="en-ago" x1="100" y1="100" x2="32" y2="100"/>
+                                    <circle class="en-perno" cx="100" cy="100" r="5"/>
+                                </svg>
+                                <div class="en-tachi-centro"><div class="en-tachi-val"><span id="en-sg-val" data-no-tr>—</span></div></div>
+                            </div>
+                            <div class="en-soglia-stato" data-no-tr><svg class="en-ic"><use id="en-sg-ico" href="#en-i-ok"/></svg><span id="en-sg-stato-t">—</span></div>
+                            <div class="en-soglia-det"><span><span>Picco di oggi</span> <b id="en-sg-picco" data-no-tr>—</b></span><span><span id="en-sg-oltre-l" data-no-tr>—</span> <b id="en-sg-min" data-no-tr>—</b></span></div>
+                        </div>
+                    </section>
+
+                    <section class="en-card en-c-sett">
+                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-barre"/></svg><div class="en-c-title">Settimana</div></div><div class="en-c-meta">kWh al giorno</div></div>
+                        <div class="en-sett" id="en-sett" data-no-tr></div>
+                        <div class="en-legenda"><span class="en-l-pv"><i></i>Prodotta</span><span class="en-l-casa"><i></i>Consumata</span><span class="en-picco"><span>totale</span> <b id="en-sett-tot" data-no-tr>—</b></span></div>
+                    </section>
+
+                    <section class="en-card en-c-inv">
+                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-cpu"/></svg><div class="en-c-title">Inverter</div></div><div class="en-c-meta en-ok" id="en-inv-meta" data-no-tr><span class="en-dot"></span><span id="en-inv-stato">—</span></div></div>
+                        <div class="en-inv-righe">
+                            <div class="en-inv-riga"><span>Modello</span><b id="en-inv-modello" data-no-tr>—</b></div>
+                            <div class="en-inv-riga"><span>Temperatura</span><div class="en-inv-termo"><div class="en-barra"><i id="en-inv-temp-b" style="--p: 0%"></i></div><b id="en-inv-temp" data-no-tr>—</b></div></div>
+                            <div class="en-inv-riga"><span>Picco massimo</span><b id="en-inv-max" data-no-tr>—</b></div>
+                            <div class="en-inv-riga"><span>Picco di oggi</span><b id="en-inv-picco" data-no-tr>—</b></div>
+                            <div class="en-inv-riga"><span>Prodotta in totale</span><b id="en-inv-tot" data-no-tr>—</b></div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+            <script src="/static/energia.js?v=2026-10-02i" defer></script>
+{% endif %}
             
         </div>
     </div> 
@@ -5043,6 +5334,7 @@ html.wh-scala .imp-pagina {
                     <i data-lucide="{{ icon_name }}"></i>
                     <span class="desktop-only" data-no-tr>{{ room_name }}</span>
                 </div>
+{%- if inverter_attivo and loop.first %}{# [ENERGIA] M2 #}<div class="nav-item dock-room-btn wh-nav-energia" onclick="switchRoom('room-energia', this)" title="Energia"><i data-lucide="zap"></i><span class="desktop-only">Energia</span></div>{% endif %}
             {% endfor %}
             </div>
             {% if nvr_attivo and session.role == 'admin' %}
@@ -5349,7 +5641,15 @@ html.wh-scala .imp-pagina {
                     <span class="imp-auto-conta" id="imp-conta-automazioni" data-no-tr></span>
                     <i data-lucide="chevron-right" class="imp-freccia"></i>
                 </button>
-                {% if session.role == 'admin' %}
+{% if annunci_attivo %}
+                <!-- ANNUNCI VOCALI (annunci.py): la riga c'e' solo con l'integrazione attiva (altrimenti la pagina resta byte per byte come prima) -->
+                <button type="button" class="imp-riga" data-apri="annunci" onclick="impApri('annunci')">
+                    <span class="acc-ico c-orange"><i data-lucide="megaphone"></i></span>
+                    <span class="imp-testo"><b>Annunci</b><small>Fai parlare le casse Sonos</small><small class="imp-ora" id="imp-ora-annunci" data-no-tr></small></span>
+                    <span class="imp-valore" id="imp-val-annunci" data-no-tr></span>
+                    <i data-lucide="chevron-right" class="imp-freccia"></i>
+                </button>
+{% endif %}                {% if session.role == 'admin' %}
                 <!-- sempre, anche con l'allarme non configurato (tasto in alto nascosto): prima configurazione o dopo «Disattiva l'allarme» -->
                 <a href="{{ url_for('alarm_config_ui') }}" id="imp-riga-allarme" class="imp-riga">
                     <span class="acc-ico c-red"><i data-lucide="shield"></i></span>
@@ -5485,7 +5785,33 @@ html.wh-scala .imp-pagina {
                 </div>
                 {% endif %}
             </div>
-            <!-- ======================= AUTOMAZIONI: FINE ======================= -->
+            <!-- ======================= AUTOMAZIONI: FINE ======================= -->{% if annunci_attivo %}
+            <!-- ======================= ANNUNCI VOCALI (annunci.py) ======================= -->
+            <div class="imp-cat" data-cat="annunci">
+                <div class="imp-etichetta">Cosa dire</div>
+                <div class="imp-gruppo">
+                    <label class="imp-campo imp-campo-area">
+                        <span class="imp-campo-testo">Testo dell'annuncio</span>
+                        <textarea id="imp-ann-testo" rows="3" maxlength="500" placeholder="Es. La cena è pronta" autocomplete="off" autocapitalize="sentences" enterkeyhint="done"></textarea>
+                    </label>
+                </div>
+                <div class="imp-etichetta">Su quali casse</div>
+                <div class="imp-gruppo" id="imp-ann-casse"></div>
+                <div class="imp-gruppo">
+                    <div class="imp-cursore">
+                        <div class="imp-cursore-testa"><b id="imp-l-ann-volume">Volume</b><output for="imp-ann-volume" id="imp-ann-volume-out" data-no-tr>35</output></div>
+                        <div class="imp-cursore-fila"><i data-lucide="volume-1"></i><input type="range" id="imp-ann-volume" min="0" max="100" value="35" aria-labelledby="imp-l-ann-volume"><i data-lucide="volume-2"></i></div>
+                    </div>
+                </div>
+                <button type="button" class="imp-bottone imp-bottone-primario" id="imp-ann-parla"><i data-lucide="megaphone"></i> Parla</button>
+                <p class="imp-nota imp-ann-esito" id="imp-ann-esito" role="status" aria-live="polite" data-no-tr></p>
+                <div class="imp-auto-avviso" id="imp-ann-avviso" hidden><i data-lucide="info"></i><span id="imp-ann-avviso-testo"></span></div>
+                <p class="imp-nota">La cassa abbassa quello che sta suonando, dice il testo e riprende da dove era.</p>
+                <div class="imp-etichetta">Ultimi annunci</div>
+                <div class="imp-gruppo" id="imp-ann-ultimi"></div>
+            </div>
+            <!-- ======================= ANNUNCI VOCALI: FINE ======================= -->
+{% endif %}
             <!-- ======================= SCHERMATA E SFONDO ======================= -->
             <div class="imp-cat" data-cat="aspetto">
                 <div class="imp-anteprima imp-ap-schermo">
@@ -8128,7 +8454,59 @@ setInterval(fetchRealWeather, 300000);
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
             setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+            if (window.whNavVoceAttiva) window.whNavVoceAttiva();   // M7: barra che scorre, la voce scelta resta in vista
         }
+
+        // M7 - barra in basso del telefono (< 1024 px) con TANTE voci (stanze, Energia, NVR...): non deve mai uscire dallo
+        // schermo (con 7 stanze a 375 px le voci ai lati non si vedevano ne' si toccavano). 1) se non ci sta, voci piu'
+        // strette (html.wh-nav-stretta); 2) se ancora non basta, la barra scorre col dito in orizzontale (html.wh-nav-scorre)
+        // e la voce attiva resta in vista. Dove ci sta nessuna classe: identica a prima. Si misura solo all'avvio, a pagina
+        // caricata (icone, caratteri), al cambio di larghezza o di stile della barra (nav-flat, nav-dock...): nessun costo
+        // per fotogramma; il resize finto di switchRoom() non rimisura. Sopra i 1024 px (barra laterale) nessuna classe.
+        // Strisciare la barra non apre stanze (lo scorrimento nativo non genera click), il tocco si'; il blocco del
+        // rimbalzo (touchmove su body) lascia gia' passare .floating-nav-wrapper. Prima stava in energia.js (solo con
+        // l'inverter): ora vale per tutti, una volta sola (02/10/2026).
+        (function () {
+            const html = document.documentElement;
+            const barra = document.querySelector('.floating-nav-wrapper .floating-nav');
+            if (!barra) return;
+            const mq = window.matchMedia ? window.matchMedia('(max-width: 1023px)') : null;
+            const esce = () => barra.scrollWidth > barra.clientWidth + 1;
+            let ultima = '', timer = 0;
+            function voceAttiva() {
+                if (!html.classList.contains('wh-nav-scorre')) return;
+                const v = barra.querySelector('.dock-room-btn.active'); if (!v) return;
+                const r = v.getBoundingClientRect(), b = barra.getBoundingClientRect();
+                if (r.left < b.left + 8) barra.scrollLeft -= (b.left + 8 - r.left);
+                else if (r.right > b.right - 8) barra.scrollLeft += (r.right - b.right + 8);
+            }
+            function adatta(forza) {
+                const tel = mq ? mq.matches : window.innerWidth < 1024;
+                const chiave = tel + '|' + window.innerWidth + '|' + (document.body.className.match(/(^|\s)nav-[\w-]+/g) || []).join('') + '|' + barra.querySelectorAll('.nav-item').length;
+                if (!forza && chiave === ultima) return;
+                ultima = chiave;
+                const x = barra.scrollLeft;          // si rimisura senza far saltare la barra gia' scorsa
+                html.classList.remove('wh-nav-stretta', 'wh-nav-scorre');
+                if (!tel || !esce()) return;
+                html.classList.add('wh-nav-stretta');
+                if (!esce()) return;
+                html.classList.add('wh-nav-scorre');
+                barra.scrollLeft = x;
+                voceAttiva();
+            }
+            const poi = (ms) => { clearTimeout(timer); timer = setTimeout(() => adatta(false), ms); };
+            const subito = () => adatta(true);
+            window.addEventListener('resize', () => poi(150));
+            window.addEventListener('orientationchange', () => poi(150));
+            // stile della barra cambiato: si misura a transizioni finite (.nav-item: transition 0.3s su bordi e margini)
+            if ('MutationObserver' in window) new MutationObserver(() => poi(350)).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', subito);
+            if (document.readyState === 'complete') subito(); else window.addEventListener('load', subito);
+            if (document.fonts && document.fonts.ready) document.fonts.ready.then(subito);
+            window.whAdattaBarra = subito;
+            window.whNavVoceAttiva = voceAttiva;
+            subito();
+        })();
 
         const svgThermo = document.getElementById('thermo-svg'); let isDraggingThermo = false;
         const ARCO_TERMO = 377;            // lunghezza dell'arco disegnato (270 gradi)
@@ -8836,6 +9214,9 @@ const entityId = card.dataset.id;
                 
                 if (optimisticState === 'off') {
                     if (stateEl) stateEl.innerText = 'off';
+                    // presa con misura appena spenta: 0 W subito (la Plancia mostrava per qualche secondo i watt di prima,
+                    // il polling non tocca la card finche' il comando non ha risposta) (02/10/2026)
+                    if (c.classList.contains('type-switch') && c.dataset.potenza) c.dataset.potenza = '0';
                     if (iconWrapper) {
                         iconWrapper.style.background = '';
                         iconWrapper.style.boxShadow = '';
@@ -8843,7 +9224,9 @@ const entityId = card.dataset.id;
                 } else {
                     const brightness = parseInt(c.dataset.brightness) || 255;
                     const pct = Math.round((brightness / 255) * 100);
-                    if (stateEl) stateEl.innerText = `${pct}%`;
+                    // la percentuale solo sulle luci; le altre card scrivono lo stesso testo del polling ('on', 'Acceso'
+                    // sulle card sorgente): prima restava '100%' finche' lo stato non cambiava, anche da offline (02/10/2026)
+                    if (stateEl) stateEl.innerText = c.classList.contains('type-light') ? `${pct}%` : (c.classList.contains('hk-card-source') ? 'Acceso' : 'on');
                     
                     const rgbAttr = c.dataset.rgb;
                     if (rgbAttr && rgbAttr !== '255,255,255' && iconWrapper) {
@@ -10245,6 +10628,24 @@ function setTimerPreset(minutes) {
                         return;
                     }
 
+                    // livello del dimmer e posizione della tapparella cambiati DA FUORI (pulsante fisico, scenario, altra app)
+                    // anche a stato invariato: prima card e pannello restavano col valore vecchio finche' non cambiava on/off,
+                    // per ogni sorgente senza WebSocket (Shelly, MyHome, Tuya, Sonoff, TP-Link...). Si scrive solo se il valore
+                    // cambia; la tapparella che il pannello sta animando la muove l'animazione (02/10/2026)
+                    const attrSync = data.attributes || {};
+                    let livelloCambiato = false;
+                    if (card.classList.contains('type-light') && newState === 'on' && typeof attrSync.brightness === 'number'
+                        && card.dataset.brightness !== String(attrSync.brightness)) {
+                        card.dataset.brightness = String(attrSync.brightness);
+                        livelloCambiato = true;
+                    } else if (card.classList.contains('type-cover') && typeof attrSync.current_position === 'number') {
+                        let animata = false;
+                        try { animata = !!coverAnimationInterval && window.coverAnimata === entityId; } catch (e) {}
+                        const posSync = String(Math.max(0, Math.min(100, Math.round(attrSync.current_position))));
+                        if (!animata && card.dataset.position !== posSync) card.dataset.position = posSync;
+                        // pannello aperto su questa tapparella: segue la stessa posizione della card (giro 2, coverPannelloSegue)
+                        if (!animata && typeof coverPannelloSegue === 'function') coverPannelloSegue(entityId, parseInt(posSync, 10));
+                    }
                     // lo stato MOSTRATO e' la classe: un data-state rimasto 'on' (WebSocket e pannello luce cambiano solo la
                     // classe) non deve far credere accesa una card che si vede spenta
                     const currentState = card.classList.contains('state-on') ? 'on' : 'off';
@@ -10292,6 +10693,11 @@ if (newState === 'off' || newState === 'closed') {
     }
 }
                     }
+                    // luce gia' accesa con un livello nuovo (vedi sopra): la percentuale segue (il cambio di stato la scrive gia')
+                    else if (livelloCambiato && card.classList.contains('state-on')) {
+                        const stLiv = card.querySelector('.hk-state');
+                        if (stLiv) stLiv.innerText = Math.round(((parseInt(card.dataset.brightness) || 255) / 255) * 100) + '%';
+                    }
                 });
                 if (window.whViste) whViste.cambiata(entityId);   // le viste degli schermi grandi seguono la card
             }
@@ -10332,18 +10738,59 @@ if (newState === 'off' || newState === 'closed') {
     applyLightStateOnLoad();
 
 
+// ESITO DEI COMANDI DELLE TAPPARELLE (02/10/2026): un errore del server (400 'posizione non disponibile' di MyHome, Tuya,
+// Sonoff, hub remoto sconnesso...) si mostra col suo messaggio e card e pannello tornano alla posizione di prima;
+// prima restava la posizione scelta senza nessun avviso. coverSeq: solo l'ultimo comando di quella tapparella rimette
+// a posto (un comando piu' recente ha gia' cambiato la posizione mostrata).
+const coverSeq = {};
+function coverPrima(id) {
+    const carte = (whCard.di(id) || []).map(c => [c, c.dataset.position, (c.querySelector('.hk-state') || {}).innerText]);
+    const p = carte.length ? parseInt(carte[0][1], 10) : NaN;
+    coverSeq[id] = (coverSeq[id] || 0) + 1;
+    return { seq: coverSeq[id], carte: carte, pos: isNaN(p) ? null : p };
+}
+function coverEsito(r, id, prima) {
+    return r.json().catch(() => ({})).then(d => {
+        if (r.ok && !(d && d.status === 'error')) return;
+        if (typeof hkToast === 'function') hkToast((d && d.message) ? String(d.message) : 'Comando non riuscito');
+        if (!prima || coverSeq[id] !== prima.seq) return;
+        if (coverAnimationInterval && window.coverAnimata === id) { clearInterval(coverAnimationInterval); coverAnimationInterval = null; }
+        prima.carte.forEach(([c, pos, testo]) => {
+            if (pos === undefined) delete c.dataset.position; else c.dataset.position = pos;
+            const st = c.querySelector('.hk-state');
+            if (st && testo !== undefined) st.innerText = testo;
+        });
+        if (currentModalEntity === id && prima.pos !== null) tapDisegna(prima.pos);
+        if (window.whViste) whViste.cambiata(id);
+    });
+}
+// PANNELLO APERTO E POLLING (giro 2, 02/10/2026): il pannello della tapparella segue la posizione letta dal polling
+// come la card. Prima, finita l'animazione locale di su/giu' (~7,5 s) o dopo un tocco su Aperta/Meta'/Chiusa, la card
+// passava alla posizione vera (motore lento: 100 -> 40% -> 60%...) e il pannello restava su APERTA. Non durante
+// l'animazione locale (la esclude chi chiama), col dito sulla finestra, ne' con un comando ancora senza risposta (il
+// polling salta gia' quell'entita': comandiTocco).
+function coverPannelloSegue(id, pos) {
+    if (currentModalEntity !== id || isNaN(pos)) return;
+    try { if (tapInTrascinamento) return; } catch (e) { return; }
+    const m = document.getElementById('cover-modal');
+    if (!m || !m.classList.contains('active') || window.tapPosizione === pos) return;
+    tapDisegna(pos);
+}
+
 // Variabile globale per tenere traccia dell'animazione
 let coverAnimationInterval = null;
 
 function sendCoverCmd(action) {
     if(!currentModalEntity) return;
     const entitaCover = currentModalEntity;   // fissata ora: l'animazione qui sotto va sulla card di QUESTA tapparella anche se intanto si tocca un altro pannello
+    const primaCover = coverPrima(entitaCover);   // per rimettere la posizione se il server rifiuta il comando (coverEsito)
+    window.coverAnimata = entitaCover;            // il polling non muove la tapparella che l'animazione sta muovendo
 
     fetch('/api/cover_control', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ entity_id: entitaCover, action: action })
-    }).catch(err => console.error("Errore cover:", err));
+    }).then(r => coverEsito(r, entitaCover, primaCover)).catch(err => console.error("Errore cover:", err));
 
     const statusText = document.getElementById('cover-status-text');
 
@@ -10600,17 +11047,21 @@ function tapInvia(pos, entita) {
     // entita: quando non e' quella del pannello (cursore delle tapparelle nel Cruscotto, whViste.comandi.coverPosizione)
     const id = entita || currentModalEntity;
     if (!id) return;
+    const prima = coverPrima(id);   // per rimettere la posizione se il server rifiuta il comando (coverEsito)
     document.querySelectorAll(`.hk-card[data-id="${id}"]`).forEach(card => {
         card.dataset.position = pos;
         const stateEl = card.querySelector('.hk-state');
         if (stateEl) stateEl.innerText = pos === 0 ? 'Chiusa' : (pos === 100 ? 'Aperta' : pos + '%');
     });
     if (window.whViste) whViste.cambiata(id);   // le viste degli schermi grandi seguono la card
+    // comandiTocco: il polling non riporta la posizione vecchia finche' il comando non ha avuto risposta
+    if (window.comandoToccoParte) window.comandoToccoParte(id);
     fetch('/api/cover_control', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ entity_id: id, action: 'set_position', position: pos })
-    }).catch(err => console.error("Errore invio percentuale:", err));
+    }).then(r => coverEsito(r, id, prima)).catch(err => console.error("Errore invio percentuale:", err))
+      .then(() => { if (window.comandoToccoArrivato) window.comandoToccoArrivato(id); });
 }
 
 function tapVaiA(pos) {
@@ -10692,7 +11143,7 @@ function inlineCoverCmd(event, entityId, action) {
         method: 'POST', 
         headers: {'Content-Type': 'application/json'}, 
         body: JSON.stringify({ entity_id: entityId, action: action }) 
-    }).catch(err => console.error("Errore comando mini cover:", err));
+    }).then(r => coverEsito(r, entityId, null)).catch(err => console.error("Errore comando mini cover:", err));
 }
 
 // --- AUTOMAZIONI: ora sono una pagina delle Impostazioni (Impostazioni > Gestione > Automazioni) ---
@@ -12432,7 +12883,7 @@ document.addEventListener('visibilitychange', () => {
         render3d: 'Planimetrie 3D',
         sistema: 'Sistema e aggiornamenti',
         account: 'Profilo',
-        automazioni: 'Automazioni',
+        automazioni: 'Automazioni',{% if annunci_attivo %} annunci: 'Annunci',{% endif %}
         tinta: 'Tinta a scelta'
     };
     // pagine che si aprono da un'altra pagina: Indietro torna li' (anche da tablet) e nell'elenco resta scelta quella
@@ -12494,7 +12945,7 @@ document.addEventListener('visibilitychange', () => {
         if (nome === 'aspetto') disegnaAspetto();
         if (nome === 'scala') disegnaScala();
         if (nome === 'card' || nome === 'render3d') riempiCursori();
-        if (nome === 'automazioni' && window.impAutomazioni) window.impAutomazioni.apri();
+        if (nome === 'automazioni' && window.impAutomazioni) window.impAutomazioni.apri();{% if annunci_attivo %} if (nome === 'annunci' && window.impAnnunci) window.impAnnunci.apri();{% endif %}
         if (nome === 'tinta' && window.impTinta) window.impTinta.apri();
         if (scroll) scroll.scrollTop = torna ? scrollGenitore : 0;
         aggiornaTesta(scroll);
@@ -12524,7 +12975,7 @@ document.addEventListener('visibilitychange', () => {
     window.impMostra = function () {
         valori();
         profilo();
-        if (window.impAutomazioni) window.impAutomazioni.conta();      // numero a destra della riga Automazioni
+        if (window.impAutomazioni) window.impAutomazioni.conta();{% if annunci_attivo %} if (window.impAnnunci) window.impAnnunci.conta();{% endif %}      // numero a destra della riga Automazioni
         $('imp-pagina').classList.add('aperta');
     };
 
@@ -13752,7 +14203,155 @@ document.addEventListener('visibilitychange', () => {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', avvia); else avvia();
 })();
 // ===== AUTOMAZIONI NELLE IMPOSTAZIONI: FINE =====
+</script>{% if annunci_attivo %}
+<script>
+// ===== ANNUNCI NELLE IMPOSTAZIONI (annunci.py) =====
+// Impostazioni > Gestione > Annunci: testo -> voce sulle casse Sonos scelte. Emesso solo con l'integrazione attiva.
+// GET /api/annunci/casse (nomi, online, usa), GET /api/annunci/stato (pronto, volume predefinito, ultimi annunci),
+// POST /api/annunci/parla {testo, casse, volume} -> 202 {id, casse}: poi si segue /stato finche' l'id non e' piu' in corso.
+// Nomi delle casse e testi degli annunci sono del cliente: data-no-tr. Le frasi fisse passano da T() / i18n.js.
+(function () {
+    const $ = id => document.getElementById(id);
+    const T = t => (window.WH_T ? window.WH_T(t) : t);
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const icone = el => { if (el && typeof lucide !== 'undefined') lucide.createIcons({ root: el }); };
+    const CHIAVE = 'wh_annunci_scelte';          // localStorage: casse e volume scelti l'ultima volta (solo comodita')
+    let casse = [], stato = null, inCorso = null, poll = null, caricato = false;
+
+    function leggiScelte() { try { return JSON.parse(localStorage.getItem(CHIAVE) || '{}') || {}; } catch (e) { return {}; } }
+    function salvaScelte() { try { localStorage.setItem(CHIAVE, JSON.stringify({ casse: casseScelte(), volume: Number($('imp-ann-volume').value) })); } catch (e) {} }
+    function casseScelte() { return Array.from(document.querySelectorAll('#imp-ann-casse input[data-cassa]:checked')).map(i => i.dataset.cassa); }
+    function nomeCassa(id) { const c = casse.find(x => x.entity_id === id); return c ? c.nome : id; }
+    function esitoTesto(e) { e = String(e || ''); return /^ok/.test(e) ? 'ok' : T(e); }     // 'occupata', 'offline', 'errore: ...' (modello)
+    function esitoRiga(esito) { return Object.entries(esito || {}).map(([id, e]) => nomeCassa(id) + ': ' + esitoTesto(e)).join(' · '); }
+
+    async function leggiJson(url, opz) {
+        const r = await fetch(url, Object.assign({ cache: 'no-store', credentials: 'same-origin' }, opz || {}));
+        if (r.redirected && /\/login/.test(r.url)) { const e = new Error('sessione'); e.sessione = true; throw e; }
+        let j = null; try { j = await r.json(); } catch (e) {}
+        if (!r.ok) { const e = new Error((j && j.message) || ('HTTP ' + r.status)); e.http = r.status; e.dati = j; throw e; }
+        return j;
+    }
+
+    function disegnaCasse() {
+        const box = $('imp-ann-casse'); if (!box) return;
+        const scelte = leggiScelte();
+        const ricorda = Array.isArray(scelte.casse) ? scelte.casse : null;
+        if (!casse.length) {
+            box.innerHTML = '<div class="imp-riga imp-riga-fissa"><span class="acc-ico c-gray"><i data-lucide="speaker"></i></span><span class="imp-testo"><b>' + esc(T('Nessuna cassa Sonos trovata')) + '</b><small>' + esc(T('Collega Sonos dal Pannello di controllo')) + '</small></span></div>';
+            icone(box); return;
+        }
+        box.innerHTML = casse.map(c => {
+            const on = ricorda ? ricorda.includes(c.entity_id) : !!c.usa;
+            const lid = 'imp-ann-l-' + String(c.entity_id).replace(/[^A-Za-z0-9_-]/g, '_');
+            return '<div class="imp-riga imp-riga-fissa imp-ann-cassa' + (c.online ? '' : ' offline') + '" data-id="' + esc(c.entity_id) + '">'
+                + '<span class="acc-ico c-pink"><i data-lucide="speaker"></i></span>'
+                + '<span class="imp-testo"><b data-no-tr id="' + lid + '">' + esc(c.nome) + '</b>' + (c.online ? '' : '<small>' + esc(T('Offline')) + '</small>') + '</span>'
+                + '<label class="switch-ios"><input type="checkbox" data-cassa="' + esc(c.entity_id) + '"' + (on ? ' checked' : '') + ' aria-labelledby="' + lid + '"><span class="slider"></span></label></div>';
+        }).join('');
+        icone(box);
+    }
+    function disegnaUltimi() {
+        const box = $('imp-ann-ultimi'); if (!box) return;
+        const u = ((stato && stato.ultimi) || []).slice(0, 5);
+        if (!u.length) { box.innerHTML = '<div class="imp-riga imp-riga-fissa"><span class="imp-testo"><small>' + esc(T('Nessun annuncio ancora')) + '</small></span></div>'; return; }
+        box.innerHTML = u.map(x => '<div class="imp-riga imp-riga-fissa imp-ann-ultimo"><span class="acc-ico c-orange"><i data-lucide="megaphone"></i></span><span class="imp-testo"><b data-no-tr>' + esc(x.testo) + '</b><small data-no-tr>' + esc((x.quando || '').slice(11, 16)) + ' · ' + esc(esitoRiga(x.esito) || T('in corso')) + '</small></span></div>').join('');
+        icone(box);
+    }
+    function avviso(testo) { const a = $('imp-ann-avviso'); if (!a) return; if (!testo) { a.hidden = true; return; } $('imp-ann-avviso-testo').textContent = testo; a.hidden = false; }
+    function aggiornaStato() {
+        const b = $('imp-ann-parla'); if (!b) return;
+        const st = stato || {};
+        if (stato === null) avviso('');
+        else if (st.assente) avviso(T('Integrazione «Annunci vocali» non attiva: installala dal Pannello di controllo'));
+        else if (!st.attivo) avviso(T('Gli annunci sono spenti: l\'amministratore li accende dal Pannello di controllo'));
+        else if (!st.sonos) avviso(T('Sonos non collegato: l\'amministratore lo collega dal Pannello di controllo'));
+        else if (!st.disponibile && st.motivo === 'motore_non_installato') avviso(T('Il motore vocale (Piper) non è installato: l\'amministratore lo installa dal Pannello di controllo'));
+        else if (!st.disponibile) avviso(T('Il motore vocale non è pronto: l\'amministratore deve scaricare una voce dal Pannello di controllo'));
+        else if (st.non_disturbare && st.non_disturbare.adesso) avviso(T('Fascia «non disturbare» attiva: gli annunci dall\'app partono comunque'));
+        else avviso('');
+        b.disabled = !!inCorso || (stato !== null && !st.disponibile);
+        scriviValore();
+    }
+    // "3 casse" a destra della riga Annunci: scritto anche senza aprire la pagina (impMostra -> conta)
+    function scriviValore() {
+        // come le altre righe (valore(nome, t)): a destra su schermo largo (imp-val-), sotto il titolo sul telefono (imp-ora-)
+        const n = casse.filter(c => c.online).length;
+        const t = casse.length ? (n + ' ' + T(n === 1 ? 'cassa' : 'casse')) : '';
+        ['imp-val-annunci', 'imp-ora-annunci'].forEach(id => { const v = $(id); if (v && v.textContent !== t) v.textContent = t; });
+    }
+    let contato = 0;
+    async function conta() {
+        if (Date.now() - contato < 60000) { scriviValore(); return; }       // al massimo una lettura al minuto
+        contato = Date.now();
+        try { const c = await leggiJson('/api/annunci/casse'); casse = (c && c.casse) || casse; } catch (e) { return; }
+        scriviValore();
+    }
+    async function carica() {
+        try { const c = await leggiJson('/api/annunci/casse'); casse = (c && c.casse) || []; }
+        catch (e) {
+            // ripiego: le card Sonos gia' in pagina
+            casse = Array.from(document.querySelectorAll('.hk-card.type-media_player[data-id*="sonos_"]')).map(k => ({ entity_id: k.dataset.id, nome: k.dataset.nome || k.dataset.id, online: true, usa: true }));
+        }
+        disegnaCasse();
+        try { stato = await leggiJson('/api/annunci/stato'); }
+        catch (e) { stato = (e && e.http === 404) ? { assente: true } : { attivo: false, sonos: true }; }
+        if (!caricato) {
+            const sc = leggiScelte(), vol = $('imp-ann-volume');
+            vol.value = String(sc.volume != null && isFinite(+sc.volume) ? sc.volume : (stato && stato.volume_predefinito != null ? stato.volume_predefinito : 35));
+            $('imp-ann-volume-out').textContent = vol.value;
+            caricato = true;
+        }
+        disegnaUltimi(); aggiornaStato();
+    }
+    async function parla() {
+        const testo = ($('imp-ann-testo').value || '').trim();
+        const ids = casseScelte();
+        const esito = $('imp-ann-esito');
+        if (!testo) { hkToast(T('Scrivi il testo dell\'annuncio')); try { $('imp-ann-testo').focus(); } catch (e) {} return; }
+        if (!ids.length) { hkToast(T('Scegli almeno una cassa')); return; }
+        salvaScelte();
+        const b = $('imp-ann-parla'); b.disabled = true; inCorso = 'attesa';
+        esito.textContent = '…';
+        try {
+            const r = await leggiJson('/api/annunci/parla', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ testo: testo, casse: ids, volume: Number($('imp-ann-volume').value) }) });
+            inCorso = r.id;
+            esito.textContent = T('Sto parlando su ' + r.casse + (r.casse === 1 ? ' cassa…' : ' casse…'));
+            segui(r.id, Date.now());
+        } catch (e) {
+            inCorso = null; b.disabled = false; esito.textContent = '';
+            hkToast(e && e.sessione ? T('Sessione scaduta: accedi di nuovo') : ((e && e.http && e.message && !/^HTTP /.test(e.message)) ? e.message : T('Non riesco a raggiungere il server')));
+        }
+    }
+    function segui(id, da) {
+        clearTimeout(poll);
+        poll = setTimeout(async () => {
+            try { stato = await leggiJson('/api/annunci/stato'); } catch (e) {}
+            const ancora = !!(stato && (stato.in_corso || []).some(x => x.id === id));
+            if (ancora && Date.now() - da < 90000) { segui(id, da); return; }
+            const u = stato && (stato.ultimi || []).find(x => x.id === id);
+            $('imp-ann-esito').textContent = u ? (esitoRiga(u.esito) || T('Annuncio finito')) : T('Annuncio finito');
+            inCorso = null; $('imp-ann-parla').disabled = false;
+            disegnaUltimi(); aggiornaStato();
+        }, 1500);
+    }
+
+    window.impAnnunci = { apri: function () { return carica(); }, conta: conta };
+
+    function avvia() {
+        const b = $('imp-ann-parla'); if (!b) return;
+        b.addEventListener('click', parla);
+        const vol = $('imp-ann-volume');
+        vol.addEventListener('input', () => { $('imp-ann-volume-out').textContent = vol.value; });
+        vol.addEventListener('change', salvaScelte);
+        $('imp-ann-casse').addEventListener('change', e => { if (e.target && e.target.dataset && e.target.dataset.cassa) salvaScelte(); });
+        $('imp-ann-testo').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); try { e.target.blur(); } catch (x) {} } });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', avvia); else avvia();
+})();
+// ===== ANNUNCI NELLE IMPOSTAZIONI: FINE =====
 </script>
+{% endif %}
 <script>
 /* =====================================================================
    MENU DELLA CARD (tasto destro col mouse, pressione lunga su touch) e CARD ALLARGATE
@@ -13786,7 +14385,26 @@ function hkModaleDi(card) {
 }
 function hkToast(testo) {
     const t = document.getElementById('hk-toast'); if (!t) return;
-    t.textContent = testo; t.classList.add('on');
+    t.textContent = testo;
+    // con un pannello aperto che arriva fin dove sta l'avviso (foglio in basso del telefono) l'avviso va SOPRA il pannello:
+    // li' copriva i suoi pulsanti (errore della tapparella: Stop e frecce coperti per 2,6 s). Se sopra non c'e' posto, in
+    // alto sullo schermo; se il pannello finisce prima (finestra al centro degli schermi grandi) resta dov'era. I pannelli
+    // ospitati nelle card allargate (.incorporato) non contano (02/10/2026)
+    let bordo = Infinity, fondoPannelli = -Infinity;
+    document.querySelectorAll('.bottom-modal.active:not(.incorporato)').forEach(m => {
+        const r = m.getBoundingClientRect();
+        if (r.height > 0) { bordo = Math.min(bordo, r.top); fondoPannelli = Math.max(fondoPannelli, r.bottom); }
+    });
+    t.style.top = ''; t.style.bottom = '';
+    if (bordo !== Infinity) {
+        const alto = t.offsetHeight || 44;
+        const solito = window.innerHeight - 24 - (hkSafeBottom() || 0);     // bordo inferiore dell'avviso senza pannelli
+        if (solito - alto < fondoPannelli + 8) {
+            if (bordo - alto - 12 >= 60) t.style.bottom = Math.round(window.innerHeight - bordo + 12) + 'px';
+            else { t.style.top = 'calc(12px + var(--safe-top, 0px))'; t.style.bottom = 'auto'; }
+        }
+    }
+    t.classList.add('on');
     clearTimeout(hkToastT); hkToastT = setTimeout(() => t.classList.remove('on'), 2600);
 }
 
@@ -14132,7 +14750,8 @@ function hkOsserva(card) {
      consumo della presa): la chiamano sync e WebSocket. Lo fa SOLO con una vista attiva: sotto i 1024 px
      e in vista Card le card restano esattamente come prima (il pannello ospitato dalle card allargate, che
      osserva quegli attributi, si rifa' solo ai cambi di stato). Al cambio di vista dalle Impostazioni parte
-     subito un sync che annota. La temperatura misurata dei termostati si ricorda sempre (grafico del Cruscotto).
+     subito un sync che annota. La temperatura misurata dei termostati si ricorda sempre (grafico del Cruscotto)
+     e il consumo delle prese (data-potenza, che la card switch ha gia' dal primo disegno) segue sempre il polling.
    - Offline / non disponibile: whViste.dati() mette d.offline e d.nonDisponibile (anche per i sensori, che non
      hanno classi state-*); ogni vista mostra un'etichetta senza coprire i comandi (Plancia: al posto della riga
      di stato; Cruscotto: .cr-tag) e spegne i comandi che fallirebbero (-/+ del termostato).
@@ -14392,8 +15011,14 @@ function hkOsserva(card) {
         // senza una vista attiva (schermi piccoli, vista Card) le card restano ESATTAMENTE come prima: nessun
         // attributo in piu' (il pannello ospitato dalle card allargate, che osserva quegli attributi, si rifa'
         // solo ai cambi di stato, come prima). All'attivazione di una vista parte subito un sync che annota.
-        if (!attiva) return;
         const scrivi = (card, k, v) => { v = (v === undefined || v === null) ? '' : String(v); if (card.dataset[k] !== v) card.dataset[k] = v; };
+        if (!attiva) {
+            // consumo delle prese: data-potenza c'e' gia' su ogni card switch dal primo disegno, quindi segue il polling
+            // anche senza vista attiva (prima restava quello del primo disegno); nessun attributo in piu' (02/10/2026)
+            const w = a.current_power_w !== undefined ? a.current_power_w : a.power;
+            cards.forEach(card => { if (card.classList.contains('type-switch') && card.hasAttribute('data-potenza')) scrivi(card, 'potenza', (typeof w === 'number') ? w : ''); });
+            return;
+        }
         cards.forEach(card => {
             const cl = card.classList;
             if (cl.contains('type-cover')) {
@@ -16661,5 +17286,72 @@ function hkOsserva(card) {
     aggiorna();
 })();
 </script>
+{%- if hue_bridges %}
+<script>
+/* [HUE] solo con un bridge collegato (hue_bridges): aggiunta, nessuna funzione della pagina cambiata.
+   1) Il giro degli stati delle entita' native (syncNativeDevices) aggiorna solo acceso/spento: luminosita' e colore
+      delle luci Hue cambiati fuori dall'app (app Hue, interruttori, scene) non si vedevano. Si usa il gancio
+      whViste.annota, chiamato per ogni entita' a ogni giro prima delle card: per le luci Hue accese si scrivono
+      data-brightness e data-rgb (li usa anche il pannello luce) e, se la card e' gia' accesa, percentuale e colore.
+   2) Tocco su una card Hue fuori linea: niente accensione finta (prima restava "accesa" finche' tornava il bridge).
+      Solo le card del modulo: segnate da annota (attributo wach_hue) o con la forma esatta degli entity_id del modulo;
+      un light.hue_xxx di Home Assistant (light.hue_go, light.hue_color_lamp_1) resta com'era. */
+(function () {
+    var RE_HUE = /^(light|scene)\.hue_(gruppo_)?[0-9a-f]{6,8}_[0-9a-f]{8,12}$/;
+    function segna(cards, dati) {
+        var a = dati && dati.attributes;
+        if (!a || !a.wach_hue) return;
+        (cards || []).forEach(function (card) { if (card.dataset && card.dataset.hue !== '1') card.dataset.hue = '1'; });
+    }
+    function segui(cards, dati) {
+        var a = dati && dati.attributes;
+        if (!a || !a.wach_hue || a.offline || dati.state !== 'on') return;
+        (cards || []).forEach(function (card) {
+            if (!card.classList || !card.classList.contains('type-light')) return;
+            var b = (a.brightness !== undefined && a.brightness !== null) ? String(a.brightness) : null;
+            var rgb = (Array.isArray(a.rgb_color) && a.rgb_color.length === 3) ? a.rgb_color.join(',') : null;
+            var nuovo = false;
+            if (b !== null && card.dataset.brightness !== b) { card.dataset.brightness = b; nuovo = true; }
+            if (rgb !== null && card.dataset.rgb !== rgb) { card.dataset.rgb = rgb; nuovo = true; }
+            if (!nuovo || !card.classList.contains('state-on')) return;
+            var st = card.querySelector('.hk-state');
+            if (st && b !== null) st.innerText = Math.round((parseInt(b, 10) / 255) * 100) + '%';
+            var ic = card.querySelector('.hk-icon-wrapper');
+            if (ic && rgb !== null) {
+                if (rgb !== '255,255,255') {
+                    ic.style.background = 'rgb(' + rgb + ')';
+                    ic.style.boxShadow = '0 0 20px rgba(' + rgb + ', 0.6), inset 0 2px 5px rgba(255,255,255,0.6)';
+                } else {
+                    ic.style.background = '';
+                    ic.style.boxShadow = '';
+                }
+            }
+        });
+    }
+    function aggancia() {
+        if (!window.whViste || typeof window.whViste.annota !== 'function' || window.whViste.__hue) return !!(window.whViste && window.whViste.__hue);
+        var prima = window.whViste.annota;
+        window.whViste.annota = function (cards, dati) {
+            var r = prima.apply(this, arguments);
+            try { segna(cards, dati); segui(cards, dati); } catch (e) {}
+            return r;
+        };
+        window.whViste.__hue = true;
+        return true;
+    }
+    if (!aggancia()) document.addEventListener('DOMContentLoaded', aggancia);
+    document.addEventListener('click', function (e) {
+        var card = e.target && e.target.closest ? e.target.closest('.hk-card') : null;
+        if (!card || !card.classList.contains('offline')) return;
+        if (card.dataset.hue !== '1' && !RE_HUE.test(card.dataset.id || '')) return;
+        if (document.body.classList.contains('modifica') || e.target.closest('.hk-pannello')) return;
+        if (card.classList.contains('type-light') && !e.target.closest('.hk-icon-wrapper')) return;
+        e.stopPropagation();
+        e.preventDefault();
+        if (typeof hkToast === 'function') hkToast('Offline');
+    }, true);
+})();
+</script>
+{%- endif %}
 </body>
 </html>
