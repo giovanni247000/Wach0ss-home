@@ -1,26 +1,24 @@
 /* ============================================================================
    ENERGIA - sezione dell'app (mobile.html), dati veri dagli inverter (inverter.py)
-   Riproduce il mockup approvato "finale" (scratchpad/mockup/energia/finale/energia.html): stessa scena, stesse
-   card, stessi stati, stessa resa in Modalita' leggera e senza batteria / senza misuratore.
+   Design "professionale" approvato il 03/10/2026 (scratchpad/energia_v2/gen.py + scena.py): testata con periodo,
+   flussi in due viste (Scena / Schema, scelta per dispositivo), Adesso, cinque indicatori, andamento, batteria,
+   contatore, costi, dove va l'energia, chi consuma, ultimi 7 giorni, inverter.
    Caricato SOLO se inverter_attivo (script in mobile.html dentro {% if inverter_attivo %}).
 
    DATI
-     GET /api/inverter/adesso  ogni 3 s (solo con la sezione aperta e la scheda visibile): flussi vivi, energie di
-                               oggi, costi, soglia, stato degli inverter.
-     GET /api/energia/dati     all'apertura e ogni 60 s: curva della giornata ogni 15 min, previsione, ieri alla
-                               stessa ora, picchi con l'ora, minuti oltre la soglia, settimana, prezzi, orologio di casa.
-   SEGNI (unico punto di conversione: adattaSegni)
-     API (inverter.py, PROGETTO.md sez. 1): rete_w + prelievo / - immissione;  batteria_w + CARICA / - SCARICA.
-     Pagina (mockup):                       rete   + prelievo / - immissione;  batt       + SCARICA / - CARICA
-                                            (+ = energia che va verso la casa, come la rete).
-   ANIMAZIONE
-     Un solo requestAnimationFrame (frame). Fermo con: sezione non aperta, scheda nascosta, scena fuori dallo
-     schermo (IntersectionObserver sulla fascia delle linee), pannello aperto (html.wh-dietro), Modalita' leggera
-     (html.wh-leggera: immagine ferma con le frecce) e prefers-reduced-motion. Fermo ma visibile: tick da 1 s.
-   TESTI
-     Frasi italiane nell'oggetto T; con la lingua inglese passano da window.WH_T (dizionario en.json,
-     per_pagina['/mobile']). Dove una parola italiana ha gia' nel dizionario un'altra resa (es. "Rete" = Network)
-     la chiave di traduzione e' una frase distinta (CHIAVI_TR) e in italiano si legge la parola semplice.
+     GET /api/inverter/adesso   ogni 3 s (sezione aperta e scheda visibile): flussi vivi, energie e costi di oggi,
+                                soglia, stato degli inverter.
+     GET /api/energia/dati      all'apertura e ogni 60 s: giornata ogni 15 min, previsione, ieri alla stessa ora,
+                                picchi, minuti oltre soglia, alba/tramonto, impianto, consumo recente, CO2, orologio.
+     GET /api/inverter/giorni   ?giorni=7 (ultimi 7 giorni, periodo Settimana) e ?mesi=1 (costi del mese, periodo
+                                Mese) ogni 60 s; ?mesi=12 solo col periodo Anno (ogni 5 min).
+     GET/POST /api/energia/vista  Scena / Schema di questo dispositivo (ripiego: localStorage wh_energia_vista).
+   SEGNI (unico punto: adattaSegni): quelli dell'API (inverter/PROGETTO.md sez. 1), che la pagina tiene:
+     rete_w + prelievo / - immissione;  batteria_w + carica / - scarica.
+   ANIMAZIONI: solo CSS (energia.css), nessun requestAnimationFrame e nessun timer per fotogramma. Qui si mettono
+   le classi: en-ferma (scheda nascosta), en-fuori (riquadro dei flussi fuori dallo schermo), en-anima (entrata).
+   TESTI: frasi italiane in T; con l'inglese passano da window.WH_T (en.json, per_pagina['/mobile']); le parole che
+   nel dizionario hanno gia' un'altra resa (Rete = Network...) hanno una chiave propria (CHIAVI_TR).
    ============================================================================ */
 (function () {
     'use strict';
@@ -28,780 +26,1103 @@
     if (!root || window.__whEnergia) return;
     var $ = function (id) { return document.getElementById('en-' + id); };
     var html = document.documentElement;
-    var leggera = function () { return html.classList.contains('wh-leggera'); };
-    var dietro = function () { return html.classList.contains('wh-dietro'); };
-    var ridotto = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    var inn = $('in');
     var LINGUA = (window.WH_LINGUA || html.getAttribute('lang') || 'it').slice(0, 2);
     var EN = LINGUA === 'en';
-    var DEC = EN ? '.' : ',';
+    var DEC = EN ? '.' : ',', MIGL = EN ? ',' : '.';
     var LOCALE = EN ? 'en-GB' : 'it-IT';
+    var ridotto = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    function leggera() { return html.classList.contains('wh-leggera'); }
 
     /* ======================================================================
        TESTI
        ====================================================================== */
     var T = {
-        siCarica: 'Si carica', siScarica: 'Si scarica', ferma: 'Ferma', piena: 'Piena', riserva: 'Alla riserva',
-        immissione: 'Immissione', prelievo: 'Prelievo', equilibrio: 'In equilibrio', batteria: 'Batteria', rete: 'Rete',
-        dalSole: 'dal sole', dallaBatt: 'dalla batteria', dallaRete: 'dalla rete', tuttaDalSole: 'Tutta dal sole', stimata: 'Consumo stimato',
-        notte: 'Notte', albaAlle: 'Alba alle {ora}', tramontoAlle: 'tramonto alle {ora}', produce: 'Sta producendo', nuvole: 'Qualche nuvola', bassaLuce: 'Poca luce',
-        flusso: 'Flusso in tempo reale', flussoFermo: 'Flusso (immagine ferma)', flussoStimato: 'Flusso · consumo stimato', flussoOffline: 'Flusso · inverter non raggiungibile', inAttesaDati: 'In attesa dei dati',
-        avvisoVicino: 'Stai per superare i {kw}', avvisoSopra: 'Superata la soglia di {kw}',
-        strT1Sopra: 'Stai superando la soglia di {kw}', strT2Sopra: 'Prelievo {w}. Spegni qualcosa per evitare il distacco.',
-        strT1Vicino: 'Stai per superare la soglia di {kw}', strT2Vicino: 'Prelievo {w}. Evita di accendere altro.',
-        sgSotto: 'Sotto la soglia · liberi {w}', sgVicino: 'Stai per superare i {kw} · liberi {w}', sgImm: 'Nessun prelievo · stai immettendo {w}',
-        sg3: 'Oltre {kw} · tollerato fino a {lim}', sg33: 'Oltre {lim} · rischio distacco: spegni qualcosa', sg4: 'Oltre {st} · il contatore stacca subito',
-        oltre: 'Oltre {kw}', alle: 'alle {ora}', nessuno: 'ancora nessuno', min: 'min', ore: 'h',
-        pienaFra: 'Piena fra {d} (verso le {ora})', autonomia: 'Autonomia {d} con questo consumo (fino alle {ora})', inAttesaSole: 'Alla riserva · in attesa del sole',
-        daCaricare: '{kwh} da caricare', disponibili: '{kwh} disponibili', riservaPct: 'riserva {p}%',
-        spesi: '{kwh} spesi', incassati: '{kwh} incassati', risparmiati: '{kwh} tenuti in casa',   /* autoconsumata = prodotta - immessa: usata in casa + messa in batteria */
-        oggiDalle: 'dalle 00:00 alle {ora}', ieri: 'ieri {v}',
-        invFunzione: 'In funzione', invAttesaNotte: 'In attesa (notte)', invBassaLuce: 'In funzione · poca luce', invAttesa: 'In attesa',
-        invLimitato: 'Produzione limitata', invGuasto: 'Guasto', invOffline: 'Non raggiungibile', invAvvio: 'Avvio', invSpento: 'Spento',
-        inFunzione: 'in funzione', inAttesa: 'in attesa', inGuasto: 'in guasto', nonRaggiungibile: 'non raggiungibile',
-        adesso: 'adesso', agg: 'agg. {t}', secFa: '{n} s fa', minFa: '{n} min fa',
-        ogni15: 'ogni 15 min · max {w}', previsione: 'previsione', produzione: 'Produzione', consumo: 'Consumo',
-        carica: 'carica', scarica: 'scarica', mono: 'Mono',
-        F1q: 'Lun–Ven 8–19', F2q: 'Sera, mattina e sabato', F3q: 'Notte e festivi', MONOq: 'Tutte le ore',
-        nInverter: '{n} inverter'
+        tempoReale: 'In tempo reale', aggS: 'aggiornato {n} s fa', aggMin: 'aggiornato {n} min fa', aggAdesso: 'aggiornato adesso',
+        attesaDati: 'In attesa dei dati', offline: 'Inverter non raggiungibile',
+        nInverter: '{n} inverter', battKwh: 'batteria {v}', contratto: 'contratto {v}',
+        fotovoltaico: 'Fotovoltaico', batteria: 'Batteria', casa: 'Casa', rete: 'Rete',
+        produce: 'sta producendo', producePct: 'sta producendo · {p}% del massimo', pocaLuce: 'poca luce', inAttesa: 'in attesa',
+        notte: 'notte', notteAlba: 'notte · alba alle {ora}',
+        siCarica: 'si carica · {w}', siScarica: 'si scarica · {w}', piena: 'piena', ferma: 'ferma', allaRiserva: 'alla riserva',
+        tuttaSole: 'tutta dal sole', tuttaBatt: 'tutta dalla batteria', tuttaRete: 'tutta dalla rete', stimato: 'consumo stimato',
+        dalSole: 'sole', dallaBatt: 'batteria', dallaRete: 'rete',
+        inImmissione: 'in immissione', inPrelievo: 'in prelievo', inEquilibrio: 'in equilibrio',
+        autoOra: 'autosufficienza in questo momento {p}%',
+        adBattCarica: 'Batteria · in carica', adBattScarica: 'Batteria · si scarica', adBattFerma: 'Batteria · ferma',
+        adReteImm: 'Rete · immissione', adRetePrel: 'Rete · prelievo', adReteEq: 'Rete · in equilibrio',
+        prodOggi: 'Prodotta oggi', consOggi: 'Consumata oggi', rispOggi: 'Risparmio oggi',
+        prodPer: 'Prodotta', consPer: 'Consumata', rispPer: 'Risparmio',
+        rispIeri: '{d}% rispetto a ieri alla stessa ora', ieriOra: "ieri a quest'ora {v}", dalleOre: 'dalle 00:00 alle {ora}', stimata: 'stimata (senza misuratore)',
+        presiRete: '{v} presi dalla rete', autoImm: 'autoconsumo + immissione', prezziNo: 'prezzi non impostati',
+        co2Nota: '{v} kg di CO₂ per kWh di rete (ISPRA)',
+        in7: 'in 7 giorni', daInizioMese: 'da inizio mese', in12: 'in 12 mesi', giorniDati: '{n} giorni con dati', mesiDati: '{n} mesi con dati', giorno1: '1 giorno con dati', mese1: '1 mese con dati', consStima: 'consumati (stima)',
+        andOggi: 'Andamento di oggi', andSett: 'Andamento della settimana', andMese: 'Andamento di {mese}', andAnno: 'Andamento degli ultimi 12 mesi',
+        consumo: 'Consumo', nessunDatoOggi: 'Ancora nessun dato per oggi', nessunDatoPer: 'Nessun dato per questo periodo',
+        caricaA: 'Si carica a <b>{w}</b>', scaricaA: 'Si scarica a <b>{w}</b>', battFerma: 'Ferma', battPiena: 'Piena', battRiserva: 'Alla riserva',
+        pienaVerso: 'Piena verso le <b>{ora}</b>', riservaVerso: 'Alla riserva verso le <b>{ora}</b>', autonomia: 'Autonomia stimata <b>{d}</b>',
+        riservaPct: 'riserva {p}%',
+        suSoglia: 'kW su {v}', prelevati: 'kW prelevati', margine: 'Margine di <b>{w}</b> sulla soglia', oltreSoglia: 'Oltre la soglia · tollerata fino a <b>{w}</b>',
+        immettendo: 'Nessun prelievo · stai immettendo <b>{w}</b>', sogliaNo: 'Soglia del contratto non impostata',
+        piccoOggi: 'picco di oggi <b>{w}</b> alle {ora}', minOltre: '<b>{n} min</b> oltre la soglia',
+        costiMese: 'Costi di {mese}', costi7: 'Costi degli ultimi 7 giorni', costi12: 'Costi degli ultimi 12 mesi',
+        spesiMese: 'spesi questo mese', spesi7: 'spesi in 7 giorni', spesi12: 'spesi in 12 mesi', kwhPrel: '{v} kWh prelevati',
+        F1q: 'Lun–ven 8–19', F2q: 'Sera e sabato', F3q: 'Notte e festivi', MONOq: 'Tutte le ore', mono: 'Mono',
+        costiNota: 'Prezzi non impostati: si vedono solo i kWh prelevati.',
+        prodDove: 'Prodotta · {v}', consDove: 'Consumata · {v}', prodDoveOggi: 'Prodotta oggi · {v}', consDoveOggi: 'Consumata oggi · {v}',
+        usataCasa: 'Usata subito in casa {p}%', inBatt: 'In batteria {p}%', vendutaRete: 'Venduta alla rete {p}%',
+        daSole: 'Dal sole {p}%', daBatt: 'Dalla batteria {p}%', daRete: 'Dalla rete {p}%', nessunaProd: 'Ancora nessuna produzione',
+        nessunaPresa: 'Nessuna presa con misura sta consumando',
+        oggi: 'Oggi',
+        invFunzione: 'In funzione', invAttesa: 'In attesa', invLimitato: 'Produzione limitata', invGuasto: 'Guasto', invOffline: 'Non raggiungibile',
+        invAvvio: 'Avvio', invSpento: 'Spento', potenzaAdesso: 'Potenza adesso', piccoDiOggi: 'Picco di oggi', totaleProd: 'Prodotta in totale',
+        firmware: 'firmware {v}', alleOra: '{w} alle {ora}', ore: 'h', min: 'min', scena: 'Scena', schema: 'Schema'
     };
-    // parole che nel dizionario hanno gia' un'altra resa: si traducono con una chiave propria
-    var CHIAVI_TR = { rete: 'Rete (energia)', consumo: 'Consumo (energia)', ferma: 'Ferma (batteria)' };
+    var CHIAVI_TR = { scena: 'Scena (vista)', schema: 'Schema (vista)', rete: 'Rete (energia)', consumo: 'Consumo (energia)', ferma: 'ferma (batteria)', battFerma: 'Ferma (batteria)',
+                      dalSole: 'sole (fonte)', dallaBatt: 'batteria (fonte)', dallaRete: 'rete (fonte)', casa: 'Casa (energia)', oggi: 'Oggi (giorno)' };
     if (EN && typeof window.WH_T === 'function') {
         Object.keys(T).forEach(function (k) {
             var chiave = CHIAVI_TR[k] || T[k], v = window.WH_T(chiave);
             if (typeof v === 'string' && v !== chiave) T[k] = v;
         });
     }
-    function t(k, v) { return T[k].replace(/\{(\w+)\}/g, function (_, n) { return v[n]; }); }
-    (function () { var lc = $('g-leg-casa'); if (lc) lc.textContent = T.consumo; })();   // legenda: "Consumo" del mockup
+    function t(k, v) { return T[k].replace(/\{(\w+)\}/g, function (_, n) { return v && v[n] !== undefined ? v[n] : ''; }); }
+    // titoli dei nodi e legenda (zone data-no-tr: la parola "Rete" nel dizionario e' "Network")
+    [].forEach.call(root.querySelectorAll('.en-viste .en-eti-t'), function (e) {
+        var s = e.textContent.trim(), k = { 'Fotovoltaico': 'fotovoltaico', 'Batteria': 'batteria', 'Casa': 'casa', 'Rete': 'rete' }[s];
+        if (k) e.textContent = T[k];
+    });
+    $('and-l-cons').textContent = T.consumo;
+    // tasti Scena / Schema (qui e in Impostazioni): data-no-tr, il dizionario ha gia' "Scene" (plurale italiano) = Scenes
+    [].forEach.call(document.querySelectorAll('#en-vista-sel button, [data-en-vista]'), function (b) {
+        var v = b.getAttribute('data-v') || b.getAttribute('data-en-vista'); if (T[v]) b.textContent = T[v];
+    });
 
     /* ======================================================================
        NUMERI
        ====================================================================== */
-    function dec(x, n) { return x.toFixed(n).replace('.', DEC); }
-    function kwParti(w) { var a = Math.abs(w); if (a < 1000) return [String(Math.round(a)), 'W']; return [dec(a / 1000, a < 10000 ? 2 : 1), 'kW']; }
-    function fmtW(w) { var p = kwParti(w); return p[0] + ' ' + p[1]; }
-    function fmtKWhTxt(x) { return dec(x, 1) + ' kWh'; }
-    function fmtKWhN(x) { return dec(x, 1); }
-    function fmtEuro(x) { return EN ? '€' + dec(x, 2) : dec(x, 2) + ' €'; }
-    function fmtKw2(w) { return dec(w / 1000, 2) + ' kW'; }
-    function fmtKwSoglia(w) { var k = w / 1000; return (Math.abs(k - Math.round(k)) < 0.001 ? String(Math.round(k)) : dec(k, 1)) + ' kW'; }
-    function pad(n) { return (n < 10 ? '0' : '') + n; }
-    function fmtOra(h) { var m = Math.floor(h * 60 + 0.5) % 1440; if (m < 0) m += 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
-    function fmtDurata(ore) { if (!isFinite(ore) || ore <= 0) return '—'; var m = Math.round(ore * 60); if (m < 60) return m + ' ' + T.min; return Math.floor(m / 60) + ' ' + T.ore + ' ' + pad(m % 60); }
-    function clamp(x, a, b) { return x < a ? a : (x > b ? b : x); }
-    function lerp(a, b, k) { return a + (b - a) * k; }
     function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; }
+    function dec(x, n) { var s = x.toFixed(n); var p = s.split('.'); p[0] = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, MIGL); return p.join(DEC); }
+    function intero(x) { return dec(Math.round(x), 0); }
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function clamp(x, a, b) { return x < a ? a : (x > b ? b : x); }
+    function wParti(w) { var a = Math.abs(w); if (a < 1000) return [intero(a), 'W']; return [dec(a / 1000, a < 10000 ? 2 : 1), 'kW']; }
+    function fmtW(w) { var p = wParti(w); return p[0] + ' ' + p[1]; }
+    function fmtKw(w) { var k = w / 1000; return (Math.abs(k - Math.round(k)) < 0.001 ? String(Math.round(k)) : dec(k, 1)) + ' kW'; }
+    function kwhParti(x) { return [dec(x, x < 100 ? 1 : 0), 'kWh']; }
+    function fmtKwh(x) { return x >= 1000 ? dec(x / 1000, x < 10000 ? 2 : 1) + ' MWh' : dec(x, x < 100 ? 1 : 0) + ' kWh'; }
+    function kwhBreve(x) { var r = Math.round(x * 10) / 10; return dec(r, r % 1 ? 1 : 0) + ' kWh'; }
+    function fmtEuro(x, n) { n = n === undefined ? 2 : n; return EN ? '€' + dec(x, n) : '€ ' + dec(x, n); }
+    function fmtOra(h) { var m = Math.round(h * 60) % 1440; if (m < 0) m += 1440; return pad(Math.floor(m / 60)) + ':' + pad(m % 60); }
+    function fmtDurata(ore) { var m = Math.round(ore * 60); if (m < 60) return m + ' ' + T.min; return Math.floor(m / 60) + ' ' + T.ore + (m % 60 ? ' ' + pad(m % 60) + ' ' + T.min : ''); }
     function hDa(hhmm) { if (!hhmm) return null; var p = String(hhmm).split(':'); return (+p[0]) + (+p[1]) / 60; }
-
-    /* scritture nel DOM solo se il valore cambia; i testi cambiano il nodo di testo esistente (niente childList) */
-    function scrivi(el, s) {
-        if (!el || el.__v === s) return; el.__v = s;
-        var n = el.firstChild;
-        if (n && n.nodeType === 3 && !n.nextSibling) n.nodeValue = s; else el.textContent = s;
-    }
-    function scriviNum(el, valore, unita) {   // "3,96<small>kW</small>" senza innerHTML a ogni giro
-        if (!el) return;
-        var k = valore + '|' + unita; if (el.__v === k) return; el.__v = k;
-        if (!el.__n) { el.textContent = ''; el.__n = document.createTextNode(''); el.__s = document.createElement('small'); el.__s.appendChild(document.createTextNode('')); el.appendChild(el.__n); el.appendChild(el.__s); }
-        el.__n.nodeValue = valore; el.__s.firstChild.nodeValue = unita; el.__s.style.display = unita ? '' : 'none';
-    }
-    function scriviW(el, w) { var p = kwParti(w); scriviNum(el, p[0], p[1]); }
-    function scriviKWh(el, x) { if (x === null) scriviNum(el, '—', ''); else scriviNum(el, dec(x, x < 10 ? 1 : 0), 'kWh'); }
-    function attr(el, n, v) { if (!el) return; v = String(v); var c = el.__a || (el.__a = {}); if (c[n] === v) return; c[n] = v; el.setAttribute(n, v); }
-    function stile(el, p, v) { if (!el) return; v = String(v); var c = el.__st || (el.__st = {}); if (c[p] === v) return; c[p] = v; el.style.setProperty(p, v); }
-    function classe(el, c, si) { if (el && el.classList.contains(c) !== !!si) el.classList.toggle(c, !!si); }
     function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function maiuscola(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+    /* scritture nel DOM solo se il valore cambia */
+    function scrivi(el, s) { if (el && el.__v !== s) { el.__v = s; el.textContent = s; } }
+    function scriviHtml(el, s) { if (el && el.__h !== s) { el.__h = s; el.innerHTML = s; } }
+    function scriviNum(el, v, u) { scriviHtml(el, esc(v) + (u ? '<small>' + esc(u) + '</small>' : '')); }
+    function stile(el, p, v) { if (!el) return; v = String(v); var c = el.__st || (el.__st = {}); if (c[p] === v) return; c[p] = v; el.style.setProperty(p, v); }
+    function attr(el, n, v) { if (!el) return; v = String(v); var c = el.__a || (el.__a = {}); if (c[n] === v) return; c[n] = v; el.setAttribute(n, v); }
+    function classe(el, c, si) { if (el && el.classList.contains(c) !== !!si) el.classList.toggle(c, !!si); }
+    function nascondi(el, si) { if (el && el.hasAttribute('hidden') !== !!si) { if (si) el.setAttribute('hidden', ''); else el.removeAttribute('hidden'); } }   // anche per gli elementi SVG
 
     /* ======================================================================
-       ADATTATORE DEI SEGNI (unico punto): API inverter.py -> convenzione della pagina
+       ADATTATORE DEI SEGNI (unico punto): la pagina tiene la convenzione dell'API
+       rete + prelievo / - immissione;  batt + carica / - scarica;  casa senza misuratore = stima (pv - carica + scarica)
        ====================================================================== */
     function adattaSegni(pv_w, casa_w, rete_w, batteria_w, soc) {
-        var pv = num(pv_w), rete = num(rete_w), bApi = num(batteria_w), casa = num(casa_w);
-        var batt = bApi === null ? null : -bApi;                       // + carica (API) -> - carica (pagina)
-        if (casa === null && pv !== null) casa = Math.max(0, pv + (batt || 0));   // senza misuratore: stima (pv - carica + scarica)
+        var pv = num(pv_w), rete = num(rete_w), batt = num(batteria_w), casa = num(casa_w);
+        if (casa === null && pv !== null) casa = Math.max(0, pv - (batt || 0));
         return { pv: pv, casa: casa, rete: rete, batt: batt, soc: num(soc) };
     }
 
     /* ======================================================================
        STATO
        ====================================================================== */
-    var S = { batteria: false, rete: false, soglia: false, offline: false, pronto: false };
-    var IMP = { cap: null, riserva: 10, soglia: 3000, limite: 3300, stacco: 4000, avviso: 90, pvMax: null, modello: null };
-    var vivo = { pv: 0, casa: 0, batt: 0, rete: 0, soc: 0 };     // ultima lettura (pagina)
-    var API = null, DATI = null, tVivo = 0, tDati = 0;
-    var orologio = { h0: null, t0: 0, v: 1 };
-    var ALBA = 7, TRAMONTO = 19, albaNota = false, tramontoNota = false;
+    var S = { pronto: false, batt: false, rete: false, offline: false, prese: false };
+    var API = null, DATI = null, G7 = null, GM = null, GA = null;
+    var vivo = { pv: 0, casa: 0, rete: 0, batt: 0, soc: null };
+    var fl = {};                                   // flussi ripartiti (W, >= 0)
+    var orologio = { h0: null, t0: 0, v: 1, data: null };
+    var periodo = 'oggi', vista = null;
     function oraCasa() {
         if (orologio.h0 === null) { var d = new Date(); return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600; }
         return (orologio.h0 + (Date.now() - orologio.t0) / 3600000 * orologio.v) % 24;
     }
-    function fasciaOra() { return API && API.tariffa && API.tariffa.fascia ? API.tariffa.fascia : (DATI && DATI.tariffa ? DATI.tariffa.fascia : null); }
-    function tipoTariffa() { return (API && API.tariffa && API.tariffa.tipo) || (DATI && DATI.tariffa && DATI.tariffa.tipo) || 'mono'; }
+    function dataCasa() {   // Date (mezzogiorno locale) della data di casa
+        var s = orologio.data || (DATI && DATI.orologio && DATI.orologio.data);
+        if (s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2], 12, 0, 0); }
+        return new Date();
+    }
+    function imp() { return (DATI && DATI.impianto) || {}; }
     function prezzi() { return (DATI && DATI.tariffa && DATI.tariffa.prezzi) || {}; }
+    function tipoTariffa() { return (API && API.tariffa && API.tariffa.tipo) || (DATI && DATI.tariffa && DATI.tariffa.tipo) || 'mono'; }
+    function fasciaOra() { return (API && API.tariffa && API.tariffa.fascia) || (DATI && DATI.tariffa && DATI.tariffa.fascia) || null; }
 
-    /* ======================================================================
-       LA SCENA: due disposizioni (larga 1000x400, stretta 400x460 sotto i 620 px di scena)
-       ====================================================================== */
-    var scena = $('scena'), film = $('film'), tela = $('tela'), ctx = tela.getContext('2d');
-    var LAY = {
-        larga: {
-            vb: [1000, 400], suolo: 330, sole: [180, 112], soleS: 1, casa: [500, 330], casaS: 1, batt: [250, 330], battS: 1, rete: [820, 330], reteS: 1, luna: [890, 70], stelle: 60,
-            via: { sole: 'M 222 150 C 300 210, 350 215, 452 224', batt: 'M 282 298 C 330 298, 380 294, 436 292', rete: 'M 792 285 C 720 285, 650 290, 564 292' },
-            eti: { sole: [120, 230], casa: [500, 372], batt: [250, 372], rete: [820, 372], lsole: [335, 185], lbatt: [358, 272], lrete: [678, 262], avviso: [820, 170] }, passoFrecce: 22
-        },
-        stretta: {
-            vb: [400, 460], suolo: 390, sole: [92, 112], soleS: 0.82, casa: [200, 390], casaS: 0.82, batt: [56, 390], battS: 0.9, rete: [352, 390], reteS: 0.85, luna: [340, 58], stelle: 34,
-            via: { sole: 'M 118 140 C 160 190, 176 240, 174 300', batt: 'M 84 358 C 104 352, 126 352, 148 356', rete: 'M 334 356 C 310 350, 280 350, 252 356' },
-            eti: { sole: [262, 112], casa: [200, 430], batt: [64, 430], rete: [346, 430], lsole: [160, 224], lbatt: [114, 334], lrete: [288, 332], avviso: [300, 262] }, passoFrecce: 17
-        }
-    };
-    var lay = null, campioni = {}, scala = 1;
-    function pathPunti(d) {   // curva campionata una volta (120 punti): niente getPointAtLength per fotogramma
-        var p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d);
-        var L = p.getTotalLength(), N = 120, pts = [];
-        for (var i = 0; i <= N; i++) { var q = p.getPointAtLength(L * i / N); pts.push([q.x, q.y]); }
-        return { pts: pts, L: L };
-    }
-    function puntoSu(c, tt) {
-        tt = tt < 0 ? 0 : (tt > 1 ? 1 : (tt || 0));
-        var N = c.pts.length - 1, f = tt * N, i = Math.floor(f), g = f - i;
-        if (i >= N) return c.pts[N];
-        var a = c.pts[i], b = c.pts[i + 1];
-        return [a[0] + (b[0] - a[0]) * g, a[1] + (b[1] - a[1]) * g];
-    }
-    var frecceDati = {};
-    function frecceStatiche(gruppo, c, passoU) {   // frecce ferme lungo la linea (Modalita' leggera)
-        var n = Math.max(2, Math.floor(c.L / passoU)), s = '', dati = [];
-        for (var i = 1; i < n; i++) {
-            var tt = i / n, p = puntoSu(c, tt), q = puntoSu(c, Math.min(1, tt + 0.02)), ang = Math.atan2(q[1] - p[1], q[0] - p[0]) * 180 / Math.PI;
-            dati.push([p[0], p[1], ang]); s += '<path d="M-4 -4 L1 0 L-4 4"/>';
-        }
-        gruppo.innerHTML = s; frecceDati[gruppo.id] = { dati: dati, inverse: null };
-        orientaFrecce(gruppo, false);
-    }
-    function orientaFrecce(gruppo, inverse) {
-        var fd = frecceDati[gruppo.id]; if (!fd || fd.inverse === inverse) return; fd.inverse = inverse;
-        var paths = gruppo.children;
-        for (var i = 0; i < paths.length; i++) { var d = fd.dati[i]; paths[i].setAttribute('transform', 'translate(' + d[0].toFixed(1) + ' ' + d[1].toFixed(1) + ') rotate(' + (d[2] + (inverse ? 180 : 0)).toFixed(1) + ')'); }
-    }
-    function stelleCasuali(n, w, h) {
-        var s = '', seed = 7;
-        function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-        for (var i = 0; i < n; i++) s += '<circle cx="' + (rnd() * w).toFixed(0) + '" cy="' + (rnd() * h * 0.6).toFixed(0) + '" r="' + (0.6 + rnd() * 1.1).toFixed(1) + '" opacity="' + (0.3 + rnd() * 0.6).toFixed(2) + '"/>';
-        return s;
-    }
-    function skyline(w, suolo) {
-        var d = 'M0 ' + suolo, x = 0, seed = 3, luci = '';
-        function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
-        while (x < w) {
-            var lw = 18 + rnd() * 46, hh = 14 + rnd() * 52;
-            d += ' V' + (suolo - hh).toFixed(0) + ' H' + (x + lw).toFixed(0);
-            for (var k = 0; k < lw / 12; k++) if (rnd() < 0.35) luci += '<rect x="' + (x + 4 + k * 10).toFixed(0) + '" y="' + (suolo - hh + 6 + Math.floor(rnd() * (hh - 10) / 8) * 8).toFixed(0) + '" width="1.8" height="2.4" opacity="' + (0.3 + rnd() * 0.6).toFixed(2) + '"/>';
-            x += lw;
-        }
-        return { d: d + ' V' + suolo + ' Z', luci: luci };
-    }
-    function pos(el, xy) { el.style.left = (xy[0] / lay.vb[0] * 100) + '%'; el.style.top = (xy[1] / lay.vb[1] * 100) + '%'; }
-    function tr(id, xy, s) { $(id).setAttribute('transform', 'translate(' + xy[0] + ' ' + xy[1] + ')' + (s && s !== 1 ? ' scale(' + s + ')' : '')); }
-    function impaginaScena() {
-        var w = scena.clientWidth, h = scena.clientHeight;
-        if (!w) return false;                                   // sezione nascosta: si impagina all'apertura
-        var stretta = w < 620, nuovo = stretta ? LAY.stretta : LAY.larga;
-        if (nuovo !== lay) {
-            lay = nuovo;
-            scena.classList.toggle('en-stretta', stretta);
-            film.setAttribute('viewBox', '0 0 ' + lay.vb[0] + ' ' + lay.vb[1]);
-            film.querySelectorAll('#en-cielo, .en-cielo-sera, .en-cielo-giorno').forEach(function (r) { r.setAttribute('width', lay.vb[0]); r.setAttribute('height', lay.vb[1]); });
-            $('suolo').setAttribute('y', lay.suolo); $('suolo').setAttribute('width', lay.vb[0]); $('suolo').setAttribute('height', lay.vb[1] - lay.suolo);
-            $('orizzonte').setAttribute('y1', lay.suolo); $('orizzonte').setAttribute('y2', lay.suolo); $('orizzonte').setAttribute('x2', lay.vb[0]);
-            $('stelle').innerHTML = stelleCasuali(lay.stelle, lay.vb[0], lay.suolo);
-            var sk = skyline(lay.vb[0], lay.suolo); $('skyline').setAttribute('d', sk.d); $('skyline-luci').innerHTML = sk.luci;
-            tr('luna', lay.luna); tr('nodo-sole', lay.sole, lay.soleS); tr('nodo-casa', lay.casa, lay.casaS); tr('nodo-batt', lay.batt, lay.battS); tr('nodo-rete', lay.rete, lay.reteS);
-            [['alone-casa', lay.casa], ['alone-batt', lay.batt], ['alone-rete', lay.rete], ['alone-rete-rosso', lay.rete]].forEach(function (a) { $(a[0]).setAttribute('cx', a[1][0]); $(a[0]).setAttribute('cy', a[1][1] + 2); });
-            $('fili').style.display = stretta ? 'none' : '';
-            ['sole', 'batt', 'rete'].forEach(function (k) {
-                $('via-' + k).setAttribute('d', lay.via[k]); $('glow-' + k).setAttribute('d', lay.via[k]); $('glow2-' + k).setAttribute('d', lay.via[k]);
-                campioni[k] = pathPunti(lay.via[k]);
-                frecceStatiche($('frecce-' + k), campioni[k], lay.passoFrecce);
-            });
-            pos($('e-sole'), lay.eti.sole); pos($('e-casa'), lay.eti.casa); pos($('e-batt'), lay.eti.batt); pos($('e-rete'), lay.eti.rete);
-            pos($('l-sole'), lay.eti.lsole); pos($('l-batt'), lay.eti.lbatt); pos($('l-rete'), lay.eti.lrete); pos($('avviso'), lay.eti.avviso);
-        }
-        var dpr = Math.min(stretta ? 1.5 : 2, window.devicePixelRatio || 1);
-        if (tela.width !== Math.round(w * dpr) || tela.height !== Math.round(h * dpr)) { tela.width = Math.round(w * dpr); tela.height = Math.round(h * dpr); }
-        scala = w * dpr / lay.vb[0];
-        primoDisegno = true;
-        return true;
+    /* alba e tramonto: quelli di /api/energia/dati (storico); senza, una stima astronomica per l'Italia (42 N, 12,5 E,
+       ora di casa con l'ora legale europea) */
+    function albaTramonto() {
+        var s = (DATI && DATI.sole) || {}, a = hDa(s.alba), tr = hDa(s.tramonto);
+        if (a !== null && tr !== null && tr > a) return [a, tr];
+        var d = dataCasa(), y = d.getFullYear();
+        var inizio = new Date(y, 0, 1, 12), n = Math.round((d - inizio) / 86400000) + 1;
+        var decl = 23.44 * Math.sin(2 * Math.PI * (284 + n) / 365) * Math.PI / 180, lat = 42 * Math.PI / 180;
+        var h0 = Math.acos(clamp(-Math.tan(lat) * Math.tan(decl) - 0.0145, -1, 1)) * 12 / Math.PI;
+        function ultimaDomenica(m) { var x = new Date(y, m + 1, 0); return x.getDate() - x.getDay(); }
+        var legale = (d.getMonth() > 2 && d.getMonth() < 9) || (d.getMonth() === 2 && d.getDate() >= ultimaDomenica(2)) || (d.getMonth() === 9 && d.getDate() < ultimaDomenica(9));
+        var mezzo = 12 + (15 - 12.5) / 15 + (legale ? 1 : 0);
+        var A = a !== null ? a : mezzo - h0, B = tr !== null ? tr : mezzo + h0;
+        return B > A ? [A, B] : [mezzo - h0, mezzo + h0];
     }
 
     /* ======================================================================
-       PARTICELLE (canvas): sprite radiale pre-disegnato, scia di 5 fantasmi
+       SCENA (disegno nativo 668 x 330 di scena.py)
        ====================================================================== */
-    var sprites = {};
-    function sprite(col) {
-        if (sprites[col]) return sprites[col];
-        var c = document.createElement('canvas'); c.width = c.height = 32; var g = c.getContext('2d');
-        var r = g.createRadialGradient(16, 16, 0, 16, 16, 16);
-        r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.18, col + '1)'); r.addColorStop(0.45, col + '0.45)'); r.addColorStop(1, col + '0)');
-        g.fillStyle = r; g.fillRect(0, 0, 32, 32);
-        return (sprites[col] = c);
-    }
-    var COL = { sole: 'rgba(255,214,10,', batt: 'rgba(48,209,88,', imm: 'rgba(191,90,242,', prel: 'rgba(255,93,85,' };
-    var flussi = { sole: { w: 0, col: 'sole', p: [], n: 0, dir: 1, v: 0 }, batt: { w: 0, col: 'batt', p: [], n: 0, dir: 1, v: 0 }, rete: { w: 0, col: 'imm', p: [], n: 0, dir: 1, v: 0 } };
-    var MAX_P = 10;
-    function aggiornaFlussi(r, dt) {
-        var def = [['sole', r.pv, 'sole'], ['batt', S.batteria ? r.batt : 0, 'batt'], ['rete', S.rete ? r.rete : 0, r.rete > 0 ? 'prel' : 'imm']];
-        for (var j = 0; j < 3; j++) {
-            var d = def[j], f = flussi[d[0]], w = d[1] || 0, a = Math.abs(w);
-            f.w = w; f.col = d[2];
-            f.dir = (d[0] === 'sole' || w >= 0) ? 1 : -1;            // +1: verso la casa; -1: dalla casa al nodo
-            f.n = a < 40 ? 0 : clamp(Math.round(1 + a / 320), 1, MAX_P);
-            f.v = a < 40 ? 0 : 0.10 + Math.min(a, 6000) / 6000 * 0.42;  // giri di linea al secondo
-            if (f.n === 0) { f.p.length = 0; continue; }
-            while (f.p.length < f.n) f.p.push({ t: Math.random(), s: 0.85 + Math.random() * 0.3 });
-            for (var i = f.p.length - 1; i >= 0; i--) {
-                var q = f.p[i]; q.t += f.v * q.s * dt;
-                if (q.t >= 1) { if (f.p.length > f.n) { f.p.splice(i, 1); continue; } q.t -= 1; }
+    (function costruisciScena() {
+        var r = '';
+        for (var a = 0; a < 360; a += 30) r += '<line x1="0" y1="-46" x2="0" y2="-58" transform="rotate(' + a + ')"/>';
+        $('raggi').innerHTML = r;
+        var p = '';
+        for (var i = 0; i < 4; i++) {
+            for (var j = 0; j < 2; j++) {
+                var t0 = 0.12 + i * 0.2, t1 = t0 + 0.17, k0 = j, k1 = j + 0.85;
+                var pt = function (tt, k) { return [334 + 84 * tt - 9 * k, 178 + 62 * tt + 13 * k]; };
+                var A = pt(t0, k0), B = pt(t1, k0), C = pt(t1, k1), D = pt(t0, k1);
+                p += '<path d="M' + A[0].toFixed(1) + ' ' + A[1].toFixed(1) + ' L' + B[0].toFixed(1) + ' ' + B[1].toFixed(1) + ' L' + C[0].toFixed(1) + ' ' + C[1].toFixed(1) + ' L' + D[0].toFixed(1) + ' ' + D[1].toFixed(1) + ' Z"/>';
             }
         }
-    }
-    function disegnaParticelle() {
-        ctx.setTransform(scala, 0, 0, scala, 0, 0);
-        ctx.clearRect(0, 0, lay.vb[0], lay.vb[1]);
-        ctx.globalCompositeOperation = 'lighter';
-        var chiavi = ['sole', 'batt', 'rete'];
-        for (var j = 0; j < 3; j++) {
-            var f = flussi[chiavi[j]], c = campioni[chiavi[j]]; if (!c || !f.p.length) continue;
-            var sp = sprite(COL[f.col]), r = 5.5 + Math.min(Math.abs(f.w), 5000) / 5000 * 3.5;
-            for (var i = 0; i < f.p.length; i++) {
-                var tt = f.dir > 0 ? f.p[i].t : 1 - f.p[i].t;
-                for (var g = 5; g >= 1; g--) {
-                    var tb = tt - f.dir * g * 0.022; if (tb < 0 || tb > 1) continue;
-                    var p = puntoSu(c, tb), rr = r * (1 - g * 0.14);
-                    ctx.globalAlpha = 0.55 - g * 0.09;
-                    ctx.drawImage(sp, p[0] - rr, p[1] - rr, rr * 2, rr * 2);
-                }
-                var hh = puntoSu(c, tt); ctx.globalAlpha = 1;
-                ctx.drawImage(sp, hh[0] - r, hh[1] - r, r * 2, r * 2);
-            }
+        $('pannelli').innerHTML = p;
+        var seme = 7, s = '', b = '';
+        function rnd() { seme = (seme * 9301 + 49297) % 233280; return seme / 233280; }
+        for (var q = 0; q < 46; q++) {
+            var x = rnd() * 668, y = rnd() * 200, rr = 0.6 + rnd() * 1.1;
+            if (x < 170 && y < 150) continue;                       // dove sta la luna
+            if (x > 214 && x < 470 && y > 16 && y < 130) continue;  // testo del fotovoltaico nel cielo (left 34,7%, top 10,3%) con 25-30 px di aria
+            if (q % 7 === 0) b += '<i style="left:' + (x - 1.3).toFixed(1) + 'px;top:' + (y - 1.3).toFixed(1) + 'px;animation-delay:-' + (rnd() * 3).toFixed(2) + 's"></i>';   // stelline che brillano (HTML)
+            else s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + rr.toFixed(2) + '" opacity="' + (0.5 + rnd() * 0.5).toFixed(2) + '"/>';
         }
-        ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+        $('stelle').innerHTML = s;
+        $('stelle-b').innerHTML = b;
+        var h = '';
+        ['sole', 'batt', 'rete'].forEach(function (l) { for (var n = 0; n < 6; n++) h += '<span class="en-pt en-pt-' + l + '" data-l="' + l + '" hidden></span>'; });
+        $('pt-strato').insertAdjacentHTML('beforeend', h);
+    })();
+    var particelleOk = true;
+    /* keyframe di transform lungo le tre curve (quadratiche di scena.py): 13 punti, opacita' che entra ed esce come
+       'corri' del mockup; quella del sole cambia con l'altezza del sole */
+    var CURVE = { sole: [[140, 104], [236, 112], [368, 204]], batt: [[262, 300], [190, 326], [120, 292]], rete: [[406, 296], [478, 326], [548, 288]] };
+    function keyframes(nome, c) {
+        var s = '@keyframes en-pk-' + nome + ' {';
+        for (var i = 0; i <= 12; i++) {
+            var u = i / 12, a = (1 - u) * (1 - u), b = 2 * (1 - u) * u, d = u * u;
+            var x = a * c[0][0] + b * c[1][0] + d * c[2][0], y = a * c[0][1] + b * c[1][1] + d * c[2][1];
+            var op = i === 0 || i === 12 ? 0 : (i === 1 || i === 11 ? 0.7 : 1);
+            s += ' ' + (u * 100).toFixed(2) + '% { transform: translate(' + x.toFixed(1) + 'px, ' + y.toFixed(1) + 'px); opacity: ' + op + '; }';
+        }
+        return s + ' }';
     }
-    function pulisciTela() { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, tela.width, tela.height); }
+    function scriviKeyframes() { $('pk-stile').textContent = ['sole', 'batt', 'rete'].map(function (k) { return keyframes(k, CURVE[k]); }).join('\n'); }
+    scriviKeyframes();
+    var linee = { sole: { n: 0, inv: null, prel: null }, batt: { n: 0, inv: null, prel: null }, rete: { n: 0, inv: null, prel: null } };
+    var DURATE = { sole: 2.0, batt: 2.4, rete: 2.2 };
+    function quante(w) { return w < 40 ? 0 : clamp(2 + Math.floor(w / 2000), 2, 6); }
+    function particelle(l, w, inversa, prel) {
+        var n = particelleOk ? quante(w) : 0, L = linee[l];
+        if (L.n === n && L.inv === inversa && L.prel === prel) return;
+        var pts = $('pt-strato').querySelectorAll('.en-pt-' + l);
+        for (var i = 0; i < pts.length; i++) {
+            var e = pts[i];
+            if (i < n) {
+                if (L.n !== n) e.style.setProperty('--dl', (-DURATE[l] * i / n).toFixed(2) + 's');
+                classe(e, 'en-inv', inversa); classe(e, 'en-prel', prel);
+                nascondi(e, false);
+            } else nascondi(e, true);
+        }
+        L.n = n; L.inv = inversa; L.prel = prel;
+    }
+    // il riquadro cambia larghezza: scala delle particelle (disegnate nelle coordinate native)
+    function scalaScena() {
+        var q = $('sc-quadro'), w = q.clientWidth;
+        if (w) stile(q, '--en-k', (w / 668).toFixed(4));
+    }
+    var dySole = null;
+    function aggiornaCielo() {
+        var h = oraCasa(), at = albaTramonto(), A = at[0], B = at[1];
+        var f = { notte: 0, alba: 0, giorno: 0, tramonto: 0 };
+        var M = 0.75;                                               // tre quarti d'ora prima e dopo
+        if (h < A - M || h > B + M) f.notte = 1;
+        else if (h < A + M) { var x = (h - (A - M)) / (2 * M); f.alba = 1 - Math.abs(x - 0.5) * 2 * 0.6; f.giorno = clamp((x - 0.5) * 2, 0, 1); }
+        else if (h > B - M) { var y = (h - (B - M)) / (2 * M); f.tramonto = 1 - Math.abs(y - 0.5) * 2 * 0.6; f.giorno = clamp(1 - y * 2, 0, 1); }
+        else f.giorno = 1;
+        attr($('cielo-alba'), 'opacity', f.alba.toFixed(2));
+        attr($('cielo-giorno'), 'opacity', f.giorno.toFixed(2));
+        attr($('cielo-tramonto'), 'opacity', f.tramonto.toFixed(2));
+        var giorno = h > A - 0.25 && h < B + 0.25;
+        var luce = giorno ? Math.sin(Math.PI * clamp((h - (A - 0.25)) / (B - A + 0.5), 0, 1)) : 0;   // altezza del sole 0..1
+        var st = (f.notte ? 1 : clamp(1 - luce * 4, 0, 1) * 0.5).toFixed(2);
+        attr($('stelle'), 'opacity', st); stile($('stelle-b'), 'opacity', st);
+        attr($('luna'), 'opacity', giorno ? '0' : '1');
+        stile($('sole'), 'opacity', giorno ? '1' : '0');
+        var dy = Math.round(88 * Math.pow(1 - luce, 1.6) / 2) * 2;           // basso all'alba e al tramonto (sopra la batteria)
+        if (dy !== dySole) {
+            dySole = dy;
+            stile($('sole'), 'transform', 'translateY(' + dy + 'px)');
+            CURVE.sole = [[140, 104 + dy], [236, 112 + dy * 0.5], [368, 204]];
+            attr($('sc-via-sole'), 'd', 'M140 ' + (104 + dy) + ' Q236 ' + (112 + dy * 0.5) + ' 368 204');
+            stile($('sc-p-sole'), 'top', ((130 + dy * 0.62) / 330 * 100).toFixed(2) + '%');   // la pillola resta sulla linea
+            scriviKeyframes();
+        }
+        stile($('sole-basso'), 'opacity', clamp(1 - luce * 2.2, 0, 0.85).toFixed(2));
+        classe($('sc-via-sole'), 'en-notte', !giorno);                         // di notte la linea del sole non c'e'
+        var nuv = f.notte ? 0.35 : 1;
+        stile($('nuvola1'), 'opacity', nuv); stile($('nuvola2'), 'opacity', nuv);
+        return { giorno: giorno, luce: luce, A: A, B: B, h: h };
+    }
 
     /* ======================================================================
-       STRUTTURA: cosa c'e' e cosa no (batteria, misuratore, soglia)
+       SCHEMA (flussi() di gen.py): sole in alto, batteria, casa, rete
        ====================================================================== */
-    var strutturaFirma = '';
-    function aggiornaStruttura() {
-        var b = S.batteria, r = S.rete, sg = S.rete && S.soglia;
-        var firma = [b, r, sg, tipoTariffa()].join('|');
-        if (firma === strutturaFirma) return;
-        strutturaFirma = firma;
-        ['nodo-batt', 'link-batt', 'e-batt', 'l-batt'].forEach(function (id) { $(id).classList.toggle('en-assente', !b); });
-        ['nodo-rete', 'link-rete', 'e-rete', 'l-rete'].forEach(function (id) { $(id).classList.toggle('en-assente', !r); });
-        $('c-batt').classList.toggle('en-nascosta', !b); $('pill-batt').classList.toggle('en-nascosta', !b);
-        $('c-soglia').classList.toggle('en-nascosta', !sg); $('pill-rete').classList.toggle('en-nascosta', !r);
-        $('c-costo').classList.toggle('en-senza-rete', !r);
-        $('griglia').classList.toggle('en-cfg-nobatt', !b); $('griglia').classList.toggle('en-cfg-norete', !sg);
-        root.querySelectorAll('.en-se-rete').forEach(function (e) { e.style.display = r ? '' : 'none'; });
-        $('avviso').classList.remove('en-attento', 'en-superata'); scena.classList.remove('en-sopra-soglia');
-        disegnaTariffe(); disegnaTachimetro(); disegnaGrafico(); disegnaSettimana();
-    }
-    function notaStato() {
-        if (!S.pronto) return T.inAttesaDati;
-        if (S.offline) return T.flussoOffline;
-        if (fermo()) return T.flussoFermo;
-        return S.rete ? T.flusso : T.flussoStimato;
+    var sch = { W: 0, H: 0, mob: null, nodi: null };
+    var LINEE_SCH = [   // id, da, a, piega (gen.py), lenta
+        ['pv_casa', 'sole', 'casa', 0, false], ['pv_batt', 'sole', 'batt', 40, true], ['pv_rete', 'sole', 'rete', 40, true],
+        ['batt_casa', 'batt', 'casa', 0, true], ['rete_casa', 'rete', 'casa', 0, false]
+    ];
+    function costruisciSchema() {
+        var box = $('sch'), bw = box.clientWidth;
+        if (!bw) return;
+        var mob = bw < 520, W = mob ? 338 : 700, H = mob ? 360 : 420, R = mob ? 34 : 46;
+        stile(box, '--en-sk', (bw / W).toFixed(4));
+        stile(box, '--en-r', (R * bw / W).toFixed(1) + 'px');
+        if (sch.mob === mob && sch.nodi) return;
+        sch.mob = mob; sch.W = W; sch.H = H;
+        // nodi in basso presenti (senza batteria o senza misuratore si ridistribuiscono: niente buchi)
+        var sotto = (S.batt ? ['batt'] : []).concat(['casa'], S.rete ? ['rete'] : []), cy = H * 0.6;
+        var POS = { 3: [0.15, 0.5, 0.85], 2: [0.3, 0.7], 1: [0.5] }[sotto.length];
+        var N = sch.nodi = { batt: [W * 0.15, cy], casa: [W / 2, cy], rete: [W * 0.85, cy] };
+        sotto.forEach(function (k, i) { N[k] = [W * POS[i], cy]; });
+        N.sole = [N.casa[0], H * 0.17];
+        var serve = { pv_batt: S.batt, batt_casa: S.batt, pv_rete: S.rete, rete_casa: S.rete, pv_casa: true };
+        function curva(a, b, piega) { var p = N[a], q = N[b]; return { d: 'M' + p[0].toFixed(1) + ' ' + p[1].toFixed(1) + ' Q' + ((p[0] + q[0]) / 2).toFixed(1) + ' ' + ((p[1] + q[1]) / 2 + piega).toFixed(1) + ' ' + q[0].toFixed(1) + ' ' + q[1].toFixed(1), m: [(p[0] + q[0]) / 2 * 0.5 + (p[0] + q[0]) / 4, ((p[1] + q[1]) / 2 + piega) * 0.5 + (p[1] + q[1]) / 4] }; }
+        var svg = $('sch-svg'), s = '';
+        attr(svg, 'viewBox', '0 0 ' + W + ' ' + H);
+        if (S.batt) s += '<path class="en-sch-ferma" d="' + curva('casa', 'batt', 0).d + '"/>';
+        if (S.rete) s += '<path class="en-sch-ferma" d="' + curva('casa', 'rete', 0).d + '"/>';
+        LINEE_SCH.forEach(function (L) {
+            var c = curva(L[1], L[2], L[3]);
+            if (!serve[L[0]]) return;
+            s += '<path class="en-sch-fondo" id="en-schf-' + L[0] + '" d="' + c.d + '" stroke-width="5"/>';
+            s += '<path class="en-sch-via en-zero' + (L[4] ? ' en-lento' : '') + '" id="en-schv-' + L[0] + '" d="' + c.d + '"/>';
+            var pill = $('sch-p-' + L[0]);
+            var mx = c.m[0], my = c.m[1];
+            if (L[0] === 'pv_casa') my = N.sole[1] + (N.casa[1] - N.sole[1]) * 0.55;
+            if (L[0] === 'pv_batt') { mx -= mob ? 14 : 18; my += mob ? 14 : 22; }
+            if (L[0] === 'pv_rete') { mx += mob ? 14 : 18; my += mob ? 14 : 22; }
+            if (L[0] === 'batt_casa' || L[0] === 'rete_casa') my -= mob ? 16 : 20;
+            pill.style.left = (mx / W * 100) + '%'; pill.style.top = (my / H * 100) + '%';
+        });
+        svg.innerHTML = s;
+        ['sole', 'batt', 'casa', 'rete'].forEach(function (k) {
+            var n = $('n-' + k), e = $('sch-e-' + k), p = N[k];
+            n.style.left = (p[0] / W * 100) + '%'; n.style.top = (p[1] / H * 100) + '%';
+            if (k === 'sole') { e.style.left = ((p[0] + R + 14) / W * 100) + '%'; e.style.top = (p[1] / H * 100) + '%'; }
+            else { e.style.left = (p[0] / W * 100) + '%'; e.style.top = ((p[1] + R + 8) / H * 100) + '%'; }
+        });
+        stile($('n-sole'), '--en-alone', '34px');
+        sch.vie = null;
+        aggiornaSchema();
     }
 
     /* ======================================================================
-       AGGIORNAMENTO: scena (etichette, aloni, cielo, pillole) e card
+       AGGIORNAMENTO DEI FLUSSI (entrambe le viste: la nascosta costa solo qualche attributo)
        ====================================================================== */
-    var vis = { pv: 0, casa: 0, batt: 0, rete: 0, soc: 0 }, primoDisegno = true;
-    function previsioneA(h) {
-        if (!DATI || !DATI.previsione) return null;
-        var q = Math.floor(h * 4) / 4, p = DATI.previsione;
-        for (var i = 0; i < p.length; i++) if (Math.abs(p[i].h - q) < 0.01) return num(p[i].pv_w);
+    function notaSole(c, corta) {
+        var pv = vivo.pv;
+        if (!c.giorno) return API && DATI && (albaTramonto()[0] > c.h) ? t('notteAlba', { ora: fmtOra(albaTramonto()[0]) }) : T.notte;
+        if (pv < 40) return c.luce < 0.25 ? T.pocaLuce : T.inAttesa;
+        var mx = num(imp().pv_max_w);
+        var pct = mx && mx > 200 ? Math.round(clamp(pv / mx * 100, 0, 100)) : null;
+        if (c.luce < 0.25 && (pct === null || pct < 8)) return T.pocaLuce;
+        if (pct !== null && !corta) return t('producePct', { p: pct });
+        return c.luce < 0.2 ? T.pocaLuce : T.produce;
+    }
+    function notaBatt() {
+        var b = vivo.batt, soc = vivo.soc, ris = num(imp().riserva_pct) || 10;
+        if (b > 40) return t('siCarica', { w: fmtW(b) });
+        if (b < -40) return t('siScarica', { w: fmtW(-b) });
+        if (soc !== null && soc >= 99) return T.piena;
+        if (soc !== null && soc <= ris + 1) return T.allaRiserva;
+        return T.ferma;
+    }
+    function notaCasa() {
+        if (!S.rete) return T.stimato;
+        var c = vivo.casa; if (c < 20) return '—';
+        var parti = [[fl.pv_casa || 0, T.dalSole], [fl.batt_casa || 0, T.dallaBatt], [fl.rete_casa || 0, T.dallaRete]].filter(function (x) { return x[0] > 20; });
+        if (!parti.length) return '—';
+        if (parti.length === 1) return parti[0][1] === T.dalSole ? T.tuttaSole : (parti[0][1] === T.dallaBatt ? T.tuttaBatt : T.tuttaRete);
+        var tot = parti.reduce(function (a, x) { return a + x[0]; }, 0);
+        parti.sort(function (a, b) { return b[0] - a[0]; });
+        return parti.map(function (x) { return Math.round(x[0] / tot * 100) + '% ' + x[1]; }).join(' · ');
+    }
+    function notaRete() { var r = vivo.rete; return r > 40 ? T.inPrelievo : (r < -40 ? T.inImmissione : T.inEquilibrio); }
+    function valRete() { return fmtW(Math.abs(vivo.rete)); }
+    function aggiornaFlussi() {
+        var c = aggiornaCielo();
+        var v = { sole: fmtW(vivo.pv), batt: vivo.soc !== null ? Math.round(vivo.soc) + '%' : '—', casa: fmtW(vivo.casa), rete: valRete() };
+        var n = { sole: notaSole(c), batt: notaBatt(), casa: notaCasa(), rete: notaRete() }, corta = notaSole(c, true);
+        ['sole', 'batt', 'casa', 'rete'].forEach(function (k) {
+            // riga di etichette sotto la scena (solo telefono): note corte, a capo al posto di " · "
+            scrivi($('sc-v-' + k), v[k]); scrivi($('sc-n-' + k), (k === 'sole' ? corta : n[k]).split(' · ').join('\n'));
+            scrivi($('sch-v-' + k), v[k]); scrivi($('sch-n-' + k), sch.mob ? (k === 'sole' ? corta : n[k].split(' · ').join('\n')) : n[k]);   // telefono: a capo
+        });
+        scrivi($('sc-v-sole0'), v.sole); scrivi($('sc-n-sole0'), n.sole);
+        var prel = vivo.rete > 40;
+        ['sc-e-rete', 'sch-e-rete'].forEach(function (id) { stile($(id), '--c', prel ? '#FF7A59' : '#A78BFA'); });
+        stile($('n-rete'), '--c', prel ? '#FF7A59' : '#A78BFA');
+        // scena: linee, particelle, pillole, batteria, finestre, spia
+        var pvC = fl.pv_casa || 0;
+        classe($('sc-via-sole'), 'en-zero', vivo.pv < 40);
+        particelle('sole', vivo.pv, false, false);
+        pill('sc-p-sole', pvC, 35);
+        var b = S.batt ? vivo.batt : 0;
+        classe($('sc-via-batt'), 'en-zero', Math.abs(b) < 40);
+        particelle('batt', Math.abs(b), b < 0, false);
+        pill('sc-p-batt', Math.abs(b), b < 0 ? 0 : 180);
+        var r = S.rete ? vivo.rete : 0;
+        classe($('sc-via-rete'), 'en-zero', Math.abs(r) < 40);
+        attr($('sc-via-rete'), 'stroke', r > 40 ? '#FF7A59' : '#A78BFA');
+        particelle('rete', Math.abs(r), r > 0, r > 0);
+        pill('sc-p-rete', Math.abs(r), r > 0 ? 180 : 0);
+        stile($('sc-p-rete'), '--c', r > 40 ? '#FF7A59' : '#A78BFA');
+        stile($('sc-livello'), '--en-soc', vivo.soc !== null ? clamp(vivo.soc / 100, 0.02, 1).toFixed(3) : '0.5');
+        attr($('sc-livello'), 'fill', vivo.soc !== null && vivo.soc <= (num(imp().riserva_pct) || 10) + 5 ? '#F5B83D' : '#3DDC84');
+        classe($('carica-box'), 'en-si', b > 40);
+        classe($('finestre'), 'en-spente', vivo.casa < 30);
+        var sp = $('spia'), lv = API && API.soglia && API.soglia.livello;
+        stile(sp, '--c', r > 40 ? '#FF7A59' : '#A78BFA');
+        classe(sp, 'en-zero', Math.abs(r) < 40);
+        classe(sp, 'en-allarme', lv === 'superato');
+        aggiornaSchema();
+        var auto = $('auto-ora');
+        if (S.rete && vivo.casa > 20) scrivi(auto, t('autoOra', { p: Math.round(clamp((vivo.casa - Math.max(vivo.rete, 0)) / vivo.casa * 100, 0, 100)) }));
+        else scrivi(auto, '');
+    }
+    function pill(id, w, giro) {
+        var p = $(id); if (!p) return;
+        classe(p, 'en-zero', w < 40);
+        if (w >= 40) scrivi(p.querySelector('span'), fmtW(w));
+        if (giro !== undefined) stile(p, '--r', giro + 'deg');
+    }
+    function aggiornaSchema() {
+        if (!sch.nodi) return;
+        var v = {
+            pv_casa: [fl.pv_casa || 0, false, '#F5B83D'], pv_batt: [fl.pv_batt || 0, false, '#F5B83D'], pv_rete: [fl.pv_rete || 0, false, '#F5B83D'],
+            batt_casa: [0, false, '#3DDC84'], rete_casa: [0, false, '#FF7A59']
+        };
+        var bc = (fl.batt_casa || 0) + (fl.batt_rete || 0), rb = fl.rete_batt || 0;
+        v.batt_casa = bc >= rb ? [bc, false, '#3DDC84'] : [rb, true, '#3DDC84'];
+        var rc = (fl.rete_casa || 0) + rb, br = fl.batt_rete || 0;
+        v.rete_casa = rc >= br ? [rc, false, '#FF7A59'] : [br, true, '#A78BFA'];
+        if (!S.batt) { v.pv_batt[0] = 0; v.batt_casa[0] = 0; }
+        if (!S.rete) { v.pv_rete[0] = 0; v.rete_casa[0] = 0; }
+        Object.keys(v).forEach(function (k) {
+            var e = $('schv-' + k), w = v[k][0];
+            if (!e) return;
+            classe(e, 'en-zero', w < 40);
+            classe(e, 'en-inv', v[k][1]);
+            attr(e, 'stroke', v[k][2]);
+            attr(e, 'stroke-width', (2.2 + Math.min(1.4, w / 3000)).toFixed(2));
+            var p = $('sch-p-' + k);
+            stile(p, '--c', v[k][2]);
+            pill('sch-p-' + k, w, angoloSchema(k, v[k][1]));
+        });
+        attr($('n-sole-ic'), 'href', (vivo.pv < 40 && !aggiornaCieloCache().giorno) ? '#en-i-luna' : '#en-i-sole');
+        classe($('n-sole'), 'en-buio', vivo.pv < 40);
+    }
+    var cieloCache = { t: 0, v: null };
+    function aggiornaCieloCache() { var n = Date.now(); if (!cieloCache.v || n - cieloCache.t > 5000) { var at = albaTramonto(), h = oraCasa(); cieloCache.v = { giorno: h > at[0] - 0.25 && h < at[1] + 0.25 }; cieloCache.t = n; } return cieloCache.v; }
+    function angoloSchema(k, inversa) {
+        var N = sch.nodi, L = LINEE_SCH.filter(function (x) { return x[0] === k; })[0];
+        var a = N[L[1]], b = N[L[2]];
+        var ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+        return Math.round(inversa ? ang + 180 : ang);
+    }
+
+    /* ======================================================================
+       VISTA: Scena / Schema (per dispositivo: server + ripiego localStorage)
+       ====================================================================== */
+    var CHIAVE_LS = 'wh_energia_vista';
+    function lsLeggi() { try { var v = localStorage.getItem(CHIAVE_LS); return v === 'scena' || v === 'schema' ? v : null; } catch (e) { return null; } }
+    function lsScrivi(v) { try { localStorage.setItem(CHIAVE_LS, v); } catch (e) { /* niente */ } }
+    function segnaTasti(v) {
+        [].forEach.call(document.querySelectorAll('#en-vista-sel button, [data-en-vista]'), function (b) {
+            var on = (b.getAttribute('data-v') || b.getAttribute('data-en-vista')) === v;
+            classe(b, 'en-on', on); attr(b, 'aria-checked', on ? 'true' : 'false');
+        });
+    }
+    var timerVista = 0;
+    function mostraVista(v, anima) {
+        if (v !== 'scena' && v !== 'schema') v = 'scena';
+        segnaTasti(v);
+        if (vista === v) return;
+        var prima = vista ? $('v-' + vista) : null, dopo = $('v-' + v);
+        vista = v;
+        clearTimeout(timerVista);
+        var subito = !anima || !prima || leggera() || ridotto || !aperta();
+        [$('v-scena'), $('v-schema')].forEach(function (e) { if (e !== prima && e !== dopo) { nascondi(e, true); } });
+        if (subito) {
+            if (prima) { nascondi(prima, true); prima.classList.remove('en-sfuma'); }
+            nascondi(dopo, false); dopo.classList.remove('en-sfuma');
+            dopoVista();
+            return;
+        }
+        prima.classList.add('en-sfuma');
+        timerVista = setTimeout(function () {
+            nascondi(prima, true); prima.classList.remove('en-sfuma');
+            dopo.classList.add('en-sfuma'); nascondi(dopo, false);
+            dopoVista();
+            void dopo.offsetWidth;
+            dopo.classList.remove('en-sfuma');
+        }, 230);
+    }
+    function dopoVista() { if (vista === 'schema') costruisciSchema(); else scalaScena(); if (S.pronto) aggiornaFlussi(); }
+    function scegliVista(v) {
+        if (v !== 'scena' && v !== 'schema') return;
+        lsScrivi(v);
+        mostraVista(v, true);
+        fetch('/api/energia/vista', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify({ vista: v }) }).catch(function () { /* resta il localStorage */ });
+    }
+    function caricaVista() {
+        prendi('/api/energia/vista').then(function (j) {
+            var loc = lsLeggi();
+            if (j && j.salvata && (j.vista === 'scena' || j.vista === 'schema')) { lsScrivi(j.vista); mostraVista(j.vista, false); }
+            else if (loc) { mostraVista(loc, false); fetch('/api/energia/vista', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vista: loc }) }).catch(function () {}); }
+            else mostraVista((j && j.vista) || 'scena', false);
+        }).catch(function () { mostraVista(lsLeggi() || 'scena', false); });
+    }
+    $('vista-sel').addEventListener('click', function (e) { var b = e.target.closest('button[data-v]'); if (b) scegliVista(b.getAttribute('data-v')); });
+    document.addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('[data-en-vista]'); if (b) scegliVista(b.getAttribute('data-en-vista')); });
+
+    /* ======================================================================
+       ADESSO: valori e mini-curve (ultimi 8 quarti d'ora + adesso)
+       ====================================================================== */
+    function spark(id, valori, conSegno) {
+        var el = $(id), p = el.querySelector('path');
+        if (!p.hasAttribute('pathLength')) p.setAttribute('pathLength', '1');
+        if (valori.length < 2) { attr(p, 'd', ''); return; }
+        var mn = conSegno ? Math.min.apply(null, valori.concat([0])) : 0, mx = Math.max.apply(null, valori.concat([conSegno ? 0 : 1]));
+        if (mx - mn < 1) mx = mn + 1;
+        var d = valori.map(function (v, i) { return (i ? 'L' : 'M') + (96 * i / (valori.length - 1)).toFixed(1) + ' ' + (30 - 28 * (v - mn) / (mx - mn)).toFixed(1); }).join(' ');
+        attr(p, 'd', d);
+    }
+    function aggiornaAdesso() {
+        var g = (DATI && DATI.giornata) || [], ultimi = g.slice(-8);
+        function serie(k, vv) { return ultimi.map(function (x) { return num(x[k]) || 0; }).concat([vv]); }
+        var pp = wParti(vivo.pv); scriviNum($('ad-pv-v'), pp[0], pp[1]);
+        var pc = wParti(vivo.casa); scriviNum($('ad-casa-v'), pc[0], pc[1]);
+        var b = vivo.batt, pb = wParti(b);
+        scrivi($('ad-batt-t'), b > 40 ? T.adBattCarica : (b < -40 ? T.adBattScarica : T.adBattFerma));
+        scriviNum($('ad-batt-v'), (b > 40 ? '+' : (b < -40 ? '−' : '')) + pb[0], pb[1]);
+        var r = vivo.rete, pr = wParti(r);
+        scrivi($('ad-rete-t'), r > 40 ? T.adRetePrel : (r < -40 ? T.adReteImm : T.adReteEq));
+        scriviNum($('ad-rete-v'), pr[0], pr[1]);
+        classe($('ad-rete'), 'en-prel', r > 40);
+        spark('ad-pv-s', serie('pv_w', vivo.pv), false);
+        spark('ad-casa-s', serie('casa_w', vivo.casa), false);
+        spark('ad-batt-s', serie('batteria_w', b), true);
+        spark('ad-rete-s', serie('rete_w', r).map(function (x) { return -x; }), true);   // su = immissione, come nel mockup
+    }
+
+    /* ======================================================================
+       PERIODO: totali di oggi (adesso) o somma dei giorni / mesi (inverter_giorni)
+       ====================================================================== */
+    var CAMPI = ['prodotta_kwh', 'consumata_kwh', 'immessa_kwh', 'prelevata_kwh', 'caricata_kwh', 'scaricata_kwh', 'beneficio_eur', 'costo_eur',
+                 'prelevata_f1_kwh', 'prelevata_f2_kwh', 'prelevata_f3_kwh'];
+    function somma(lista) {
+        var o = { n: 0 };
+        CAMPI.forEach(function (k) { o[k] = null; });
+        (lista || []).forEach(function (g) {
+            o.n++;
+            CAMPI.forEach(function (k) { var v = k === 'consumata_kwh' ? consumataDi(g) : num(g[k]); if (v !== null) o[k] = (o[k] || 0) + v; });
+        });
+        return o;
+    }
+    function listaPeriodo(p) {   // giorni (o mesi) del periodo, dai dati gia' arrivati; null = non ancora caricati
+        if (p === 'settimana') return G7 ? G7.giorni || [] : null;
+        if (p === 'mese') { if (!GM) return null; var m = (orologio.data || '').slice(0, 7); return (GM.giorni || []).filter(function (g) { return !m || g.data.slice(0, 7) === m; }); }
+        if (p === 'anno') return GA ? GA.mesi || [] : null;
         return null;
     }
-    function statoSole(pv, h) {
-        var ref = pvRiferimento() || 0;
-        if (pv >= 30) {
-            var prev = previsioneA(h);
-            if (prev !== null && ref && prev > ref * 0.15 && pv < prev * 0.6) return T.nuvole;
-            return (ref && pv < ref * 0.08) ? T.bassaLuce : T.produce;
+    function totaliPeriodo() {
+        if (periodo === 'oggi') {
+            var o = (API && API.oggi) || {}, r = {};
+            CAMPI.forEach(function (k) { r[k] = num(o[k]); });
+            if (r.consumata_kwh === null) { r.consumata_kwh = consumataDi(r); if (r.consumata_kwh === null) r.consumata_kwh = consumataStimata(); }
+            return r;
         }
-        if (albaNota && h < ALBA) return t('albaAlle', { ora: fmtOra(ALBA) });
-        if (tramontoNota && h >= TRAMONTO - 0.3 && h < TRAMONTO + 2) return T.notte + ' · ' + t('tramontoAlle', { ora: fmtOra(TRAMONTO) });
-        return T.notte;
+        var l = listaPeriodo(periodo);
+        return l ? somma(l) : null;
     }
-    function aggiornaScena() {
-        var h = oraCasa(), pv = vis.pv, casa = vis.casa, batt = vis.batt, rete = vis.rete, soc = vis.soc, fermoOra = fermo();
-        var giorno = clamp(Math.min(h - ALBA, TRAMONTO - h) / 1.4, 0, 1), sera = clamp(1 - Math.abs(Math.min(Math.abs(h - ALBA), Math.abs(h - TRAMONTO)) / 1.6), 0, 1) * 0.85;
-        stile(scena, '--o-giorno', giorno.toFixed(2)); stile(scena, '--o-sera', sera.toFixed(2)); stile(scena, '--o-luna', (1 - giorno).toFixed(2));
-        classe(scena, 'en-notte', pv < 30);
-        scrivi($('scena-ora'), fmtOra(h)); var fo = fasciaOra(); scrivi($('scena-fascia'), S.rete && fo && tipoTariffa() === 'fasce' ? fo : '');
-        [['sole', pv], ['batt', S.batteria ? batt : 0], ['rete', S.rete ? rete : 0]].forEach(function (d) {
-            var a = Math.abs(d[1]), viva = a >= 40;
-            stile($('glow-' + d[0]), 'opacity', viva ? clamp(0.12 + a / 8000, 0.12, 0.45).toFixed(3) : 0);
-            stile($('glow2-' + d[0]), 'opacity', viva ? clamp(0.3 + a / 4000, 0.3, 0.9).toFixed(3) : 0);
-            stile($('frecce-' + d[0]), 'opacity', (fermoOra && viva) ? clamp(0.55 + a / 4000, 0.55, 1).toFixed(3) : 0);
+    /* consumata di un giorno (o di un periodo): quella misurata; senza misuratore la stessa stima della casa dei flussi
+       (casa = sole - carica + scarica) fatta coi contatori di energia: senza batteria = prodotta, con la batteria
+       prodotta - caricata + scaricata. Cosi' l'indicatore, "Dove va" e "Ultimi 7 giorni" tornano fra loro. */
+    function consumataDi(g) {
+        var c = num(g.consumata_kwh);
+        if (c !== null || S.rete) return c;
+        var p = num(g.prodotta_kwh);
+        if (p === null) return null;
+        if (!S.batt) return p;
+        var ca = num(g.caricata_kwh), sc = num(g.scaricata_kwh);
+        return ca === null || sc === null ? null : Math.max(0, p - ca + sc);
+    }
+    function consumataStimata() {   // ultima risorsa (contatori della batteria assenti): integrale della giornata stimata
+        if (!DATI || !DATI.giornata || !DATI.giornata.length) return null;
+        var ora = oraCasa(), e = 0;
+        DATI.giornata.forEach(function (g) {
+            var dur = clamp(ora - g.h, 0, 0.25);   // il quarto d'ora in corso conta solo per i minuti gia' passati
+            var a = adattaSegni(g.pv_w, g.casa_w, g.rete_w, g.batteria_w, g.batteria_soc); e += (a.casa || 0) * dur / 1000;
         });
-        var colRete = rete > 0 ? '#FF5D55' : '#BF5AF2', rgbRete = rete > 0 ? 'var(--c-prel)' : 'var(--c-imm)';
-        attr($('glow-rete'), 'stroke', colRete); attr($('glow2-rete'), 'stroke', colRete); attr($('frecce-rete'), 'stroke', colRete);
-        stile($('l-rete'), '--lc', rgbRete); stile($('e-rete'), '--nc', rgbRete); stile($('pill-rete'), '--pc', rgbRete);
-        if (fermoOra) { orientaFrecce($('frecce-batt'), batt < 0); orientaFrecce($('frecce-rete'), rete < 0); }
-        stile($('finestre'), 'opacity', clamp(0.35 + casa / 3000, 0.35, 1).toFixed(3));
-        attr($('alone-casa'), 'opacity', clamp(casa / 4000, 0.15, 0.8).toFixed(3));
-        attr($('alone-batt'), 'opacity', S.batteria ? clamp(0.12 + Math.abs(batt) / 3000, 0.12, 0.8).toFixed(3) : 0);
-        attr($('alone-rete'), 'opacity', S.rete && rete < -40 ? clamp(-rete / 4000, 0.15, 0.7).toFixed(3) : 0);
-        attr($('alone-rete-rosso'), 'opacity', S.rete && rete > 40 ? clamp(rete / 4000, 0.12, 0.8).toFixed(3) : 0);
-        var SOG = IMP.soglia, sgOk = S.rete && S.soglia;
-        var sopra = sgOk && rete > SOG, vicino = sgOk && !sopra && rete > SOG * IMP.avviso / 100;
-        classe(scena, 'en-sopra-soglia', sopra);
-        classe($('avviso'), 'en-superata', sopra); classe($('avviso'), 'en-attento', vicino);
-        scrivi($('avviso-testo'), t(sopra ? 'avvisoSopra' : 'avvisoVicino', { kw: fmtKwSoglia(SOG) }));
-        var hL = 54 * soc / 100; attr($('batt-livello'), 'height', hL.toFixed(1)); attr($('batt-livello'), 'y', (-15 - hL).toFixed(1));
-        var colB = soc <= 15 ? '#FF9F0A' : '#30D158'; attr($('batt-livello'), 'fill', colB); attr($('batt-led'), 'fill', colB);
-        var stretta = lay === LAY.stretta;
-        scriviW($('v-sole'), pv); scrivi($('s-sole'), S.pronto ? statoSole(pv, h) : '');
-        scriviW($('v-casa'), casa);
-        var fonte = [];
-        if (pv > 40) fonte.push([Math.min(pv, casa), T.dalSole]);
-        if (S.batteria && batt > 40) fonte.push([batt, T.dallaBatt]);
-        if (S.rete && rete > 40) fonte.push([rete, T.dallaRete]);
-        fonte.sort(function (a, b) { return b[0] - a[0]; });
-        if (stretta) fonte = fonte.slice(0, 1);
-        var sCasa;
-        if (!S.pronto) sCasa = '';
-        else if (!S.rete) sCasa = T.stimata;
-        else if (fonte.length === 1 && fonte[0][1] === T.dalSole && fonte[0][0] >= casa * 0.995) sCasa = T.tuttaDalSole;
-        else sCasa = casa > 0 ? (fonte.map(function (f) { return Math.round(clamp(f[0] / casa * 100, 0, 100)) + '% ' + f[1]; }).join(' · ') || '—') : '—';
-        scrivi($('s-casa'), sCasa); classe($('e-casa'), 'en-rosso', sopra);
-        scriviNum($('v-batt'), String(Math.round(soc)), '%');
-        var RIS = IMP.riserva;
-        scrivi($('s-batt'), batt < -40 ? T.siCarica + (stretta ? '' : ' · ' + fmtW(batt)) : batt > 40 ? T.siScarica + (stretta ? '' : ' · ' + fmtW(batt)) : (soc >= 99 ? T.piena : soc <= RIS + 0.5 ? T.riserva : T.ferma));
-        scriviW($('v-rete'), rete);
-        scrivi($('lbl-rete'), T.rete);
-        scrivi($('s-rete'), rete > 40 ? T.prelievo : rete < -40 ? T.immissione : T.equilibrio);
-        scrivi($('lv-sole'), fmtW(pv)); scrivi($('lv-batt'), fmtW(batt)); scrivi($('lv-rete'), fmtW(rete));
-        classe($('l-sole'), 'en-ferma', pv < 40); classe($('l-batt'), 'en-ferma', Math.abs(batt) < 40); classe($('l-rete'), 'en-ferma', Math.abs(rete) < 40);
-        classe($('l-batt'), 'en-inversa', batt < 0); classe($('l-rete'), 'en-inversa', rete < 0);
-        // pillole
-        scrivi($('p-sole'), fmtW(pv)); classe($('pill-sole'), 'active', pv > 40);
-        scrivi($('p-batt'), Math.round(soc) + '%'); scrivi($('p-batt-w'), Math.abs(batt) > 40 ? ' · ' + fmtW(batt) : '');
-        scrivi($('p-batt-l'), batt < -40 ? T.siCarica : batt > 40 ? T.siScarica : T.batteria); classe($('pill-batt'), 'active', Math.abs(batt) > 40);
-        scrivi($('p-rete'), fmtW(rete)); scrivi($('p-rete-l'), rete > 40 ? T.prelievo : rete < -40 ? T.immissione : T.rete); classe($('pill-rete'), 'active', Math.abs(rete) > 40);
-        // striscione in cima (frase d'azione)
-        var str = $('striscione'), prel = S.rete ? Math.max(0, rete) : 0, stato = !sgOk ? 'ok' : prel > SOG ? 'sopra' : prel > SOG * IMP.avviso / 100 ? 'quasi' : 'ok';
-        classe(str, 'en-visibile', stato !== 'ok'); classe(str, 'en-quasi', stato === 'quasi');
-        if (stato !== 'ok') { scrivi($('str-t1'), t(stato === 'sopra' ? 'strT1Sopra' : 'strT1Vicino', { kw: fmtKwSoglia(SOG) })); scrivi($('str-t2'), t(stato === 'sopra' ? 'strT2Sopra' : 'strT2Vicino', { w: fmtW(prel) })); }
-        scrivi($('nota-stato'), notaStato()); classe($('pip'), 'en-attesa', !S.pronto || S.offline);
-    }
-    function ieriTxt(id, v) { var el = $(id); if (v === null || v === undefined) { if (el.__v !== '') { el.__v = ''; el.textContent = ''; } return; } var k = 'i' + v; if (el.__v === k) return; el.__v = k; el.innerHTML = t('ieri', { v: '<b>' + esc(fmtKWhN(v)) + '</b>' }); }
-    /* picco di oggi: il massimo fra il picco istantaneo del modulo (API.oggi, sopravvive alle ricariche), il massimo
-       delle medie al minuto dello storico (DATI.oggi, con l'ora) e le letture viste da questa pagina (con l'ora).
-       Se vince il modulo, che l'ora non la registra, si mostra l'ora del minuto piu' alto dello storico. */
-    var piccoVisto = { pv: { w: 0, ora: null }, prelievo: { w: 0, ora: null }, giorno: null };
-    function notaPicchi() {
-        var g = DATI && DATI.orologio ? DATI.orologio.data : null;
-        if (g && piccoVisto.giorno !== g) {   // giorno nuovo: si riparte (al primo dato si prende solo la data)
-            if (piccoVisto.giorno !== null) { piccoVisto.pv = { w: 0, ora: null }; piccoVisto.prelievo = { w: 0, ora: null }; }
-            piccoVisto.giorno = g;
-        }
-        var h = fmtOra(oraCasa());
-        if (vivo.pv > piccoVisto.pv.w) piccoVisto.pv = { w: vivo.pv, ora: h };
-        if (S.rete && vivo.rete > piccoVisto.prelievo.w) piccoVisto.prelievo = { w: vivo.rete, ora: h };
-    }
-    function piccoOggi(tipo) {
-        var od = (DATI && DATI.oggi) || {}, ao = (API && API.oggi) || {}, k = 'picco_' + tipo + '_w';
-        var dW = num(od[k]) || 0, dOra = od['picco_' + tipo + '_ora'] || null, aW = num(ao[k]) || 0, v = piccoVisto[tipo];
-        var r = { w: dW, ora: dOra };
-        if (aW > r.w + 0.5) r = { w: aW, ora: dOra };
-        if (v.w > r.w + 0.5) r = { w: v.w, ora: v.ora };
-        return r;
-    }
-    function pvRiferimento() { return Math.max(IMP.pvMax || 0, piccoOggi('pv').w) || null; }
-    function oggiVal(k) { var o = API && API.oggi; return o && num(o[k]) !== null ? o[k] : null; }
-    function consumataStimata() {   // senza misuratore e senza consumo del vendor: integrale della giornata stimata
-        if (!DATI || !DATI.giornata) return null;
-        var e = 0; DATI.giornata.forEach(function (g) { var a = adattaSegni(g.pv_w, g.casa_w, g.rete_w, g.batteria_w, g.batteria_soc); e += (a.casa || 0) * 0.25 / 1000; });
         return e;
     }
-    function aggiornaCard() {
-        var h = oraCasa(), soc = vis.soc, rete = vis.rete, batt = vis.batt, pv = vis.pv;
-        var ie = (DATI && DATI.ieri_stessa_ora) || {};
-        var prod = oggiVal('prodotta_kwh'), cons = oggiVal('consumata_kwh'), imm = oggiVal('immessa_kwh'), prel = oggiVal('prelevata_kwh');
-        if (cons === null && !S.rete) cons = consumataStimata();
-        // OGGI
-        var auto = num(API && API.oggi && API.oggi.autoconsumo_pct), suff = num(API && API.oggi && API.oggi.autosufficienza_pct);
-        if (!S.rete || auto === null || suff === null) {
-            var p0 = prod || 0, c0 = cons || 0;
-            if (!S.rete) { auto = p0 > 0.01 ? clamp(Math.min(p0, c0) / p0 * 100, 0, 100) : 0; suff = c0 > 0.01 ? clamp(Math.min(p0, c0) / c0 * 100, 0, 100) : 0; }
-            else { auto = auto === null ? (p0 > 0.01 ? clamp((p0 - (imm || 0)) / p0 * 100, 0, 100) : 0) : auto; suff = suff === null ? (c0 > 0.01 ? clamp((c0 - (prel || 0)) / c0 * 100, 0, 100) : 0) : suff; }
+    function nomeMese(d, lungo) { return d.toLocaleDateString(LOCALE, { month: lungo ? 'long' : 'short' }).replace('.', ''); }
+
+    /* ======================================================================
+       INDICATORI
+       ====================================================================== */
+    function aggiornaKpi() {
+        var tot = totaliPeriodo(), oggi = periodo === 'oggi';
+        scrivi($('k-prod-t'), oggi ? T.prodOggi : T.prodPer);
+        scrivi($('k-cons-t'), oggi ? T.consOggi : T.consPer);
+        scrivi($('k-risp-t'), oggi ? T.rispOggi : T.rispPer);
+        if (!tot) { ['prod', 'cons', 'auto', 'risp', 'co2'].forEach(function (k) { scriviNum($('k-' + k + '-v'), '—', ''); scrivi($('k-' + k + '-n'), ''); }); return; }
+        var p = tot.prodotta_kwh, c = tot.consumata_kwh, pr = tot.prelevata_kwh;
+        if (p !== null) { var a = kwhParti(p); scriviNum($('k-prod-v'), a[0], a[1]); } else scriviNum($('k-prod-v'), '—', '');
+        if (c !== null) { var b = kwhParti(c); scriviNum($('k-cons-v'), b[0], b[1]); } else scriviNum($('k-cons-v'), '—', '');
+        var ieri = oggi && DATI && DATI.ieri_stessa_ora;
+        function confronto(id, v, vi, alt) {
+            var el = $(id);
+            // confronto in percentuale solo se ieri a quest'ora c'era abbastanza energia (con pochi Wh viene +3000%)
+            if (oggi && v !== null && vi !== null && vi !== undefined && vi >= 0.3 && v / vi <= 4) {
+                var d = Math.round((v - vi) / vi * 100);
+                scrivi(el, t('rispIeri', { d: (d > 0 ? '+' : (d < 0 ? '−' : '')) + Math.abs(d) }));
+                classe(el, 'en-su', d >= 0); classe(el, 'en-giu', d < 0);
+            } else { scrivi(el, oggi && vi !== null && vi !== undefined ? t('ieriOra', { v: fmtKwh(vi) }) : alt); classe(el, 'en-su', false); classe(el, 'en-giu', false); }
         }
-        scriviKWh($('o-prod'), prod); scriviKWh($('o-cons'), cons); scriviKWh($('o-imm'), imm); scriviKWh($('o-prel'), prel);
-        ieriTxt('o-prod-i', ie.prodotta_kwh); ieriTxt('o-cons-i', ie.consumata_kwh); ieriTxt('o-imm-i', ie.immessa_kwh); ieriTxt('o-prel-i', ie.prelevata_kwh);
-        attr($('an-auto'), 'stroke-dasharray', (auto / 100 * 314.2).toFixed(1) + ' 314.2'); scrivi($('an-auto-v'), String(Math.round(auto)));
-        attr($('an-suff'), 'stroke-dasharray', (suff / 100 * 263.9).toFixed(1) + ' 263.9'); scrivi($('an-suff-v'), String(Math.round(suff)));
-        classe($('c-oggi'), 'en-vuota', (prod || 0) < 0.05);
-        scrivi($('oggi-meta'), t('oggiDalle', { ora: fmtOra(h) }));
-        // COSTO (saldo = incasso - spesa; il risparmio resta a parte)
-        var PZ = prezzi(), f = fasciaOra(), tipo = tipoTariffa(), prezzoOra = API && API.tariffa ? num(API.tariffa.prezzo_kwh) : null;
-        var autoKWh = S.rete ? Math.max(0, (prod || 0) - (imm || 0)) : Math.min(prod || 0, cons || 0);
-        var risp = num(API && API.oggi && API.oggi.risparmio_eur);
-        if (risp === null && prezzoOra !== null) risp = autoKWh * prezzoOra;
-        scrivi($('costo-risp'), risp === null ? '—' : fmtEuro(risp)); scrivi($('costo-risp-s'), t('risparmiati', { kwh: fmtKWhTxt(autoKWh) }));
-        if (S.rete) {
-            var spesa = num(API && API.oggi && API.oggi.costo_eur), incasso = num(API && API.oggi && API.oggi.guadagno_eur);
-            scrivi($('costo-fascia'), tipo === 'fasce' ? (f || '—') : T.mono);
-            scrivi($('costo-prezzo'), prezzoOra === null ? '' : (EN ? '€' + dec(prezzoOra, 2) + '/kWh' : dec(prezzoOra, 2) + ' €/kWh'));
-            scrivi($('costo-prel'), spesa === null ? '—' : fmtEuro(spesa)); scrivi($('costo-prel-s'), t('spesi', { kwh: fmtKWhTxt(prel || 0) }));
-            scrivi($('costo-imm'), incasso === null ? '—' : fmtEuro(incasso)); scrivi($('costo-imm-s'), t('incassati', { kwh: fmtKWhTxt(imm || 0) }));
-            var saldoEl = $('costo-saldo');
-            if (spesa === null && incasso === null) scriviNum(saldoEl, '—', '');
-            else { var saldo = (incasso || 0) - (spesa || 0), s = (saldo < -0.005 ? '−' : '+') + dec(Math.abs(saldo), 2); if (EN) scriviNum(saldoEl, s.charAt(0) + '€' + s.slice(1), ''); else scriviNum(saldoEl, s, '€'); classe(saldoEl, 'en-neg', saldo < -0.005); }
-            var righe = $('tariffe').children;
-            for (var i = 0; i < righe.length; i++) {
-                var r = righe[i], ff = r.getAttribute('data-f'), kwh = ff === 'MONO' ? (prel || 0) : (oggiVal('prelevata_' + ff.toLowerCase() + '_kwh') || 0), pz = num(PZ[ff]);
-                classe(r, 'en-ora', ff === (tipo === 'fasce' ? f : 'MONO'));
-                scrivi(r.lastElementChild, fmtKWhTxt(kwh) + (pz === null ? '' : ' · ' + fmtEuro(kwh * pz)));
-            }
+        var notaPer = periodo === 'settimana' ? T.in7 : (periodo === 'mese' ? T.daInizioMese : (periodo === 'anno' ? T.in12 : t('dalleOre', { ora: fmtOra(oraCasa()) })));
+        if (!oggi && tot.n !== undefined) {
+            var att = periodo === 'settimana' ? 7 : (periodo === 'mese' ? dataCasa().getDate() : 12);
+            if (tot.n < att) notaPer = periodo === 'anno' ? (tot.n === 1 ? T.mese1 : t('mesiDati', { n: tot.n })) : (tot.n === 1 ? T.giorno1 : t('giorniDati', { n: tot.n }));
         }
-        // BATTERIA
-        if (S.batteria) {
-            var cb = $('c-batt'), carica = batt < -40, scarica = batt > 40, CAP = IMP.cap, RIS = IMP.riserva;
-            scrivi($('b-soc'), String(Math.round(soc))); stile($('batt-pila-liv'), 'height', soc.toFixed(0) + '%');
-            classe(cb, 'en-carica', carica); classe(cb, 'en-bassa', soc <= 15);
-            scrivi($('b-stato-t'), carica ? T.siCarica + ' · ' + fmtW(batt) : scarica ? T.siScarica + ' · ' + fmtW(batt) : (soc >= 99 ? T.piena : soc <= RIS + 0.5 ? T.riserva : T.ferma));
-            stile($('b-stato-i'), 'transform', carica ? 'rotate(180deg)' : 'none');
-            var s1 = '', s2 = '';
-            if (CAP) {
-                var utile = Math.max(0, soc - RIS) / 100 * CAP / 1000;
-                if (carica) { var oreP = (100 - soc) / 100 * CAP / -batt; s1 = t('pienaFra', { d: fmtDurata(oreP), ora: fmtOra(h + oreP) }); s2 = t('daCaricare', { kwh: fmtKWhTxt((100 - soc) / 100 * CAP / 1000) }) + ' · ' + t('riservaPct', { p: RIS }); }
-                else if (scarica) { var oreV = (soc - RIS) / 100 * CAP / batt; s1 = oreV > 0 ? t('autonomia', { d: fmtDurata(oreV), ora: fmtOra(h + oreV) }) : T.riserva; s2 = t('disponibili', { kwh: fmtKWhTxt(utile) }) + ' · ' + t('riservaPct', { p: RIS }); }
-                else { s1 = soc <= RIS + 0.5 ? T.inAttesaSole : t('disponibili', { kwh: fmtKWhTxt(utile) }); s2 = t('riservaPct', { p: RIS }) + ' · ' + fmtKWhTxt(CAP / 1000).replace(DEC + '0 kWh', ' kWh'); }
-            } else {
-                s1 = soc <= RIS + 0.5 && !carica ? T.inAttesaSole : ''; s2 = t('riservaPct', { p: RIS });
-            }
-            scrivi($('b-sub'), s1); scrivi($('b-sub2'), s2);
-            scrivi($('batt-meta'), CAP ? fmtKWhTxt(CAP / 1000).replace(DEC + '0 kWh', ' kWh') : '');
-        }
-        // SOGLIA (tachimetro 0 - 1,5 x potenza contrattuale)
-        if (S.rete && S.soglia) {
-            var cs = $('c-soglia'), pr = Math.max(0, rete), SOG = IMP.soglia, LIM = IMP.limite, ST = IMP.stacco, MAXT = SOG * 1.5;
-            stile($('ago'), 'transform', 'rotate(' + (clamp(pr / MAXT, 0, 1) * 180).toFixed(1) + 'deg)');
-            scriviW($('sg-val'), pr);
-            var st = 'en-ok', ico = 'en-i-ok', txt, kw = fmtKwSoglia(SOG), lim = fmtKwSoglia(LIM), stc = fmtKwSoglia(ST);
-            if (pr > ST) { st = 'en-superata'; ico = 'en-i-alert'; txt = t('sg4', { st: stc }); }
-            else if (pr > LIM) { st = 'en-superata'; ico = 'en-i-alert'; txt = t('sg33', { lim: lim }); }
-            else if (pr > SOG) { st = 'en-superata'; ico = 'en-i-alert'; txt = t('sg3', { kw: kw, lim: lim }); }
-            else if (pr > SOG * IMP.avviso / 100) { st = 'en-attento'; ico = 'en-i-alert'; txt = t('sgVicino', { kw: kw, w: fmtW(SOG - pr) }); }
-            else if (rete < -40) txt = t('sgImm', { w: fmtW(-rete) });
-            else txt = t('sgSotto', { w: fmtW(SOG - pr) });
-            ['en-ok', 'en-attento', 'en-superata'].forEach(function (c) { classe(cs, c, c === st); });
-            attr($('sg-ico'), 'href', '#' + ico); scrivi($('sg-stato-t'), txt);
-            var od = (DATI && DATI.oggi) || {}, pkP = piccoOggi('prelievo');
-            scrivi($('sg-picco'), pkP.w > 40 ? fmtKw2(pkP.w) + (pkP.ora ? ' ' + t('alle', { ora: pkP.ora }) : '') : T.nessuno);
-            scrivi($('sg-oltre-l'), t('oltre', { kw: kw }));
-            scrivi($('sg-min'), (num(od.minuti_oltre_soglia) || 0) + ' ' + T.min);
-            scrivi($('soglia-kw'), kw);
-        }
-        // INVERTER e testata
-        var inv = (API && API.inverter) || [], temp = null, stati = {};
-        inv.forEach(function (x) { if (num(x.temperatura_c) !== null && (temp === null || x.temperatura_c > temp)) temp = x.temperatura_c; stati[x.stato] = 1; });
-        var notte = pv < 30, ref = pvRiferimento() || 0, bassa = !notte && ref && pv < ref * 0.08;
-        var testoInv, meta, metaCl;
-        if (!S.pronto) { testoInv = '—'; meta = '—'; metaCl = 'en-attesa'; }
-        else if (S.offline) { testoInv = T.invOffline; meta = T.nonRaggiungibile; metaCl = 'en-guasto'; }
-        else if (stati.guasto) { testoInv = T.invGuasto; meta = T.inGuasto; metaCl = 'en-guasto'; }
-        else if (stati.produzione || (!notte && !stati.limitato)) { testoInv = bassa ? T.invBassaLuce : T.invFunzione; meta = T.inFunzione; metaCl = 'en-ok'; }
-        else if (stati.limitato) { testoInv = T.invLimitato; meta = T.inFunzione; metaCl = 'en-ok'; }
-        else if (stati.avvio && !notte) { testoInv = T.invAvvio; meta = T.inAttesa; metaCl = 'en-attesa'; }
-        else if (stati.spento) { testoInv = T.invSpento; meta = T.inAttesa; metaCl = 'en-attesa'; }
-        else { testoInv = notte ? T.invAttesaNotte : T.invAttesa; meta = T.inAttesa; metaCl = 'en-attesa'; }
-        scrivi($('inv-stato'), testoInv);
-        ['en-ok', 'en-attesa', 'en-guasto'].forEach(function (c) { classe($('inv-meta'), c, c === metaCl); });
-        var mi = $('meta-inv'); if (mi.__v !== meta) { mi.__v = meta; mi.innerHTML = 'Inverter <b>' + esc(meta) + '</b>'; }
-        classe($('meta-dot'), 'en-attesa', metaCl === 'en-attesa'); classe($('meta-dot'), 'en-guasto', metaCl === 'en-guasto');
-        scrivi($('inv-temp'), temp === null ? '—' : Math.round(temp) + ' °C'); stile($('inv-temp-b'), '--p', (temp === null ? 0 : clamp(temp / 70 * 100, 5, 100)).toFixed(0) + '%');
-        scrivi($('meta-temp'), temp === null ? '' : Math.round(temp) + ' °C'); $('meta-temp-sep').style.display = temp === null ? 'none' : '';
-        var modello = IMP.modello || (inv[0] ? (inv[0].marca + ' ' + inv[0].modello).trim() : '');
-        if (inv.length > 1 && !IMP.modello) modello = t('nInverter', { n: inv.length });
-        scrivi($('inv-modello'), modello || '—');
-        var pkV = piccoOggi('pv'), rif = pvRiferimento();   // picco massimo = max(giornate registrate, picco di oggi)
-        scrivi($('inv-max'), rif ? fmtKw2(rif) : '—');
-        scrivi($('inv-picco'), pkV.w > 40 ? fmtKw2(pkV.w) + (pkV.ora ? ' ' + t('alle', { ora: pkV.ora }) : '') : T.nessuno);
-        var tot = API && API.totali ? num(API.totali.prodotta_kwh) : null;
-        scrivi($('inv-tot'), tot === null ? '—' : Math.round(tot).toLocaleString(LOCALE) + ' kWh');
-        // aggiornamento
-        var agg = '—';
-        if (API && API.ts) {
-            var eta = API.aggiornato ? Math.max(0, API.ts - API.aggiornato) + (Date.now() - tVivo) / 1000 : null;
-            agg = eta === null ? '—' : eta < 15 ? T.adesso : eta < 90 ? t('secFa', { n: Math.round(eta) }) : t('minFa', { n: Math.round(eta / 60) });
-        }
-        scrivi($('meta-agg'), t('agg', { t: agg }));
-        var dd = document.getElementById('date-display'); if (dd) scrivi($('data'), dd.textContent);
-        aggiornaGraficoAdesso(); aggiornaSettimanaOggi();
-    }
-    function disegnaTariffe() {
-        var box = $('tariffe'), ff = tipoTariffa() === 'fasce' ? ['F1', 'F2', 'F3'] : ['MONO'], s = '';
-        ff.forEach(function (f) { s += '<div class="en-tar" data-f="' + f + '"><span class="en-f">' + esc(f === 'MONO' ? T.mono : f) + '</span><span class="en-q">' + esc(T[f + 'q']) + '</span><span class="en-v">—</span></div>'; });
-        box.innerHTML = s;
-    }
-    /* tachimetro: zone e tacche ricalcolate dalla potenza contrattuale (0 - 1,5 x soglia) */
-    function puntoArco(k, MAXT, r) { var a = Math.PI * (1 - clamp(k / MAXT, 0, 1)); return [100 + r * Math.cos(a), 100 - r * Math.sin(a)]; }
-    function arco(k1, k2, MAXT) { var a = puntoArco(k1, MAXT, 80), b = puntoArco(k2, MAXT, 80); return 'M' + a[0].toFixed(1) + ' ' + a[1].toFixed(1) + ' A80 80 0 0 1 ' + b[0].toFixed(1) + ' ' + b[1].toFixed(1); }
-    function disegnaTachimetro() {
-        if (!S.soglia) return;
-        var SOG = IMP.soglia, MAXT = SOG * 1.5, z = [0, SOG, IMP.limite, IMP.stacco, MAXT];
-        for (var i = 1; i <= 4; i++) $('zona-' + i).setAttribute('d', arco(Math.min(z[i - 1], MAXT), Math.min(z[i], MAXT), MAXT));
-        var kmax = MAXT / 1000, passo = kmax <= 6 ? 0.5 : (kmax <= 12 ? 1 : 2), eti = kmax <= 6 ? 1 : (kmax <= 12 ? 2 : 4), s = '';
-        for (var k = 0; k <= kmax + 1e-6; k += passo) {
-            var a = Math.PI * (1 - k / kmax), c = Math.cos(a), si = Math.sin(a), lab = Math.abs(k / eti - Math.round(k / eti)) < 1e-6, ri = lab ? 66 : 71;
-            s += '<line class="en-tacca" x1="' + (100 + 80 * c).toFixed(1) + '" y1="' + (100 - 80 * si).toFixed(1) + '" x2="' + (100 + ri * c).toFixed(1) + '" y2="' + (100 - ri * si).toFixed(1) + '"/>';
-            if (lab) s += '<text x="' + (100 + 56 * c).toFixed(1) + '" y="' + (103 - 56 * si).toFixed(1) + '">' + Math.round(k) + '</text>';
-        }
-        $('tacche').innerHTML = s;
+        confronto('k-prod-n', p, ieri ? num(ieri.prodotta_kwh) : null, notaPer);
+        if (!S.rete) { scrivi($('k-cons-n'), T.stimata); classe($('k-cons-n'), 'en-su', false); classe($('k-cons-n'), 'en-giu', false); }
+        else confronto('k-cons-n', c, ieri ? num(ieri.consumata_kwh) : null, notaPer);
+        // autosufficienza: (consumata - prelevata) / consumata
+        if (c !== null && pr !== null && c > 0.01) { scriviNum($('k-auto-v'), String(Math.round(clamp((c - pr) / c * 100, 0, 100))), '%'); scrivi($('k-auto-n'), t('presiRete', { v: fmtKwh(pr) })); }
+        else { scriviNum($('k-auto-v'), '—', ''); scrivi($('k-auto-n'), ''); }
+        var be = tot.beneficio_eur;
+        if (be !== null) { scriviNum($('k-risp-v'), fmtEuro(be), ''); scrivi($('k-risp-n'), T.autoImm); }
+        else { scriviNum($('k-risp-v'), '—', ''); scrivi($('k-risp-n'), T.prezziNo); }
+        var f = DATI && DATI.co2 && num(DATI.co2.kg_per_kwh);
+        if (p !== null && f) {
+            var kg = p * f;
+            if (kg >= 1000) scriviNum($('k-co2-v'), dec(kg / 1000, kg < 10000 ? 2 : 1), 't'); else scriviNum($('k-co2-v'), dec(kg, kg < 100 ? 1 : 0), 'kg');
+            scrivi($('k-co2-n'), t('co2Nota', { v: dec(f, 3) }));
+        } else { scriviNum($('k-co2-v'), '—', ''); scrivi($('k-co2-n'), ''); }
     }
 
-    /* --- grafico della giornata (campioni ogni 15 min + previsione) --- */
-    var G = { w: 400, h: 150, top: 8, bottom: 20, max: 1 }, serieG = [];
-    function gx(h) { return h / 24 * G.w; }
-    // viewBox = misura reale del riquadro in pixel (vedi "proporzioni del grafico" piu' sotto): true se e' cambiata
-    function proporzioniGrafico() {
-        var box = $('grafico'), svg = $('graf'), r = box ? box.getBoundingClientRect() : null;
-        if (!svg || !r || !(r.width > 0 && r.height > 0)) return false;   // sezione chiusa o nascosta: alla prossima apertura
-        var w = Math.round(r.width * 10) / 10, h = Math.round(Math.max(r.height, 40) * 10) / 10;
-        if (Math.abs(w - G.w) < 0.5 && Math.abs(h - G.h) < 0.5) return false;
-        G.w = w; G.h = h; svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h); G.sporco = true;
-        return true;
+    /* ======================================================================
+       ANDAMENTO
+       ====================================================================== */
+    var animaGrafico = false, graficoAnimFino = 0;
+    function passoBello(x) { var p = [0.25, 0.5, 1, 2, 2.5, 3, 5, 10, 15, 20, 25, 50, 100, 200, 250, 500, 1000]; for (var i = 0; i < p.length; i++) if (p[i] >= x) return p[i]; return Math.ceil(x / 1000) * 1000; }
+    function disegnaAndamento() {
+        var box = $('grafico'), w = box.clientWidth, h = box.clientHeight;
+        if (!w || !h) return;
+        if (Date.now() < graficoAnimFino) return;          // non si ridisegna mentre le linee si stanno disegnando
+        var anim = animaGrafico && !leggera() && !ridotto; animaGrafico = false;
+        if (anim) graficoAnimFino = Date.now() + 2900;
+        var titolo = periodo === 'oggi' ? T.andOggi : (periodo === 'settimana' ? T.andSett : (periodo === 'mese' ? t('andMese', { mese: nomeMese(dataCasa(), true) }) : T.andAnno));
+        scrivi($('and-t'), titolo);
+        classe($('andamento'), 'en-periodo-lungo', periodo !== 'oggi');
+        var svg = $('graf');
+        attr(svg, 'viewBox', '0 0 ' + w + ' ' + h);
+        var s = periodo === 'oggi' ? graficoOggi(w, h, anim) : graficoBarre(w, h, anim);
+        nascondi($('g-vuoto'), !!s);
+        if (!s) scrivi($('g-vuoto'), periodo === 'oggi' ? T.nessunDatoOggi : T.nessunDatoPer);
+        if (svg.__s !== s) { svg.__s = s; svg.innerHTML = s || ''; }
     }
-    function gy(w) { return G.top + (G.h - G.top - G.bottom) * (1 - w / G.max); }
-    function disegnaGrafico() {
-        if (!window.ResizeObserver) proporzioniGrafico();
-        var ora = oraCasa(); serieG = [];
-        ((DATI && DATI.giornata) || []).forEach(function (g) {
-            var a = adattaSegni(g.pv_w, g.casa_w, g.rete_w, g.batteria_w, g.batteria_soc);
-            serieG.push({ h: Math.min(g.h + 0.125, ora), ora: g.ora, pv: a.pv || 0, casa: a.casa || 0, batt: a.batt, rete: a.rete, soc: a.soc });
-        });
-        ((DATI && DATI.previsione) || []).forEach(function (p) { if (p.h + 0.125 > ora) serieG.push({ h: p.h + 0.125, ora: p.ora, pv: num(p.pv_w) || 0, casa: num(p.casa_w) || 0, fut: true }); });
-        serieG.sort(function (a, b) { return a.h - b.h; });
-        var fPv = vivo.pv, fCasa = vivo.casa;   // fine del tracciato su "adesso" = ultima lettura (vis e' l'inseguimento animato)
-        G.max = 400; serieG.forEach(function (p) { G.max = Math.max(G.max, p.pv, p.casa); }); G.max = Math.max(G.max, fPv, fCasa) * 1.12;
-        var pvP = '', caP = '', pvF = '', caF = '';
-        serieG.forEach(function (p) {
-            var x = gx(p.h).toFixed(1), y1 = gy(p.pv).toFixed(1), y2 = gy(p.casa).toFixed(1);
-            if (!p.fut) { pvP += (pvP ? ' L' : 'M') + x + ' ' + y1; caP += (caP ? ' L' : 'M') + x + ' ' + y2; }
-        });
-        var xo = gx(ora).toFixed(1), yP = gy(fPv).toFixed(1), yC = gy(fCasa).toFixed(1), y0 = gy(0).toFixed(1);
-        pvF = 'M' + xo + ' ' + yP; caF = 'M' + xo + ' ' + yC;
-        serieG.forEach(function (p) { if (p.fut) { pvF += ' L' + gx(p.h).toFixed(1) + ' ' + gy(p.pv).toFixed(1); caF += ' L' + gx(p.h).toFixed(1) + ' ' + gy(p.casa).toFixed(1); } });
-        var inizio = serieG.length && !serieG[0].fut ? '' : null;
-        // giornata senza campioni (primo avvio, dopo mezzanotte prima del primo quarto d'ora): il tracciato parte da "adesso",
-        // nessuna area finta da mezzanotte al valore attuale (prima: 'M0 ' = blocco piatto dalle 00:00) (02/10/2026)
-        if (inizio === null) { pvP = 'M' + xo + ' ' + yP; caP = 'M' + xo + ' ' + yC; }
-        attr($('g-area-pv'), 'd', pvP + ' L' + xo + ' ' + yP + ' L' + xo + ' ' + y0 + ' L' + (serieG.length && !serieG[0].fut ? gx(serieG[0].h).toFixed(1) : xo) + ' ' + y0 + ' Z');
-        attr($('g-area-casa'), 'd', caP + ' L' + xo + ' ' + yC + ' L' + xo + ' ' + y0 + ' L' + (serieG.length && !serieG[0].fut ? gx(serieG[0].h).toFixed(1) : xo) + ' ' + y0 + ' Z');
-        attr($('g-linea-pv'), 'd', pvP + ' L' + xo + ' ' + yP); attr($('g-linea-casa'), 'd', caP + ' L' + xo + ' ' + yC);
-        attr($('g-fut-pv'), 'd', pvF.indexOf(' L') > 0 ? pvF : ''); attr($('g-fut-casa'), 'd', caF.indexOf(' L') > 0 ? caF : '');
-        var assi = '', eti = '';
-        [0, 6, 12, 18, 24].forEach(function (hh) { assi += '<line class="en-asse" x1="' + gx(hh) + '" y1="' + G.top + '" x2="' + gx(hh) + '" y2="' + y0 + '"/>'; eti += '<text x="' + (hh === 24 ? gx(hh) - 2 : hh === 0 ? 2 : gx(hh)) + '" y="' + (G.h - 6) + '" text-anchor="' + (hh === 24 ? 'end' : hh === 0 ? 'start' : 'middle') + '">' + pad(hh) + '</text>'; });
-        assi += '<line class="en-asse" x1="0" y1="' + y0 + '" x2="' + G.w + '" y2="' + y0 + '"/>';
-        var passoK = G.max > 9000 ? 2000 : 1000;
-        for (var w = passoK; w < G.max; w += passoK) { assi += '<line class="en-asse" x1="0" y1="' + gy(w).toFixed(1) + '" x2="' + G.w + '" y2="' + gy(w).toFixed(1) + '" stroke-dasharray="2 4"/>'; eti += '<text x="2" y="' + (gy(w) - 3).toFixed(1) + '">' + (w / 1000) + ' kW</text>'; }
-        var firma = assi + eti; if ($('graf-assi').__v !== firma) { $('graf-assi').__v = firma; $('graf-assi').innerHTML = assi; $('graf-etichette').innerHTML = eti; }
-        var pk = piccoOggi('pv').w;
-        scrivi($('g-picco'), pk > 40 ? fmtW(pk) : '—');
-        scrivi($('graf-meta'), t('ogni15', { w: fmtW(G.max / 1.12) }));
-        G.disegnatoA = ora; G.sporco = false;
-        aggiornaGraficoAdesso();
-    }
-    function aggiornaGraficoAdesso() {
-        var h = oraCasa(), x = gx(h).toFixed(1);
-        if (G.sporco || (G.disegnatoA !== undefined && Math.abs(h - G.disegnatoA) > 0.05)) { disegnaGrafico(); return; }   // nuova lettura o la linea "adesso" avanza (ogni 3 min)   // la linea "adesso" avanza: ogni 3 min si ridisegna
-        attr($('g-adesso'), 'x1', x); attr($('g-adesso'), 'x2', x); attr($('g-adesso'), 'y1', G.top); attr($('g-adesso'), 'y2', gy(0).toFixed(1));
-        attr($('g-punto-pv'), 'cx', x); attr($('g-punto-pv'), 'cy', gy(vis.pv).toFixed(1)); attr($('g-punto-casa'), 'cx', x); attr($('g-punto-casa'), 'cy', gy(vis.casa).toFixed(1));
-        stile($('g-punto-pv'), 'opacity', vis.pv > 30 ? 1 : 0);
-    }
-    /* tooltip al tocco / al passaggio sul grafico */
-    (function () {
-        var box = $('grafico'), tip = $('g-tip'), cur = $('g-cursore'), timer = 0;
-        function mostra(ev) {
-            if (!serieG.length) return;
-            var r = box.getBoundingClientRect(), x = clamp(ev.clientX - r.left, 0, r.width), h = x / r.width * 24, best = serieG[0];
-            for (var i = 1; i < serieG.length; i++) if (Math.abs(serieG[i].h - h) < Math.abs(best.h - h)) best = serieG[i];
-            var xx = gx(best.h); cur.setAttribute('x1', xx); cur.setAttribute('x2', xx); cur.setAttribute('y1', G.top); cur.setAttribute('y2', gy(0)); cur.style.opacity = 0.6;
-            var s = '<div class="en-ora">' + esc(best.ora || fmtOra(best.h)) + (best.fut ? ' · ' + esc(T.previsione) : '') + '</div>';
-            s += '<div class="en-r" style="--c: var(--c-sole)"><span><i></i>' + esc(T.produzione) + '</span><b>' + fmtW(best.pv) + '</b></div>';
-            s += '<div class="en-r" style="--c: var(--c-casa)"><span><i></i>' + esc(T.consumo) + '</span><b>' + fmtW(best.casa) + '</b></div>';
-            if (!best.fut && S.batteria && best.batt !== null && best.batt !== undefined) s += '<div class="en-r" style="--c: var(--c-batt)"><span><i></i>' + esc(T.batteria) + '</span><b>' + (best.batt < -40 ? esc(T.carica) + ' ' : best.batt > 40 ? esc(T.scarica) + ' ' : '') + fmtW(best.batt) + (best.soc !== null ? ' · ' + Math.round(best.soc) + '%' : '') + '</b></div>';
-            if (!best.fut && S.rete && best.rete !== null && best.rete !== undefined) s += '<div class="en-r" style="--c: ' + (best.rete > 40 ? 'var(--c-prel)' : 'var(--c-imm)') + '"><span><i></i>' + esc(T.rete) + '</span><b>' + (best.rete > 40 ? esc(T.prelievo) + ' ' : best.rete < -40 ? esc(T.immissione) + ' ' : '') + fmtW(best.rete) + '</b></div>';
-            tip.innerHTML = s; tip.classList.add('en-on');
-            var px = xx / G.w * r.width, tw = tip.offsetWidth; tip.style.left = clamp(px, tw / 2 + 2, r.width - tw / 2 - 2) + 'px';
+    function assiY(x0, y0, cw, ch, vmax, passo, unita) {
+        var s = '';
+        for (var k = 0; k <= vmax + 1e-9; k += passo) {
+            var y = y0 + ch - ch * k / vmax;
+            s += '<line class="en-graf-griglia" x1="' + x0 + '" y1="' + y.toFixed(1) + '" x2="' + (x0 + cw) + '" y2="' + y.toFixed(1) + '"/>';
+            s += '<text class="en-graf-txt" x="' + (x0 - 8) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + (passo < 1 ? dec(k, passo < 0.5 ? 2 : 1) : intero(k)) + ' ' + unita + '</text>';
         }
-        function nascondi() { tip.classList.remove('en-on'); cur.style.opacity = 0; }
-        box.addEventListener('pointermove', mostra); box.addEventListener('pointerdown', mostra);
-        // col dito: dopo pointerup il browser manda anche pointerleave (il dito "esce"), che chiudeva subito il riquadro e
-        // rendeva inutile l'attesa di 1,8 s: col tocco lo chiude solo il tempo, o pointercancel (il dito scorre la pagina) (giro 2)
-        box.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'touch') nascondi(); });
-        box.addEventListener('pointercancel', function () { clearTimeout(timer); nascondi(); });
-        box.addEventListener('pointerdown', function () { clearTimeout(timer); });
-        box.addEventListener('pointerup', function () { clearTimeout(timer); timer = setTimeout(nascondi, 1800); });
-    })();
-    /* proporzioni del grafico (02/10/2026, giro 2 della fusione): il viewBox e' la misura REALE del riquadro in pixel
-       (G.w x G.h, seguita da ResizeObserver), cosi' con preserveAspectRatio='none' la scala e' 1 in orizzontale e in
-       verticale: le misure del CSS (etichette 9px, tratti 1,6, punti r 2,6) sono pixel veri su ogni schermo. Prima era
-       fisso 400x150 e il disegno si stirava col riquadro: schermo largo 1440 (riquadro 390x214) etichette e punti alti il
-       45% in piu'; telefono (308x150) e iPad (348x150) etichette strette (6,9 e 7,8 px di larghezza su 9 di altezza). */
-    (function () {
-        var box = $('grafico');
-        if (!box) return;
-        var misura = function () { if (proporzioniGrafico() && S.pronto) disegnaGrafico(); };   // prima dei dati lo disegna il primo aggiornamento
-        if (window.ResizeObserver) new ResizeObserver(misura).observe(box);
-        else window.addEventListener('resize', misura);           // (senza ResizeObserver misura anche disegnaGrafico)
-        misura();
-    })();
-    /* --- settimana --- */
-    function nomeGiorno(data) {
-        var p = String(data).split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]), s = d.toLocaleDateString(LOCALE, { weekday: 'short' }).replace('.', '');
-        return s.charAt(0).toUpperCase() + s.slice(1, 3);
+        return s;
     }
-    var settMax = 1;
-    function disegnaSettimana() {
-        var sett = (DATI && DATI.settimana) || [], s = '';
-        settMax = 1; sett.forEach(function (d) { settMax = Math.max(settMax, num(d.prodotta_kwh) || 0, num(d.consumata_kwh) || 0); });
-        settMax = Math.max(settMax, oggiVal('prodotta_kwh') || 0, oggiVal('consumata_kwh') || 0) * 1.1;
-        sett.forEach(function (d) {
-            var oggi = !!d.oggi;
-            s += '<div class="en-giorno' + (oggi ? ' en-oggi' : '') + '"><div class="en-barre"><div class="en-barra en-pv" style="--h:' + (oggi ? 0 : (num(d.prodotta_kwh) || 0) / settMax * 100).toFixed(1) + '%"></div><div class="en-barra en-cons" style="--h:' + (oggi ? 0 : (num(d.consumata_kwh) || 0) / settMax * 100).toFixed(1) + '%"></div></div><div class="en-g-lbl">' + esc(nomeGiorno(d.data)) + '</div></div>';
+    function graficoOggi(w, h, anim) {
+        var g = (DATI && DATI.giornata) || [], pr = (DATI && DATI.previsione) || [], ora = oraCasa();
+        if (!g.length && !pr.length) return '';
+        var x0 = 44, y0 = 16, cw = w - 60, ch = h - 52;
+        var pts = g.map(function (q) { var a = adattaSegni(q.pv_w, q.casa_w, q.rete_w, q.batteria_w, q.batteria_soc); return { h: q.h + 0.125, pv: a.pv || 0, casa: a.casa || 0, soc: num(q.batteria_soc) }; })
+                   .filter(function (p) { return p.h <= ora + 0.01; });
+        if (S.pronto) pts.push({ h: ora, pv: vivo.pv, casa: vivo.casa, soc: vivo.soc, adesso: true });
+        var fut = pr.map(function (q) { return { h: q.h + 0.125, pv: num(q.pv_w) || 0 }; }).filter(function (p) { return p.h > ora; });
+        var mx = 400;
+        pts.forEach(function (p) { mx = Math.max(mx, p.pv, p.casa); }); fut.forEach(function (p) { mx = Math.max(mx, p.pv); });
+        var kmax = mx / 1000 * 1.05, passo = passoBello(kmax / 4), vmax = Math.max(passo * 2, passo * Math.ceil(kmax / passo));
+        function X(hh) { return x0 + cw * hh / 24; }
+        function Y(wt) { return y0 + ch - ch * (wt / 1000) / vmax; }
+        function Ys(soc) { return y0 + ch - ch * soc / 100; }
+        var s = '<defs><linearGradient id="en-g-pv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5B83D" stop-opacity="0.42"/><stop offset="1" stop-color="#F5B83D" stop-opacity="0.02"/></linearGradient></defs>';
+        s += assiY(x0, y0, cw, ch, vmax, passo, 'kW');
+        var ogni = cw < 460 ? 6 : 3;
+        for (var hh = 0; hh <= 24; hh += ogni) s += '<text class="en-graf-txt" x="' + X(hh).toFixed(1) + '" y="' + (h - 10) + '" text-anchor="middle">' + pad(hh) + '</text>';
+        var cl = anim ? ' en-graf-disegna' : '', ca = anim ? ' en-graf-disegna-area' : '';
+        function linea(arr, k) { return arr.map(function (p, i) { return (i ? 'L' : 'M') + X(p.h).toFixed(1) + ' ' + (k === 'soc' ? Ys(p.soc) : Y(p[k])).toFixed(1); }).join(' '); }
+        if (pts.length > 1) {
+            var area = linea(pts, 'pv') + ' L' + X(pts[pts.length - 1].h).toFixed(1) + ' ' + (y0 + ch) + ' L' + X(pts[0].h).toFixed(1) + ' ' + (y0 + ch) + ' Z';
+            s += '<path class="en-graf-pv-area' + ca + '" d="' + area + '" fill="url(#en-g-pv)"/>';
+            s += '<path class="en-graf-linea' + cl + '" pathLength="1" d="' + linea(pts, 'pv') + '" stroke="#F5B83D"/>';
+        }
+        if (fut.length) { var dprev = (pts.length ? 'M' + X(pts[pts.length - 1].h).toFixed(1) + ' ' + Y(pts[pts.length - 1].pv).toFixed(1) + ' ' : '') + fut.map(function (p, i) { return ((i || pts.length) ? 'L' : 'M') + X(p.h).toFixed(1) + ' ' + Y(p.pv).toFixed(1); }).join(' '); s += '<path class="en-graf-prev" d="' + dprev + '"/>'; }
+        if (pts.length > 1) s += '<path class="en-graf-linea' + cl + '" pathLength="1" d="' + linea(pts, 'casa') + '" stroke="#5AC8FA"/>';
+        var soc = pts.filter(function (p) { return p.soc !== null && p.soc !== undefined; });
+        if (S.batt && soc.length > 1) s += '<path class="en-graf-soc' + cl + '" pathLength="1" d="' + linea(soc, 'soc') + '"/>';
+        var xa = X(ora);
+        s += '<line class="en-graf-ora" x1="' + xa.toFixed(1) + '" y1="' + y0 + '" x2="' + xa.toFixed(1) + '" y2="' + (y0 + ch) + '"/>';
+        if (S.pronto) {
+            s += '<circle cx="' + xa.toFixed(1) + '" cy="' + Y(vivo.pv).toFixed(1) + '" r="5" fill="#F5B83D" stroke="#05080F" stroke-width="2"/>';
+            s += '<circle cx="' + xa.toFixed(1) + '" cy="' + Y(vivo.casa).toFixed(1) + '" r="4.5" fill="#5AC8FA" stroke="#05080F" stroke-width="2"/>';
+        }
+        var xp = clamp(xa, x0 + 27, x0 + cw - 27);
+        s += '<rect class="en-graf-ora-pill" x="' + (xp - 27).toFixed(1) + '" y="' + (y0 - 2) + '" width="54" height="20" rx="10"/>';
+        s += '<text class="en-graf-ora-txt" x="' + xp.toFixed(1) + '" y="' + (y0 + 12) + '" text-anchor="middle">' + fmtOra(ora) + '</text>';
+        return s;
+    }
+    function graficoBarre(w, h, anim) {
+        var l = listaPeriodo(periodo), voci = [], oggiStr = orologio.data || '';
+        if (l === null) return '';
+        if (periodo === 'anno') {
+            var d0 = dataCasa();
+            var per = {}; l.forEach(function (m) { per[m.mese] = m; });
+            for (var i = 11; i >= 0; i--) {
+                var d = new Date(d0.getFullYear(), d0.getMonth() - i, 1, 12), k = d.getFullYear() + '-' + pad(d.getMonth() + 1), m = per[k] || {};
+                voci.push({ e: maiuscola(nomeMese(d, false)), p: num(m.prodotta_kwh), c: consumataDi(m), oggi: i === 0 });
+            }
+        } else {
+            var per2 = {}; l.forEach(function (g) { per2[g.data] = g; });
+            var dc = dataCasa(), n = periodo === 'settimana' ? 7 : dc.getDate();
+            for (var j = n - 1; j >= 0; j--) {
+                var dd = new Date(dc.getFullYear(), dc.getMonth(), dc.getDate() - j, 12), ks = dd.getFullYear() + '-' + pad(dd.getMonth() + 1) + '-' + pad(dd.getDate()), g = per2[ks] || {};
+                voci.push({ e: periodo === 'settimana' ? (j === 0 ? T.oggi : maiuscola(dd.toLocaleDateString(LOCALE, { weekday: 'short' }).replace('.', ''))) : String(dd.getDate()), p: num(g.prodotta_kwh), c: consumataDi(g), oggi: j === 0 });
+            }
+        }
+        if (!voci.some(function (v) { return v.p !== null || v.c !== null; })) return '';
+        var x0 = 44, y0 = 12, cw = w - 52, ch = h - 44;
+        var mx = 1; voci.forEach(function (v) { mx = Math.max(mx, v.p || 0, v.c || 0); });
+        var passo = passoBello(mx * 1.05 / 4), vmax = Math.max(passo * 2, passo * Math.ceil(mx * 1.05 / passo));
+        var s = assiY(x0, y0, cw, ch, vmax, passo, 'kWh'), bw = cw / voci.length, ogni = voci.length > 16 ? (cw / voci.length < 22 ? 5 : 2) : 1;
+        voci.forEach(function (v, i) {
+            var x = x0 + i * bw, base = y0 + ch, op = v.oggi && periodo !== 'anno' ? '0.6' : '1';
+            [[v.p, 0.16, '#F5B83D'], [v.c, 0.52, '#5AC8FA']].forEach(function (b, z) {
+                if (b[0] === null || b[0] <= 0) return;
+                var hh = ch * b[0] / vmax;
+                s += '<rect class="en-graf-barra' + (anim ? ' en-cresce' : '') + '" style="animation-delay:' + (0.1 + i * Math.min(0.08, 0.6 / voci.length) + z * 0.04).toFixed(2) + 's" x="' + (x + bw * b[1]).toFixed(1) + '" y="' + (base - hh).toFixed(1) + '" width="' + Math.max(1.5, bw * 0.3).toFixed(1) + '" height="' + hh.toFixed(1) + '" rx="' + Math.min(5, bw * 0.12).toFixed(1) + '" fill="' + b[2] + '" opacity="' + op + '"/>';
+            });
+            if (i % ogni === 0 || v.oggi) s += '<text class="en-sett-txt' + (v.oggi ? ' en-oggi' : '') + '" x="' + (x + bw / 2).toFixed(1) + '" y="' + (h - 8) + '" text-anchor="middle">' + esc(v.e) + '</text>';
         });
-        $('sett').innerHTML = s; aggiornaSettimanaOggi();
+        return s;
     }
-    function aggiornaSettimanaOggi() {
-        var sett = (DATI && DATI.settimana) || [], i = -1;
-        for (var k = 0; k < sett.length; k++) if (sett[k].oggi) i = k;
-        var g = i >= 0 ? $('sett').children[i] : null; if (!g) return;
-        var b = g.querySelectorAll('.en-barra'), p = oggiVal('prodotta_kwh'), c = oggiVal('consumata_kwh');
-        if (c === null && !S.rete) c = consumataStimata();
-        if (p === null) p = num(sett[i].prodotta_kwh) || 0; if (c === null) c = num(sett[i].consumata_kwh) || 0;
-        stile(b[0], '--h', clamp(p / settMax * 100, 1, 100).toFixed(1) + '%'); stile(b[1], '--h', clamp(c / settMax * 100, 1, 100).toFixed(1) + '%');
-        var tp = 0, tc = 0; sett.forEach(function (d, j) { if (j !== i) { tp += num(d.prodotta_kwh) || 0; tc += num(d.consumata_kwh) || 0; } }); tp += p; tc += c;
-        scrivi($('sett-tot'), tp.toFixed(0) + ' / ' + tc.toFixed(0) + ' kWh');
+
+    /* ======================================================================
+       BATTERIA, CONTATORE, COSTI
+       ====================================================================== */
+    function aggiornaBatteria() {
+        var soc = vivo.soc, cap = num(imp().batteria_wh), ris = num(imp().riserva_pct) || 10, b = vivo.batt, C = 433.54;
+        var offA = soc !== null ? C * (1 - clamp(soc, 0, 100) / 100) : C;
+        stile($('an-pieno'), '--en-off', offA > C - 0.05 ? '435' : offA.toFixed(2));   // vuota: oltre il tratto (niente pallino)
+        classe($('anello'), 'en-basso', soc !== null && soc <= ris + 5);
+        scrivi($('an-v'), soc !== null ? Math.round(soc) + '%' : '—');
+        scrivi($('an-n'), soc !== null && cap ? dec(soc / 100 * cap / 1000, 1) + ' kWh' : (soc !== null ? t('riservaPct', { p: ris }) : ''));
+        var r1 = b > 40 ? t('caricaA', { w: esc(fmtW(b)) }) : (b < -40 ? t('scaricaA', { w: esc(fmtW(-b)) }) : (soc !== null && soc >= 99 ? T.battPiena : (soc !== null && soc <= ris + 1 ? T.battRiserva : T.battFerma)));
+        var r2 = '', r3 = '', ora = oraCasa();
+        if (cap && soc !== null) {
+            var usabile = Math.max(0, soc - ris) / 100 * cap, rec = (DATI && DATI.recente) || {};
+            if (b > 40 && soc < 99) r2 = t('pienaVerso', { ora: fmtOra(ora + (100 - soc) / 100 * cap / b) });
+            if (b < -40) {
+                // mentre si scarica: UNA sola base per le due righe, la scarica media dell'ultima ora (quella di adesso
+                // se la media non c'e' o e' piu' bassa di 40 W): autonomia = energia sopra la riserva / scarica,
+                // "alla riserva verso le" = ora di casa + autonomia
+                var sca = num(rec.batteria_scarica_media_w);
+                if (sca === null || sca <= 40) sca = -b;
+                if (usabile > 0) {
+                    var durM = Math.round(usabile / sca * 60);   // stessi minuti nelle due righe (ora di casa al minuto)
+                    // oltre le 24 ore l'ora da sola si leggerebbe come "oggi": basta l'autonomia nella riga sotto
+                    if (durM < 24 * 60) r2 = t('riservaVerso', { ora: fmtOra(Math.floor(ora * 60) / 60 + durM / 60) });
+                    r3 = t('autonomia', { d: esc(fmtDurata(durM / 60)) });
+                }
+            } else {
+                // ferma o in carica: quanto durerebbe se la casa andasse tutta a batteria (consumo medio dell'ultima ora)
+                var media = num(rec.casa_media_w);
+                if (media === null) media = vivo.casa;
+                if (media > 30 && usabile > 0) r3 = t('autonomia', { d: esc(fmtDurata(usabile / media)) });
+            }
+        }
+        scriviHtml($('b-r1'), r1); scriviHtml($('b-r2'), r2); scriviHtml($('b-r3'), r3);
+    }
+    function aggiornaSoglia() {
+        var s = num(imp().soglia_w) || (API && API.soglia && num(API.soglia.potenza_w)), lim = num(imp().limite_w) || (API && API.soglia && num(API.soglia.limite_w));
+        var avv = num(imp().avviso_pct) || 90, prel = Math.max(0, vivo.rete), card = $('soglia');
+        var piccoW = DATI && DATI.oggi ? num(DATI.oggi.picco_prelievo_w) : null, piccoOra = DATI && DATI.oggi ? DATI.oggi.picco_prelievo_ora : null;
+        var scala = s || Math.max(3000, (piccoW || 0) * 1.2, prel * 1.2);
+        var f = clamp(prel / scala, 0, 1);
+        stile($('g-pieno'), '--en-off', f < 0.0005 ? '101' : (100 - f * 100).toFixed(2));   // 0 W: oltre il tratto (niente pallino)
+        var fa = clamp(avv / 100, 0, 1), ang = Math.PI * (1 - fa);
+        attr($('g-segno'), 'cx', (130 + 104 * Math.cos(ang)).toFixed(1)); attr($('g-segno'), 'cy', (128 - 104 * Math.sin(ang)).toFixed(1));
+        nascondi($('g-segno'), !s);
+        scrivi($('g-v'), dec(prel / 1000, 2));
+        scrivi($('g-n'), s ? t('suSoglia', { v: fmtKw(s) }) : T.prelevati);
+        var oltre = !!(s && prel > s), vicino = !!(s && !oltre && prel / s * 100 >= avv);
+        classe(card, 'en-oltre', oltre); classe(card, 'en-vicino', vicino);
+        var parti = [];
+        if (!s) parti.push(T.sogliaNo);
+        else if (vivo.rete < -40) parti.push(t('immettendo', { w: esc(fmtW(-vivo.rete)) }));
+        else if (oltre) parti.push(t('oltreSoglia', { w: esc(fmtKw(lim || s * 1.1)) }));
+        else parti.push(t('margine', { w: esc(fmtW(s - prel)) }));
+        var dett = [];
+        if (piccoW && piccoOra) dett.push(t('piccoOggi', { w: esc(fmtW(piccoW)), ora: esc(piccoOra) }));
+        var mo = DATI && DATI.oggi ? num(DATI.oggi.minuti_oltre_soglia) : null;
+        if (s && mo > 0) dett.push(t('minOltre', { n: mo }));
+        scriviHtml($('soglia-nota'), parti.join(' · ') + (dett.length ? '<br>' + dett.join(' · ') : ''));
+    }
+    function aggiornaCosti() {
+        var tit, lab, lista;
+        if (periodo === 'settimana') { tit = T.costi7; lab = T.spesi7; lista = listaPeriodo('settimana'); }
+        else if (periodo === 'anno') { tit = T.costi12; lab = T.spesi12; lista = listaPeriodo('anno'); }
+        else { tit = t('costiMese', { mese: nomeMese(dataCasa(), true) }); lab = T.spesiMese; lista = listaPeriodo('mese'); }
+        scrivi($('costi-t'), tit); scrivi($('costi-l'), lab);
+        if (!lista) { scriviNum($('costi-v'), '—', ''); scriviHtml($('fasce'), ''); return; }
+        var tot = somma(lista), pr = prezzi(), fa = fasciaOra(), tipo = tipoTariffa(), righe = [], euro = 0, prezzoOk = true;
+        if (tipo === 'fasce') {
+            ['F1', 'F2', 'F3'].forEach(function (f) {
+                var kwh = tot['prelevata_' + f.toLowerCase() + '_kwh'] || 0, p = num(pr[f]);
+                if (p === null) prezzoOk = false; else euro += kwh * p;
+                righe.push([f, T[f + 'q'], kwh, p !== null ? kwh * p : null, f === fa]);
+            });
+        } else {
+            var kw = tot.prelevata_kwh || 0, pm = num(pr.MONO);
+            if (pm === null) prezzoOk = false; else euro = kw * pm;
+            righe.push([T.mono, T.MONOq, kw, pm !== null ? kw * pm : null, true]);
+        }
+        scriviNum($('costi-v'), prezzoOk ? fmtEuro(euro) : '—', '');
+        nascondi($('costi-nota'), prezzoOk);
+        if (!prezzoOk) scrivi($('costi-nota'), T.costiNota);
+        scriviHtml($('fasce'), righe.map(function (r) {
+            return '<div class="en-fascia' + (r[4] ? ' en-attiva' : '') + '"><span class="en-f">' + esc(r[0]) + '</span><div style="min-width:0"><div class="en-fq">' + esc(r[1]) + '</div><div class="en-fk">' + esc(t('kwhPrel', { v: dec(r[2], 1) })) + '</div></div><span class="en-fe">' + (r[3] !== null ? esc(fmtEuro(r[3])) : '—') + '</span></div>';
+        }).join(''));
+    }
+
+    /* ======================================================================
+       DOVE VA L'ENERGIA, CHI CONSUMA
+       ====================================================================== */
+    function barra(id, segm) {
+        scriviHtml($(id), segm.filter(function (x) { return x[0] > 0.004; }).map(function (x) { return '<i style="--f:' + (x[0] * 1000).toFixed(0) + ';--c:' + x[1] + '"></i>'; }).join(''));
+    }
+    function legenda(id, segm) {
+        scriviHtml($(id), segm.map(function (x) { return '<span style="--c:' + x[1] + '"><i></i>' + esc(x[2]) + '</span>'; }).join(''));
+    }
+    function aggiornaDove() {
+        var tot = totaliPeriodo(), oggi = periodo === 'oggi';
+        if (!tot) return;
+        var P = tot.prodotta_kwh || 0, I = tot.immessa_kwh || 0, C = S.batt ? (tot.caricata_kwh || 0) : 0, Sc = S.batt ? (tot.scaricata_kwh || 0) : 0, U = tot.consumata_kwh || 0, G = tot.prelevata_kwh || 0;
+        // prodotta: alla rete (immessa, misurata), in batteria (caricata, al piu' il resto), in casa il resto
+        var pvRete = Math.min(I, P), pvBatt = Math.min(C, P - pvRete), pvCasa = Math.max(0, P - pvRete - pvBatt);
+        // consumata: dalla rete (prelevata, misurata), dalla batteria (scaricata), dal sole il resto: somme sempre = 100%
+        // anche quando i contatori del produttore non tornano al kWh (perdite, arrotondamenti)
+        var daRete = Math.min(G, U), daBatt = Math.min(Sc, U - daRete), daSole = Math.max(0, U - daRete - daBatt);
+        scrivi($('dove-t1'), t(oggi ? 'prodDoveOggi' : 'prodDove', { v: fmtKwh(P) }));
+        scrivi($('dove-t2'), t(oggi ? 'consDoveOggi' : 'consDove', { v: fmtKwh(U) }));
+        function pcs(vv, d) {   // percentuali intere che sommano 100 (resti piu' grandi)
+            if (!(d > 0)) return vv.map(function () { return 0; });
+            var x = vv.map(function (v) { return v / d * 100; }), f = x.map(Math.floor), r = 100 - f.reduce(function (a, b) { return a + b; }, 0);
+            x.map(function (v, i) { return [v - f[i], i]; }).sort(function (a, b) { return b[0] - a[0]; }).slice(0, Math.max(0, r)).forEach(function (q) { f[q[1]]++; });
+            return f;
+        }
+        if (P >= 0.05) {   // sotto 0,05 kWh il titolo dice 0,0 kWh: niente percentuali
+            var q1 = pcs(S.batt ? [pvCasa, pvBatt, pvRete] : [pvCasa, pvRete], P);
+            var s1 = [[pvCasa / P, '#F5B83D', t('usataCasa', { p: q1[0] })]];
+            if (S.batt) s1.push([pvBatt / P, '#3DDC84', t('inBatt', { p: q1[1] })]);
+            s1.push([pvRete / P, '#A78BFA', t('vendutaRete', { p: q1[q1.length - 1] })]);
+            barra('dove-b1', s1); legenda('dove-l1', s1);
+        } else { barra('dove-b1', []); scriviHtml($('dove-l1'), '<span>' + esc(T.nessunaProd) + '</span>'); }
+        if (U >= 0.05) {
+            var q2 = pcs(S.batt ? [daSole, daBatt, daRete] : [daSole, daRete], U);
+            var s2 = [[daSole / U, '#F5B83D', t('daSole', { p: q2[0] })]];
+            if (S.batt) s2.push([daBatt / U, '#3DDC84', t('daBatt', { p: q2[1] })]);
+            s2.push([daRete / U, '#FF7A59', t('daRete', { p: q2[q2.length - 1] })]);
+            barra('dove-b2', s2); legenda('dove-l2', s2);
+        } else { barra('dove-b2', []); scriviHtml($('dove-l2'), ''); }
+    }
+    function aggiornaChi() {
+        var carte = document.querySelectorAll('.hk-card.type-switch[data-potenza]'), visti = {}, lista = [];
+        for (var i = 0; i < carte.length; i++) {
+            var c = carte[i], id = c.getAttribute('data-id') || ('n' + i), w = parseFloat(c.getAttribute('data-potenza'));
+            if (!isFinite(w) || c.closest('#room-energia')) continue;
+            var sez = c.closest('.room-section'), tit = sez && sez.querySelector('.section-title'), stanza = tit ? tit.textContent.trim() : '';
+            var nome = c.querySelector('.hk-name'), v = visti[id];
+            if (!v) { v = visti[id] = { nome: nome ? nome.textContent.trim() : id, stanza: stanza, w: w }; lista.push(v); }
+            else if (/preferit|favorit/i.test(v.stanza) && stanza) v.stanza = stanza;
+        }
+        S.prese = lista.length > 0;
+        nascondi($('chi'), !S.prese);
+        if (!S.prese) return;
+        lista.sort(function (a, b) { return b.w - a.w; });
+        var top = lista.slice(0, 4).filter(function (x) { return x.w >= 1; });
+        if (!top.length) { scriviHtml($('chi-righe'), '<div class="en-chi-vuoto">' + esc(T.nessunaPresa) + '</div>'); return; }
+        var mx = top[0].w || 1;
+        scriviHtml($('chi-righe'), top.map(function (x) {
+            return '<div class="en-disp"><span class="en-disp-ico"><svg class="en-ic"><use href="#en-i-presa"/></svg></span><div style="min-width:0"><div class="en-disp-n">' + esc(x.nome) + '</div>' + (x.stanza ? '<div class="en-disp-o">' + esc(x.stanza) + '</div>' : '') + '<div class="en-disp-b"><i style="--p:' + clamp(x.w / mx, 0.02, 1).toFixed(3) + '"></i></div></div><div class="en-disp-w">' + esc(fmtW(x.w)) + '</div></div>';
+        }).join(''));
+    }
+
+    /* ======================================================================
+       ULTIMI 7 GIORNI, INVERTER
+       ====================================================================== */
+    function aggiornaSett() {
+        var box = $('sett-graf'), w = box.clientWidth, h = box.clientHeight, l = G7 ? G7.giorni || [] : null;
+        if (!l) return;
+        var tot = somma(l);
+        if (tot.prodotta_kwh !== null) { var a = [intero(tot.prodotta_kwh), 'kWh']; scriviNum($('sett-prod'), a[0], a[1]); } else scriviNum($('sett-prod'), '—', '');
+        if (tot.consumata_kwh !== null) scriviNum($('sett-cons'), intero(tot.consumata_kwh), 'kWh'); else scriviNum($('sett-cons'), '—', '');
+        if (!S.rete) scrivi($('sett-cons-l'), T.consStima);   // senza misuratore: prodotta - caricata + scaricata
+        scriviNum($('sett-eur'), tot.beneficio_eur !== null ? fmtEuro(tot.beneficio_eur, 0) : '—', '');
+        if (!w || !h) return;
+        var per = {}; l.forEach(function (g) { per[g.data] = g; });
+        var dc = dataCasa(), voci = [];
+        for (var j = 6; j >= 0; j--) {
+            var dd = new Date(dc.getFullYear(), dc.getMonth(), dc.getDate() - j, 12), ks = dd.getFullYear() + '-' + pad(dd.getMonth() + 1) + '-' + pad(dd.getDate()), g = per[ks] || {};
+            voci.push({ e: j === 0 ? T.oggi : maiuscola(dd.toLocaleDateString(LOCALE, { weekday: 'short' }).replace('.', '')), p: num(g.prodotta_kwh), c: consumataDi(g), oggi: j === 0 });
+        }
+        var mx = 1; voci.forEach(function (v) { mx = Math.max(mx, v.p || 0, v.c || 0); });
+        var vmax = mx * 1.1, base = h - 28, bw = (w - 16) / 7, anim = inn.classList.contains('en-anima') && !leggera() && !ridotto, s = '';
+        voci.forEach(function (v, i) {
+            var x = 8 + i * bw;
+            [[v.p, 0.16, '#F5B83D'], [v.c, 0.52, '#5AC8FA']].forEach(function (b, z) {
+                if (b[0] === null || b[0] <= 0) return;
+                var hh = (base - 6) * b[0] / vmax;
+                s += '<rect class="en-graf-barra' + (anim ? ' en-cresce' : '') + '" style="animation-delay:' + (0.1 + i * 0.08 + z * 0.04).toFixed(2) + 's" x="' + (x + bw * b[1]).toFixed(1) + '" y="' + (base - hh).toFixed(1) + '" width="' + (bw * 0.3).toFixed(1) + '" height="' + hh.toFixed(1) + '" rx="5" fill="' + b[2] + '" opacity="' + (v.oggi ? '0.6' : '1') + '"/>';
+            });
+            s += '<text class="en-sett-txt' + (v.oggi ? ' en-oggi' : '') + '" x="' + (x + bw / 2).toFixed(1) + '" y="' + (h - 6) + '" text-anchor="middle">' + esc(v.e) + '</text>';
+        });
+        var svg = $('sett-svg');
+        attr(svg, 'viewBox', '0 0 ' + w + ' ' + h);
+        if (svg.__s !== s) { svg.__s = s; svg.innerHTML = s; }
+    }
+    var STATI = { produzione: ['invFunzione', ''], limitato: ['invLimitato', ''], attesa: ['invAttesa', 'en-attesa'], avvio: ['invAvvio', 'en-attesa'], spento: ['invSpento', 'en-attesa'],
+                  guasto: ['invGuasto', 'en-guasto'], offline: ['invOffline', 'en-guasto'], sconosciuto: ['invAttesa', 'en-attesa'] };
+    function aggiornaInverter() {
+        var inv = (API && API.inverter) || [], disp = (DATI && DATI.dispositivi) || [], perId = {};
+        disp.forEach(function (d) { perId[d.id] = d; });
+        var stati = {}; inv.forEach(function (x) { stati[x.stato] = 1; });
+        var st = stati.guasto ? 'guasto' : (stati.produzione ? 'produzione' : (stati.limitato ? 'limitato' : (inv.length && inv.every(function (x) { return x.stato === 'offline'; }) ? 'offline' : (stati.avvio ? 'avvio' : (stati.spento ? 'spento' : 'attesa')))));
+        var sv = STATI[st] || STATI.attesa, el = $('inv-stato');
+        el.className = 'en-inv-stato' + (sv[1] ? ' ' + sv[1] : '');
+        scrivi(el.querySelector('span'), T[sv[0]]);
+        var pvMax = num(imp().pv_max_w), righe = '', oggiP = DATI && DATI.oggi;
+        if (inv.length <= 1) {
+            var x = inv[0] || {}, d = perId[x.id] || {};
+            var nome = ((x.marca || d.marca || '') + ' ' + (x.modello || d.modello || '')).trim() || x.nome || d.nome || 'Inverter';
+            var sub = [d.seriale, num(x.temperatura_c) !== null ? dec(x.temperatura_c, 0) + ' °C' : null, d.fw ? t('firmware', { v: d.fw }) : null].filter(Boolean).join(' · ');
+            righe += '<div class="en-inv-mod">' + esc(nome) + '</div>' + (sub ? '<div class="en-inv-sub">' + esc(sub) + '</div>' : '');
+            var pv = num(x.pv_w) || 0;
+            righe += '<div class="en-inv-r"><span>' + esc(T.potenzaAdesso) + '</span><div class="en-b"><i style="--p:' + (pvMax ? clamp(pv / pvMax, 0, 1) : 0).toFixed(3) + '"></i></div><span class="en-v">' + esc(fmtW(pv)) + '</span></div>';
+        } else {
+            righe += '<div class="en-inv-mod">' + esc(t('nInverter', { n: inv.length })) + (imp().modello ? ' · ' + esc(imp().modello) : '') + '</div>';
+            var mx = Math.max.apply(null, inv.map(function (x) { return num(x.pv_w) || 0; }).concat([1]));
+            inv.forEach(function (x) {
+                var pv = num(x.pv_w) || 0;
+                righe += '<div class="en-inv-r"><span>' + esc(x.nome || x.modello || ('#' + x.id)) + '</span><div class="en-b"><i style="--p:' + clamp(pv / mx, 0, 1).toFixed(3) + '"></i></div><span class="en-v">' + esc(fmtW(pv)) + '</span></div>';
+            });
+        }
+        if (oggiP && num(oggiP.picco_pv_w)) righe += '<div class="en-inv-r2"><span>' + esc(T.piccoDiOggi) + '</span><b>' + esc(t('alleOra', { w: fmtW(oggiP.picco_pv_w), ora: oggiP.picco_pv_ora || '' })) + '</b></div>';
+        var tot = API && API.totali && num(API.totali.prodotta_kwh);
+        if (tot) righe += '<div class="en-inv-r2"><span>' + esc(T.totaleProd) + '</span><b>' + esc(fmtKwh(tot)) + '</b></div>';
+        scriviHtml($('inv-righe'), righe);
+    }
+
+    /* ======================================================================
+       TESTATA, STRUTTURA (senza batteria / senza misuratore)
+       ====================================================================== */
+    function aggiornaTesta() {
+        var vivoT = T.tempoReale, spento = false;
+        if (!API) { vivoT = T.attesaDati; spento = true; }
+        else if (S.offline) { vivoT = T.offline; spento = true; }
+        else if (API.aggiornato && API.ts) {
+            var sec = Math.max(0, API.ts - API.aggiornato);
+            vivoT += ' · ' + (sec < 3 ? T.aggAdesso : (sec < 90 ? t('aggS', { n: sec }) : t('aggMin', { n: Math.round(sec / 60) })));
+        }
+        scrivi($('vivo'), vivoT);
+        classe($('pallino'), 'en-spento', spento);
+        scrivi($('data'), maiuscola(dataCasa().toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric', month: 'long' }).replace('.', '')));
+        var im = imp(), parti = [];
+        if (im.inverter > 1) parti.push(t('nInverter', { n: im.inverter }));
+        if (im.modello) parti.push(im.modello);
+        if (S.batt && num(im.batteria_wh)) parti.push(t('battKwh', { v: kwhBreve(im.batteria_wh / 1000) }));
+        if (num(im.soglia_w)) parti.push(t('contratto', { v: fmtKw(im.soglia_w) }));
+        scrivi($('impianto'), parti.join(' · '));
+    }
+    var firmaStruttura = '';
+    function aggiornaStruttura() {
+        var f = (S.batt ? 'b' : '-') + (S.rete ? 'r' : '-');
+        if (f === firmaStruttura) return;
+        firmaStruttura = f;
+        [].forEach.call(root.querySelectorAll('.en-se-batt'), function (e) { nascondi(e, !S.batt); });
+        classe(root, 'en-nobatt', !S.batt);
+        [].forEach.call(root.querySelectorAll('.en-se-rete'), function (e) { nascondi(e, !S.rete); });
+        nascondi($('sc-batt'), !S.batt);
+        nascondi($('sc-via-batt'), !S.batt);
+        nascondi($('sc-p-batt'), !S.batt);
+        nascondi($('sc-via-rete'), !S.rete);
+        nascondi($('sc-p-rete'), !S.rete);
+        nascondi($('spia'), !S.rete);
+        if (!S.batt) particelle('batt', 0, false, false);
+        if (!S.rete) particelle('rete', 0, false, false);
+        sch.nodi = null; costruisciSchema();
+    }
+    function calcolaFlussi() {
+        var f = (API && API.flussi) || {};
+        fl = {
+            pv_casa: num(f.pv_casa_w), pv_batt: num(f.pv_batteria_w), pv_rete: num(f.pv_rete_w), rete_casa: num(f.rete_casa_w),
+            rete_batt: num(f.rete_batteria_w), batt_casa: num(f.batteria_casa_w), batt_rete: num(f.batteria_rete_w)
+        };
+        // senza misuratore il modulo non ripartisce la parte della rete: la casa prende il sole e la batteria che scarica
+        if (fl.pv_casa === null) fl.pv_casa = Math.max(0, vivo.pv - Math.max(vivo.batt, 0) - (fl.pv_rete || 0));
+        if (fl.pv_batt === null) fl.pv_batt = S.batt ? Math.min(vivo.pv, Math.max(vivo.batt, 0)) : 0;
+        if (fl.batt_casa === null) fl.batt_casa = S.batt ? Math.max(-vivo.batt, 0) : 0;
+    }
+
+    /* ======================================================================
+       DISEGNO COMPLETO (a ogni lettura) E ENTRATA
+       ====================================================================== */
+    function ridisegna() {
+        if (!S.pronto) return;
+        aggiornaStruttura();
+        aggiornaTesta();
+        aggiornaFlussi();
+        aggiornaAdesso();
+        aggiornaKpi();
+        disegnaAndamento();
+        if (S.batt) aggiornaBatteria();
+        if (S.rete) { aggiornaSoglia(); aggiornaCosti(); aggiornaDove(); }
+        aggiornaChi();
+        aggiornaSett();
+        aggiornaInverter();
+    }
+    var timerAnima = 0;
+    function entrata() {
+        if (leggera() || ridotto) return;
+        inn.classList.remove('en-anima'); void inn.offsetWidth; inn.classList.add('en-anima');
+        clearTimeout(timerAnima); timerAnima = setTimeout(function () { inn.classList.remove('en-anima'); }, 2600);
+        animaGrafico = true; graficoAnimFino = 0;
+        [].forEach.call(root.querySelectorAll('.en-spark'), function (e) { e.classList.remove('en-disegna'); void e.getBoundingClientRect(); e.classList.add('en-disegna'); });
+        setTimeout(function () { [].forEach.call(root.querySelectorAll('.en-spark'), function (e) { e.classList.remove('en-disegna'); }); }, 2400);
     }
 
     /* ======================================================================
        DATI DAL SERVER
        ====================================================================== */
-    var POLL_VIVO = 3000, POLL_DATI = 60000, timerVivo = 0, inCorso = false, sbagli = 0;
+    var POLL_VIVO = 3000, POLL_DATI = 60000, timerVivo = 0, inCorso = false, sbagli = 0, tDati = 0, tAnno = 0, primoDopoApertura = false;
     function aperta() { return root.classList.contains('active'); }
     function prendi(url) {
         return fetch(url, { credentials: 'same-origin', cache: 'no-store', headers: { 'Accept': 'application/json' } })
             .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
     }
     function applicaVivo(j) {
-        API = j; tVivo = Date.now();
+        API = j;
         var f = j.flussi || {}, a = adattaSegni(f.pv_w, f.casa_w, f.rete_w, f.batteria_w, f.batteria_soc);
-        S.offline = j.stato === 'offline' || (a.pv === null && j.installato);
-        S.batteria = !!j.ha_batteria; S.rete = !!j.ha_meter;
-        S.soglia = !!(j.soglia && num(j.soglia.potenza_w));
-        if (S.soglia) { IMP.soglia = j.soglia.potenza_w; IMP.limite = num(j.soglia.limite_w) || IMP.soglia * 1.1; }
-        vivo.pv = a.pv || 0; vivo.casa = a.casa || 0; vivo.batt = S.batteria ? (a.batt || 0) : 0; vivo.rete = S.rete ? (a.rete || 0) : 0;
-        if (a.soc !== null) vivo.soc = a.soc;
-        if (!S.pronto) { S.pronto = true; primoDisegno = true; }
-        notaPicchi(); G.sporco = true;   // il grafico riprende la lettura nuova al prossimo aggiornamento delle card
-        aggiornaStruttura();
+        S.offline = j.stato === 'offline';
+        S.batt = !!j.ha_batteria; S.rete = !!j.ha_meter;
+        vivo.pv = a.pv || 0; vivo.casa = a.casa || 0; vivo.rete = S.rete ? (a.rete || 0) : 0; vivo.batt = S.batt ? (a.batt || 0) : 0;
+        vivo.soc = S.batt ? a.soc : null;
+        calcolaFlussi();
+        S.pronto = true;
     }
     function applicaDati(j) {
         DATI = j; tDati = Date.now();
         var o = j.orologio || {};
-        if (num(o.h) !== null) { orologio.h0 = o.h; orologio.t0 = Date.now(); orologio.v = num(o.velocita) || 1; }
-        var im = j.impianto || {};
-        IMP.cap = num(im.batteria_wh); IMP.riserva = num(im.riserva_pct) !== null ? im.riserva_pct : 10;
-        IMP.pvMax = num(im.pv_max_w); IMP.modello = im.modello || null; IMP.avviso = num(im.avviso_pct) || 90;
-        if (num(im.soglia_w)) { IMP.soglia = im.soglia_w; IMP.limite = num(im.limite_w) || IMP.soglia * 1.1; IMP.stacco = num(im.stacco_w) || IMP.soglia * 4 / 3; }
-        stile($('batt-riserva'), '--r', IMP.riserva + '%');
-        var sole = j.sole || {}, a = hDa(sole.alba), tr2 = hDa(sole.tramonto);
-        albaNota = a !== null; tramontoNota = tr2 !== null; ALBA = a !== null ? a : 7; TRAMONTO = tr2 !== null ? tr2 : 19;
-        strutturaFirma = '';
-        aggiornaStruttura();
+        if (num(o.h) !== null) { orologio.h0 = o.h; orologio.t0 = Date.now(); orologio.v = num(o.velocita) || 1; orologio.data = o.data || null; }
+        cieloCache.v = null;
     }
-    function caricaVivo() {
+    function passoDati() { return POLL_DATI / Math.max(1, orologio.v > 1 ? Math.min(12, orologio.v / 5) : 1); }
+    function carica() {
         timerVivo = 0;
         if (!aperta() || document.hidden || inCorso) { pianifica(); return; }
         inCorso = true;
-        var serveDati = !DATI || Date.now() - tDati > POLL_DATI / Math.max(1, orologio.v > 1 ? Math.min(12, orologio.v / 5) : 1);
+        var serveDati = !DATI || Date.now() - tDati > passoDati();
         var p = [prendi('/api/inverter/adesso').then(applicaVivo)];
-        if (serveDati) p.push(prendi('/api/energia/dati').then(applicaDati));
-        Promise.all(p).then(function () { sbagli = 0; if (!lay) impaginaScena(); decidi(); if (!attivoCiclo) ridisegnaSubito(); tickLentoDecidi(); })
-            .catch(function () { sbagli++; })
-            .then(function () { inCorso = false; pianifica(); });
+        if (serveDati) {
+            p.push(prendi('/api/energia/dati').then(applicaDati));
+            p.push(prendi('/api/inverter/giorni?giorni=7').then(function (j) { G7 = j; }).catch(function () {}));
+            p.push(prendi('/api/inverter/giorni?mesi=1').then(function (j) { GM = j; }).catch(function () {}));
+        }
+        if (periodo === 'anno' && (!GA || Date.now() - tAnno > passoDati() * 5)) p.push(prendi('/api/inverter/giorni?mesi=12').then(function (j) { GA = j; tAnno = Date.now(); }).catch(function () {}));
+        Promise.all(p).then(function () {
+            sbagli = 0;
+            if (primoDopoApertura) { primoDopoApertura = false; ridisegna(); entrata(); }
+            ridisegna();   // dopo entrata(): grafico che si disegna e barre che crescono
+        }).catch(function () { sbagli++; if (S.pronto) { S.offline = S.offline || sbagli > 2; aggiornaTesta(); } })
+          .then(function () { inCorso = false; pianifica(); });
     }
     function pianifica() {
         if (timerVivo) { clearTimeout(timerVivo); timerVivo = 0; }
         if (!aperta() || document.hidden) return;
-        timerVivo = setTimeout(caricaVivo, sbagli ? Math.min(30000, POLL_VIVO * (1 + sbagli)) : POLL_VIVO);
+        timerVivo = setTimeout(carica, sbagli ? Math.min(30000, POLL_VIVO * (1 + sbagli)) : POLL_VIVO);
     }
+    function scegliPeriodo(p) {
+        if (p === periodo) return;
+        periodo = p;
+        [].forEach.call($('periodo').querySelectorAll('button'), function (b) { var on = b.getAttribute('data-p') === p; classe(b, 'en-on', on); attr(b, 'aria-checked', on ? 'true' : 'false'); });
+        if (p === 'anno' && !GA) { prendi('/api/inverter/giorni?mesi=12').then(function (j) { GA = j; tAnno = Date.now(); if (periodo === 'anno') { entrata(); ridisegna(); } }).catch(function () {}); }
+        entrata(); ridisegna();
+    }
+    $('periodo').addEventListener('click', function (e) { var b = e.target.closest('button[data-p]'); if (b) scegliPeriodo(b.getAttribute('data-p')); });
 
     /* ======================================================================
-       IL CICLO: un solo requestAnimationFrame
+       APERTURA, CHIUSURA, PAUSE
        ====================================================================== */
-    var attivoCiclo = false, visibile = !document.hidden, inVista = false, ultimoT = 0, raf = 0, tickCard = 0;
-    var perf = { fotogrammi: 0, ms: 0, max: 0 };
-    function fermo() { return leggera() || ridotto; }
-    function puoGirare() { return S.pronto && aperta() && visibile && inVista && !dietro() && !fermo(); }
-    function frame(ts) {
-        raf = 0;
-        if (!attivoCiclo) return;
-        if (!puoGirare()) { decidi(); return; }       // leggera / pannello / sezione chiusa arrivati a ciclo avviato
-        var t0 = performance.now();
-        var dt = clamp((ts - ultimoT) / 1000 || 0.016, 0, 0.1); ultimoT = ts;
-        var k = primoDisegno ? 1 : 1 - Math.pow(0.001, dt);   // i numeri inseguono la lettura (~1 s)
-        vis.pv = lerp(vis.pv, vivo.pv, k); vis.casa = lerp(vis.casa, vivo.casa, k); vis.batt = lerp(vis.batt, vivo.batt, k); vis.rete = lerp(vis.rete, vivo.rete, k); vis.soc = lerp(vis.soc, vivo.soc, k);
-        aggiornaFlussi(vis, dt); disegnaParticelle();
-        tickCard += dt;
-        if (primoDisegno || tickCard > 0.25) { aggiornaScena(); aggiornaCard(); tickCard = 0; }
-        primoDisegno = false;
-        var d = performance.now() - t0; perf.fotogrammi++; perf.ms += d; if (d > perf.max) perf.max = d;
-        raf = requestAnimationFrame(frame);
-    }
-    function avvia() { if (attivoCiclo) return; attivoCiclo = true; ultimoT = performance.now(); if (!raf) raf = requestAnimationFrame(frame); tickLentoDecidi(); }
-    function ferma() { attivoCiclo = false; if (raf) { cancelAnimationFrame(raf); raf = 0; } tickLentoDecidi(); }
-    function decidi() {
-        if (puoGirare()) { avvia(); return; }
-        ferma();
-        if (!aperta() || !S.pronto) return;
-        if (fermo()) disegnaFermo(); else if (!inVista || dietro()) pulisciTela();
-    }
-    /* tick lento (1 s): ciclo fermo ma sezione aperta e scheda visibile (leggera, scena fuori schermo, pannello) */
-    var tickLento = 0;
-    function tickLentoDecidi() { var serve = visibile && aperta() && !attivoCiclo && S.pronto; if (serve && !tickLento) tickLento = setInterval(tickLentoFn, 1000); if (!serve && tickLento) { clearInterval(tickLento); tickLento = 0; } }
-    function tickLentoFn() { if (attivoCiclo || !visibile || !aperta()) { tickLentoDecidi(); return; } if (fermo()) disegnaFermo(); else ridisegnaSubito(); }
-    function ridisegnaSubito() { vis.pv = vivo.pv; vis.casa = vivo.casa; vis.batt = vivo.batt; vis.rete = vivo.rete; vis.soc = vivo.soc; if (lay) { aggiornaScena(); aggiornaCard(); } }
-    function disegnaFermo() { ridisegnaSubito(); pulisciTela(); }
-
     function apri() {
         html.classList.add('wh-energia');
-        if (!lay || !scena.clientWidth) impaginaScena(); else impaginaScena();
-        caricaVivo();
-        decidi(); tickLentoDecidi();
+        classe(root, 'en-ferma', document.hidden);
+        scalaScena(); if (vista === 'schema') costruisciSchema();
+        primoDopoApertura = true;
+        if (S.pronto) { primoDopoApertura = false; ridisegna(); entrata(); ridisegna(); }
+        carica();
     }
     function chiudi() {
         html.classList.remove('wh-energia');
         if (timerVivo) { clearTimeout(timerVivo); timerVivo = 0; }
-        ferma(); pulisciTela();
     }
     if ('MutationObserver' in window) {
-        new MutationObserver(function () { if (aperta()) apri(); else chiudi(); }).observe(root, { attributes: true, attributeFilter: ['class'] });
-        new MutationObserver(function () { if (!aperta()) return; decidi(); }).observe(html, { attributes: true, attributeFilter: ['class'] });
+        var eraAperta = aperta();
+        new MutationObserver(function () { var a = aperta(); if (a === eraAperta) return; eraAperta = a; if (a) apri(); else chiudi(); }).observe(root, { attributes: true, attributeFilter: ['class'] });
+        // Modalita' leggera accesa o spenta con la sezione aperta: subito ridisegnata (frecce, niente animazioni)
+        var eraLeggera = leggera();
+        new MutationObserver(function () { var l = leggera(); if (l !== eraLeggera) { eraLeggera = l; if (aperta()) ridisegna(); } }).observe(html, { attributes: true, attributeFilter: ['class'] });
     }
-    document.addEventListener('visibilitychange', function () { visibile = !document.hidden; if (aperta()) { if (visibile) caricaVivo(); else if (timerVivo) { clearTimeout(timerVivo); timerVivo = 0; } } decidi(); tickLentoDecidi(); });
-    if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { inVista = e[e.length - 1].isIntersecting; decidi(); }, { threshold: 0 }).observe($('sentinella'));
-    else inVista = true;
+    document.addEventListener('visibilitychange', function () {
+        classe(root, 'en-ferma', document.hidden);
+        if (!aperta()) return;
+        if (document.hidden) { if (timerVivo) { clearTimeout(timerVivo); timerVivo = 0; } } else carica();
+    });
+    if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (e) { classe($('flussi'), 'en-fuori', !e[e.length - 1].isIntersecting); }, { threshold: 0 }).observe($('flussi'));
+        new IntersectionObserver(function (e) { classe(inn.querySelector('.en-testa'), 'en-fuori', !e[e.length - 1].isIntersecting); }, { threshold: 0 }).observe($('pallino'));
+    }
     var ridim = 0;
-    window.addEventListener('resize', function () { if (!aperta()) return; clearTimeout(ridim); ridim = setTimeout(function () { impaginaScena(); if (!attivoCiclo) ridisegnaSubito(); }, 120); });
+    function suRidimensiona() { clearTimeout(ridim); ridim = setTimeout(function () { if (!aperta()) return; scalaScena(); costruisciSchema(); disegnaAndamento(); aggiornaSett(); }, 120); }
+    if ('ResizeObserver' in window) new ResizeObserver(suRidimensiona).observe(inn); else window.addEventListener('resize', suRidimensiona);
 
     // indirizzo /mobile#energia (anche da /energia): si apre la sezione
     function daIndirizzo() {
@@ -812,10 +1133,22 @@
     window.addEventListener('hashchange', daIndirizzo);
 
     window.__whEnergia = {
-        perf: perf, adattaSegni: adattaSegni, piccoOggi: piccoOggi,
-        stato: function () { return { aperta: aperta(), ciclo: attivoCiclo, inVista: inVista, fermo: fermo(), S: S, IMP: IMP, vivo: vivo, vis: vis, h: oraCasa(), particelle: { sole: flussi.sole.p.length, batt: flussi.batt.p.length, rete: flussi.rete.p.length }, dir: { sole: flussi.sole.dir, batt: flussi.batt.dir, rete: flussi.rete.dir }, raf: !!raf, tick: !!tickLento, timer: !!timerVivo }; },
-        azzeraPerf: function () { perf.fotogrammi = 0; perf.ms = 0; perf.max = 0; }
+        adattaSegni: adattaSegni,
+        stato: function () {
+            var vis = function (l) { return $('pt-strato').querySelectorAll('.en-pt-' + l + ':not([hidden])').length; };
+            return { pronto: S.pronto, aperta: aperta(), vista: vista, periodo: periodo, S: S, vivo: vivo, flussi: fl, h: oraCasa(),
+                     cielo: { alba: albaTramonto()[0], tramonto: albaTramonto()[1], giorno: +$('cielo-giorno').getAttribute('opacity'), alba_op: +$('cielo-alba').getAttribute('opacity'),
+                              tramonto_op: +$('cielo-tramonto').getAttribute('opacity'), stelle: +$('stelle').getAttribute('opacity'), luna: +$('luna').getAttribute('opacity'), sole: +($('sole').style.opacity || 1), dy: dySole },
+                     particelle: { sole: vis('sole'), batt: vis('batt'), rete: vis('rete') },
+                     verso: { sole: 'sole->casa', batt: linee.batt.n ? (linee.batt.inv ? 'batteria->casa' : 'casa->batteria') : null, rete: linee.rete.n ? (linee.rete.inv ? 'rete->casa' : 'casa->rete') : null },
+                     timer: !!timerVivo, ferma: root.classList.contains('en-ferma'), fuori: $('flussi').classList.contains('en-fuori') };
+        },
+        dati: function () { return { adesso: API, energia: DATI, giorni7: G7, mese: GM, anno: GA }; },   // per le prove (sola lettura)
+        vista: function (v) { scegliVista(v); },
+        periodo: function (p) { scegliPeriodo(p); }
     };
+    mostraVista(lsLeggi() || 'scena', false);
+    caricaVista();
     if (aperta()) apri();
     if (document.readyState === 'complete') daIndirizzo(); else window.addEventListener('load', daIndirizzo);
 })();
