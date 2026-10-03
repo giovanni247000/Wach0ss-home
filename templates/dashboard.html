@@ -4172,7 +4172,7 @@ function hueRicomincia() { hueMsg(''); huePasso(1); }
                         </div>
                         <div class="input-group">
                             <label class="input-label">Indirizzo (WHERE)</label>
-                            <input type="text" id="myh-man-dove" class="premium-input" autocomplete="off" spellcheck="false" maxlength="12">
+                            <input type="text" id="myh-man-dove" class="premium-input" autocomplete="off" spellcheck="false" maxlength="12" oninput="myhAiutoTipo()">
                         </div>
                     </div>
                     <div class="myh-piccolo" id="myh-man-aiuto" style="margin: -4px 0 10px;"></div>
@@ -4294,11 +4294,12 @@ const MYH_MODI = { automatico: 'automatico', programma: 'automatico', scenario: 
 const MYH_ALLARMI = { intrusione: 'intrusione', manomissione: 'manomissione', panico: 'panico', tecnico: 'tecnico', silenzioso: 'silenzioso' };
 const MYH_CATEGORIE = { luci: 'Luci', tapparelle: 'Tapparelle', termo: 'Termoregolazione', energia: 'Energia', antifurto: 'Antifurto', scenari: 'Scenari' };
 const MYH_AUTH = { nessuna: 'IP abilitato (nessuna password)', open: 'Password OPEN', hmac_sha1: 'HMAC SHA-1', hmac_sha256: 'HMAC SHA-256' };
-const MYH_AIUTO = { luce: 'Luce: 2 o 4 cifre (es. 12, 0112), bus locale 12#4#01', dimmer: 'Luce: 2 o 4 cifre (es. 12, 0112), bus locale 12#4#01',
-                    tapparella: 'Tapparella: come le luci (es. 41)', tapparella_avanzata: 'Tapparella: come le luci (es. 41)',
+const MYH_AIUTO = { luce: 'Luce: 2 o 4 cifre (es. 12, 01, 0112), bus locale 12#4#01', dimmer: 'Luce: 2 o 4 cifre (es. 12, 01, 0112), bus locale 12#4#01',
+                    tapparella: 'Tapparella: come le luci (es. 41, 01)', tapparella_avanzata: 'Tapparella: come le luci (es. 41, 01)',
                     zona_termo: 'Zona termica: da 1 a 99', scenario: 'Scenario: da 1 a 300', scenario_f420: 'Scenario F420: numero/modulo (es. 2/01)',
                     contatore: 'Contatore: 51-5255, attuatore 71#0', antifurto_centrale: 'Centrale antifurto: indirizzo 0',
                     antifurto_zona: 'Zona antifurto: da 1 a 8' };
+const MYH_AVVISO_AMBIENTE = "Una cifra sola è un ambiente intero (es. 1 = tutto l'ambiente 1). Per un punto singolo dell'ambiente 0 scrivi lo zero davanti: 01, 02… 09.";
 let myhGiroTimer = null, myhCfg = null, myhListaFirma = '', myhVistiFirma = '', myhStatoFirma = '', myhDati = [], myhTrovati = [], myhVistiDati = [];
 let myhFiltroWho = '', myhPannello = null, myhRegUltimo = 0;
 
@@ -4561,6 +4562,11 @@ function myhAiutoTipo() {
     if (z) z.style.display = t === 'zona_termo' ? '' : 'none';
     const dv = myhId('myh-man-dove');
     if (dv && t === 'antifurto_centrale' && !dv.value) dv.value = '0';
+    // una cifra sola per luci e tapparelle e' un ambiente intero, non il punto dell'ambiente 0 ('1' non e' '01')
+    const msg = myhId('myh-man-msg');
+    const amb = !!dv && /^(luce|dimmer|tapparella|tapparella_avanzata)$/.test(t || '') && /^[1-9]$/.test((dv.value || '').trim());
+    if (msg && amb) { myhMostra(msg, MYH_AVVISO_AMBIENTE, 'attesa'); msg.dataset.avviso = '1'; }
+    else if (msg && msg.dataset.avviso) { myhMostra(msg, '', ''); delete msg.dataset.avviso; }
 }
 async function myhScansiona(btn) {
     const cat = Array.from(document.querySelectorAll('#myh-categorie .myh-cat')).filter(x => x.checked).map(x => x.value);

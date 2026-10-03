@@ -4665,7 +4665,7 @@ html.wh-scala .imp-pagina {
     html.wh-scala #app-background.bg-notte-citta { --nc-luna-y: calc(var(--wh-sa-t) + 22px); }
 }
 </style>
-{%- if inverter_attivo %}{# [ENERGIA] M1 #}<link rel="stylesheet" href="/static/energia.css?v=2026-10-02f">{% endif %}
+{%- if inverter_attivo %}{# [ENERGIA] M1 #}<link rel="stylesheet" href="/static/energia.css?v=2026-10-03b">{% endif %}
 </head>
 <body>
     
@@ -4974,277 +4974,263 @@ html.wh-scala .imp-pagina {
             </div>
             {% endfor %}
 {%- if inverter_attivo %}{# [ENERGIA] M3: sezione Energia #}
-            <!-- [ENERGIA] sezione Energia (solo con inverter configurato): si apre come una stanza (switchRoom) dalla voce
-                 "Energia" della barra; stile e animazione in /static/energia.css e /static/energia.js -->
+            <!-- [ENERGIA] sezione Energia (solo con inverter configurato, 03/10/2026 design "professionale"): si apre come
+                 una stanza (switchRoom) dalla voce "Energia" della barra. Riquadro dei flussi in due viste, Scena (casa e
+                 sole illustrati) e Schema (nodi), scelta per dispositivo (/api/energia/vista). Stile e logica in
+                 /static/energia.css e /static/energia.js; nessuna libreria, animazioni solo CSS. -->
             <div class="room-section en-pagina" id="room-energia">
                 <svg class="en-simboli" aria-hidden="true" focusable="false">
-                    <symbol id="en-i-sole" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
-                    <symbol id="en-i-batt" viewBox="0 0 24 24"><rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 10.5v3"/><path d="M11.5 9.5 9.5 12.5h4l-2 3"/></symbol>
-                    <symbol id="en-i-rete" viewBox="0 0 24 24"><path d="M9 21 10.5 3h3L15 21"/><path d="M6 21h12"/><path d="M4 9h16"/><path d="M6 14h12"/><path d="M4 9l5.5 5M20 9l-5.5 5"/></symbol>
-                    <symbol id="en-i-zap" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></symbol>
-                    <symbol id="en-i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 10h18M8 2v4M16 2v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></symbol>
-                    <symbol id="en-i-area" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-6v9H7z"/></symbol>
-                    <symbol id="en-i-euro" viewBox="0 0 24 24"><path d="M4 10h11M4 14h9"/><path d="M19 6a7 7 0 0 0-10 0 8 8 0 0 0 0 12 7 7 0 0 0 10 0"/></symbol>
-                    <symbol id="en-i-giu" viewBox="0 0 24 24"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></symbol>
-                    <symbol id="en-i-su" viewBox="0 0 24 24"><path d="m18 9-6-6-6 6"/><path d="M12 3v14"/><path d="M5 21h14"/></symbol>
-                    <symbol id="en-i-risp" viewBox="0 0 24 24"><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h.01"/></symbol>
-                    <symbol id="en-i-gauge" viewBox="0 0 24 24"><path d="m12 15 3.5-3.5"/><path d="M20.3 18c.4-1 .7-2.2.7-3.4C21 9.8 17 6 12 6s-9 3.8-9 8.6c0 1.2.3 2.4.7 3.4"/></symbol>
-                    <symbol id="en-i-barre" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></symbol>
-                    <symbol id="en-i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2"/></symbol>
-                    <symbol id="en-i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17.5v.5"/></symbol>
-                    <symbol id="en-i-dx" viewBox="0 0 24 24"><path d="m18 8 4 4-4 4"/><path d="M2 12h20"/></symbol>
-                    <symbol id="en-i-sx" viewBox="0 0 24 24"><path d="m6 8-4 4 4 4"/><path d="M2 12h20"/></symbol>
-                    <symbol id="en-i-ok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+                    <symbol id="en-i-sole" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+                    <symbol id="en-i-luna" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+                    <symbol id="en-i-casa" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></symbol>
+                    <symbol id="en-i-batt" viewBox="0 0 24 24"><rect x="6" y="4" width="12" height="17" rx="2.5"/><path d="M10 2h4"/><path d="M12.5 8.5 10 13h4l-2.5 4.5"/></symbol>
+                    <symbol id="en-i-rete" viewBox="0 0 24 24"><path d="M12 2 7 22M12 2l5 20M8.5 9h7M7.6 13.5h8.8M6.4 18.5h11.2"/></symbol>
+                    <symbol id="en-i-euro" viewBox="0 0 24 24"><path d="M17 6.5A6.5 6.5 0 1 0 17 17.5"/><path d="M4 10.5h9M4 13.5h9"/></symbol>
+                    <symbol id="en-i-foglia" viewBox="0 0 24 24"><path d="M5 19c0-8 5-14 15-15-1 10-7 15-15 15Z"/><path d="M5 19 13 11"/></symbol>
+                    <symbol id="en-i-grafico" viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l4-4 3 3 5-6"/></symbol>
+                    <symbol id="en-i-gauge" viewBox="0 0 24 24"><path d="M4.5 17a8.5 8.5 0 1 1 15 0"/><path d="M12 13l3.5-4"/></symbol>
+                    <symbol id="en-i-presa" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9.5 9v2.5M14.5 9v2.5M9.5 15h5"/></symbol>
+                    <symbol id="en-i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+                    <symbol id="en-i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></symbol>
+                    <symbol id="en-i-su" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+                    <symbol id="en-i-onda" viewBox="0 0 24 24"><path d="M2 12c2.5-5 5-5 7.5 0s5 5 7.5 0 3.5-4 5-2"/></symbol>
+                    <symbol id="en-i-freccia" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
                 </svg>
 
-                <header class="en-testata">
-                    <div class="en-mh-brand">Wach0ss Home</div>
-                    <h1>Energia</h1>
-                    <div class="en-mh-data" id="en-data" data-no-tr></div>
-                </header>
+                <div class="en-in" id="en-in">
+                    <!-- testata: in tempo reale, impianto, periodo -->
+                    <header class="en-testa">
+                        <div class="en-testa-sx">
+                            <div class="en-vivo"><span class="en-pallino" id="en-pallino"></span><span id="en-vivo" data-no-tr>In tempo reale</span><span class="en-data" id="en-data" data-no-tr></span></div>
+                            <h1 class="en-titolo">Energia</h1>
+                            <div class="en-impianto" id="en-impianto" data-no-tr></div>
+                        </div>
+                        <div class="en-seg en-periodo" id="en-periodo" role="radiogroup" aria-label="Periodo">
+                            <button type="button" data-p="oggi" role="radio" aria-checked="true" class="en-on">Oggi</button>
+                            <button type="button" data-p="settimana" role="radio" aria-checked="false"><span class="en-lungo">Settimana</span><span class="en-corto">Sett.</span></button>
+                            <button type="button" data-p="mese" role="radio" aria-checked="false">Mese</button>
+                            <button type="button" data-p="anno" role="radio" aria-checked="false">Anno</button>
+                        </div>
+                    </header>
 
-                <!-- pillole: fotovoltaico, batteria, rete -->
-                <div class="glance-row en-pillole">
-                    <div class="glance-pill" id="en-pill-sole" style="--pc: var(--c-sole)"><div class="glance-icon"><svg class="en-ic"><use href="#en-i-sole"/></svg></div><div class="glance-text"><div class="glance-val" id="en-p-sole" data-no-tr>—</div><div class="glance-lbl"><span class="en-solo-grande">Fotovoltaico</span><span class="en-solo-tel">Solare</span></div></div></div>
-                    <div class="glance-pill" id="en-pill-batt" style="--pc: var(--c-batt)"><div class="glance-icon"><svg class="en-ic"><use href="#en-i-batt"/></svg></div><div class="glance-text"><div class="glance-val" data-no-tr><span id="en-p-batt">—</span><span class="en-solo-grande" id="en-p-batt-w"></span></div><div class="glance-lbl" id="en-p-batt-l" data-no-tr>—</div></div></div>
-                    <div class="glance-pill en-chiara" id="en-pill-rete" style="--pc: var(--c-imm)"><div class="glance-icon"><svg class="en-ic"><use href="#en-i-rete"/></svg></div><div class="glance-text"><div class="glance-val" id="en-p-rete" data-no-tr>—</div><div class="glance-lbl" id="en-p-rete-l" data-no-tr>—</div></div></div>
-                </div>
-
-                <div class="section-header en-sez-testa">
-                    <div class="section-title">Energia</div>
-                    <div class="section-line"></div>
-                    <div class="en-meta"><span class="en-dot" id="en-meta-dot"></span><span data-no-tr id="en-meta-inv">—</span><span class="en-sep en-solo-grande-m" id="en-meta-temp-sep">•</span><span class="en-solo-grande-m"><b id="en-meta-temp" data-no-tr>—</b></span><span class="en-sep">•</span><span data-no-tr id="en-meta-agg">—</span></div>
-                </div>
-
-                <!-- striscione di soglia: compare solo oltre la percentuale di avviso della potenza contrattuale -->
-                <div class="en-striscione" id="en-striscione" role="alert" data-no-tr>
-                    <div class="en-ico"><svg class="en-ic"><use href="#en-i-alert"/></svg></div>
-                    <div><div class="en-t1" id="en-str-t1"></div><div class="en-t2" id="en-str-t2"></div></div>
-                </div>
-
-                <!-- LA SCENA -->
-                <div class="en-scena" id="en-scena">
-                    <svg class="en-film" id="en-film" viewBox="0 0 1000 400" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                        <defs>
-                            <linearGradient id="en-gNotte" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05081A"/><stop offset="0.6" stop-color="#0B1230"/><stop offset="1" stop-color="#141A3C"/></linearGradient>
-                            <linearGradient id="en-gGiorno" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10224E"/><stop offset="0.65" stop-color="#1F4176"/><stop offset="1" stop-color="#3A6494"/></linearGradient>
-                            <linearGradient id="en-gSera" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17133A"/><stop offset="0.55" stop-color="#3E2654"/><stop offset="1" stop-color="#A65C48"/></linearGradient>
-                            <linearGradient id="en-gSuolo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B0F22"/><stop offset="1" stop-color="#04060F"/></linearGradient>
-                            <linearGradient id="en-gLontani" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1A2146"/><stop offset="1" stop-color="#101532"/></linearGradient>
-                            <linearGradient id="en-gMuro" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#121A3C"/><stop offset="1" stop-color="#090D20"/></linearGradient>
-                            <linearGradient id="en-gLuce" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE2A8"/><stop offset="1" stop-color="#F2A955"/></linearGradient>
-                            <linearGradient id="en-gPannello" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1E4D9A"/><stop offset="0.5" stop-color="#153A78"/><stop offset="1" stop-color="#0E2A58"/></linearGradient>
-                            <linearGradient id="en-gBattCorpo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B2450"/><stop offset="1" stop-color="#0E1430"/></linearGradient>
-                            <radialGradient id="en-gSoleGlow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FFE98A" stop-opacity="0.7"/><stop offset="0.35" stop-color="#FFD60A" stop-opacity="0.2"/><stop offset="1" stop-color="#FFD60A" stop-opacity="0"/></radialGradient>
-                            <radialGradient id="en-gSoleDisco" cx="0.4" cy="0.35" r="0.7"><stop offset="0" stop-color="#FFF6C8"/><stop offset="0.6" stop-color="#FFD94A"/><stop offset="1" stop-color="#FFB800"/></radialGradient>
-                            <radialGradient id="en-gAloneCasa" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#64D2FF" stop-opacity="0.4"/><stop offset="1" stop-color="#64D2FF" stop-opacity="0"/></radialGradient>
-                            <radialGradient id="en-gAloneBatt" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#30D158" stop-opacity="0.45"/><stop offset="1" stop-color="#30D158" stop-opacity="0"/></radialGradient>
-                            <radialGradient id="en-gAloneRete" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#BF5AF2" stop-opacity="0.4"/><stop offset="1" stop-color="#BF5AF2" stop-opacity="0"/></radialGradient>
-                            <radialGradient id="en-gAloneRosso" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FF453A" stop-opacity="0.5"/><stop offset="1" stop-color="#FF453A" stop-opacity="0"/></radialGradient>
-                            <radialGradient id="en-gLuna" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#DCE6FF" stop-opacity="0.35"/><stop offset="1" stop-color="#DCE6FF" stop-opacity="0"/></radialGradient>
-                            <radialGradient id="en-gSpill" cx="0.5" cy="1" r="0.6"><stop offset="0" stop-color="#FFC27A" stop-opacity="0.3"/><stop offset="1" stop-color="#FFC27A" stop-opacity="0"/></radialGradient>
-                        </defs>
-                        <rect id="en-cielo" width="1000" height="400" fill="url(#en-gNotte)"/>
-                        <rect class="en-cielo-sera" width="1000" height="400" fill="url(#en-gSera)"/>
-                        <rect class="en-cielo-giorno" width="1000" height="400" fill="url(#en-gGiorno)"/>
-                        <g class="en-stelle" id="en-stelle" fill="#F2F6FF"></g>
-                        <g class="en-luna" id="en-luna"><circle r="70" fill="url(#en-gLuna)"/><circle r="13" fill="#E9EEFF"/><circle cx="-4" cy="3" r="2.2" fill="#C9D3F2"/><circle cx="4" cy="-4" r="1.5" fill="#C9D3F2"/><circle cx="3" cy="5" r="1.2" fill="#C9D3F2"/></g>
-                        <path id="en-skyline" fill="url(#en-gLontani)" opacity="0.9" d=""/>
-                        <g id="en-skyline-luci" fill="#F2C88E" opacity="0.5"></g>
-                        <rect id="en-suolo" x="0" y="330" width="1000" height="70" fill="url(#en-gSuolo)"/>
-                        <line id="en-orizzonte" x1="0" y1="330" x2="1000" y2="330" stroke="rgba(180,198,248,0.14)" stroke-width="1"/>
-                        <g id="en-aloni">
-                            <ellipse class="en-alone" id="en-alone-casa" rx="150" ry="34" fill="url(#en-gAloneCasa)" opacity="0"/>
-                            <ellipse class="en-alone" id="en-alone-batt" rx="90" ry="28" fill="url(#en-gAloneBatt)" opacity="0"/>
-                            <ellipse class="en-alone" id="en-alone-rete" rx="90" ry="30" fill="url(#en-gAloneRete)" opacity="0"/>
-                            <ellipse class="en-alone" id="en-alone-rete-rosso" rx="90" ry="30" fill="url(#en-gAloneRosso)" opacity="0"/>
-                        </g>
-                        <g id="en-link-sole" class="en-link"><path class="en-via" id="en-via-sole"/><path class="en-via-glow" id="en-glow-sole" stroke="#FFD60A"/><path class="en-via-glow2" id="en-glow2-sole" stroke="#FFD60A"/><g class="en-frecce" id="en-frecce-sole" stroke="#FFD60A"></g></g>
-                        <g id="en-link-batt" class="en-link"><path class="en-via" id="en-via-batt"/><path class="en-via-glow" id="en-glow-batt" stroke="#30D158"/><path class="en-via-glow2" id="en-glow2-batt" stroke="#30D158"/><g class="en-frecce" id="en-frecce-batt" stroke="#30D158"></g></g>
-                        <g id="en-link-rete" class="en-link"><path class="en-via" id="en-via-rete"/><path class="en-via-glow" id="en-glow-rete" stroke="#BF5AF2"/><path class="en-via-glow2" id="en-glow2-rete" stroke="#BF5AF2"/><g class="en-frecce" id="en-frecce-rete" stroke="#BF5AF2"></g></g>
-                        <g class="en-nodo" id="en-nodo-sole">
-                            <circle class="en-sole-disco" r="95" fill="url(#en-gSoleGlow)"/>
-                            <g class="en-raggi" stroke="#FFD94A" stroke-width="2.4" stroke-linecap="round" opacity="0.9">
-                                <line x1="0" y1="-44" x2="0" y2="-58"/><line x1="0" y1="44" x2="0" y2="58"/><line x1="-44" y1="0" x2="-58" y2="0"/><line x1="44" y1="0" x2="58" y2="0"/>
-                                <line x1="31" y1="-31" x2="41" y2="-41"/><line x1="-31" y1="31" x2="-41" y2="41"/><line x1="-31" y1="-31" x2="-41" y2="-41"/><line x1="31" y1="31" x2="41" y2="41"/>
-                                <g opacity="0.5" stroke-width="2"><line x1="17" y1="-45" x2="21" y2="-55"/><line x1="-17" y1="45" x2="-21" y2="55"/><line x1="45" y1="-17" x2="55" y2="-21"/><line x1="-45" y1="17" x2="-55" y2="21"/><line x1="-17" y1="-45" x2="-21" y2="-55"/><line x1="17" y1="45" x2="21" y2="55"/><line x1="-45" y1="-17" x2="-55" y2="-21"/><line x1="45" y1="17" x2="55" y2="21"/></g>
-                            </g>
-                            <circle class="en-sole-disco" r="34" fill="url(#en-gSoleDisco)"/>
-                            <g class="en-sole-spento"><circle r="34" fill="#1B2240" stroke="rgba(255,255,255,0.18)" stroke-width="1.5"/><path d="M-14 -4 Q0 -16 14 -4 M-14 6 Q0 -6 14 6" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round"/></g>
-                        </g>
-                        <g class="en-nodo" id="en-nodo-casa">
-                            <ellipse cx="0" cy="0" rx="150" ry="30" fill="url(#en-gSpill)"/>
-                            <path fill="#04060F" d="M-124 0 C-128 -10 -120 -19 -110 -16 C-106 -26 -92 -27 -87 -19 C-81 -24 -69 -20 -69 -10 C-63 -9 -61 -3 -62 0 Z"/>
-                            <path fill="#04060F" d="M66 0 C64 -7 70 -13 77 -11 C81 -18 91 -17 93 -10 C99 -10 102 -4 100 0 Z"/>
-                            <rect x="36" y="-130" width="13" height="34" fill="#0A0D20"/><rect x="34" y="-132" width="17" height="4" fill="#0C1024"/>
-                            <rect x="-62" y="-90" width="124" height="90" fill="url(#en-gMuro)"/>
-                            <path d="M-76 -86 L0 -138 L76 -86 Z" fill="#0A0E22"/>
-                            <path d="M-76 -86 L0 -138 L76 -86" fill="none" stroke="#B4C6F8" stroke-opacity="0.30" stroke-width="1.3" stroke-linejoin="round"/>
-                            <rect x="-62" y="-86" width="124" height="3" fill="#05070F" opacity="0.8"/>
-                            <g>
-                                <polygon points="-58,-92 -14,-122 4,-110 -40,-80" fill="url(#en-gPannello)" stroke="#6FA6FF" stroke-opacity="0.55" stroke-width="1"/>
-                                <g stroke="#9CC4FF" stroke-opacity="0.35" stroke-width="0.8"><line x1="-49" y1="-86" x2="-5" y2="-116"/><line x1="-36" y1="-98" x2="-18" y2="-86"/><line x1="-25" y1="-105" x2="-7" y2="-93"/></g>
-                                <polygon points="-58,-92 -14,-122 4,-110 -40,-80" fill="#FFF" opacity="0.06"/>
-                            </g>
-                            <circle cx="0" cy="-107" r="6.5" fill="#131A38"/><circle cx="0" cy="-107" r="6.5" fill="url(#en-gLuce)"/><path d="M-6.5 -107 H6.5 M0 -113.5 V-100.5" stroke="#070A18" stroke-width="1.2"/>
-                            <g><rect x="-48" y="-74" width="17" height="21" rx="1" fill="#131A38"/><rect x="-8.5" y="-74" width="17" height="21" rx="1" fill="#131A38"/><rect x="31" y="-74" width="17" height="21" rx="1" fill="#131A38"/><rect x="-50" y="-38" width="21" height="25" rx="1" fill="#131A38"/><rect x="29" y="-38" width="21" height="25" rx="1" fill="#131A38"/></g>
-                            <g class="en-finestre" id="en-finestre"><rect x="-50" y="-38" width="21" height="25" rx="1" fill="url(#en-gLuce)"/><rect x="29" y="-38" width="21" height="25" rx="1" fill="url(#en-gLuce)"/><rect x="-8.5" y="-74" width="17" height="21" rx="1" fill="url(#en-gLuce)"/><rect x="-48" y="-74" width="17" height="21" rx="1" fill="url(#en-gLuce)"/><rect x="31" y="-74" width="17" height="21" rx="1" fill="url(#en-gLuce)"/></g>
-                            <path stroke="#070A18" stroke-width="1.3" d="M-39.5 -74 V-53 M-48 -63.5 H-31 M0 -74 V-53 M-8.5 -63.5 H8.5 M39.5 -74 V-53 M31 -63.5 H48 M-39.5 -38 V-13 M-50 -25.5 H-29 M39.5 -38 V-13 M29 -25.5 H50"/>
-                            <rect x="-11" y="-42" width="22" height="42" rx="2" fill="#080B1C"/><rect x="-11" y="-42" width="22" height="42" rx="2" fill="none" stroke="#1C2550" stroke-width="1"/>
-                            <rect x="-17" y="-2" width="34" height="2" fill="#10152E"/>
-                            <circle cx="5" cy="-20" r="1.5" fill="#FFD9A0"/>
-                        </g>
-                        <g class="en-nodo" id="en-nodo-batt">
-                            <rect x="-36" y="-88" width="72" height="90" rx="12" fill="#04060F" opacity="0.55"/>
-                            <rect x="-28" y="-80" width="56" height="80" rx="8" fill="url(#en-gBattCorpo)" stroke="rgba(255,255,255,0.32)" stroke-width="1.5"/>
-                            <rect x="-21" y="-71" width="42" height="56" rx="4" fill="rgba(0,0,0,0.5)" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
-                            <rect class="en-batt-livello" id="en-batt-livello" x="-18" y="-15" width="36" height="0" rx="3" fill="#30D158"/>
-                            <g stroke="rgba(255,255,255,0.16)" stroke-width="1"><line x1="-21" y1="-29" x2="21" y2="-29"/><line x1="-21" y1="-43" x2="21" y2="-43"/><line x1="-21" y1="-57" x2="21" y2="-57"/></g>
-                            <path d="M3 -61 L-5 -46 H1 L-2 -33 L6 -48 H0 Z" fill="#FFF" opacity="0.9"/>
-                            <circle cx="0" cy="-7" r="2.2" fill="#30D158" id="en-batt-led"/>
-                            <rect x="-32" y="-1" width="64" height="2" fill="#10152E"/>
-                        </g>
-                        <g class="en-nodo" id="en-nodo-rete">
-                            <g fill="none" stroke="#8A95C4" stroke-opacity="0.75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M-20 0 L-7 -118 H7 L20 0"/>
-                                <path d="M-30 -92 H30 M-24 -64 H24 M-16 -36 H16"/>
-                                <path d="M-18 0 L18 -36 M18 0 L-18 -36 M-16 -36 L16 -64 M16 -36 L-16 -64 M-14 -64 L14 -92 M14 -64 L-14 -92 M-7 -118 L7 -104 M7 -118 L-7 -104"/>
-                            </g>
-                            <g fill="#C9D3F2"><circle cx="-30" cy="-92" r="2"/><circle cx="30" cy="-92" r="2"/><circle cx="-24" cy="-64" r="2"/><circle cx="24" cy="-64" r="2"/></g>
-                            <path id="en-fili" d="M30 -92 C 80 -80, 110 -84, 160 -70 M24 -64 C 80 -54, 110 -58, 160 -44" fill="none" stroke="#8A95C4" stroke-opacity="0.45" stroke-width="1.2"/>
-                            <circle class="en-rete-allarme" cx="0" cy="-126" r="4" fill="#FF453A"/>
-                        </g>
-                    </svg>
-                    <canvas id="en-tela"></canvas>
-                    <div class="en-sentinella" id="en-sentinella"></div>
-                    <div class="en-scena-nota"><span class="en-pip" id="en-pip"></span><span id="en-nota-stato" data-no-tr></span></div>
-                    <div class="en-scena-ora" data-no-tr><span id="en-scena-ora">—</span><small id="en-scena-fascia"></small></div>
-                    <div class="en-eti en-eti-nodo" id="en-e-sole" style="--nc: var(--c-sole)"><div class="en-val" id="en-v-sole" data-no-tr>—</div><div class="en-lbl">Fotovoltaico</div><div class="en-sub" id="en-s-sole" data-no-tr></div></div>
-                    <div class="en-eti en-eti-nodo" id="en-e-casa" style="--nc: var(--c-casa)"><div class="en-val" id="en-v-casa" data-no-tr>—</div><div class="en-lbl">Casa</div><div class="en-sub" id="en-s-casa" data-no-tr></div></div>
-                    <div class="en-eti en-eti-nodo" id="en-e-batt" style="--nc: var(--c-batt)"><div class="en-val" id="en-v-batt" data-no-tr>—</div><div class="en-lbl">Batteria</div><div class="en-sub" id="en-s-batt" data-no-tr></div></div>
-                    <div class="en-eti en-eti-nodo" id="en-e-rete" style="--nc: var(--c-imm)"><div class="en-val" id="en-v-rete" data-no-tr>—</div><div class="en-lbl" id="en-lbl-rete" data-no-tr>—</div><div class="en-sub" id="en-s-rete" data-no-tr></div></div>
-                    <div class="en-eti en-eti-linea" id="en-l-sole" style="--lc: var(--c-sole)" data-no-tr><span class="en-freccia"><svg class="en-ic"><use href="#en-i-dx"/></svg></span><span id="en-lv-sole">—</span></div>
-                    <div class="en-eti en-eti-linea" id="en-l-batt" style="--lc: var(--c-batt)" data-no-tr><span class="en-freccia"><svg class="en-ic"><use href="#en-i-dx"/></svg></span><span id="en-lv-batt">—</span></div>
-                    <div class="en-eti en-eti-linea" id="en-l-rete" style="--lc: var(--c-imm)" data-no-tr><span class="en-freccia"><svg class="en-ic"><use href="#en-i-sx"/></svg></span><span id="en-lv-rete">—</span></div>
-                    <div class="en-eti en-eti-avviso" id="en-avviso" data-no-tr><svg class="en-ic"><use href="#en-i-alert"/></svg><span id="en-avviso-testo"></span></div>
-                </div>
-
-                <!-- LE CARD -->
-                <div class="en-griglia" id="en-griglia">
-                    <section class="en-card en-c-oggi" id="en-c-oggi">
-                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-cal"/></svg><div class="en-c-title">Oggi</div></div><div class="en-c-meta" id="en-oggi-meta" data-no-tr></div></div>
-                        <div class="en-oggi-corpo">
-                            <div class="en-oggi-riga">
-                                <div class="en-oggi-nums">
-                                    <div class="en-num en-sole"><div class="en-n-lbl">Prodotta</div><div class="en-n-val" id="en-o-prod" data-no-tr>—</div><div class="en-n-ieri" id="en-o-prod-i" data-no-tr></div></div>
-                                    <div class="en-num en-casa"><div class="en-n-lbl">Consumata</div><div class="en-n-val" id="en-o-cons" data-no-tr>—</div><div class="en-n-ieri" id="en-o-cons-i" data-no-tr></div></div>
-                                    <div class="en-num en-imm en-se-rete"><div class="en-n-lbl">Immessa</div><div class="en-n-val" id="en-o-imm" data-no-tr>—</div><div class="en-n-ieri" id="en-o-imm-i" data-no-tr></div></div>
-                                    <div class="en-num en-prel en-se-rete"><div class="en-n-lbl">Prelevata</div><div class="en-n-val" id="en-o-prel" data-no-tr>—</div><div class="en-n-ieri" id="en-o-prel-i" data-no-tr></div></div>
+                    <!-- riga 1: flussi (Scena / Schema) e Adesso -->
+                    <div class="en-riga en-r1">
+                        <section class="en-pan en-flussi en-f2" id="en-flussi">
+                            <div class="en-pan-testa">
+                                <div class="en-eyebrow"><svg class="en-ic"><use href="#en-i-onda"/></svg><span class="en-lungo">Flussi in tempo reale</span><span class="en-corto">Flussi adesso</span></div>
+                                <div class="en-pan-dx">
+                                    <span class="en-nota-dx" id="en-auto-ora" data-no-tr></span>
+                                    <div class="en-seg en-seg-piccolo en-vista-sel" id="en-vista-sel" role="radiogroup" aria-label="Vista dei flussi">
+                                        <button type="button" data-v="scena" role="radio" aria-checked="true" class="en-on" data-no-tr>Scena</button>
+                                        <button type="button" data-v="schema" role="radio" aria-checked="false" data-no-tr>Schema</button>
+                                    </div>
                                 </div>
-                                <div class="en-anello">
-                                    <svg viewBox="0 0 120 120"><defs><linearGradient id="en-gAuto" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE680"/><stop offset="1" stop-color="#FFB800"/></linearGradient></defs>
-                                        <circle class="en-traccia" cx="60" cy="60" r="50"/>
-                                        <circle class="en-pieno" id="en-an-auto" cx="60" cy="60" r="50" stroke-dasharray="0 314.2"/>
-                                        <circle class="en-pieno2" id="en-an-suff" cx="60" cy="60" r="42" stroke-dasharray="0 263.9"/>
-                                    </svg>
-                                    <div class="en-anello-testo"><div class="en-anello-val"><span id="en-an-auto-v" data-no-tr>—</span><small>%</small></div><div class="en-anello-lbl">Autoconsumo</div></div>
-                                </div>
-                                <div class="en-oggi-vuoto">Ancora nessuna produzione</div>
                             </div>
-                            <div class="en-oggi-piede"><span class="en-pal en-pal-g"></span><span>Sole usato in casa</span><span class="en-sep"></span><span class="en-pal en-pal-c"></span><span>Autosufficienza</span> <b data-no-tr><span id="en-an-suff-v">—</span>%</b></div>
-                        </div>
-                    </section>
+                            <div class="en-viste" id="en-viste" data-no-tr>
+                                <!-- B: SCENA (casa, sole, batteria, traliccio); disegno nativo 668 x 330 -->
+                                <div class="en-vista en-v-scena" id="en-v-scena" data-vista="scena">
+                                    <div class="en-sc-quadro" id="en-sc-quadro">
+                                        <div class="en-sc-cielo">
+                                            <!-- 1) cielo (fermo): quattro cieli in dissolvenza secondo l'ora di casa, stelle, luna -->
+                                            <svg class="en-sc-svg" viewBox="0 0 668 330" preserveAspectRatio="none" aria-hidden="true">
+                                                <defs>
+                                                    <linearGradient id="en-sk-notte" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#060B1D"/><stop offset="0.7" stop-color="#0D1736"/><stop offset="1" stop-color="#1A274E"/></linearGradient>
+                                                    <linearGradient id="en-sk-alba" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1C2452"/><stop offset="0.55" stop-color="#6B4D80"/><stop offset="1" stop-color="#EFA06C"/></linearGradient>
+                                                    <linearGradient id="en-sk-giorno" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#173563"/><stop offset="0.75" stop-color="#2C5C98"/><stop offset="1" stop-color="#4E7FB8"/></linearGradient>
+                                                    <linearGradient id="en-sk-tramonto" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#191E47"/><stop offset="0.6" stop-color="#86405F"/><stop offset="1" stop-color="#F08848"/></linearGradient>
+                                                    <radialGradient id="en-sk-luna" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#DCE6FF" stop-opacity="0.32"/><stop offset="1" stop-color="#DCE6FF" stop-opacity="0"/></radialGradient>
+                                                </defs>
+                                                <rect width="668" height="330" fill="url(#en-sk-notte)"/>
+                                                <rect class="en-cielo" id="en-cielo-alba" width="668" height="330" fill="url(#en-sk-alba)" opacity="0"/>
+                                                <rect class="en-cielo" id="en-cielo-giorno" width="668" height="330" fill="url(#en-sk-giorno)" opacity="0"/>
+                                                <rect class="en-cielo" id="en-cielo-tramonto" width="668" height="330" fill="url(#en-sk-tramonto)" opacity="0"/>
+                                                <g class="en-stelle" id="en-stelle" fill="#F2F6FF" opacity="0"></g>
+                                                <g class="en-luna" id="en-luna" opacity="0"><circle cx="110" cy="80" r="70" fill="url(#en-sk-luna)"/><circle cx="110" cy="80" r="22" fill="#E9EEFF"/><circle cx="103" cy="85" r="4" fill="#C9D3F2"/><circle cx="117" cy="73" r="3" fill="#C9D3F2"/><circle cx="115" cy="90" r="2.2" fill="#C9D3F2"/></g>
+                                            </svg>
+                                            <!-- 2) livello HTML (animazioni sul compositore): sole che sale e scende, raggi che girano, nuvole, stelle che brillano -->
+                                            <div class="en-strato en-strato-medio" id="en-strato-medio" aria-hidden="true">
+                                                <div class="en-h-stelle" id="en-stelle-b"></div>
+                                                <div class="en-h-sole" id="en-sole">
+                                                    <div class="en-h-alone"></div>
+                                                    <div class="en-h-raggi"><svg viewBox="-58 -58 116 116" stroke="#FFD66B" stroke-width="3" stroke-linecap="round" id="en-raggi"></svg></div>
+                                                    <div class="en-h-disco"></div>
+                                                    <div class="en-h-disco en-h-basso" id="en-sole-basso"></div>
+                                                </div>
+                                                <div class="en-h-nuvola" id="en-nuvola1" style="left: 254px; top: 42px;"><svg width="96" height="36" viewBox="254 42 96 36"><g fill="rgba(255,255,255,0.10)"><ellipse cx="300" cy="64" rx="46" ry="12"/><ellipse cx="324" cy="56" rx="26" ry="14"/></g></svg></div>
+                                                <div class="en-h-nuvola en-nuvola2" id="en-nuvola2" style="left: 480px; top: 78px;"><svg width="84" height="30" viewBox="480 78 84 30"><g fill="rgba(255,255,255,0.07)"><ellipse cx="520" cy="96" rx="40" ry="10"/><ellipse cx="540" cy="89" rx="22" ry="11"/></g></svg></div>
+                                            </div>
+                                            <!-- 3) davanti (fermo): citta', linee dei flussi, casa coi pannelli, batteria a muro, traliccio -->
+                                            <svg class="en-sc-svg" viewBox="0 0 668 330" preserveAspectRatio="none" aria-hidden="true">
+                                                <g fill="#16233F"><rect x="0" y="284" width="40" height="46"/><rect x="44" y="260" width="26" height="70"/><rect x="74" y="292" width="52" height="38"/><rect x="150" y="272" width="30" height="58"/><rect x="186" y="300" width="44" height="30"/><rect x="440" y="278" width="40" height="52"/><rect x="484" y="256" width="28" height="74"/><rect x="600" y="286" width="34" height="44"/><rect x="636" y="268" width="32" height="62"/></g>
+                                                <rect x="0" y="328" width="668" height="4" fill="#0E1A30"/>
+                                                <path class="en-sc-via" id="en-sc-via-sole" d="M140 104 Q236 112 368 204" stroke="#F5B83D"/>
+                                                <path class="en-sc-via" id="en-sc-via-batt" d="M262 300 Q190 326 120 292" stroke="#3DDC84"/>
+                                                <path class="en-sc-via" id="en-sc-via-rete" d="M406 296 Q478 326 548 288" stroke="#A78BFA"/>
+                                                <rect x="264" y="236" width="140" height="94" fill="#E9EDF5"/><rect x="264" y="236" width="140" height="94" fill="none" stroke="#C9D1E0"/>
+                                                <path d="M248 242 L334 176 L420 242 Z" fill="#3A4560"/>
+                                                <g id="en-pannelli" fill="#2C5CC4" stroke="#7FA6FF" stroke-width="0.6"></g>
+                                                <rect x="282" y="258" width="22" height="22" rx="3" fill="#56627C"/><rect x="366" y="258" width="22" height="22" rx="3" fill="#56627C"/>
+                                                <rect x="322" y="290" width="24" height="40" rx="3" fill="#56627C"/><rect x="378" y="186" width="12" height="26" fill="#3A4560"/>
+                                                <g id="en-sc-batt">
+                                                    <rect x="70" y="236" width="50" height="94" rx="9" fill="#101A2E" stroke="#3DDC84" stroke-width="1.6"/>
+                                                    <rect class="en-sc-livello" id="en-sc-livello" x="78" y="246" width="34" height="74" rx="4" fill="#3DDC84" opacity="0.9"/>
+                                                    <path d="M97 262 L89 280 L97 280 L92 296 L104 274 L96 274 Z" fill="#0B1120"/>
+                                                    <rect x="88" y="231" width="14" height="6" rx="2" fill="#3DDC84"/>
+                                                </g>
+                                                <g id="en-sc-traliccio">
+                                                    <g stroke="#9AA6C2" stroke-width="2" fill="none" stroke-linejoin="round"><path d="M540 330 L558 196 L576 330"/><path d="M545 292 L571 292 M549 262 L567 262 M553 230 L563 230"/><path d="M545 292 L567 262 M571 292 L549 262 M549 262 L563 230 M567 262 L553 230"/><path d="M536 212 L580 212 M542 226 L574 226"/></g>
+                                                    <path d="M536 212 Q600 230 668 214 M580 212 Q624 226 668 222" stroke="#5C6880" stroke-width="1" fill="none"/>
+                                                </g>
+                                            </svg>
+                                            <!-- 4) livello HTML davanti: finestre accese, luce di carica della batteria, spia del traliccio, particelle sulle linee -->
+                                            <div class="en-strato" id="en-pt-strato" aria-hidden="true">
+                                                <div class="en-finestre" id="en-finestre"><i class="en-finestra" style="left: 282px; top: 258px;"></i><i class="en-finestra en-finestra2" style="left: 366px; top: 258px;"></i></div>
+                                                <div class="en-carica-box" id="en-carica-box"><i class="en-carica" id="en-carica"></i></div>
+                                                <i class="en-spia" id="en-spia"></i>
+                                                <style id="en-pk-stile"></style>
+                                            </div>
+                                        </div>
+                                        <div class="en-pill en-zero" id="en-sc-p-sole" style="--c: #F5B83D; left: 37.4%; top: 39.4%;"><svg class="en-ic en-freccia"><use href="#en-i-freccia"/></svg><span id="en-sc-pv-sole">—</span></div>
+                                        <div class="en-pill en-zero" id="en-sc-p-batt" style="--c: #3DDC84; left: 28.4%;"><svg class="en-ic en-freccia"><use href="#en-i-freccia"/></svg><span id="en-sc-pv-batt">—</span></div>
+                                        <div class="en-pill en-zero" id="en-sc-p-rete" style="--c: #A78BFA; left: 71.6%;"><svg class="en-ic en-freccia"><use href="#en-i-freccia"/></svg><span id="en-sc-pv-rete">—</span></div>
+                                        <div class="en-eti en-eti-sole-cielo" style="--c: #F5B83D;"><div class="en-eti-v" id="en-sc-v-sole0">—</div><div class="en-eti-t">Fotovoltaico</div><div class="en-eti-n" id="en-sc-n-sole0"></div></div>
+                                    </div>
+                                    <div class="en-sc-eti">
+                                        <div class="en-eti en-eti-sole" style="--c: #F5B83D;"><div class="en-eti-v" id="en-sc-v-sole">—</div><div class="en-eti-t">Fotovoltaico</div><div class="en-eti-n" id="en-sc-n-sole"></div></div>
+                                        <div class="en-eti en-pos-batt en-se-batt" style="--c: #3DDC84;"><div class="en-eti-v" id="en-sc-v-batt">—</div><div class="en-eti-t">Batteria</div><div class="en-eti-n" id="en-sc-n-batt"></div></div>
+                                        <div class="en-eti en-pos-casa" style="--c: #5AC8FA;"><div class="en-eti-v" id="en-sc-v-casa">—</div><div class="en-eti-t">Casa</div><div class="en-eti-n" id="en-sc-n-casa"></div></div>
+                                        <div class="en-eti en-pos-rete en-se-rete" id="en-sc-e-rete" style="--c: #A78BFA;"><div class="en-eti-v" id="en-sc-v-rete">—</div><div class="en-eti-t en-t-rete" id="en-sc-t-rete">Rete</div><div class="en-eti-n" id="en-sc-n-rete"></div></div>
+                                    </div>
+                                </div>
+                                <!-- A: SCHEMA (nodi: sole in alto, batteria, casa, rete); geometria in energia.js -->
+                                <div class="en-vista en-v-schema" id="en-v-schema" data-vista="schema" hidden>
+                                    <div class="en-sch" id="en-sch">
+                                        <svg class="en-sch-svg" id="en-sch-svg" aria-hidden="true"></svg>
+                                        <div class="en-nodo" id="en-n-sole" style="--c: #F5B83D;"><svg class="en-ic"><use id="en-n-sole-ic" href="#en-i-sole"/></svg></div>
+                                        <div class="en-nodo en-se-batt" id="en-n-batt" style="--c: #3DDC84;"><svg class="en-ic"><use href="#en-i-batt"/></svg></div>
+                                        <div class="en-nodo" id="en-n-casa" style="--c: #5AC8FA;"><svg class="en-ic"><use href="#en-i-casa"/></svg></div>
+                                        <div class="en-nodo en-se-rete" id="en-n-rete" style="--c: #A78BFA;"><svg class="en-ic"><use href="#en-i-rete"/></svg></div>
+                                        <div class="en-eti en-sch-eti en-sch-eti-sole" id="en-sch-e-sole" style="--c: #F5B83D;"><div class="en-eti-v" id="en-sch-v-sole">—</div><div class="en-eti-t">Fotovoltaico</div><div class="en-eti-n" id="en-sch-n-sole"></div></div>
+                                        <div class="en-eti en-sch-eti en-se-batt" id="en-sch-e-batt" style="--c: #3DDC84;"><div class="en-eti-v" id="en-sch-v-batt">—</div><div class="en-eti-t">Batteria</div><div class="en-eti-n" id="en-sch-n-batt"></div></div>
+                                        <div class="en-eti en-sch-eti" id="en-sch-e-casa" style="--c: #5AC8FA;"><div class="en-eti-v" id="en-sch-v-casa">—</div><div class="en-eti-t">Casa</div><div class="en-eti-n" id="en-sch-n-casa"></div></div>
+                                        <div class="en-eti en-sch-eti en-se-rete" id="en-sch-e-rete" style="--c: #A78BFA;"><div class="en-eti-v" id="en-sch-v-rete">—</div><div class="en-eti-t en-t-rete" id="en-sch-t-rete">Rete</div><div class="en-eti-n" id="en-sch-n-rete"></div></div>
+                                        <div class="en-pill en-zero" id="en-sch-p-pv_casa" style="--c: #F5B83D;"><svg class="en-ic en-freccia"><use href="#en-i-freccia"/></svg><span></span></div>
+                                        <div class="en-pill en-zero" id="en-sch-p-pv_batt" style="--c: #3DDC84;"><svg class="en-ic en-freccia"><use href="#en-i-freccia"/></svg><span></span></div>
+                                        <div class="en-pill en-zero" id="en-sch-p-pv_rete" style="--c: #A78BFA;"><svg class="en-ic en-freccia"><use href="#en-i-freccia"/></svg><span></span></div>
+                                        <div class="en-pill en-zero" id="en-sch-p-batt_casa" style="--c: #3DDC84;"><svg class="en-ic en-freccia"><use href="#en-i-freccia"/></svg><span></span></div>
+                                        <div class="en-pill en-zero" id="en-sch-p-rete_casa" style="--c: #FF7A59;"><svg class="en-ic en-freccia"><use href="#en-i-freccia"/></svg><span></span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
 
-                    <section class="en-card en-c-grafico">
-                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-area"/></svg><div class="en-c-title">La giornata</div></div><div class="en-c-meta" id="en-graf-meta" data-no-tr></div></div>
-                        <div class="en-grafico" id="en-grafico" data-no-tr><svg id="en-graf" viewBox="0 0 400 150" preserveAspectRatio="none">
-                            <defs>
-                                <linearGradient id="en-gPv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD60A" stop-opacity="0.45"/><stop offset="1" stop-color="#FFD60A" stop-opacity="0.02"/></linearGradient>
-                                <linearGradient id="en-gCasa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#64D2FF" stop-opacity="0.35"/><stop offset="1" stop-color="#64D2FF" stop-opacity="0.02"/></linearGradient>
-                            </defs>
-                            <g id="en-graf-assi"></g>
-                            <path class="en-area-pv" id="en-g-area-pv" d=""/>
-                            <path class="en-area-casa" id="en-g-area-casa" d=""/>
-                            <path class="en-futuro" id="en-g-fut-pv" d=""/>
-                            <path class="en-futuro" id="en-g-fut-casa" d=""/>
-                            <path class="en-linea-pv" id="en-g-linea-pv" d=""/>
-                            <path class="en-linea-casa" id="en-g-linea-casa" d=""/>
-                            <line class="en-adesso" id="en-g-adesso" x1="0" y1="0" x2="0" y2="130"/>
-                            <line class="en-cursore" id="en-g-cursore" x1="0" y1="0" x2="0" y2="130"/>
-                            <circle class="en-punto" id="en-g-punto-pv" r="2.6"/><circle class="en-punto" id="en-g-punto-casa" r="2.6"/>
-                            <g id="en-graf-etichette"></g>
-                        </svg><div class="en-tooltip" id="en-g-tip"></div></div>
-                        <div class="en-legenda"><span class="en-l-pv"><i></i>Produzione</span><span class="en-l-casa"><i></i><span id="en-g-leg-casa" data-no-tr>Consumo</span></span><span class="en-l-fut"><i></i>Previsione</span><span class="en-picco"><span>picco</span> <b id="en-g-picco" data-no-tr>—</b></span></div>
-                    </section>
+                        <section class="en-pan en-adesso" id="en-adesso">
+                            <div class="en-eyebrow"><svg class="en-ic"><use href="#en-i-onda"/></svg><span>Adesso</span></div>
+                            <div class="en-ad-riga" id="en-ad-pv"><div><div class="en-ad-t">Produzione</div><div class="en-num en-num-28" id="en-ad-pv-v" data-no-tr>—</div></div><svg class="en-spark" id="en-ad-pv-s" viewBox="0 0 96 32" aria-hidden="true"><path stroke="#F5B83D"/></svg></div>
+                            <div class="en-ad-riga" id="en-ad-casa"><div><div class="en-ad-t">Consumo casa</div><div class="en-num en-num-28" id="en-ad-casa-v" data-no-tr>—</div></div><svg class="en-spark" id="en-ad-casa-s" viewBox="0 0 96 32" aria-hidden="true"><path stroke="#5AC8FA"/></svg></div>
+                            <div class="en-ad-riga en-se-batt" id="en-ad-batt"><div><div class="en-ad-t" id="en-ad-batt-t" data-no-tr>—</div><div class="en-num en-num-28" id="en-ad-batt-v" data-no-tr>—</div></div><svg class="en-spark" id="en-ad-batt-s" viewBox="0 0 96 32" aria-hidden="true"><path stroke="#3DDC84"/></svg></div>
+                            <div class="en-ad-riga en-se-rete" id="en-ad-rete"><div><div class="en-ad-t" id="en-ad-rete-t" data-no-tr>—</div><div class="en-num en-num-28" id="en-ad-rete-v" data-no-tr>—</div></div><svg class="en-spark" id="en-ad-rete-s" viewBox="0 0 96 32" aria-hidden="true"><path stroke="#A78BFA"/></svg></div>
+                        </section>
+                    </div>
 
-                    <section class="en-card en-c-costo" id="en-c-costo">
-                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-euro"/></svg><div class="en-c-title">Costo</div></div><div class="en-fascia en-se-rete-si" data-no-tr><b id="en-costo-fascia">—</b><span id="en-costo-prezzo"></span></div></div>
-                        <div class="en-costo-righe en-se-rete-si">
-                            <div class="en-costo-riga en-prel"><div class="en-cr-l"><div class="en-cr-ico"><svg class="en-ic"><use href="#en-i-giu"/></svg></div><div><div class="en-cr-t">Prelievo</div><div class="en-cr-s" id="en-costo-prel-s" data-no-tr>—</div></div></div><div class="en-cr-v" id="en-costo-prel" data-no-tr>—</div></div>
-                            <div class="en-costo-riga en-imm"><div class="en-cr-l"><div class="en-cr-ico"><svg class="en-ic"><use href="#en-i-su"/></svg></div><div><div class="en-cr-t">Immissione</div><div class="en-cr-s" id="en-costo-imm-s" data-no-tr>—</div></div></div><div class="en-cr-v" id="en-costo-imm" data-no-tr>—</div></div>
-                        </div>
-                        <div class="en-tariffe en-se-rete-si" id="en-tariffe" data-no-tr></div>
-                        <div class="en-costo-righe en-se-rete-no">
-                            <div class="en-nota-card">Senza il misuratore di rete non si sa quanto entra e quanto esce: resta solo il risparmio stimato dell'energia del sole usata in casa.</div>
-                        </div>
-                        <div class="en-costo-righe">
-                            <div class="en-costo-riga en-risp"><div class="en-cr-l"><div class="en-cr-ico"><svg class="en-ic"><use href="#en-i-risp"/></svg></div><div><div class="en-cr-t">Risparmio</div><div class="en-cr-s" id="en-costo-risp-s" data-no-tr>—</div></div></div><div class="en-cr-v" id="en-costo-risp" data-no-tr>—</div></div>
-                        </div>
-                        <div class="en-costo-saldo en-se-rete-si"><div class="en-sub">Saldo di oggi</div><div class="en-big" id="en-costo-saldo" data-no-tr>—</div></div>
-                    </section>
+                    <!-- cinque indicatori -->
+                    <div class="en-kpi" id="en-kpi">
+                        <div class="en-pan en-k" id="en-k-prod" style="--c: #F5B83D; --i: 1;"><div class="en-k-testa"><span class="en-k-ico"><svg class="en-ic"><use href="#en-i-sole"/></svg></span><span class="en-k-t" id="en-k-prod-t" data-no-tr>—</span></div><div class="en-num en-num-30" id="en-k-prod-v" data-no-tr>—</div><div class="en-k-n" id="en-k-prod-n" data-no-tr></div></div>
+                        <div class="en-pan en-k" id="en-k-cons" style="--c: #5AC8FA; --i: 2;"><div class="en-k-testa"><span class="en-k-ico"><svg class="en-ic"><use href="#en-i-casa"/></svg></span><span class="en-k-t" id="en-k-cons-t" data-no-tr>—</span></div><div class="en-num en-num-30" id="en-k-cons-v" data-no-tr>—</div><div class="en-k-n" id="en-k-cons-n" data-no-tr></div></div>
+                        <div class="en-pan en-k en-se-rete" id="en-k-auto" style="--c: #3DDC84; --i: 3;"><div class="en-k-testa"><span class="en-k-ico"><svg class="en-ic"><use href="#en-i-su"/></svg></span><span class="en-k-t">Autosufficienza</span></div><div class="en-num en-num-30" id="en-k-auto-v" data-no-tr>—</div><div class="en-k-n" id="en-k-auto-n" data-no-tr></div></div>
+                        <div class="en-pan en-k en-se-rete" id="en-k-risp" style="--c: #F5B83D; --i: 4;"><div class="en-k-testa"><span class="en-k-ico"><svg class="en-ic"><use href="#en-i-euro"/></svg></span><span class="en-k-t" id="en-k-risp-t" data-no-tr>—</span></div><div class="en-num en-num-30" id="en-k-risp-v" data-no-tr>—</div><div class="en-k-n" id="en-k-risp-n" data-no-tr></div></div>
+                        <div class="en-pan en-k" id="en-k-co2" style="--c: #3DDC84; --i: 5;"><div class="en-k-testa"><span class="en-k-ico"><svg class="en-ic"><use href="#en-i-foglia"/></svg></span><span class="en-k-t">CO₂ evitata</span></div><div class="en-num en-num-30" id="en-k-co2-v" data-no-tr>—</div><div class="en-k-n" id="en-k-co2-n" data-no-tr></div></div>
+                    </div>
 
-                    <section class="en-card en-c-batt" id="en-c-batt">
-                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-batt"/></svg><div class="en-c-title">Batteria</div></div><div class="en-c-meta" id="en-batt-meta" data-no-tr></div></div>
-                        <div class="en-batt-corpo">
-                            <div class="en-batt-pila"><div class="en-polo"></div><div class="en-corpo"><div class="en-livello" id="en-batt-pila-liv"></div><div class="en-riserva" id="en-batt-riserva"></div></div></div>
-                            <div class="en-batt-info" data-no-tr>
-                                <div class="en-big"><span id="en-b-soc">—</span><small>%</small></div>
-                                <div class="en-batt-stato"><svg class="en-ic" id="en-b-stato-i"><use href="#en-i-zap"/></svg><span id="en-b-stato-t">—</span></div>
-                                <div class="en-sub" id="en-b-sub">—</div>
-                                <div class="en-sub" id="en-b-sub2"></div>
+                    <!-- andamento (oggi: curve ogni 15 minuti; settimana/mese/anno: barre) -->
+                    <section class="en-pan en-andamento" id="en-andamento">
+                        <div class="en-pan-testa">
+                            <div class="en-eyebrow"><svg class="en-ic"><use href="#en-i-grafico"/></svg><span id="en-and-t" data-no-tr>—</span></div>
+                            <div class="en-legenda" id="en-and-leg">
+                                <span class="en-l en-l-oggi"><i style="background: #F5B83D;"></i>Produzione</span>
+                                <span class="en-l en-l-oggi"><i style="background: #F5B83D88;"></i>Previsione</span>
+                                <span class="en-l en-l-oggi"><i style="background: #5AC8FA;"></i><span id="en-and-l-cons" data-no-tr>—</span></span>
+                                <span class="en-l en-l-oggi en-se-batt"><i style="background: #3DDC84;"></i>Batteria %</span>
+                                <span class="en-l en-l-per"><i class="en-q" style="background: #F5B83D;"></i>Prodotta</span>
+                                <span class="en-l en-l-per"><i class="en-q" style="background: #5AC8FA;"></i>Consumata</span>
                             </div>
                         </div>
+                        <div class="en-grafico" id="en-grafico" data-no-tr><svg id="en-graf" aria-hidden="true"></svg><div class="en-g-vuoto" id="en-g-vuoto" hidden></div></div>
                     </section>
 
-                    <section class="en-card en-c-soglia" id="en-c-soglia">
-                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-gauge"/></svg><div class="en-c-title"><span>Soglia</span> <span id="en-soglia-kw" data-no-tr></span></div></div><div class="en-c-meta">prelievo adesso</div></div>
-                        <div class="en-soglia-corpo">
-                            <div class="en-tachi">
-                                <svg viewBox="0 0 200 106" aria-hidden="true">
-                                    <path class="en-zona" id="en-zona-1" d="" stroke="rgba(52,199,89,0.5)"/>
-                                    <path class="en-zona" id="en-zona-2" d="" stroke="rgba(255,214,10,0.7)"/>
-                                    <path class="en-zona" id="en-zona-3" d="" stroke="rgba(255,159,10,0.75)"/>
-                                    <path class="en-zona" id="en-zona-4" d="" stroke="rgba(255,69,58,0.8)"/>
-                                    <g id="en-tacche"></g>
-                                    <line class="en-ago" id="en-ago" x1="100" y1="100" x2="32" y2="100"/>
-                                    <circle class="en-perno" cx="100" cy="100" r="5"/>
+                    <!-- batteria, contatore, costi -->
+                    <div class="en-riga en-r3">
+                        <section class="en-pan en-batt en-se-batt" id="en-batt">
+                            <div class="en-eyebrow en-solo-largo"><svg class="en-ic"><use href="#en-i-batt"/></svg><span>Batteria</span></div>
+                            <div class="en-batt-corpo">
+                                <div class="en-anello" id="en-anello">
+                                    <svg viewBox="0 0 150 150" aria-hidden="true"><circle class="en-an-fondo" cx="75" cy="75" r="69"/><circle class="en-an-pieno" id="en-an-pieno" cx="75" cy="75" r="69"/></svg>
+                                    <div class="en-an-testo"><div class="en-an-v" id="en-an-v" data-no-tr>—</div><div class="en-an-n" id="en-an-n" data-no-tr></div></div>
+                                </div>
+                                <div class="en-batt-righe">
+                                    <div class="en-eyebrow en-solo-stretto"><svg class="en-ic"><use href="#en-i-batt"/></svg><span>Batteria</span></div>
+                                    <div id="en-b-r1" data-no-tr></div>
+                                    <div id="en-b-r2" data-no-tr></div>
+                                    <div id="en-b-r3" data-no-tr></div>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="en-pan en-soglia en-se-rete" id="en-soglia">
+                            <div class="en-eyebrow"><svg class="en-ic"><use href="#en-i-gauge"/></svg><span>Potenza dal contatore</span></div>
+                            <div class="en-gauge-box">
+                                <svg class="en-gauge" viewBox="0 0 260 150" aria-hidden="true">
+                                    <path class="en-g-fondo" d="M26 128 A104 104 0 0 1 234 128"/>
+                                    <path class="en-g-pieno" id="en-g-pieno" d="M26 128 A104 104 0 0 1 234 128" pathLength="100"/>
+                                    <circle class="en-g-segno" id="en-g-segno" cx="228.9" cy="95.9" r="4"/>
+                                    <text class="en-g-v" id="en-g-v" x="130" y="106" text-anchor="middle">—</text>
+                                    <text class="en-g-n" id="en-g-n" x="130" y="128" text-anchor="middle"></text>
                                 </svg>
-                                <div class="en-tachi-centro"><div class="en-tachi-val"><span id="en-sg-val" data-no-tr>—</span></div></div>
                             </div>
-                            <div class="en-soglia-stato" data-no-tr><svg class="en-ic"><use id="en-sg-ico" href="#en-i-ok"/></svg><span id="en-sg-stato-t">—</span></div>
-                            <div class="en-soglia-det"><span><span>Picco di oggi</span> <b id="en-sg-picco" data-no-tr>—</b></span><span><span id="en-sg-oltre-l" data-no-tr>—</span> <b id="en-sg-min" data-no-tr>—</b></span></div>
-                        </div>
-                    </section>
+                            <div class="en-soglia-nota" id="en-soglia-nota" data-no-tr></div>
+                        </section>
+                        <section class="en-pan en-costi en-se-rete" id="en-costi">
+                            <div class="en-eyebrow"><svg class="en-ic"><use href="#en-i-euro"/></svg><span id="en-costi-t" data-no-tr>—</span></div>
+                            <div class="en-costi-tot"><span class="en-num en-num-30" id="en-costi-v" data-no-tr>—</span><span class="en-costi-l" id="en-costi-l" data-no-tr></span></div>
+                            <div class="en-fasce" id="en-fasce" data-no-tr></div>
+                            <div class="en-costi-nota" id="en-costi-nota" data-no-tr hidden></div>
+                        </section>
+                    </div>
 
-                    <section class="en-card en-c-sett">
-                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-barre"/></svg><div class="en-c-title">Settimana</div></div><div class="en-c-meta">kWh al giorno</div></div>
-                        <div class="en-sett" id="en-sett" data-no-tr></div>
-                        <div class="en-legenda"><span class="en-l-pv"><i></i>Prodotta</span><span class="en-l-casa"><i></i>Consumata</span><span class="en-picco"><span>totale</span> <b id="en-sett-tot" data-no-tr>—</b></span></div>
-                    </section>
+                    <!-- dove va l'energia, chi consuma -->
+                    <div class="en-riga en-r4">
+                        <section class="en-pan en-dove en-se-rete" id="en-dove">
+                            <div class="en-eyebrow"><svg class="en-ic"><use href="#en-i-onda"/></svg><span>Dove va la tua energia</span></div>
+                            <div class="en-dove-blocco"><div class="en-dove-t" id="en-dove-t1" data-no-tr>—</div><div class="en-barra-h" id="en-dove-b1"></div><div class="en-dove-leg" id="en-dove-l1" data-no-tr></div></div>
+                            <div class="en-dove-blocco"><div class="en-dove-t" id="en-dove-t2" data-no-tr>—</div><div class="en-barra-h" id="en-dove-b2"></div><div class="en-dove-leg" id="en-dove-l2" data-no-tr></div></div>
+                        </section>
+                        <section class="en-pan en-chi" id="en-chi" hidden>
+                            <div class="en-pan-testa"><div class="en-eyebrow"><svg class="en-ic"><use href="#en-i-presa"/></svg><span>Chi consuma adesso</span></div><span class="en-nota-dx">prese con misura</span></div>
+                            <div class="en-chi-righe" id="en-chi-righe" data-no-tr></div>
+                        </section>
+                    </div>
 
-                    <section class="en-card en-c-inv">
-                        <div class="en-c-head"><div class="en-c-head-l"><svg class="en-ic"><use href="#en-i-cpu"/></svg><div class="en-c-title">Inverter</div></div><div class="en-c-meta en-ok" id="en-inv-meta" data-no-tr><span class="en-dot"></span><span id="en-inv-stato">—</span></div></div>
-                        <div class="en-inv-righe">
-                            <div class="en-inv-riga"><span>Modello</span><b id="en-inv-modello" data-no-tr>—</b></div>
-                            <div class="en-inv-riga"><span>Temperatura</span><div class="en-inv-termo"><div class="en-barra"><i id="en-inv-temp-b" style="--p: 0%"></i></div><b id="en-inv-temp" data-no-tr>—</b></div></div>
-                            <div class="en-inv-riga"><span>Picco massimo</span><b id="en-inv-max" data-no-tr>—</b></div>
-                            <div class="en-inv-riga"><span>Picco di oggi</span><b id="en-inv-picco" data-no-tr>—</b></div>
-                            <div class="en-inv-riga"><span>Prodotta in totale</span><b id="en-inv-tot" data-no-tr>—</b></div>
-                        </div>
-                    </section>
+                    <!-- ultimi 7 giorni, inverter -->
+                    <div class="en-riga en-r5">
+                        <section class="en-pan en-sett en-f2" id="en-sett">
+                            <div class="en-pan-testa">
+                                <div class="en-eyebrow"><svg class="en-ic"><use href="#en-i-cal"/></svg><span>Ultimi 7 giorni</span></div>
+                                <div class="en-legenda"><span class="en-l"><i class="en-q" style="background: #F5B83D;"></i>Prodotta</span><span class="en-l"><i class="en-q" style="background: #5AC8FA;"></i>Consumata</span></div>
+                            </div>
+                            <div class="en-sett-tot">
+                                <div><div class="en-num en-num-24" id="en-sett-prod" data-no-tr>—</div><div class="en-sett-l">prodotti in 7 giorni</div></div>
+                                <div><div class="en-num en-num-24" id="en-sett-cons" data-no-tr>—</div><div class="en-sett-l" id="en-sett-cons-l">consumati</div></div>
+                                <div class="en-se-rete"><div class="en-num en-num-24" id="en-sett-eur" data-no-tr>—</div><div class="en-sett-l">tra risparmio e vendita</div></div>
+                            </div>
+                            <div class="en-sett-graf" id="en-sett-graf" data-no-tr><svg id="en-sett-svg" aria-hidden="true"></svg></div>
+                        </section>
+                        <section class="en-pan en-inv" id="en-inv">
+                            <div class="en-pan-testa"><div class="en-eyebrow"><svg class="en-ic"><use href="#en-i-chip"/></svg><span>Inverter</span></div><span class="en-inv-stato" id="en-inv-stato" data-no-tr><i></i><span>—</span></span></div>
+                            <div class="en-inv-righe" id="en-inv-righe" data-no-tr></div>
+                        </section>
+                    </div>
                 </div>
             </div>
-            <script src="/static/energia.js?v=2026-10-02i" defer></script>
+            <script src="/static/energia.js?v=2026-10-03b" defer></script>
 {% endif %}
             
         </div>
@@ -5897,6 +5883,17 @@ html.wh-scala .imp-pagina {
                     </div>
                 </div>
                 <div class="imp-nota">Lo stile della barra vale sul telefono; da tablet in orizzontale la barra è di lato.</div>
+{%- if inverter_attivo %}{# [ENERGIA] M4: Impostazioni > Schermata e sfondo, riquadro dei flussi della pagina Energia #}
+                <div class="imp-etichetta">Pagina Energia</div>
+                <div class="imp-gruppo">
+                    <div class="imp-blocco">
+                        <div class="imp-seg en-imp-vista" role="radiogroup" aria-label="Flussi in tempo reale">
+                            <button type="button" class="en-imp-btn" data-en-vista="scena" role="radio" aria-checked="true" data-no-tr>Scena</button>
+                            <button type="button" class="en-imp-btn" data-en-vista="schema" role="radio" aria-checked="false" data-no-tr>Schema</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="imp-nota">Come si vedono i flussi in tempo reale: la casa col sole o lo schema a nodi. Vale per questo dispositivo.</div>{% endif %}
             </div>
 
             <!-- ======================= TINTA A SCELTA (29/09/2026): INIZIO =======================
