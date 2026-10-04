@@ -5264,6 +5264,81 @@ async function myhCopiaRegistro(btn) {
     </div>
 {% endif %}{# [FUSIONE] fine della card degli inverter #}
 
+{% if calendari_modulo %}<!-- MODULO: CALENDARI (calendari.py) - card con id= e API JSON proprie: non passa da /setup -->
+<style>
+        .bg-calendari { color: #FF375F; }
+        .cal-canale { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid #E5E5EA; }
+        .cal-canale.primo { border-top: 0; padding-top: 2px; }
+        .cal-canale b { display: block; font-size: 0.86rem; }
+        .cal-canale small { display: block; color: var(--text-muted); font-size: 0.76rem; margin-top: 2px; line-height: 1.35; }
+        .cal-canale.spento > div:first-child { opacity: 0.55; }
+        .cal-casse { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .cal-cassa { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px; border: 1px solid #E5E5EA; background: #FAFAFC; font-size: 0.8rem; cursor: pointer; user-select: none; }
+        .cal-cassa input { margin: 0; accent-color: #FF375F; }
+        .cal-cassa.offline { opacity: 0.55; }
+        .cal-conta { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 14px; }
+        .cal-conta span { font-size: 0.76rem; padding: 4px 10px; border-radius: 999px; background: #FFF0F3; color: #C2183F; }
+        .cal-conta i { font-style: normal; }
+        .cal-sotto { margin-top: 10px; max-width: 320px; }
+</style>
+<div class="integration-card" data-key="calendari">
+        <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); calCarica();">
+            <div class="integration-title"><i data-lucide="calendar-days"></i> Calendari</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="setup-badge bg-calendari">PROMEMORIA</div>
+                <i data-lucide="chevron-down" class="accordion-chevron" style="width:20px; height:20px;"></i>
+            </div>
+        </div>
+        <div class="integration-content">
+            <div class="nvr-stato" id="cal-stato">
+                <div style="min-width:0;">
+                    <div class="nvr-stato-t" id="cal-stato-t">Calendari spenti</div>
+                    <div class="nvr-stato-s" id="cal-stato-s">Attiva per avere la pagina Calendari nell'app.</div>
+                </div>
+                <label class="nvr-switch" title="Attiva i Calendari"><input type="checkbox" id="cal-attivo" onchange="calAttiva(this)"><span></span></label>
+            </div>
+            <div class="cal-conta" id="cal-conta"></div>
+
+            <!-- CANALI -->
+            <div class="nvr-box">
+                <div class="nvr-box-h"><div><b>Canali dei promemoria</b><small>Dove arrivano gli avvisi. Nell'app, per ogni calendario e ogni impegno, si sceglie poi a chi.</small></div></div>
+                <div class="cal-canale primo" id="cal-riga-app">
+                    <div><b>Notifica sull'app iPhone</b><small><span>Telefoni con l'app e le notifiche attive:</span> <span id="cal-telefoni" data-no-tr>0</span></small></div>
+                    <label class="nvr-switch" title="Notifica sull'app iPhone"><input type="checkbox" id="cal-c-app"><span></span></label>
+                </div>
+                <div class="cal-canale" id="cal-riga-telegram">
+                    <div style="min-width:0; flex:1;"><b>Telegram</b><small id="cal-tg-s">Il bot delle automazioni.</small>
+                        <div class="input-group cal-sotto" id="cal-tg-box"><label class="input-label">Chat</label><select id="cal-tg-chat" class="premium-input"></select></div>
+                    </div>
+                    <label class="nvr-switch" title="Telegram"><input type="checkbox" id="cal-c-telegram"><span></span></label>
+                </div>
+                <div class="cal-canale" id="cal-riga-sonos">
+                    <div style="min-width:0; flex:1;"><b>Annuncio a voce sui Sonos</b><small id="cal-sonos-s">Con l'integrazione Annunci vocali.</small>
+                        <div id="cal-sonos-box">
+                            <div class="cal-casse" id="cal-casse"></div>
+                            <div class="input-group cal-sotto" style="max-width:180px;"><label class="input-label">Volume</label><input type="number" id="cal-volume" class="premium-input" min="0" max="100" placeholder="Predefinito" inputmode="numeric"></div>
+                        </div>
+                    </div>
+                    <label class="nvr-switch" title="Annuncio a voce sui Sonos"><input type="checkbox" id="cal-c-sonos"><span></span></label>
+                </div>
+            </div>
+
+            <!-- AVVISO SERALE -->
+            <div class="nvr-box">
+                <div class="nvr-box-h"><div><b>Avviso serale</b><small>Ora predefinita dell'avviso della raccolta rifiuti («Domani: Plastica e Carta») e dei promemoria «il giorno prima». Ogni calendario può averne una sua.</small></div></div>
+                <div class="nvr-riga"><div class="input-group" style="max-width:180px;"><label class="input-label">Ora</label><input type="time" id="cal-ora-sera" class="premium-input" value="20:00"></div></div>
+                <div class="cam-msg" style="display:block;"><span id="cal-fuso-t">Orari nel fuso del server:</span> <b id="cal-fuso" data-no-tr></b></div>
+            </div>
+
+            <div class="card-actions">
+                <button type="button" class="btn-sm" id="cal-prova" onclick="calProva(this)"><i data-lucide="bell-ring"></i> Prova promemoria</button>
+                <button type="button" class="btn-sm primary" id="cal-salva" onclick="calSalva(this)"><i data-lucide="save"></i> Salva</button>
+            </div>
+            <div class="cam-msg" id="cal-msg"></div>
+        </div>
+</div>
+
+{# [CALENDARI] fine della card: endif con '-' (senza il modulo la pagina resta identica byte per byte) #}{% endif -%}
 {% if annunci_modulo %}<!-- MODULO: ANNUNCI VOCALI (annunci.py) - card con id= e API JSON proprie: non passa da /setup -->
 <div class="integration-card" data-key="annunci">
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); annCarica();">
@@ -13864,6 +13939,163 @@ function storeCardHtml(item) {
 
 // Icona per categoria nella colonna di sinistra dello store
 const STORE_CAT_ICONE = { 'Hub': 'home', 'Protocollo': 'cpu', 'Videosorveglianza': 'cctv', 'Intrattenimento': 'tv', 'Zeroconf': 'zap', 'Audio': 'speaker', 'Notifiche': 'bell', 'Rete': 'network', 'Link': 'link', 'Sistema': 'database', 'Assistenza': 'activity' };
+{%- if calendari_modulo %}
+// --- [CALENDARI] voce dello Store (categoria nuova 'Organizzazione'), card dei promemoria, rimozione che CONSERVA i calendari ---
+// Tutto qui dentro: le API vivono in calendari.py; senza il modulo questo blocco non c'e' e la pagina resta identica.
+INTEGRATIONS_CATALOG.push({ key: 'calendari', name: 'Calendari', icon: 'calendar-days', color: '#FF375F', logo: null, category: 'Organizzazione', desc: "Calendari da spuntare, agenda con promemoria e raccolta dei rifiuti: avvisi sull'app iPhone, su Telegram e a voce sui Sonos.", installed: {{ 'true' if calendari_attivo else 'false' }}, removable: true });
+DETAIL_TITLES.calendari = ["Calendari", "Spunta i giorni, agenda con promemoria, raccolta rifiuti."];
+STORE_CAT_ICONE['Organizzazione'] = 'calendar-days';
+const calEsc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let calStato = null;
+function calMsg(testo, errore) {
+    const m = document.getElementById('cal-msg');
+    if (!m) return;
+    m.textContent = testo || '';
+    m.style.display = testo ? 'block' : 'none';
+    m.style.color = errore ? 'var(--danger)' : '';
+}
+async function calCarica() {
+    try {
+        const r = await fetch('/api/calendari/config', { cache: 'no-store', credentials: 'same-origin' });
+        const d = await r.json();
+        if (!r.ok || d.status !== 'success') throw new Error(d.message || '');
+        calStato = d;
+        calMsg('');
+        calDisegna(d);
+    } catch (e) {
+        calMsg('Impossibile leggere la configurazione dei Calendari.', true);
+    }
+}
+function calDisegna(d) {
+    const el = (id) => document.getElementById(id);
+    el('cal-attivo').checked = !!d.attivo;
+    el('cal-stato').classList.toggle('on', !!d.attivo);
+    el('cal-stato-t').textContent = d.attivo ? 'Calendari attivi' : 'Calendari spenti';
+    el('cal-stato-s').textContent = d.attivo ? "La pagina Calendari è nel menu dell'app; i promemoria partono dal server." : "Attiva per avere la pagina Calendari nell'app.";
+    const n = d.calendari || {};
+    el('cal-conta').innerHTML = [['spunta', 'da spuntare'], ['agenda', 'agenda'], ['rifiuti', 'raccolta rifiuti']]
+        .filter(([k]) => n[k]).map(([k, t]) => `<span><b data-no-tr>${Number(n[k])}</b> <i>${calEsc(t)}</i></span>`).join('');
+    // app
+    el('cal-c-app').checked = !!d.canali.app;
+    el('cal-telefoni').textContent = String((d.app && d.app.telefoni) || 0);
+    // telegram
+    const tg = d.telegram || {};
+    el('cal-c-telegram').checked = !!d.canali.telegram && !!tg.configurato;
+    el('cal-c-telegram').disabled = !tg.configurato;
+    el('cal-riga-telegram').classList.toggle('spento', !tg.configurato);
+    el('cal-tg-s').textContent = tg.configurato ? 'Il bot delle automazioni.' : 'Configura prima il Bot Telegram nello Store.';
+    el('cal-tg-box').style.display = tg.configurato ? '' : 'none';
+    const sel = el('cal-tg-chat');
+    sel.innerHTML = '<option value="">Tutti i contatti della rubrica</option>' +
+        (tg.rubrica || []).map((c) => `<option value="${calEsc(c.id)}" data-no-tr>${calEsc(c.nome)}</option>`).join('');
+    sel.value = d.telegram_chat || '';
+    if (sel.value !== (d.telegram_chat || '')) sel.value = '';
+    // sonos
+    const so = d.sonos || {};
+    el('cal-c-sonos').checked = !!d.canali.sonos && !!so.disponibile;
+    el('cal-c-sonos').disabled = !so.disponibile;
+    el('cal-riga-sonos').classList.toggle('spento', !so.disponibile);
+    el('cal-sonos-s').textContent = !so.disponibile ? "Serve l'integrazione Annunci vocali dello Store."
+        : (so.annunci_attivi ? 'Le casse che parlano (nessuna scelta = quelle predefinite degli Annunci).' : 'Attiva gli Annunci vocali per sentire i promemoria a voce.');
+    el('cal-sonos-box').style.display = so.disponibile ? '' : 'none';
+    const scelte = new Set(d.casse_scelte || []);
+    el('cal-casse').innerHTML = (so.casse || []).map((c) =>
+        `<label class="cal-cassa${c.online ? '' : ' offline'}"><input type="checkbox" value="${calEsc(c.entity_id)}"${scelte.has(c.entity_id) ? ' checked' : ''}><span data-no-tr>${calEsc(c.nome)}</span></label>`).join('');
+    el('cal-volume').value = (d.volume === null || d.volume === undefined) ? '' : d.volume;
+    el('cal-ora-sera').value = d.ora_sera || '20:00';
+    el('cal-fuso-t').textContent = d.fuso ? 'Orari nel fuso del server:' : 'Orari nel fuso del sistema.';
+    el('cal-fuso').textContent = d.fuso || '';
+}
+function calCanali() {
+    return { app: document.getElementById('cal-c-app').checked, telegram: document.getElementById('cal-c-telegram').checked,
+             sonos: document.getElementById('cal-c-sonos').checked };
+}
+async function calPost(corpo) {
+    const r = await fetch('/api/calendari/config', { method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || d.status !== 'success') throw new Error(d.message || 'Errore');
+    return d;
+}
+async function calAttiva(cb) {
+    const on = cb.checked;
+    cb.disabled = true;
+    try {
+        const d = await calPost({ attivo: on });
+        calStato = d;
+        calDisegna(d);
+        const item = INTEGRATIONS_CATALOG.find((i) => i.key === 'calendari');
+        if (item) item.installed = !!d.attivo;
+        integrationsDirty = true;
+        showToast(d.attivo ? 'Calendari attivati' : 'Calendari spenti', 'success');
+    } catch (e) {
+        cb.checked = !on;
+        showToast(calEsc(e.message || 'Errore'), 'error');
+    } finally {
+        cb.disabled = false;
+    }
+}
+async function calSalva(btn) {
+    const vol = document.getElementById('cal-volume').value.trim();
+    const corpo = {
+        canali: calCanali(),
+        telegram_chat: document.getElementById('cal-tg-chat').value,
+        casse: Array.from(document.querySelectorAll('#cal-casse input:checked')).map((i) => i.value),
+        volume: vol === '' ? null : Number(vol),
+        ora_sera: document.getElementById('cal-ora-sera').value,
+    };
+    if (btn) btn.disabled = true;
+    try {
+        const d = await calPost(corpo);
+        calStato = d;
+        calDisegna(d);
+        integrationsDirty = true;
+        showToast('Salvato', 'success');
+    } catch (e) {
+        showToast(calEsc(e.message || 'Errore'), 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+async function calProva(btn) {
+    const canali = calCanali();
+    if (!canali.app && !canali.telegram && !canali.sonos) { showToast('Scegli almeno un canale', 'error'); return; }
+    if (btn) btn.disabled = true;
+    try {
+        const r = await fetch('/api/calendari/prova', { method: 'POST', credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ canali }) });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok || d.status !== 'success') throw new Error(d.message || 'Errore');
+        showToast('Promemoria di prova inviato', 'success');
+    } catch (e) {
+        showToast(calEsc(e.message || 'Errore'), 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+// Rimozione dallo Store: popup proprio (i calendari NON si cancellano), poi come le altre integrazioni.
+uninstallIntegration = (function (originale) {
+    return async function (key) {
+        if (key !== 'calendari') return originale.apply(this, arguments);
+        if (!await chiedi("Rimuovere i Calendari? La pagina e la voce di menu spariscono dall'app e i promemoria si fermano. I calendari restano salvati e tornano se riattivi l'integrazione.", { titolo: 'Rimuovi Calendari', si: 'Rimuovi', pericolo: true })) return;
+        try {
+            const r = await fetch('/api/calendari/config', { method: 'DELETE', credentials: 'same-origin' });
+            if (!r.ok) throw new Error('');
+            showToast('Integrazione rimossa', 'success');
+            setTimeout(() => { window.location.href = window.location.pathname + '?setup=open'; }, 800);
+        } catch (e) {
+            showToast('Errore durante la rimozione', 'error');
+        }
+    };
+})(uninstallIntegration);
+openIntegrationDetail = (function (originale) {
+    return function (key) {
+        const r = originale.apply(this, arguments);
+        if (key === 'calendari') calCarica();
+        return r;
+    };
+})(openIntegrationDetail);
+{%- endif %}
 {%- if hue_modulo %}
 STORE_CAT_ICONE['Illuminazione'] = 'lightbulb';
 {%- endif %}

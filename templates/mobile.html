@@ -4666,6 +4666,7 @@ html.wh-scala .imp-pagina {
 }
 </style>
 {%- if inverter_attivo %}{# [ENERGIA] M1 #}<link rel="stylesheet" href="/static/energia.css?v=2026-10-04c">{% endif %}
+{%- if calendari_attivo %}{# [CALENDARI] P1 #}<link rel="stylesheet" href="/static/calendari.css?v=2026-10-04b">{% endif %}
 </head>
 <body>
     
@@ -5232,6 +5233,17 @@ html.wh-scala .imp-pagina {
             </div>
             <script src="/static/energia.js?v=2026-10-04b" defer></script>
 {% endif %}
+{%- if calendari_attivo %}{# [CALENDARI] P3: sezione Calendari #}
+            <!-- [CALENDARI] sezione Calendari (integrazione dello Store attiva, 04/10/2026): si apre come una stanza
+                 (switchRoom) dalla voce "Calendari" della barra o da /mobile#calendari. Tutto il contenuto lo disegna
+                 /static/calendari.js dalle API /api/calendari/... (calendari.py); stile in /static/calendari.css.
+                 data-no-tr: nomi, titoli e note sono del cliente, le frasi fisse le traduce calendari.js. -->
+            <div class="room-section cal-pagina" id="room-calendari" data-no-tr>
+                <div class="cal-in" id="cal-in"></div>
+            </div>
+            <script src="/static/popup.js" defer></script>
+            <script src="/static/calendari.js?v=2026-10-04c" defer></script>
+{% endif %}
             
         </div>
     </div> 
@@ -5321,7 +5333,9 @@ html.wh-scala .imp-pagina {
                     <span class="desktop-only" data-no-tr>{{ room_name }}</span>
                 </div>
 {%- if inverter_attivo and loop.first %}{# [ENERGIA] M2 #}<div class="nav-item dock-room-btn wh-nav-energia" onclick="switchRoom('room-energia', this)" title="Energia"><i data-lucide="zap"></i><span class="desktop-only">Energia</span></div>{% endif %}
+{%- if calendari_attivo and loop.first %}{# [CALENDARI] P2 #}<div class="nav-item dock-room-btn wh-nav-calendari" onclick="switchRoom('room-calendari', this)" title="{{ calendari_nome }}"><i data-lucide="calendar-days"></i><span class="desktop-only">{{ calendari_nome }}</span></div>{% endif %}
             {% endfor %}
+{%- if calendari_attivo and not layout %}{# [CALENDARI] P4 #}<div class="nav-item dock-room-btn wh-nav-calendari" onclick="switchRoom('room-calendari', this)" title="{{ calendari_nome }}"><i data-lucide="calendar-days"></i><span class="desktop-only">{{ calendari_nome }}</span></div>{% endif %}
             </div>
             {% if nvr_attivo and session.role == 'admin' %}
             <div class="nav-item nav-nvr desktop-only" onclick="window.location.href='/nvr'" title="Registrazioni NVR">
