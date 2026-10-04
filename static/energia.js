@@ -161,18 +161,33 @@
     function tipoTariffa() { return (API && API.tariffa && API.tariffa.tipo) || (DATI && DATI.tariffa && DATI.tariffa.tipo) || 'mono'; }
     function fasciaOra() { return (API && API.tariffa && API.tariffa.fascia) || (DATI && DATI.tariffa && DATI.tariffa.fascia) || null; }
 
-    /* alba e tramonto: quelli di /api/energia/dati (storico); senza, una stima astronomica per l'Italia (42 N, 12,5 E,
-       ora di casa con l'ora legale europea) */
+    /* alba e tramonto: quelli di /api/energia/dati (sole.fonte 'storico' = giorni registrati per intero, 'calcolo' =
+       astronomici con coordinate e fuso di casa, calcolati dal server); senza (server senza coordinate), una stima
+       grossolana: 42 gradi di latitudine e mezzogiorno solare alle 12 piu' l'ora legale DEL FUSO DI CASA
+       (orologio.ora_legale_min del server; se manca, quella del fuso del telefono). Mai l'ora legale italiana. */
     function albaTramonto() {
+        // la produzione VERA vince sulla stima (03/10/2026): se i pannelli producono adesso e' giorno, anche quando
+        // l'alba ricavata dallo storico o dal calcolo astronomico dice il contrario
+        var at = albaTramontoStima(), A = at[0], B = at[1], h = oraCasa();
+        if (vivo.pv !== null && vivo.pv >= 40) {
+            if (h < A + 0.5) A = Math.max(0, h - 0.75);
+            if (h > B - 0.5) B = Math.min(24, h + 0.75);
+        }
+        return [A, B];
+    }
+    function albaTramontoStima() {
         var s = (DATI && DATI.sole) || {}, a = hDa(s.alba), tr = hDa(s.tramonto);
         if (a !== null && tr !== null && tr > a) return [a, tr];
         var d = dataCasa(), y = d.getFullYear();
         var inizio = new Date(y, 0, 1, 12), n = Math.round((d - inizio) / 86400000) + 1;
         var decl = 23.44 * Math.sin(2 * Math.PI * (284 + n) / 365) * Math.PI / 180, lat = 42 * Math.PI / 180;
         var h0 = Math.acos(clamp(-Math.tan(lat) * Math.tan(decl) - 0.0145, -1, 1)) * 12 / Math.PI;
-        function ultimaDomenica(m) { var x = new Date(y, m + 1, 0); return x.getDate() - x.getDay(); }
-        var legale = (d.getMonth() > 2 && d.getMonth() < 9) || (d.getMonth() === 2 && d.getDate() >= ultimaDomenica(2)) || (d.getMonth() === 9 && d.getDate() < ultimaDomenica(9));
-        var mezzo = 12 + (15 - 12.5) / 15 + (legale ? 1 : 0);
+        var o = (DATI && DATI.orologio) || {}, leg = num(o.ora_legale_min);
+        if (leg === null) {   // server senza il dato: ora legale del fuso del telefono (scarto della data dal piu' basso dell'anno)
+            var g1 = new Date(y, 0, 1).getTimezoneOffset(), l1 = new Date(y, 6, 1).getTimezoneOffset();
+            leg = Math.max(g1, l1) - d.getTimezoneOffset();
+        }
+        var mezzo = 12 + leg / 60;           // fuso ignoto rispetto alla longitudine: mezzogiorno solare alle 12 (+ ora legale)
         var A = a !== null ? a : mezzo - h0, B = tr !== null ? tr : mezzo + h0;
         return B > A ? [A, B] : [mezzo - h0, mezzo + h0];
     }

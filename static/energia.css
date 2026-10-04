@@ -56,17 +56,31 @@ svg.en-ic { width: 15px; height: 15px; display: inline-block; fill: none; stroke
 .en-impianto { font-size: 14px; color: var(--en-txt2); margin-top: 6px; min-height: 1.2em; }
 
 /* controllo segmentato (periodo, Scena/Schema) */
-.en-seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 14px; background: linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)), rgba(7, 11, 22, 0.84); border: 1px solid rgba(255,255,255,0.06); }
-.en-flussi .en-seg { background: rgba(255,255,255,0.04); }
+.en-seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 14px;   /* il selettore del periodo nella testata: fondo, bordo e vetro delle card */
+    background: rgba(var(--card-color, 255, 255, 255), var(--card-opacity, 0.04));
+    -webkit-backdrop-filter: blur(35px) saturate(200%); backdrop-filter: blur(35px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.1); border-top-color: rgba(255,255,255,0.25); border-left-color: rgba(255,255,255,0.15);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.1); text-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+.en-flussi .en-seg { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.06); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }   /* Scena/Schema: dentro il pannello */
 .en-seg button { font-size: 13px; font-weight: 500; padding: 9px 14px; border-radius: 10px; border: 0; cursor: pointer; background: transparent; color: var(--en-txt2); transition: background-color .25s, color .25s; -webkit-tap-highlight-color: transparent; }
 .en-seg button.en-on { background: rgba(255,255,255,0.12); color: var(--en-txt); }
 .en-seg-piccolo { padding: 3px; gap: 2px; border-radius: 11px; }
 .en-seg-piccolo button { font-size: 12px; padding: 5px 11px; border-radius: 8px; }
 
 /* ---------------------------------------------------------------- pannelli */
-.en-pan { position: relative; min-width: 0; padding: 26px; border-radius: 22px; border: 1px solid var(--en-bordo);
-    background: linear-gradient(rgba(255,255,255,0.035), rgba(255,255,255,0.035)), rgba(7, 11, 22, 0.92);
-    -webkit-backdrop-filter: blur(18px) saturate(115%); backdrop-filter: blur(18px) saturate(115%); box-sizing: border-box; }
+/* 04/10: fondo, bordo, raggio, vetro e ombra delle card dell'app (.hk-card, .wv della Plancia, .cr-panel del Cruscotto):
+   colore e trasparenza sono --card-color / --card-opacity che le Impostazioni scrivono su <html>, quindi cambiano dal vivo
+   insieme alle altre card; raggio delle card delle stanze (28 px, 24 da 1024 px, 14 con le card quadrate, 36 con le tonde).
+   Leggibilita' come sulle card: vetro sfocato e sotto i testi l'ombra dei nomi delle card (.hk-name), che si eredita,
+   mai un fondo opaco fisso; le pillole e il riquadro della Scena hanno gia' il loro fondo e restano come prima. */
+.en-pan { position: relative; min-width: 0; padding: 26px; border-radius: 28px; box-sizing: border-box;
+    background: rgba(var(--card-color, 255, 255, 255), var(--card-opacity, 0.04));
+    -webkit-backdrop-filter: blur(35px) saturate(200%); backdrop-filter: blur(35px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.1); border-top-color: rgba(255,255,255,0.25); border-left-color: rgba(255,255,255,0.15);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.1); text-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+.en-pan .en-pill, .en-pan .en-sc-cielo, .en-pan .en-seg button.en-on { text-shadow: none; }
+@media (min-width: 1024px) { .en-pan { border-radius: 24px; } }
+body.shape-square .en-pan { border-radius: 14px; } body.shape-round .en-pan { border-radius: 36px; }
 .en-eyebrow { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--en-txt2); min-width: 0; }
 .en-eyebrow span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .en-pan-testa { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -174,7 +188,7 @@ svg.en-ic { width: 15px; height: 15px; display: inline-block; fill: none; stroke
 
 /* ---------------------------------------------------------------- indicatori */
 .en-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; }
-.en-k { padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; border-radius: 22px; }
+.en-k { padding: 20px 22px; display: flex; flex-direction: column; gap: 10px; }
 .en-k-testa { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .en-k-ico { display: inline-flex; width: 30px; height: 30px; border-radius: 9px; align-items: center; justify-content: center; flex-shrink: 0; color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); }
 .en-k-ico svg.en-ic { width: 16px; height: 16px; }
@@ -334,7 +348,7 @@ svg.en-ic { width: 15px; height: 15px; display: inline-block; fill: none; stroke
     .en-lungo { display: none; } .en-corto { display: inline; }
     .en-riga { display: contents; }
     .en-riga > .en-pan { flex: 0 0 auto; }   /* figli diretti di .en-in: altezza del contenuto (overflow hidden azzererebbe il minimo) */
-    .en-pan { padding: 18px; border-radius: 22px; }
+    .en-pan { padding: 18px; }
     .en-flussi { order: 1; padding: 16px 10px 14px; gap: 12px; }
     .en-flussi .en-pan-testa { padding: 0 8px; flex-wrap: nowrap; }
     .en-flussi .en-nota-dx { display: none; }
@@ -434,7 +448,9 @@ svg.en-ic { width: 15px; height: 15px; display: inline-block; fill: none; stroke
 }
 /* MODALITA' LEGGERA: immagine ferma, niente vetro ne' ombre, frecce statiche nelle pillole dei flussi */
 .wh-leggera #room-energia *, .wh-leggera #room-energia *::before, .wh-leggera #room-energia *::after { animation: none !important; transition: none !important; }
-.wh-leggera #room-energia .en-pan { -webkit-backdrop-filter: none; backdrop-filter: none; background: linear-gradient(rgba(255,255,255,0.035), rgba(255,255,255,0.035)), rgba(6, 10, 22, 0.9); }
+.wh-leggera #room-energia .en-pan, .wh-leggera #room-energia .en-testa .en-seg {   /* come .cr-panel / .hk-card spente in leggera */
+    -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 4px 14px rgba(0,0,0,0.32), inset 0 1px 1px rgba(255,255,255,0.06);
+    background: linear-gradient(160deg, rgba(var(--card-color, 255, 255, 255), calc(var(--card-opacity, 0.04) + 0.075)) 0%, rgba(var(--card-color, 255, 255, 255), calc(var(--card-opacity, 0.04) + 0.025)) 100%); }
 .wh-leggera #room-energia .en-pt { display: none; }
 .wh-leggera #room-energia .en-pill .en-freccia { display: inline-block; }
 .wh-leggera #room-energia .en-nodo { box-shadow: none; }
