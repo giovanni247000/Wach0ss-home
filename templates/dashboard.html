@@ -2,6 +2,39 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <script>
+    /* [M8] SESSIONE FINITA (05/10/2026): utente eliminato o sessione non piu' valida (password cambiata
+       dall'amministratore, chiave nuova dell'impianto) -> le richieste del sito tornano dirottate su /login.
+       La pagina gia' aperta va al login una volta sola, invece di restare ferma coi dati vecchi. Solo risposte
+       dello stesso sito; le risposte non si toccano: a sessione valida nessun effetto. Un 403 (le API da
+       amministratore senza login non dirottano) fa solo una verifica, al massimo ogni 10 s, su /api/location. */
+    (function () {
+        if (!window.fetch || window.__whSessioneFinita) return;
+        window.__whSessioneFinita = true;
+        var originale = window.fetch, andato = false, verificata = 0;
+        function alLogin() { if (andato) return; andato = true; try { window.location.replace('/login'); } catch (e) { /* niente */ } }
+        function alLoginSeServe(r) { try { if (r && r.redirected && new URL(r.url, window.location.href).pathname === '/login') alLogin(); } catch (e) { /* niente */ } }
+        function verifica() {
+            var t = Date.now(); if (andato || t - verificata < 10000) return; verificata = t;
+            originale.call(window, '/api/location', { cache: 'no-store', credentials: 'same-origin' }).then(alLoginSeServe, function () { /* rete */ });
+        }
+        window.fetch = function () {
+            return originale.apply(window, arguments).then(function (r) {
+                try {
+                    if (!andato && r && r.url) {
+                        var u = new URL(r.url, window.location.href);
+                        if (u.origin === window.location.origin) {
+                            if (r.redirected && u.pathname === '/login') alLogin();
+                            else if (r.status === 401) r.clone().json().then(function (j) { if (j && j.error === 'login richiesto') alLogin(); }, function () { /* non JSON */ });
+                            else if (r.status === 403) verifica();
+                        }
+                    }
+                } catch (e) { /* mai un errore in piu' per chi ha chiesto */ }
+                return r;
+            });
+        };
+    })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Smart Home Wach0ss</title>
     <link rel="manifest" href="/static/manifest.json">

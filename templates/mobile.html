@@ -2,6 +2,39 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <script>
+    /* [M8] SESSIONE FINITA (05/10/2026): utente eliminato o sessione non piu' valida (password cambiata
+       dall'amministratore, chiave nuova dell'impianto) -> le richieste del sito tornano dirottate su /login.
+       La pagina gia' aperta va al login una volta sola, invece di restare ferma coi dati vecchi. Solo risposte
+       dello stesso sito; le risposte non si toccano: a sessione valida nessun effetto. Un 403 (le API da
+       amministratore senza login non dirottano) fa solo una verifica, al massimo ogni 10 s, su /api/location. */
+    (function () {
+        if (!window.fetch || window.__whSessioneFinita) return;
+        window.__whSessioneFinita = true;
+        var originale = window.fetch, andato = false, verificata = 0;
+        function alLogin() { if (andato) return; andato = true; try { window.location.replace('/login'); } catch (e) { /* niente */ } }
+        function alLoginSeServe(r) { try { if (r && r.redirected && new URL(r.url, window.location.href).pathname === '/login') alLogin(); } catch (e) { /* niente */ } }
+        function verifica() {
+            var t = Date.now(); if (andato || t - verificata < 10000) return; verificata = t;
+            originale.call(window, '/api/location', { cache: 'no-store', credentials: 'same-origin' }).then(alLoginSeServe, function () { /* rete */ });
+        }
+        window.fetch = function () {
+            return originale.apply(window, arguments).then(function (r) {
+                try {
+                    if (!andato && r && r.url) {
+                        var u = new URL(r.url, window.location.href);
+                        if (u.origin === window.location.origin) {
+                            if (r.redirected && u.pathname === '/login') alLogin();
+                            else if (r.status === 401) r.clone().json().then(function (j) { if (j && j.error === 'login richiesto') alLogin(); }, function () { /* non JSON */ });
+                            else if (r.status === 403) verifica();
+                        }
+                    }
+                } catch (e) { /* mai un errore in piu' per chi ha chiesto */ }
+                return r;
+            });
+        };
+    })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script>
     /* GRANDEZZA PAGINA (Impostazioni > Aspetto dell'app > Grandezza pagina, 26/09/2026).
@@ -4666,7 +4699,7 @@ html.wh-scala .imp-pagina {
 }
 </style>
 {%- if inverter_attivo %}{# [ENERGIA] M1 #}<link rel="stylesheet" href="/static/energia.css?v=2026-10-04c">{% endif %}
-{%- if calendari_attivo %}{# [CALENDARI] P1 #}<link rel="stylesheet" href="/static/calendari.css?v=2026-10-04b">{% endif %}
+{%- if calendari_attivo %}{# [CALENDARI] P1 #}<link rel="stylesheet" href="/static/calendari.css?v=2026-10-05b">{% endif %}
 </head>
 <body>
     
@@ -5242,7 +5275,7 @@ html.wh-scala .imp-pagina {
                 <div class="cal-in" id="cal-in"></div>
             </div>
             <script src="/static/popup.js" defer></script>
-            <script src="/static/calendari.js?v=2026-10-04c" defer></script>
+            <script src="/static/calendari.js?v=2026-10-05b" defer></script>
 {% endif %}
             
         </div>
