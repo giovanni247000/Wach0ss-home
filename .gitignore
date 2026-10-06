@@ -1,0 +1,5 @@
+voci/
+static/annunci/
+annunci_piper.log
+chiave_sessioni.bin
+chiave_sessioni.bin.*.tmp
