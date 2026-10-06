@@ -13,6 +13,26 @@
    (CHIAVI). Popup: chiedi()/avvisa() di static/popup.js (mai confirm/alert: nella WebView iOS non compaiono).
    ANIMAZIONI: solo transform/opacity (entrata dei pannelli, foglio che sale, cambio di mese); niente in Modalita'
    leggera (html.wh-leggera) ne' con prefers-reduced-motion.
+   SENZA SFARFALLIO (05/10/2026, vedi disegna): #cal-in non si rifa' piu' con innerHTML ma si aggiorna (solo attributi e
+   testi cambiati, tessere e pannelli riconosciuti da data-k); l'entrata solo sui pannelli nuovi della prima apertura e
+   dell'apertura di un calendario; tornando all'elenco (e riaprendo la sezione) le tessere compaiono subito, ferme, e
+   l'elenco torna allo scorrimento di prima.
+   SENZA SALTI (05/10/2026 sera, 2026-10-05b, vedi primaDelCambio/dopoIlCambio): in un aggiornamento della stessa vista
+   lo scorrimento resta fermo sul primo pannello visibile, i pannelli spostati scivolano al posto nuovo (transform .25 s)
+   e le righe nuove dei Prossimi (ora con chiave data-k) entrano con una breve opacita'; in leggera solo l'ancoraggio.
+   CHI LO VEDE (04/10 sera): ogni calendario ha accesso {modo: tutti|privato|persone, utenti} e, per chi chiede,
+   modificabile e creato_da_nome (calendari.py 2026-10-04c). Lucchetto (privato) o persone (scelte) sulla tessera e
+   nella testata; "Creato da" quando non e' tuo; tasto Modifica solo se modificabile. Nel foglio Crea/Modifica la scelta
+   Tutti / Solo io / Persone scelte (righe da 52 px da spuntare col dito; chi l'ha creato sempre dentro): "Chi avvisare"
+   mostra solo chi ha accesso e Telegram/Sonos (canali di tutta la casa) si spengono come proposta, con l'avviso se li
+   si riaccende. Calendario sparito (accesso tolto, cancellato) = 404 non_trovato: si torna all'elenco con un toast,
+   mai un popup d'errore. S.info.persone resta SEMPRE l'elenco di tutti gli utenti (serve alle scelte): i dati di un
+   calendario portano solo le persone con accesso e da li' si prendono solo i colori.
+   CORREZIONI (04/10 notte, calendari.py 2026-10-04d): "Chi avvisare" manda SEMPRE telegram/sonos per i calendari non di
+   tutti (anche col canale spento nella card: il valore salvato, o false); il colore preso si guarda su TUTTI gli utenti
+   (il server rifiuta un colore di chiunque); infoAccesso(): oltre 3 persone "Tu, anna e altri 2" (elenco intero nel
+   title e al tocco del chip in testata), "Solo tu" col lucchetto se fra gli utenti esistenti resti solo tu, "e gli
+   amministratori" quando chi l'ha creato non c'e' piu' (lo vedono anche loro, per gestirlo).
    ============================================================================ */
 (function () {
     'use strict';
@@ -90,6 +110,32 @@
     function avviso(t) { if (typeof window.avvisa === 'function') return window.avvisa(t, { titolo: T('Calendari') }); toast(t); return Promise.resolve(); }
     function domanda(t, o) { return typeof window.chiedi === 'function' ? window.chiedi(t, o || {}) : Promise.resolve(false); }
     function persona(id) { var p = (S.info && S.info.persone || []).filter(function (x) { return x.id === id; })[0]; return p || { id: id, nome: '?', colore: '#8E8E93' }; }
+    /* chi lo vede */
+    function mioId() { return S.info && S.info.io ? S.info.io.id : null; }
+    function accesso(c) { var a = c && c.accesso; return a && a.modo ? a : { modo: 'tutti', utenti: [] }; }
+    function esiste(id) { return (S.info && S.info.persone || []).some(function (x) { return x.id === id; }); }
+    function nomeCreatore(c) { return c && c.creato_da_nome ? c.creato_da_nome : T('un utente eliminato'); }
+    function mio(c) { return !c || c.creato_da === mioId(); }
+    function orfano(c) { return !!c && !esiste(c.creato_da); }   // chi l'ha creato non c'e' piu': lo vedono gli amministratori
+    // chi lo vede, per la tessera e la testata: null per i calendari di tutti; {ico, corto (tessera), breve (testata),
+    // intero (title, aria-label, tocco sul chip)}. Contano solo gli
+    // utenti che esistono: se resti solo tu e' "Solo tu" (lucchetto) anche a persone scelte
+    function infoAccesso(c) {
+        var a = accesso(c); if (a.modo === 'tutti') return null;
+        var me = mioId(), orf = orfano(c), chi = [];
+        (a.modo === 'persone' ? (a.utenti || []) : []).concat([c.creato_da]).forEach(function (id) { if (esiste(id) && chi.indexOf(id) < 0) chi.push(id); });
+        var peso = function (id) { return id === me ? 0 : id === c.creato_da ? 1 : 2; };   // tu, poi chi l'ha creato, poi gli altri
+        chi.sort(function (x, y) { return peso(x) - peso(y) || x - y; });
+        var nomi = chi.map(function (id) { return id === me ? T('tu') : persona(id).nome; });
+        if (orf) nomi.push(T('gli amministratori'));
+        if (nomi.length === 1) {
+            var solo = orf ? T('Solo gli amministratori') : chi[0] === me ? T('Solo tu') : T('Solo {n}', { n: nomi[0] });
+            return { ico: 'lock', corto: solo, breve: solo, intero: solo };
+        }
+        var intero = maiu(elenco(nomi));
+        return { ico: 'users', intero: intero, breve: nomi.length > 3 ? maiu(T('{a} e altri {n}', { a: nomi.slice(0, 2).join(', '), n: nomi.length - 2 })) : intero,
+                 corto: nomi.length > 2 ? maiu(T('{a} e altri {n}', { a: nomi[0], n: nomi.length - 1 })) : intero };
+    }
     function opzioniOre(passo, da, a, scelta, prime) {
         var o = prime || '', trovata = false;
         for (var m = da * 60; m <= a * 60 + 59; m += passo) {
@@ -117,14 +163,31 @@
     }
     function errore(e) {
         if (e && e.codice === 'inattivo') { S.inattivo = true; disegna(); return; }
+        if (e && e.codice === 'non_trovato') { sparito(e); return; }
         avviso((e && e.message) || T('Operazione non riuscita'));
+    }
+    // calendario o impegno che non c'e' piu' (cancellato, o l'accesso e' stato tolto): niente popup d'errore, si
+    // rilegge tutto; se era il calendario aperto si torna all'elenco (cosi' non si riprova all'infinito)
+    function sparito(e, calId) {
+        chiudiFoglio();
+        if (calId) {
+            S.calendari = S.calendari.filter(function (x) { return x.id !== calId; });
+            if (S.cal === calId) { S.vista = 'elenco'; S.dati = null; }
+            disegna(false);
+            toast(T('Questo calendario non è più disponibile'));
+            caricaTutto(true);
+            return;
+        }
+        // impegno sparito, o il calendario aperto: se la rilettura toglie il calendario lo dice lei (un toast solo)
+        S.avvisato = false;
+        caricaTutto(true).then(function () { if (!S.avvisato) toast((e && e.message) || T('Operazione non riuscita')); });
     }
 
     /* ======================================================================
        STATO
        ====================================================================== */
     var S = { info: null, calendari: [], prossimi: [], vista: 'elenco', cal: null, anno: 0, mese: 0, dati: null, sel: null,
-              inattivo: false, errore: '', carico: false, tCarico: 0, giro: 0 };
+              inattivo: false, errore: '', carico: false, tCarico: 0, giro: 0, yElenco: null };
     function calDi(id) { return S.calendari.filter(function (c) { return c.id === id; })[0] || null; }
 
     function caricaTutto(silenzioso) {
@@ -139,7 +202,7 @@
                 if (r[1] && r[1].status === 'success') S.calendari = r[1].calendari || [];
                 if (r[2] && r[2].status === 'success') S.prossimi = r[2].prossimi || [];
                 if (!S.anno || (vecchioOggi && vecchioOggi !== S.info.oggi && S.vista === 'elenco')) { S.anno = +S.info.oggi.slice(0, 4); S.mese = +S.info.oggi.slice(5, 7); }
-                if (S.vista === 'cal' && !calDi(S.cal)) S.vista = 'elenco';
+                if (S.vista === 'cal' && !calDi(S.cal)) { S.vista = 'elenco'; S.dati = null; S.avvisato = true; toast(T('Questo calendario non è più disponibile')); chiudiFoglio(); }
                 if (S.vista === 'cal' && !S.inattivo) return caricaMese(!silenzioso);
                 disegna(!silenzioso);
             })
@@ -160,37 +223,159 @@
         return api('GET', '/api/calendari/' + c.id + '/giorni?dal=' + gr.dal + '&al=' + gr.al + '&anno=' + S.anno + '&mese=' + S.mese)
             .then(function (j) {
                 if (g !== S.giro) return;
-                S.dati = j; if (j.persone && S.info) S.info.persone = j.persone;
+                S.dati = j; colori(j.persone);
                 if (j.calendario) { for (var i = 0; i < S.calendari.length; i++) if (S.calendari[i].id === j.calendario.id) { j.calendario.riassunto = S.calendari[i].riassunto; S.calendari[i] = j.calendario; } }
                 disegna(entrata, verso);
             })
-            .catch(function (e) { if (g === S.giro) errore(e); });
+            .catch(function (e) { if (g !== S.giro) return; if (e && e.codice === 'non_trovato') sparito(e, c.id); else errore(e); });
+    }
+    // i dati di un calendario hanno solo le persone con accesso: da li' si prendono i colori, l'elenco resta di tutti
+    function colori(lista) {
+        if (!lista || !S.info) return;
+        lista.forEach(function (p) { var q = (S.info.persone || []).filter(function (x) { return x.id === p.id; })[0]; if (q) q.colore = p.colore; else S.info.persone.push(p); });
     }
 
     /* ======================================================================
        DISEGNO
        ====================================================================== */
-    var tEntrata = 0;
+    /* SENZA SFARFALLIO (05/10/2026). Prima ogni disegna() rifaceva #cal-in con innerHTML e l'entrata era una classe sul
+       contenitore (.cal-anima > *): tornando all'elenco si disegnava con l'entrata e, ~100-300 ms dopo, la rilettura
+       (caricaTutto) rifaceva tutto da capo con la classe ancora su -> le tessere, a meta' dissolvenza, tornavano a
+       opacita' 0 e ripartivano (lo sfarfallio segnalato); lo stesso alla riapertura della sezione dopo 20 s, e ogni
+       rilettura (spunta, foglio salvato, ritorno sulla scheda, cambio mese) ricreava tutti i pannelli di vetro.
+       Ora: l'HTML nuovo si costruisce fuori pagina (icone comprese) e #cal-in si AGGIORNA (figli()): i nodi uguali restano
+       quelli di prima, di quelli cambiati si cambiano solo attributi e testi; le tessere e i pannelli si riconoscono dalla
+       chiave data-k (tessera = id del calendario). L'animazione d'entrata (cal-entra) va solo sui pannelli NUOVI di un
+       disegno con entrata (prima apertura, apertura di un calendario): un pannello che c'e' gia' non riparte mai.
+       Le classi passeggere (entrata, giorno spuntato, cambio di mese) restano finche' la loro animazione finisce. */
+    var PASSEGGERE = ['cal-entra', 'cal-pop', 'cal-da-dx', 'cal-da-sx', 'cal-nuova'];
+    function chiave(n) { return n.nodeType === 1 ? n.getAttribute('data-k') : null; }
+    function attributi(v, n) {
+        var a = n.attributes, i, x;
+        for (i = 0; i < a.length; i++) { x = a[i]; if (x.name !== 'class' && v.getAttribute(x.name) !== x.value) v.setAttribute(x.name, x.value); }
+        for (i = v.attributes.length - 1; i >= 0; i--) { x = v.attributes[i].name; if (x !== 'class' && !n.hasAttribute(x)) v.removeAttribute(x); }
+        var cls = n.getAttribute('class') || '', parti = cls ? cls.split(' ') : [];
+        PASSEGGERE.forEach(function (t) { if (v.classList.contains(t) && parti.indexOf(t) < 0) parti.push(t); });
+        cls = parti.join(' ');
+        if ((v.getAttribute('class') || '') !== cls) { if (cls) v.setAttribute('class', cls); else v.removeAttribute('class'); }
+    }
+    function morfa(v, n) {   // v: nodo della pagina, n: nodo nuovo dello stesso tipo
+        if (v.nodeType !== 1) { if (v.nodeValue !== n.nodeValue) v.nodeValue = n.nodeValue; return; }
+        if (v.isEqualNode(n)) return;
+        attributi(v, n);
+        figli(v, n);
+    }
+    // porta i figli di 'par' (pagina) a essere quelli di 'np' (nuovo): con chiave si cercano per chiave, senza si prende il
+    // nodo nella stessa posizione se e' dello stesso tag; quelli che non servono piu' si tolgono. Rende i nodi NUOVI.
+    function figli(par, np) {
+        var vecchi = {}, x, k, pos, creati = [];
+        for (x = par.firstChild; x; x = x.nextSibling) { k = chiave(x); if (k) vecchi[k] = x; }
+        pos = par.firstChild;
+        [].slice.call(np.childNodes).forEach(function (n) {
+            var kn = chiave(n), m = null;
+            if (kn) { m = vecchi[kn] || null; if (m && m.nodeName !== n.nodeName) m = null; if (m) delete vecchi[kn]; }
+            else if (pos && !chiave(pos) && pos.nodeName === n.nodeName) m = pos;
+            if (m) { if (m === pos) pos = pos.nextSibling; else par.insertBefore(m, pos); morfa(m, n); }
+            else { par.insertBefore(n, pos); creati.push(n); }
+        });
+        while (pos) { x = pos.nextSibling; par.removeChild(pos); pos = x; }
+        return creati;
+    }
+    // la pagina scorre in #app-wrapper (mobile.html), non nella finestra: prima window.scrollTo(0, 0) all'apertura di un
+    // calendario non faceva niente (si apriva a meta', con lo scorrimento dell'elenco). Salto secco, senza la scorrevolezza
+    // (scroll-behavior: smooth) di #app-wrapper: e' un cambio di vista, non uno scorrimento da guardare.
+    function scorritore() { return document.getElementById('app-wrapper') || document.scrollingElement || html; }
+    function scorri(y) { var w = scorritore(), b = w.style.scrollBehavior; w.style.scrollBehavior = 'auto'; w.scrollTop = y; w.style.scrollBehavior = b; }
+    function rianima(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+    // fine di un'animazione passeggera: la classe si toglie (il nodo resta, la prossima volta riparte da capo)
+    inn.addEventListener('animationend', function (e) {
+        PASSEGGERE.forEach(function (t) { var el = e.target.closest ? e.target.closest('.' + t) : null; if (el && inn.contains(el) && (el === e.target || t === 'cal-pop')) el.classList.remove(t); });
+    });
+    /* SENZA SALTI (05/10/2026 sera). Un aggiornamento della STESSA vista (la rilettura dopo il ritorno all'elenco, una
+       spunta, un foglio salvato, il ritorno sulla scheda) puo' cambiare l'altezza di un pannello: se un altro utente ha
+       aggiunto un impegno di oggi, la riga nuova dei Prossimi spingeva giu' di colpo tutte le tessere (+58 px in un
+       fotogramma a 390 px). Ora:
+       - lo scorrimento resta fermo sul primo pannello visibile (come lo scroll anchoring di Chrome, che Safari/WKWebView
+         non hanno): se il cambio e' sopra lo schermo, quel che si guarda non si muove; durante l'aggiornamento
+         l'ancoraggio del browser e' spento (overflow-anchor) perche' non si sommi a questo;
+       - (FLIP) i pannelli che si spostano partono da dove erano e scivolano al posto nuovo: solo transform, .25 s;
+       - le righe nuove dei Prossimi entrano con una breve opacita' (cal-nuova).
+       In Modalita' leggera e con reduced-motion solo l'ancoraggio dello scorrimento, niente movimento. */
+    var giroFlip = 0;
+    function primaDelCambio() {
+        var w = scorritore(), alto = (w === html || w === document.body || w === document.scrollingElement) ? 0 : w.getBoundingClientRect().top;
+        var pos = [], ancora = null, prox = inn.querySelector('[data-k="prossimi"]'), righe = [];
+        [].forEach.call(inn.querySelectorAll('[data-k]'), function (el) {
+            var r = el.getBoundingClientRect();
+            pos.push([el, r.top]);
+            if (!ancora && r.height > 0 && r.top >= alto - 0.5 && r.top < alto + w.clientHeight) ancora = [el, r.top];
+        });
+        if (prox) righe = [].slice.call(prox.querySelectorAll('[data-k]'));
+        var oa = w.style.overflowAnchor; w.style.overflowAnchor = 'none';
+        return { w: w, oa: oa, pos: pos, ancora: ancora, prox: prox, righe: righe };
+    }
+    function dopoIlCambio(p) {
+        var w = p.w;
+        if (p.ancora && p.ancora[0].isConnected) {
+            var d = p.ancora[0].getBoundingClientRect().top - p.ancora[1];
+            if (Math.abs(d) >= 1) scorri(w.scrollTop + d);
+        }
+        requestAnimationFrame(function () { w.style.overflowAnchor = p.oa; });
+        if (leggera()) return;
+        var mossi = [], giro = ++giroFlip;
+        p.pos.forEach(function (x) {
+            var el = x[0];
+            if (!el.isConnected || PASSEGGERE.some(function (t) { return el.classList.contains(t); })) return;
+            // il rettangolo comprende gia' lo spostamento dato al pannello che lo contiene: chi si muove con lui resta fermo
+            var d = x[1] - el.getBoundingClientRect().top;
+            if (Math.abs(d) < 2) return;
+            el.style.transition = 'none'; el.style.transform = 'translateY(' + Math.round(d) + 'px)';
+            el.__calFlip = giro; mossi.push(el);
+        });
+        if (p.prox && p.prox.isConnected) {
+            [].forEach.call(p.prox.querySelectorAll('[data-k]'), function (el) { if (p.righe.indexOf(el) < 0) rianima(el, 'cal-nuova'); });
+            setTimeout(function () { [].forEach.call(inn.querySelectorAll('.cal-nuova'), function (el) { el.classList.remove('cal-nuova'); }); }, 450);
+        }
+        if (!mossi.length) return;
+        void inn.offsetWidth;
+        requestAnimationFrame(function () {
+            mossi.forEach(function (el) { if (el.__calFlip === giro) { el.style.transition = 'transform .25s var(--cal-curva)'; el.style.transform = ''; } });
+            setTimeout(function () { mossi.forEach(function (el) { if (el.__calFlip === giro) { el.style.transition = ''; el.__calFlip = 0; } }); }, 320);
+        });
+    }
+    var tEntrata = 0, tVerso = 0, vistaFatta = '';
     function disegna(entrata, verso) {
-        var h;
-        if (S.inattivo) h = testata() + '<section class="cal-pan cal-vuoto">' + I('calendar-x-2') + '<h3>' + esc(T('L\'integrazione Calendari non e\' attiva')) + '</h3><p>' + esc(T('Si attiva dallo Store delle integrazioni. I calendari restano salvati.')) + '</p></section>';
-        else if (!S.carico) h = testata() + '<section class="cal-pan cal-vuoto">' + (S.errore ? I('wifi-off') + '<h3>' + esc(S.errore) + '</h3><button type="button" class="cal-btn" data-az="riprova">' + I('refresh-cw') + '<span>' + esc(T('Riprova')) + '</span></button>' : '<div class="cal-attesa"></div><p>' + esc(T('Caricamento…')) + '</p>') + '</section>';
-        else if (S.vista === 'cal' && calDi(S.cal) && S.dati) h = vistaCal(calDi(S.cal));
+        var h, vista = 'elenco';
+        if (S.inattivo) { vista = 'inattivo'; h = testata() + '<section class="cal-pan cal-vuoto" data-k="inattivo">' + I('calendar-x-2') + '<h3>' + esc(T('L\'integrazione Calendari non e\' attiva')) + '</h3><p>' + esc(T('Si attiva dallo Store delle integrazioni. I calendari restano salvati.')) + '</p></section>'; }
+        else if (!S.carico) { vista = 'attesa'; h = testata() + '<section class="cal-pan cal-vuoto" data-k="' + (S.errore ? 'errore' : 'attesa') + '">' + (S.errore ? I('wifi-off') + '<h3>' + esc(S.errore) + '</h3><button type="button" class="cal-btn" data-az="riprova">' + I('refresh-cw') + '<span>' + esc(T('Riprova')) + '</span></button>' : '<div class="cal-attesa"></div><p>' + esc(T('Caricamento…')) + '</p>') + '</section>'; }
+        else if (S.vista === 'cal' && calDi(S.cal) && S.dati) { vista = 'cal' + S.cal; h = vistaCal(calDi(S.cal)); }
         else h = vistaElenco();
-        inn.innerHTML = h;
-        icone(inn);
-        if (entrata && !leggera()) {
-            inn.classList.remove('cal-anima'); void inn.offsetWidth; inn.classList.add('cal-anima');
-            clearTimeout(tEntrata); tEntrata = setTimeout(function () { inn.classList.remove('cal-anima'); }, 900);
+        var nuovo = document.createElement('div');
+        nuovo.innerHTML = h;
+        icone(nuovo);                       // icone gia' fatte fuori pagina: si confrontano svg con svg
+        var misura = (vista === vistaFatta && root.classList.contains('active')) ? primaDelCambio() : null;   // stessa vista: senza salti
+        var creati = figli(inn, nuovo);
+        // cambio di vista: il calendario si apre dall'alto, l'elenco torna dove era (adesso, non al tocco: niente salti)
+        if (vista !== vistaFatta) {
+            if (vista.slice(0, 3) === 'cal') scorri(0);
+            else if (vista === 'elenco' && vistaFatta.slice(0, 3) === 'cal' && S.yElenco !== null) { scorri(S.yElenco); S.yElenco = null; }
+            vistaFatta = vista;
+        } else if (misura) dopoIlCambio(misura);
+        if (entrata && !leggera() && creati.length) {
+            creati.forEach(function (n) { if (n.nodeType === 1) rianima(n, 'cal-entra'); });
+            clearTimeout(tEntrata); tEntrata = setTimeout(function () { [].forEach.call(inn.querySelectorAll(':scope > .cal-entra'), function (n) { n.classList.remove('cal-entra'); }); }, 900);
         }
         if (verso && !leggera()) {
             var gr = document.getElementById('cal-giorni');
-            if (gr) { gr.classList.add(verso > 0 ? 'cal-da-dx' : 'cal-da-sx'); setTimeout(function () { gr.classList.remove('cal-da-dx', 'cal-da-sx'); }, 400); }
+            if (gr) {
+                gr.classList.remove('cal-da-dx', 'cal-da-sx'); rianima(gr, verso > 0 ? 'cal-da-dx' : 'cal-da-sx');
+                clearTimeout(tVerso); tVerso = setTimeout(function () { gr.classList.remove('cal-da-dx', 'cal-da-sx'); }, 400);
+            }
         }
     }
     function testata(sotto) {
         var oggi = S.info ? giornoLungo(S.info.oggi) : '';
-        return '<header class="cal-testa"><div class="cal-testa-txt"><div class="cal-eyebrow">' + I('calendar-days', 'cal-ic') + '<span>' + esc(oggi) + '</span></div>' +
+        return '<header class="cal-testa" data-k="testa"><div class="cal-testa-txt"><div class="cal-eyebrow">' + I('calendar-days', 'cal-ic') + '<span>' + esc(oggi) + '</span></div>' +
                '<h1 class="cal-titolo">' + esc(T('Calendari')) + '</h1></div>' + (sotto || '') + '</header>';
     }
 
@@ -199,32 +384,35 @@
         var nuovo = '<button type="button" class="cal-btn cal-btn-pri" data-az="nuovo">' + I('plus') + '<span>' + esc(T('Nuovo calendario')) + '</span></button>';
         var h = testata(nuovo);
         if (!S.calendari.length) {
-            return h + '<section class="cal-pan cal-vuoto cal-primo">' + I('calendar-plus') + '<h3>' + esc(T('Nessun calendario')) + '</h3>' +
+            return h + '<section class="cal-pan cal-vuoto cal-primo" data-k="primo">' + I('calendar-plus') + '<h3>' + esc(T('Nessun calendario')) + '</h3>' +
                 '<p>' + esc(T('Crea il primo: spunta i giorni, agenda con promemoria o raccolta rifiuti.')) + '</p>' +
                 '<div class="cal-tipi-vuoto">' + ['spunta', 'agenda', 'rifiuti'].map(function (t) {
                     return '<button type="button" class="cal-tipo-scelta" data-az="nuovo" data-tipo="' + t + '"><span class="cal-tile-ico" style="--c:' + ({ spunta: '#30D158', agenda: '#0A84FF', rifiuti: '#8E8E93' })[t] + '">' + I(ICONA_TIPO[t]) + '</span>' +
                         '<span class="cal-tipo-txt"><b>' + esc(T(NOME_TIPO[t])) + '</b><small>' + esc(T(DESC_TIPO[t])) + '</small></span></button>';
                 }).join('') + '</div></section>';
         }
-        return h + '<div class="cal-el">' + pannelloProssimi() + '<section class="cal-tiles" aria-label="' + esc(T('Calendari')) + '">' + S.calendari.map(tile).join('') + '</section></div>';
+        return h + '<div class="cal-el" data-k="elenco">' + pannelloProssimi() + '<section class="cal-tiles" data-k="tessere" aria-label="' + esc(T('Calendari')) + '">' + S.calendari.map(tile).join('') + '</section></div>';
     }
     function pannelloProssimi() {
         var oggi = S.info.oggi, domani = piuGiorni(oggi, 1);
         var voci = S.prossimi.filter(function (p) { return p.tipo === 'agenda' ? (p.giorno === oggi || p.giorno === domani) : p.giorno === domani; });
-        var h = '<section class="cal-pan cal-prossimi"><div class="cal-pan-testa"><div class="cal-eyebrow">' + I('bell', 'cal-ic') + '<span>' + esc(T('Prossimi')) + '</span></div><span class="cal-nota-dx">' + esc(T('oggi e domani')) + '</span></div>';
-        if (!voci.length) return h + '<div class="cal-prox-vuoto">' + I('sun') + '<span>' + esc(T('Niente in programma per oggi e domani')) + '</span></div></section>';
-        var gruppi = [[oggi, T('Oggi')], [domani, T('Domani')]];
+        var h = '<section class="cal-pan cal-prossimi" data-k="prossimi"><div class="cal-pan-testa"><div class="cal-eyebrow">' + I('bell', 'cal-ic') + '<span>' + esc(T('Prossimi')) + '</span></div><span class="cal-nota-dx">' + esc(T('oggi e domani')) + '</span></div>';
+        if (!voci.length) return h + '<div class="cal-prox-vuoto" data-k="vuoto">' + I('sun') + '<span>' + esc(T('Niente in programma per oggi e domani')) + '</span></div></section>';
+        var gruppi = [[oggi, T('Oggi')], [domani, T('Domani')]], viste = {};
+        // chiavi (05/10 sera): una riga nuova entra al suo posto e le altre restano gli stessi nodi (senza, si riconoscevano
+        // per posizione e una riga aggiunta in mezzo riscriveva tutte quelle sotto)
+        function kRiga(p) { var k = 'r' + [p.tipo, p.calendario_id, p.giorno, p.ora || '', p.titolo].join('|'); viste[k] = (viste[k] || 0) + 1; return esc(viste[k] > 1 ? k + '#' + viste[k] : k); }
         gruppi.forEach(function (g) {
             var del = voci.filter(function (p) { return p.giorno === g[0]; });
             if (!del.length) return;
-            h += '<div class="cal-prox-g">' + esc(g[1]) + '</div><ul class="cal-prox">';
+            h += '<div class="cal-prox-g" data-k="g' + g[0] + '">' + esc(g[1]) + '</div><ul class="cal-prox" data-k="u' + g[0] + '">';
             del.forEach(function (p) {
                 if (p.tipo === 'rifiuti') {
-                    h += '<li><button type="button" class="cal-prox-v" data-az="apri" data-id="' + p.calendario_id + '" data-g="' + p.giorno + '" style="--c:' + colore(p.colore) + '">' +
+                    h += '<li data-k="' + kRiga(p) + '"><button type="button" class="cal-prox-v" data-az="apri" data-id="' + p.calendario_id + '" data-g="' + p.giorno + '" style="--c:' + colore(p.colore) + '">' +
                         '<span class="cal-prox-ora cal-prox-pall">' + (p.raccolte || []).map(function (r) { return '<i style="--c:' + colore(r.colore) + '"></i>'; }).join('') + '</span>' +
                         '<span class="cal-prox-t"><b>' + esc(p.titolo) + '</b><small>' + esc(p.calendario) + ' · ' + esc(T('da portare fuori stasera')) + '</small></span></button></li>';
                 } else {
-                    h += '<li><button type="button" class="cal-prox-v" data-az="apri" data-id="' + p.calendario_id + '" data-g="' + p.giorno + '" style="--c:' + colore(p.colore) + '">' +
+                    h += '<li data-k="' + kRiga(p) + '"><button type="button" class="cal-prox-v" data-az="apri" data-id="' + p.calendario_id + '" data-g="' + p.giorno + '" style="--c:' + colore(p.colore) + '">' +
                         '<span class="cal-prox-ora">' + (p.ora ? esc(p.ora) : '<small>' + esc(T('tutto il giorno')) + '</small>') + '</span>' +
                         '<span class="cal-prox-t"><b>' + esc(p.titolo) + '</b><small>' + esc(p.calendario) + '</small></span></button></li>';
                 }
@@ -249,20 +437,24 @@
             riga = pr ? '<span class="cal-tile-sotto">' + esc(T('Domani')) + '</span><span class="cal-tile-prox"><span class="cal-pall-inl">' + (pr.raccolte || []).map(function (x) { return '<i style="--c:' + colore(x.colore) + '"></i>'; }).join('') + '</span>' + esc(pr.titolo) + '</span>'
                       : '<span class="cal-tile-sotto">' + esc(r.tipi ? T('Domani nessuna raccolta') : T('Giorni da impostare')) + '</span>';
         }
-        return '<div class="cal-pan cal-tile" style="--c:' + col + '"><button type="button" class="cal-tile-apri" data-az="apri" data-id="' + c.id + '" aria-label="' + esc(c.nome) + '"></button>' +
-               '<div class="cal-tile-testa"><span class="cal-tile-ico">' + I(c.icona) + '</span><span class="cal-tile-nomi"><b>' + esc(c.nome) + '</b><small>' + esc(T(NOME_BREVE[c.tipo])) + '</small></span>' + extra + '</div>' +
+        var ia = infoAccesso(c);   // il tipo resta sempre leggibile; dopo, lucchetto (solo tu) o persone; niente per i calendari di tutti
+        var sotto = '<span class="cal-tile-tipo">' + esc(T(NOME_BREVE[c.tipo])) + '</span>' + (ia ? '<span class="cal-acc-sep">·</span><span class="cal-acc" title="' + esc(ia.intero) + '">' + I(ia.ico, 'cal-ic') + '<span>' + esc(ia.corto) + '</span></span>' : '');
+        return '<div class="cal-pan cal-tile" data-k="t' + c.id + '" style="--c:' + col + '"><button type="button" class="cal-tile-apri" data-az="apri" data-id="' + c.id + '" aria-label="' + esc(c.nome + (ia ? ', ' + ia.intero : '')) + '"></button>' +
+               '<div class="cal-tile-testa"><span class="cal-tile-ico">' + I(c.icona) + '</span><span class="cal-tile-nomi"><b>' + esc(c.nome) + '</b><small>' + sotto + '</small></span>' + extra + '</div>' +
                '<div class="cal-tile-riga">' + riga + '</div></div>';
     }
 
     /* ---------------------------------------------------------------- calendario */
     function vistaCal(c) {
-        var col = colore(c.colore);
-        var h = '<header class="cal-testa cal-testa-cal" style="--c:' + col + '">' +
+        var col = colore(c.colore), ia = infoAccesso(c);
+        var h = '<header class="cal-testa cal-testa-cal" data-k="testa-cal" style="--c:' + col + '">' +
             '<button type="button" class="cal-ico-btn" data-az="indietro" aria-label="' + esc(T('Indietro')) + '">' + I('chevron-left') + '</button>' +
             '<span class="cal-tile-ico cal-testa-ico">' + I(c.icona) + '</span>' +
-            '<div class="cal-testa-txt"><div class="cal-eyebrow"><span>' + esc(T(NOME_BREVE[c.tipo])) + '</span></div><h1 class="cal-titolo cal-titolo-cal">' + esc(c.nome) + '</h1></div>' +
-            '<button type="button" class="cal-ico-btn" data-az="modifica" aria-label="' + esc(T('Modifica')) + '">' + I('pencil') + '</button></header>';
-        h += '<div class="cal-corpo"><section class="cal-pan cal-mese" style="--c:' + col + '">' + testaMese() + grigliaMese(c) + '</section><div class="cal-lato" style="--c:' + col + '">';
+            '<div class="cal-testa-txt"><div class="cal-eyebrow"><span>' + esc(T(NOME_BREVE[c.tipo])) + '</span>' +
+            (ia ? '<button type="button" class="cal-acc-chip" data-az="chi-lo-vede" title="' + esc(ia.intero) + '" aria-label="' + esc(T('Chi lo vede: {x}', { x: ia.intero })) + '">' + I(ia.ico, 'cal-ic') + '<span>' + esc(ia.breve) + '</span></button>' : '') + '</div>' +
+            '<h1 class="cal-titolo cal-titolo-cal">' + esc(c.nome) + '</h1>' + (mio(c) ? '' : '<div class="cal-creato">' + esc(T('Creato da {n}', { n: nomeCreatore(c) })) + '</div>') + '</div>' +
+            (c.modificabile ? '<button type="button" class="cal-ico-btn" data-az="modifica" aria-label="' + esc(T('Modifica')) + '">' + I('pencil') + '</button>' : '') + '</header>';
+        h += '<div class="cal-corpo" data-k="corpo"><section class="cal-pan cal-mese" data-k="mese" style="--c:' + col + '">' + testaMese() + grigliaMese(c) + '</section><div class="cal-lato" data-k="lato-' + c.tipo + '" style="--c:' + col + '">';
         if (c.tipo === 'spunta') h += latoSpunta(c);
         else if (c.tipo === 'agenda') h += latoAgenda(c);
         else h += latoRifiuti(c);
@@ -314,24 +506,26 @@
         var d = S.dati, io = d.io || S.info.io.id, st = (d.statistiche || {})[String(io)] || {}, oggi = S.info.oggi;
         var fatto = ((d.spunte || {})[oggi] || []).indexOf(io) >= 0;
         var mioCol = colore(persona(io).colore);
-        var h = '<section class="cal-pan cal-oggi-pan" style="--io:' + mioCol + '"><button type="button" class="cal-grande' + (fatto ? ' cal-on' : '') + '" data-az="spunta" data-g="' + oggi + '" aria-pressed="' + (fatto ? 'true' : 'false') + '">' +
+        var h = '<section class="cal-pan cal-oggi-pan" data-k="oggi" style="--io:' + mioCol + '"><button type="button" class="cal-grande' + (fatto ? ' cal-on' : '') + '" data-az="spunta" data-g="' + oggi + '" aria-pressed="' + (fatto ? 'true' : 'false') + '">' +
             '<span class="cal-grande-ico">' + I('check') + '</span><span class="cal-grande-t"><b>' + esc(fatto ? T('Fatto oggi') : T('Segna oggi')) + '</b><small>' + esc(fatto ? T('Tocca di nuovo per togliere la spunta') : T('Oppure tocca un giorno del mese')) + '</small></span></button></section>';
         var meseNome = titoloMese(S.anno, S.mese);
-        h += '<section class="cal-pan cal-stat"><div class="cal-pan-testa"><div class="cal-eyebrow">' + I('flame', 'cal-ic') + '<span>' + esc(T('Le tue spunte')) + '</span></div></div><div class="cal-numeri">' +
+        h += '<section class="cal-pan cal-stat" data-k="stat"><div class="cal-pan-testa"><div class="cal-eyebrow">' + I('flame', 'cal-ic') + '<span>' + esc(T('Le tue spunte')) + '</span></div></div><div class="cal-numeri">' +
             numero(st.serie || 0, T('Serie'), (st.serie === 1 ? T('giorno di fila') : T('giorni di fila'))) +
             numero(st.serie_migliore || 0, T('Migliore'), T('la serie più lunga')) +
             numero((st.percentuale || 0) + '%', meseNome, T('{f} su {g} giorni', { f: st.fatti || 0, g: st.giorni || 0 })) + '</div>' +
             '<div class="cal-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + (st.percentuale || 0) + '"><i style="transform:scaleX(' + Math.min(1, (st.percentuale || 0) / 100) + ');background:' + mioCol + '"></i></div></section>';
         var pers = (d.persone || S.info.persone || []);
-        h += '<section class="cal-pan cal-persone"><div class="cal-pan-testa"><div class="cal-eyebrow">' + I('users', 'cal-ic') + '<span>' + esc(T('Tutta la casa')) + '</span></div><span class="cal-nota-dx">' + esc(meseNome) + '</span></div><ul class="cal-pers">';
+        h += '<section class="cal-pan cal-persone" data-k="persone"><div class="cal-pan-testa"><div class="cal-eyebrow">' + I(accesso(c).modo === 'tutti' ? 'users' : infoAccesso(c).ico, 'cal-ic') + '<span>' + esc(accesso(c).modo === 'tutti' ? T('Tutta la casa') : T('Chi lo vede')) + '</span></div><span class="cal-nota-dx">' + esc(meseNome) + '</span></div><ul class="cal-pers">';
         pers.forEach(function (p) {
             var s = (d.statistiche || {})[String(p.id)] || {}, f = ((d.spunte || {})[oggi] || []).indexOf(p.id) >= 0;
             h += '<li style="--c:' + colore(p.colore) + '"><i class="cal-pers-dot"></i><span class="cal-pers-n">' + esc(p.nome) + (p.id === io ? ' <small>(' + esc(T('tu')) + ')</small>' : '') + '</span>' +
                  '<span class="cal-pers-oggi' + (f ? ' cal-on' : '') + '" title="' + esc(f ? T('Fatto oggi') : T('Da fare oggi')) + '">' + I(f ? 'check' : 'minus') + '</span>' +
                  '<span class="cal-pers-v"><b>' + (s.percentuale || 0) + '%</b><small>' + esc(T('serie {n}', { n: s.serie || 0 })) + '</small></span></li>';
         });
-        var presi = {};   // colori gia' di un'altra persona: due persone dello stesso colore non si distinguerebbero
-        pers.forEach(function (p) { if (p.id !== io && p.colore) presi[String(p.colore).toUpperCase()] = p.nome; });
+        // colori gia' di un'altra persona (di TUTTA la casa, anche senza accesso a questo calendario: il server rifiuta un
+        // colore di chiunque, e i nomi degli utenti sono gia' nel foglio "Chi lo vede")
+        var presi = {};
+        (S.info.persone || []).forEach(function (p) { if (p.id !== io && p.colore) presi[String(p.colore).toUpperCase()] = p.nome; });
         h += '</ul><div class="cal-sotto-t">' + esc(T('Il tuo colore')) + '</div><div class="cal-colori" role="radiogroup" aria-label="' + esc(T('Il tuo colore')) + '">' +
              COLORI.slice(0, 10).map(function (k) {
                  var su = k.toUpperCase() === mioCol.toUpperCase(), di = !su && presi[k.toUpperCase()];
@@ -345,7 +539,7 @@
     /* agenda */
     function latoAgenda(c) {
         var g = S.sel || S.info.oggi, del = (S.dati.occorrenze || []).filter(function (o) { return o.giorno === g; });
-        var h = '<section class="cal-pan cal-giorno-pan"><div class="cal-pan-testa"><div class="cal-giorno-tit"><small>' + esc(g === S.info.oggi ? T('Oggi') : g === piuGiorni(S.info.oggi, 1) ? T('Domani') : MESI[dataD(g).getUTCMonth()] + ' ' + dataD(g).getUTCFullYear()) + '</small><b>' + esc(giornoLungo(g)) + '</b></div>' +
+        var h = '<section class="cal-pan cal-giorno-pan" data-k="giorno"><div class="cal-pan-testa"><div class="cal-giorno-tit"><small>' + esc(g === S.info.oggi ? T('Oggi') : g === piuGiorni(S.info.oggi, 1) ? T('Domani') : MESI[dataD(g).getUTCMonth()] + ' ' + dataD(g).getUTCFullYear()) + '</small><b>' + esc(giornoLungo(g)) + '</b></div>' +
             '<button type="button" class="cal-btn cal-btn-pri" data-az="evento-nuovo" data-g="' + g + '">' + I('plus') + '<span>' + esc(T('Aggiungi')) + '</span></button></div>';
         if (!del.length) h += '<div class="cal-prox-vuoto">' + I('calendar') + '<span>' + esc(T('Nessun impegno in questo giorno')) + '</span></div>';
         else {
@@ -361,7 +555,7 @@
         h += '</section>';
         var pr = ((calDi(S.cal) || {}).riassunto || {}).prossimi || [];
         if (pr.length) {
-            h += '<section class="cal-pan"><div class="cal-pan-testa"><div class="cal-eyebrow">' + I('bell', 'cal-ic') + '<span>' + esc(T('In arrivo')) + '</span></div><span class="cal-nota-dx">' + esc(T('prossimi 30 giorni')) + '</span></div><ul class="cal-prox">';
+            h += '<section class="cal-pan" data-k="arrivo"><div class="cal-pan-testa"><div class="cal-eyebrow">' + I('bell', 'cal-ic') + '<span>' + esc(T('In arrivo')) + '</span></div><span class="cal-nota-dx">' + esc(T('prossimi 30 giorni')) + '</span></div><ul class="cal-prox">';
             pr.forEach(function (p) {
                 h += '<li><button type="button" class="cal-prox-v" data-az="vai-giorno" data-g="' + p.giorno + '"><span class="cal-prox-ora">' + (p.ora ? esc(p.ora) : '<small>' + esc(T('tutto il giorno')) + '</small>') + '</span>' +
                      '<span class="cal-prox-t"><b>' + esc(p.titolo) + '</b><small>' + esc(giornoBreve(p.giorno)) + '</small></span></button></li>';
@@ -384,17 +578,17 @@
             return ids.map(function (id) { return tipi[id]; }).filter(Boolean);
         }
         var dom = di(domani), og = di(oggi), imp = (c.impostazioni || {});
-        var h = '<section class="cal-pan cal-domani"><div class="cal-eyebrow">' + I('moon', 'cal-ic') + '<span>' + esc(T('Stasera da portare fuori')) + '</span></div>' +
+        var h = '<section class="cal-pan cal-domani" data-k="domani"><div class="cal-eyebrow">' + I('moon', 'cal-ic') + '<span>' + esc(T('Stasera da portare fuori')) + '</span></div>' +
             '<div class="cal-domani-t">' + (dom.length ? esc(T('Domani: {x}', { x: elenco(dom.map(function (t) { return t.nome; })) })) : esc(T('Domani nessuna raccolta'))) + '</div>' +
             (dom.length ? '<div class="cal-chips">' + dom.map(function (t) { return '<span class="cal-chip" style="--c:' + colore(t.colore) + '"><i></i>' + esc(t.nome) + '</span>'; }).join('') + '</div>' : '') +
             (og.length ? '<div class="cal-domani-oggi">' + esc(T('Oggi: {x}', { x: elenco(og.map(function (t) { return t.nome; })) })) + '</div>' : '') +
             '<div class="cal-domani-avv">' + I(imp.avviso === false ? 'bell-off' : 'bell', 'cal-ic') + '<span>' + esc(imp.avviso === false ? T('Avviso della sera prima spento') : T('Avviso la sera prima alle {ora}', { ora: imp.ora || S.info.ora_sera || '20:00' })) + '</span></div></section>';
         if (S.sel) {
             var sg = di(S.sel);
-            h += '<section class="cal-pan cal-giorno-pan"><div class="cal-giorno-tit"><small>' + esc(T('Giorno scelto')) + '</small><b>' + esc(giornoLungo(S.sel)) + '</b></div>' +
+            h += '<section class="cal-pan cal-giorno-pan" data-k="scelto"><div class="cal-giorno-tit"><small>' + esc(T('Giorno scelto')) + '</small><b>' + esc(giornoLungo(S.sel)) + '</b></div>' +
                  '<div class="cal-giorno-r">' + (sg.length ? '<div class="cal-chips">' + sg.map(function (t) { return '<span class="cal-chip" style="--c:' + colore(t.colore) + '"><i></i>' + esc(t.nome) + '</span>'; }).join('') + '</div>' : esc(T('Nessuna raccolta'))) + '</div></section>';
         }
-        h += '<section class="cal-pan cal-tipi-pan"><div class="cal-pan-testa"><div class="cal-eyebrow">' + I('recycle', 'cal-ic') + '<span>' + esc(T('Giorni di raccolta')) + '</span></div>' +
+        h += '<section class="cal-pan cal-tipi-pan" data-k="tipi"><div class="cal-pan-testa"><div class="cal-eyebrow">' + I('recycle', 'cal-ic') + '<span>' + esc(T('Giorni di raccolta')) + '</span></div>' +
              '<button type="button" class="cal-btn" data-az="rifiuti">' + I('settings-2') + '<span>' + esc(T('Imposta')) + '</span></button></div><ul class="cal-tipi">';
         var conGiorni = (d.tipi || []).filter(function (t) { return (t.giorni || []).length; });
         if (!conGiorni.length) h += '<li class="cal-tipi-vuoto"><span>' + esc(T('Nessun giorno impostato: tocca Imposta e scegli i giorni di ogni raccolta.')) + '</span></li>';
@@ -428,7 +622,7 @@
             if (S.vista === 'cal') caricaTutto(true);
         }).catch(function (e) {
             if (d && prima) { d.spunte[g] = prima; if (S.vista === 'cal') disegna(false); }
-            errore(e);
+            if (e && e.codice === 'non_trovato') sparito(e, calId); else errore(e);
         }).then(function () { delete occupato[chiave]; });
     }
     function apriCal(id, g) {
@@ -439,7 +633,8 @@
         S.sel = c.tipo === 'spunta' ? null : (g || (c.tipo === 'agenda' ? S.info.oggi : null));
         S.dati = null;
         try { localStorage.setItem('wh_cal_ultimo', String(id)); } catch (e) { /* niente */ }
-        window.scrollTo(0, 0);
+        // l'elenco resta fermo dov'e' finche' arriva il mese: si va in cima quando il calendario si disegna (disegna)
+        if (vistaFatta === 'elenco') S.yElenco = scorritore().scrollTop || 0;
         caricaMese(true);
     }
     function cambiaMese(n) {
@@ -458,12 +653,17 @@
         if (az === 'riprova') { S.errore = ''; disegna(); caricaTutto(); }
         else if (az === 'nuovo') foglioCalendario(null, b.getAttribute('data-tipo') || 'spunta');
         else if (az === 'apri') apriCal(id, g);
-        else if (az === 'indietro') { S.vista = 'elenco'; S.dati = null; disegna(true); caricaTutto(true); }
+        else if (az === 'indietro') { S.vista = 'elenco'; S.dati = null; disegna(false); caricaTutto(true); }   // tessere subito, ferme, coi dati che ci sono: la rilettura aggiorna solo cio' che e' cambiato
         else if (az === 'spunta-oggi') spunta(id, S.info.oggi);
         else if (az === 'spunta') spunta(S.cal, g);
         else if (az === 'mese') cambiaMese(+b.getAttribute('data-v'));
         else if (az === 'mese-oggi') { S.anno = +S.info.oggi.slice(0, 4); S.mese = +S.info.oggi.slice(5, 7); var c0 = calDi(S.cal); S.sel = c0 && c0.tipo === 'agenda' ? S.info.oggi : null; caricaMese(false, 0); }
-        else if (az === 'modifica') foglioCalendario(calDi(S.cal));
+        else if (az === 'modifica') { var cm = calDi(S.cal); if (cm && cm.modificabile) foglioCalendario(cm); }
+        else if (az === 'chi-lo-vede') {
+            var ca = calDi(S.cal), ib = infoAccesso(ca); if (!ib) return;
+            var testo = ib.intero + (mio(ca) ? '' : '\n' + T('Creato da {n}', { n: nomeCreatore(ca) }));
+            if (typeof window.avvisa === 'function') window.avvisa(testo, { titolo: T('Chi lo vede') }); else toast(ib.intero);
+        }
         else if (az === 'giorno') {
             var c = calDi(S.cal); if (!c) return;
             if (c.tipo === 'spunta') { if (g <= S.info.oggi) spunta(c.id, g); return; }
@@ -480,7 +680,8 @@
         else if (az === 'rifiuti') foglioRifiuti(calDi(S.cal));
         else if (az === 'mio-colore') {
             api('POST', '/api/calendari/persone', { colore: b.getAttribute('data-v') }).then(function (j) {
-                S.info.persone = j.persone || S.info.persone; if (S.dati) S.dati.persone = S.info.persone;
+                S.info.persone = j.persone || S.info.persone;
+                if (S.dati && S.dati.persone) S.dati.persone = S.dati.persone.map(function (p) { return persona(p.id); });
                 var io = persona(S.info.io.id); S.info.io.colore = io.colore; disegna(false);
             }).catch(errore);
         }
@@ -556,60 +757,139 @@
     function valore(el, nome) { var x = el.querySelector('[name="' + nome + '"]'); if (!x) return undefined; if (x.type === 'radio') { x = el.querySelector('[name="' + nome + '"]:checked'); return x ? x.value : undefined; } return x.type === 'checkbox' ? x.checked : x.value; }
     function mostra(el, sel, si) { [].forEach.call(el.querySelectorAll(sel), function (x) { x.hidden = !si; }); }
 
-    /* destinatari: {app: 'tutti' | [id] | false, telegram, sonos} */
-    function editorDestinatari(d, conEredita) {
+    /* destinatari: {app: 'tutti' | [id] | false, telegram, sonos}. acc = chi vede il calendario {modo, utenti, creato_da}:
+       le persone senza accesso non si possono scegliere; Telegram e Sonos (di tutta la casa) per un calendario non di tutti
+       partono spenti e, se accesi, hanno sotto l'avviso che li sentiranno/vedranno anche gli altri */
+    function ammessiDi(modo, utenti, creatore) {   // null = tutti
+        if (!modo || modo === 'tutti') return null;
+        var s = modo === 'persone' ? (utenti || []).slice() : [];
+        if (creatore !== null && creatore !== undefined && s.indexOf(creatore) < 0) s.push(creatore);
+        return s;
+    }
+    function accDi(c) { var a = accesso(c); return { modo: a.modo, utenti: a.utenti || [], creato_da: c ? c.creato_da : mioId() }; }
+    function editorDestinatari(d, conEredita, acc) {
         var can = S.info.canali || {}, eredita = conEredita && !d;
+        var ammessi = acc ? ammessiDi(acc.modo, acc.utenti, acc.creato_da) : null, casa = ammessi === null;
         d = d || {}; var app = d.app === undefined ? 'tutti' : d.app, modo = app === false ? 'no' : Array.isArray(app) ? 'scegli' : 'tutti';
-        var scelti = Array.isArray(app) ? app : [];
+        var scelti = Array.isArray(app) ? app : [], tg = d.telegram === undefined ? casa : d.telegram !== false, so = d.sonos === undefined ? false : !!d.sonos;
         var h = '';
         if (conEredita) h += interruttore('dest_eredita', eredita, T('Come il calendario'));
-        h += '<div class="cal-dest"' + (eredita ? ' hidden' : '') + '>';
+        h += '<div class="cal-dest" data-casa="' + (casa ? '1' : '0') + '"' + (eredita ? ' hidden' : '') + '>';
         if (can.app) {
-            h += '<div class="cal-sotto-t">' + esc(T('Notifica sull\'app iPhone')) + '</div>' + segmenti('dest_app', [['tutti', T('Tutti')], ['scegli', T('Scegli')], ['no', T('Nessuno')]], modo) +
+            h += '<div class="cal-sotto-t">' + esc(T('Notifica sull\'app iPhone')) + '</div>' + segmenti('dest_app', [['tutti', casa ? T('Tutti') : T('Chi lo vede')], ['scegli', T('Scegli')], ['no', T('Nessuno')]], modo) +
                  '<div class="cal-persone-sc"' + (modo === 'scegli' ? '' : ' hidden') + '>' + (S.info.persone || []).map(function (p) {
-                     return '<label class="cal-chip-l" style="--c:' + colore(p.colore) + '"><input type="checkbox" name="dest_p" value="' + p.id + '"' + (scelti.indexOf(p.id) >= 0 ? ' checked' : '') + '><span><i></i>' + esc(p.nome) + '</span></label>';
+                     var si = casa || ammessi.indexOf(p.id) >= 0;
+                     return '<label class="cal-chip-l" style="--c:' + colore(p.colore) + '"' + (si ? '' : ' hidden') + '><input type="checkbox" name="dest_p" value="' + p.id + '"' + (si && scelti.indexOf(p.id) >= 0 ? ' checked' : '') + '><span><i></i>' + esc(p.nome) + '</span></label>';
                  }).join('') + '</div>';
         }
-        if (can.telegram) h += interruttore('dest_tg', d.telegram !== false, T('Messaggio su Telegram'));
-        if (can.sonos) h += interruttore('dest_sonos', !!d.sonos, T('Annuncio a voce sui Sonos'));
+        if (can.telegram) h += interruttore('dest_tg', tg, T('Messaggio su Telegram')) + avvisoCasa('dest_tg', casa || !tg, T('Telegram arriva alla chat di tutta la casa: lo vedranno anche gli altri.'));
+        else h += '<input type="hidden" name="dest_tg_fisso" value="' + (tg ? '1' : '0') + '">';   // canale spento nella card: si rimanda com'e'
+        if (can.sonos) h += interruttore('dest_sonos', so, T('Annuncio a voce sui Sonos')) + avvisoCasa('dest_sonos', casa || !so, T('L\'annuncio si sente in tutta la casa: lo sentiranno anche gli altri.'));
+        else h += '<input type="hidden" name="dest_sonos_fisso" value="' + (so ? '1' : '0') + '">';
         if (!can.app && !can.telegram && !can.sonos) h += '<div class="cal-campo-nota">' + esc(T('Nessun canale acceso: i promemoria si attivano nella card Calendari dello Store.')) + '</div>';
         return h + '</div>';
+    }
+    function avvisoCasa(nome, nascosto, testo) { return '<div class="cal-avv-casa" data-avv="' + nome + '" role="note"' + (nascosto ? ' hidden' : '') + '>' + I('triangle-alert', 'cal-ic') + '<span>' + esc(testo) + '</span></div>'; }
+    function avvisiCasa(el) {
+        var w = el.querySelector('.cal-dest'); if (!w) return;
+        var casa = w.getAttribute('data-casa') === '1';
+        ['dest_tg', 'dest_sonos'].forEach(function (n) { var x = el.querySelector('[name="' + n + '"]'), a = el.querySelector('[data-avv="' + n + '"]'); if (x && a) a.hidden = casa || !x.checked; });
+    }
+    // dopo un cambio di "Chi lo vede" nel foglio: chi non ha accesso sparisce da "Scegli"; da tutti a non tutti Telegram e
+    // Sonos si spengono (proposta: si possono riaccendere, con l'avviso)
+    function aggiornaDest(el, ammessi, eraCasa) {
+        var w = el.querySelector('.cal-dest'); if (!w) return;
+        var casa = ammessi === null;
+        w.setAttribute('data-casa', casa ? '1' : '0');
+        [].forEach.call(el.querySelectorAll('[name="dest_p"]'), function (x) { var si = casa || ammessi.indexOf(+x.value) >= 0; x.closest('.cal-chip-l').hidden = !si; if (!si) x.checked = false; });
+        var tutti = el.querySelector('[name="dest_app"][value="tutti"]'); if (tutti) tutti.nextElementSibling.textContent = casa ? T('Tutti') : T('Chi lo vede');
+        if (eraCasa && !casa) ['dest_tg', 'dest_sonos'].forEach(function (n) { var x = el.querySelector('[name="' + n + '"]'), f = el.querySelector('[name="' + n + '_fisso"]'); if (x) x.checked = false; if (f) f.value = '0'; });
+        avvisiCasa(el);
     }
     function leggiDestinatari(el, conEredita) {
         if (conEredita && valore(el, 'dest_eredita')) return null;
         var can = S.info.canali || {}, d = {}, modo = valore(el, 'dest_app');
         if (can.app) d.app = modo === 'no' ? false : modo === 'scegli' ? [].map.call(el.querySelectorAll('[name="dest_p"]:checked'), function (x) { return +x.value; }) : 'tutti';
-        if (can.telegram) d.telegram = !!valore(el, 'dest_tg');
-        if (can.sonos) d.sonos = !!valore(el, 'dest_sonos');
+        // Telegram e Sonos sono canali di tutta la casa: per un calendario non di tutti si mandano SEMPRE (anche col canale
+        // spento nella card o Telegram non configurato: il valore salvato, o false), cosi' il server non mette i suoi predefiniti
+        var w = el.querySelector('.cal-dest'), casa = !w || w.getAttribute('data-casa') === '1';
+        [['telegram', 'dest_tg'], ['sonos', 'dest_sonos']].forEach(function (k) {
+            if (can[k[0]]) d[k[0]] = !!valore(el, k[1]);
+            else if (!casa) { var f = el.querySelector('[name="' + k[1] + '_fisso"]'); d[k[0]] = !!f && f.value === '1'; }
+        });
         return d;
     }
     function cambioDestinatari(t, el) {
         if (t.name === 'dest_eredita') mostra(el, '.cal-dest', !t.checked);
         if (t.name === 'dest_app') mostra(el, '.cal-persone-sc', t.value === 'scegli');
+        if (t.name === 'dest_tg' || t.name === 'dest_sonos') avvisiCasa(el);
+    }
+
+    /* chi lo vede (foglio Crea/Modifica): Tutti / Solo io / Persone scelte, chi l'ha creato sempre dentro */
+    function sceltaAccesso(c) {
+        var a = accesso(c), me = mioId(), creatore = c ? c.creato_da : me, adotta = false;
+        if (c && orfano(c) && S.info.io && S.info.io.admin) { creatore = me; adotta = true; }   // orfano: l'admin che lo modifica lo adotta
+        var suo = creatore === me, modo = c ? a.modo : 'tutti', scelti = a.utenti || [];
+        var h = segmenti('accesso', [['tutti', T('Tutti')], ['privato', suo ? T('Solo io') : T('Solo {n}', { n: nomeCreatore(c) })], ['persone', T('Persone scelte')]], modo) +
+            '<div class="cal-campo-nota cal-acc-nota" data-acc-nota aria-live="polite"></div>' +
+            '<div class="cal-acc-lista" data-acc-lista role="group" aria-label="' + esc(T('Persone scelte')) + '"' + (modo === 'persone' ? '' : ' hidden') + '>' + (S.info.persone || []).map(function (p) {
+                var cr = p.id === creatore, on = cr || scelti.indexOf(p.id) >= 0;
+                var sotto = cr ? (p.id === me ? (adotta ? T('tu: salvando diventa tuo') : T('tu, l\'hai creato')) : T('l\'ha creato')) : p.id === me ? T('tu') : '';
+                return '<label class="cal-acc-p' + (cr ? ' cal-acc-fisso' : '') + '" style="--c:' + colore(p.colore) + '"><input type="checkbox" name="acc_p" value="' + p.id + '"' + (on ? ' checked' : '') + (cr ? ' disabled' : '') + '>' +
+                       '<span class="cal-acc-av" aria-hidden="true">' + esc((p.nome || '?').charAt(0).toUpperCase()) + '</span><span class="cal-acc-n"><b>' + esc(p.nome) + '</b>' + (sotto ? '<small>' + esc(sotto) + '</small>' : '') + '</span>' +
+                       '<span class="cal-acc-ck" aria-hidden="true">' + I('check') + '</span></label>';
+            }).join('') + '</div>';
+        return { html: h, creatore: creatore, suo: suo, c: c, modo: modo };
+    }
+    function statoAccesso(el, sa) {
+        var modo = valore(el, 'accesso') || 'tutti';
+        var utenti = [].map.call(el.querySelectorAll('[name="acc_p"]:checked'), function (x) { return +x.value; });
+        return { modo: modo, utenti: utenti, ammessi: ammessiDi(modo, utenti, sa.creatore) };
+    }
+    function notaAccesso(el, sa) {
+        var st = statoAccesso(el, sa), n = el.querySelector('[data-acc-nota]'), txt;
+        if (st.modo === 'tutti') txt = T('Lo vedono e lo usano tutte le persone di casa.');
+        else if (st.modo === 'privato') txt = sa.suo ? T('Lo vedi solo tu: nessun altro, nemmeno l\'amministratore.') : T('Lo vede solo {n}: nessun altro, nemmeno l\'amministratore.', { n: nomeCreatore(sa.c) });
+        else if (st.ammessi.length < 2) txt = T('Spunta chi lo può vedere: senza nessuno è come Solo io.');
+        else txt = T('Lo vedono solo le persone spuntate: nessun altro, nemmeno l\'amministratore.');
+        if (n) n.textContent = txt;
+        mostra(el, '[data-acc-lista]', st.modo === 'persone');
+        aggiornaDest(el, st.ammessi, sa.modo === 'tutti');
+        sa.modo = st.modo;
     }
 
     /* ---------------------------------------------------------------- calendario: nuovo / modifica */
     function foglioCalendario(c, tipo) {
+        if (c && !c.modificabile) return;   // le impostazioni le cambia solo chi l'ha creato o un amministratore
         var nuovo = !c; tipo = c ? c.tipo : tipo;
         var imp = (c && c.impostazioni) || {};
+        var sa = sceltaAccesso(c);
         var corpo = '';
         if (nuovo) corpo += campo(T('Tipo'), '<div class="cal-tipi-sc">' + ['spunta', 'agenda', 'rifiuti'].map(function (t) {
             return '<label class="cal-tipo-l"><input type="radio" name="tipo" value="' + t + '"' + (t === tipo ? ' checked' : '') + '><span class="cal-tipo-scelta"><span class="cal-tile-ico" style="--c:' + ({ spunta: '#30D158', agenda: '#0A84FF', rifiuti: '#8E8E93' })[t] + '">' + I(ICONA_TIPO[t]) + '</span>' +
                    '<span class="cal-tipo-txt"><b>' + esc(T(NOME_TIPO[t])) + '</b><small>' + esc(T(DESC_TIPO[t])) + '</small></span></span></label>';
         }).join('') + '</div>');
         corpo += campo(T('Nome'), '<input type="text" class="cal-in-t" name="nome" maxlength="40" autocomplete="off" value="' + esc(c ? c.nome : '') + '" placeholder="' + esc(T('Per esempio: Pillola, Palestra, Famiglia')) + '">');
+        corpo += campo(T('Chi lo vede'), sa.html);
         corpo += campo(T('Colore'), sceltaColori('colore', c ? c.colore : { spunta: '#30D158', agenda: '#0A84FF', rifiuti: '#8E8E93' }[tipo]));
         corpo += campo(T('Icona'), sceltaIcone(c ? c.icona : ICONA_TIPO[tipo]));
         corpo += '<div class="cal-solo" data-solo="spunta"' + (tipo === 'spunta' ? '' : ' hidden') + '>' + campo(T('Promemoria'), '<select class="cal-sel" name="promemoria_ora">' + opzioniOre(15, 0, 23, imp.promemoria_ora || '', '<option value="">' + esc(T('Nessun promemoria')) + '</option>') + '</select>',
             T('Se a quell\'ora oggi non e\' ancora spuntato, arriva un avviso.')) + '</div>';
         corpo += '<div class="cal-solo" data-solo="rifiuti"' + (tipo === 'rifiuti' ? '' : ' hidden') + '><div class="cal-campo-nota">' + esc(T('I giorni di raccolta e l\'ora dell\'avviso si impostano dopo, con il tasto Imposta.')) + '</div></div>';
-        corpo += campo(T('Chi avvisare'), editorDestinatari(c ? c.destinatari : (tipo === 'rifiuti' ? { app: 'tutti', telegram: true, sonos: true } : { app: 'tutti', telegram: true, sonos: false }), false));
+        corpo += campo(T('Chi avvisare'), editorDestinatari(c ? c.destinatari : (tipo === 'rifiuti' ? { app: 'tutti', telegram: true, sonos: true } : { app: 'tutti', telegram: true, sonos: false }), false, accDi(c)));
         if (!nuovo) corpo += '<div class="cal-pericolo"><button type="button" class="cal-btn cal-btn-rosso" data-f="elimina">' + I('trash-2') + '<span>' + esc(T('Elimina calendario')) + '</span></button></div>';
-        apriFoglio(nuovo ? T('Nuovo calendario') : T('Modifica calendario'), corpo, function (el) {
+        var velo = apriFoglio(nuovo ? T('Nuovo calendario') : T('Modifica calendario'), corpo, function (el) {
             var t = nuovo ? valore(el, 'tipo') : tipo, nome = (valore(el, 'nome') || '').trim();
             if (!nome) { avviso(T('Scrivi il nome del calendario')); return false; }
-            var d = { nome: nome, colore: valore(el, 'colore'), icona: valore(el, 'icona'), destinatari: leggiDestinatari(el, false) };
+            var st = statoAccesso(el, sa);
+            var d = { nome: nome, colore: valore(el, 'colore'), icona: valore(el, 'icona'), destinatari: leggiDestinatari(el, false),
+                      accesso: st.modo === 'persone' ? { modo: 'persone', utenti: st.utenti } : { modo: st.modo } };
             if (t === 'spunta') d.impostazioni = { promemoria_ora: valore(el, 'promemoria_ora') || '' };
+            if (!nuovo && st.ammessi && st.ammessi.indexOf(mioId()) < 0) {
+                // es. l'amministratore che lo rende privato di chi l'ha creato: dopo non lo vede piu'
+                return domanda(T('Dopo il salvataggio non vedrai più «{n}». Continuare?', { n: c.nome }), { titolo: T('Chi lo vede'), si: T('Salva'), no: T('Annulla') })
+                    .then(function (si) { return si ? salvaModifica(d) : false; });
+            }
             if (nuovo) {
                 d.tipo = t;
                 return api('POST', '/api/calendari', d).then(function (j) {
@@ -619,19 +899,18 @@
                     caricaTutto(true);
                 });
             }
-            return api('PUT', '/api/calendari/' + c.id, d).then(function (j) {
-                for (var i = 0; i < S.calendari.length; i++) if (S.calendari[i].id === c.id) { j.calendario.riassunto = S.calendari[i].riassunto; S.calendari[i] = j.calendario; }
-                disegna(false); caricaTutto(true);
-            });
+            return salvaModifica(d);
         }, {
             salva: nuovo ? T('Crea') : T('Salva'),
             cambio: function (t, el) {
                 cambioDestinatari(t, el);
+                if (t.name === 'accesso' || t.name === 'acc_p') notaAccesso(el, sa);
                 if (t.name === 'tipo' && nuovo) {
                     [].forEach.call(el.querySelectorAll('.cal-solo'), function (x) { x.hidden = x.getAttribute('data-solo') !== t.value; });
                     var cc = el.querySelector('[name="colore"][value="' + { spunta: '#30D158', agenda: '#0A84FF', rifiuti: '#8E8E93' }[t.value] + '"]'); if (cc) cc.checked = true;
                     var ii = el.querySelector('[name="icona"][value="' + ICONA_TIPO[t.value] + '"]'); if (ii) ii.checked = true;
-                    var dsn = el.querySelector('[name="dest_sonos"]'); if (dsn) dsn.checked = t.value === 'rifiuti';
+                    var dsn = el.querySelector('[name="dest_sonos"]'); if (dsn) dsn.checked = t.value === 'rifiuti' && sa.modo === 'tutti';
+                    avvisiCasa(el);
                 }
             },
             azione: function (a) {
@@ -640,11 +919,23 @@
                     if (!si) return;
                     api('DELETE', '/api/calendari/' + c.id).then(function () {
                         chiudiFoglio(); S.calendari = S.calendari.filter(function (x) { return x.id !== c.id; });
-                        S.vista = 'elenco'; S.dati = null; disegna(true); caricaTutto(true); toast(T('Calendario eliminato'));
+                        S.vista = 'elenco'; S.dati = null; disegna(false); caricaTutto(true); toast(T('Calendario eliminato'));
                     }).catch(errore);
                 });
             }
         });
+        notaAccesso(velo, sa);
+        function salvaModifica(d) {
+            return api('PUT', '/api/calendari/' + c.id, d).then(function (j) {
+                if (!j.calendario) {   // dopo la modifica non lo vedo piu'
+                    S.calendari = S.calendari.filter(function (x) { return x.id !== c.id; });
+                    S.vista = 'elenco'; S.dati = null; disegna(false); caricaTutto(true); toast(T('Salvato: ora non lo vedi più'));
+                    return;
+                }
+                for (var i = 0; i < S.calendari.length; i++) if (S.calendari[i].id === c.id) { j.calendario.riassunto = S.calendari[i].riassunto; S.calendari[i] = j.calendario; }
+                disegna(false); caricaTutto(true);
+            });
+        }
     }
 
     /* ---------------------------------------------------------------- selettore di data proprio (niente input type=date) */
@@ -706,7 +997,7 @@
             '<div class="cal-ora" data-pr-ora' + (pr === 'giorno_prima' || (pr === 'ora' && tutto) ? '' : ' hidden') + '><span class="cal-ora-et">' + esc(T('alle')) + '</span><select class="cal-sel" name="promemoria_ora">' +
             opzioniOre(15, 0, 23, prOra || (pr === 'giorno_prima' ? S.info.ora_sera || '20:00' : '09:00')) + '</select></div>');
         h += campo(T('Nota'), '<textarea class="cal-in-t cal-area" name="nota" maxlength="300" rows="2" placeholder="' + esc(T('Facoltativa')) + '">' + esc(ev ? ev.nota || '' : '') + '</textarea>');
-        h += campo(T('Chi avvisare'), editorDestinatari(ev ? ev.destinatari : null, true));
+        h += campo(T('Chi avvisare'), editorDestinatari(ev ? ev.destinatari : null, true, accDi(calDi(S.cal))));
         if (!nuovo) {
             h += '<div class="cal-pericolo">' + (ricorre ? '<button type="button" class="cal-btn cal-btn-rosso" data-f="elimina-uno">' + I('calendar-x-2') + '<span>' + esc(T('Elimina solo {g}', { g: giornoBreve(oc) })) + '</span></button>' : '') +
                  '<button type="button" class="cal-btn cal-btn-rosso" data-f="elimina-tutto">' + I('trash-2') + '<span>' + esc(ricorre ? T('Elimina tutta la serie') : T('Elimina impegno')) + '</span></button></div>';
@@ -855,8 +1146,9 @@
                 .then(function () { if (aperta()) apri(); if (fallite) frasiChieste = false; });
             return;
         }
+        // prima volta: attesa e poi i pannelli con l'entrata; le volte dopo il contenuto c'e' gia' (la sezione entra con la
+        // sua dissolvenza di mobile.html): niente seconda entrata, la rilettura aggiorna solo cio' che e' cambiato
         if (!S.carico) disegna(true);
-        else if (Date.now() - S.tCarico > 20000) disegna(true);
         caricaTutto(!S.carico ? false : true);
         pianifica();
     }
