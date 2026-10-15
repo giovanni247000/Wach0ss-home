@@ -17747,7 +17747,7 @@ function hkOsserva(card) {
     const TESTI = {
         luci:       { nome: 'Luci attive', descr: 'Luci e interruttori accesi', parola: 'accese', parola1: 'accesa', aiuto: 'Tocca per spegnere',
                       vuoto: 'Nessuna luce accesa', vuotoS: 'Luci e interruttori sono tutti spenti.', az: 'power',
-                      tutti: 'Spegni tutte', chiediT: 'Spegnere tutte le luci?', chiediM: 'Si spengono le luci di questo elenco. Prese e interruttori restano accesi: si spengono uno alla volta toccandoli.', chiediSi: 'Spegni tutte', chiediIco: 'power' },
+                      tutti: 'Spegni tutte', chiediT: 'Spegnere tutte le luci?', chiediM: 'Si spengono tutte le luci e gli interruttori di questo elenco.', chiediSi: 'Spegni tutte', chiediIco: 'power' },
         media:      { nome: 'In riproduzione', descr: 'Casse e lettori che stanno suonando', parola: 'in riproduzione', aiuto: 'Tocca per mettere in pausa',
                       vuoto: 'Niente in riproduzione', vuotoS: 'Nessuna cassa o lettore sta suonando.', az: 'pause',
                       tutti: 'Metti tutto in pausa', chiediT: 'Mettere tutto in pausa?', chiediM: 'Si fermano le casse e i lettori di questo elenco.', chiediSi: 'Metti in pausa', chiediIco: 'help-circle' },
@@ -18321,11 +18321,11 @@ function hkOsserva(card) {
     }
 
     function righeVive() { return Array.from(elencoEl.querySelectorAll('.cnt-voce:not(.esce)')); }
-    // voci toccate dal comando per tutte. Luci: SOLO light.* -- prese e interruttori (lavastoviglie, frigorifero,
-    // router su presa smart...) contano nel contatore ma si spengono solo una alla volta, col tocco sulla voce
+    // voci toccate dal comando per tutte. Luci: TUTTO l'elenco, light.* e switch.* (scelta dell'utente 15/10/2026:
+    // in molti impianti le luci sono comandate da interruttori switch.*; prima si spegnevano solo le light.*)
     function inTutti(tipo, v) {
         if (!v || v.solo || !v.cmd || v.cmd === 'apri') return false;
-        if (tipo === 'luci') return String(v.id).indexOf('light.') === 0;
+        if (tipo === 'luci') return /^(light|switch)\./.test(String(v.id));
         return true;
     }
     function togliRiga(b) {

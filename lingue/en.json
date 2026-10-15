@@ -6560,7 +6560,7 @@
    "Tornano i tre contatori di sempre: luci attive, in play e aperte.": "The three original counters come back: lights on, playing and open.",
    "Nessuna risposta dal server": "No response from the server",
    "Luci attive": "Lights on",
-   "Si spengono le luci di questo elenco. Prese e interruttori restano accesi: si spengono uno alla volta toccandoli.": "The lights in this list will be turned off. Plugs and switches stay on: tap them one at a time to turn them off."
+   "Si spengono tutte le luci e gli interruttori di questo elenco.": "All the lights and switches in this list will be turned off."
   },
   "/automations_ui": {
    "Casse": "Speakers",
