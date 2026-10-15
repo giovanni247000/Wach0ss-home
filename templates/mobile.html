@@ -82,6 +82,34 @@
             else if (L >= SOGLIA && L / s < SOGLIA) s = Math.floor(L / SOGLIA * 1000) / 1000;   // resta impaginata da tablet
             return Math.abs(s - 1) < 0.005 ? 1 : s;
         }
+        // SCHERMO PIENO A OGNI GRANDEZZA (14/10/2026). WebKit impagina la pagina larga e alta un numero INTERO di
+        // px (arrotonda lato/scala) e la mostra a scala S (in float32): con S tonda (0,85, 0,95, 1,05...) larghezza
+        // x scala restava spesso un soffio sotto lo schermo (es. iPhone Air: 494 x 0,85 = 419,9 punti su 420;
+        // 400 x 1,05 = 419,99998) e sul bordo destro restava scoperta una colonna di 1 punto, a volte anche l'ultima
+        // riga in basso: li' si vedeva il fondo dell'app, e la barra in basso, sfocando quella striscia chiara,
+        // faceva il bagliore. Qui la scala si ritocca di pochissimo (al massimo l'1%, di solito meno dello 0,2%)
+        // perche' su ENTRAMBI i lati dello schermo il numero intero di px x scala sbordi di 0,25-0,45 punti, mai
+        // manchi (provato nel simulatore: con meno avanzo l'ultima fila di pixel resta ancora un po' trasparente).
+        // La stessa scala va bene in verticale e in orizzontale: girando lo schermo non cambia (cambiarla durante
+        // la rotazione lasciava a WebKit la scala vecchia, cioe' di nuovo una striscia scoperta).
+        // scarta (facoltativa, la usa passaggio()): condizione in piu' per scartare una scala; se nessuna va bene da' 0
+        function adatta(s, scarta) {
+            if (s === 1) return 1;
+            var l = lati(), L = larghezza(), f = Math.fround || function (x) { return x; };
+            function pieno(x, s32) {                      // x punti / scala -> px interi (arrotondati) x scala >= x + 0,25
+                var q = x / s32, n = Math.round(q);
+                return q - Math.floor(q) >= 0.55 && n * s32 >= x + 0.25;
+            }
+            for (var j = 0; j <= 1000; j++) {             // dalla scala chiesta verso l'esterno, a passi dello 0,001%
+                for (var v = 0; v < 2; v++) {
+                    var sf = Math.round(s * (1 + (v ? -j : j) / 100000) * 1e6) / 1e6, s32 = f(sf);
+                    if ((L < SOGLIA) !== (Math.round(L / s32) < SOGLIA)) continue;   // mai oltre la soglia telefono/tablet
+                    if (scarta && scarta(s32)) continue;
+                    if (pieno(l[0], s32) && pieno(l[1], s32)) return sf;
+                }
+            }
+            return scarta ? 0 : s;
+        }
         function meta(s) {
             if (s === 1) return BASE;
             var w = s < 1 ? 'device-width' : Math.floor(lati()[0] / s);
@@ -89,7 +117,7 @@
         }
         function applica(p) {
             if (!possibile(p)) p = 100;
-            var s = efficace(p), c = meta(s);
+            var s = adatta(efficace(p)), c = meta(s);
             var m = document.querySelector('meta[name="viewport"]'), h = document.documentElement;
             if (m && m.getAttribute('content') !== c) m.setAttribute('content', c);
             if (s === 1) { h.classList.remove('wh-scala'); h.style.removeProperty('--wh-scala'); }
@@ -101,13 +129,53 @@
         try { p = parseInt(localStorage.getItem('core_scala_pagina'), 10) || 100; } catch (e) {}
         if (!possibile(p)) p = 100;
         window.__whScala = 1;
-        var W = window.whScala = { possibile: possibile, motivo: motivo, efficace: efficace, meta: meta, applica: applica, attuale: p === 100 ? 100 : applica(p) };
+        var W = window.whScala = { possibile: possibile, motivo: motivo, efficace: efficace, adatta: adatta, meta: meta, applica: applica, attuale: p === 100 ? 100 : applica(p) };
+        W.passaggio = function (s, da) { return passaggio(s, da); };   // per le prove (funzione dichiarata piu' sotto)
         // girando lo schermo la scala efficace puo' cambiare (vedi sopra): si riapplica e lo si dice alla pagina
         function giro() {
-            if (W.attuale === 100 || efficace(W.attuale) === window.__whScala) return;
+            if (W.attuale === 100 || adatta(efficace(W.attuale)) === window.__whScala) return;
+            var prima = window.__whScala;
             applica(W.attuale);
+            // WebKit cambia lo zoom solo se la scala nuova si scosta di almeno ~1% da quella che sta usando (provato nel
+            // simulatore: da fermo +0,95% no, +1,05% si'; girando +0,88% no, +1,3% si'): sotto, prende solo la nuova
+            // larghezza in px (scala piu' grande: striscia chiara e bagliore; piu' piccola: pagina tagliata di qualche
+            // punto a destra e in basso). Quindi ripeti() serve solo quando girando la scala cambia di meno dell'1,5%
+            // (es. iPhone 17 Pro all'85%: +0,88% da verticale a orizzontale, -0,88% tornando). Quando cambia di piu'
+            // WebKit la prende subito e il passaggio non serve
+            if (Math.abs(window.__whScala / prima - 1) < 0.015) { ribDa = prima; ribFino = Date.now() + 3000; ribadisci(); }
+            else { ribFino = 0; clearTimeout(ribT); }
             try { window.dispatchEvent(new Event('wh-scala')); } catch (e) {}
         }
+        // a rotazione finita (0,8 s senza piu' 'resize') la scala si ripete, e una seconda volta 2 s dopo per sicurezza,
+        // passando per 1/4 di secondo da una scala di passaggio (vedi passaggio())
+        var ribT = 0, ribFino = 0, ribMio = 0, ribDa = 0;
+        function ribadisci() {
+            clearTimeout(ribT);
+            ribT = setTimeout(function () { ripeti(); ribT = setTimeout(ripeti, 2000); }, 800);
+        }
+        // la scala di passaggio: almeno l'1,2% sopra sia la scala vera sia quella che WebKit puo' aver tenuto ('da', la
+        // scala di prima della rotazione), cosi' sia l'andata sia il ritorno superano l'1% e WebKit cambia davvero lo
+        // zoom insieme ai px (con il +0,2% fisso di prima lo zoom restava indietro: per 1/4 di secondo una riga chiara
+        // in basso e a destra, e dopo il ritorno la pagina restava tagliata di poco). Si cerca come in adatta(): copre
+        // tutto lo schermo su entrambi i lati come la scala vera e non porta la pagina oltre la soglia telefono/tablet,
+        // ne' con la larghezza arrotondata ne' senza. Se nessuna va bene si cambia solo il testo del meta (stessa scala).
+        function passaggio(s, da) {
+            var L = larghezza(), f = Math.fround || function (x) { return x; }, base = Math.max(s, da || 0);
+            var su = base * 1.013, min = f(base * 1.012);
+            var s2 = adatta(Math.round(su * 1e6) / 1e6, function (x32) {
+                return x32 < min || (L < SOGLIA) !== (L / x32 < SOGLIA);
+            });
+            return s2 && s2 !== 1 ? meta(s2) : meta(s) + ', shrink-to-fit=no';
+        }
+        function ripeti() {
+            var m = document.querySelector('meta[name="viewport"]'), s = window.__whScala;
+            if (!m || s === 1) return;
+            var c = m.getAttribute('content');
+            ribMio = Date.now() + 700;                    // i 'resize' fatti da qui non rimandano niente
+            m.setAttribute('content', passaggio(s, ribDa));
+            setTimeout(function () { if (m.getAttribute('content') !== c && window.__whScala === s) { ribMio = Date.now() + 700; m.setAttribute('content', c); } }, 250);
+        }
+        try { window.addEventListener('resize', function () { var t = Date.now(); if (t < ribFino && t > ribMio) ribadisci(); }); } catch (e) {}
         try {
             var mq = window.matchMedia('(orientation: landscape)');
             if (mq.addEventListener) mq.addEventListener('change', giro); else if (mq.addListener) mq.addListener(giro);
@@ -2021,7 +2089,10 @@
         .tv-sezione { font-size: 0.66rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); text-align: center; margin-top: 4px; }
         .tv-avviso { display: none; text-align: center; font-size: 0.8rem; color: #FF9F0A; padding: 6px 10px; line-height: 1.4; }
         .tv-avviso.visibile { display: block; }
+        #tv-modal > .tv-avviso { margin: -6px 0 10px; background: rgba(255,159,10,0.10); border: 1px solid rgba(255,159,10,0.25); border-radius: 12px; }
+        .hk-card.type-tv .hk-state.tv-problema, .hk-card.type-tv.state-on .hk-state.tv-problema { color: #FF9F0A; }
         #tv-modal[data-marca="android"] .solo-non-android { display: none; }
+        #tv-modal[data-marca="hisense"] .solo-non-hisense { display: none; }   /* Hisense VIDAA: niente tasto Guida */
 
         /* ===== SELECT (Home Assistant): card con l'opzione corrente e foglio delle opzioni ===== */
         .hk-card.type-select .hk-state { color: var(--accent-cyan); font-weight: 600; text-transform: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -4697,6 +4768,239 @@ html.wh-scala .imp-pagina {
 @media (max-width: 600px) and (orientation: portrait) {
     html.wh-scala #app-background.bg-notte-citta { --nc-luna-y: calc(var(--wh-sa-t) + 22px); }
 }
+/* =========================================================================
+   CONTATORI IN ALTO E I LORO FOGLI (15/10/2026)
+   - Le pillole (.glance-pill) si scelgono per dispositivo: pressione lunga su una pillola ->
+     foglio "Contatori" (#cnt-gestione-modal) per toglierla, aggiungerne di altri tipi e
+     cambiarne l'ordine. Script "CONTATORI" in fondo alla pagina.
+   - Tocco su una pillola -> foglio del contatore (#active-entities-modal.cnt-foglio):
+     elenco per stanza, tocco su una voce = spegne / chiude / mette in pausa.
+   Sul telefono i fogli salgono dal basso (come gli altri .bottom-modal), da 600 px restano
+   larghi al massimo 560 px, da 1024 px stanno al centro. I pannelli seguono colore e
+   trasparenza delle card (--card-color / --card-opacity); in Modalita' leggera niente sfocature.
+   ========================================================================= */
+.glance-pill { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.glance-pill[hidden] { display: none !important; }
+.glance-pill.cnt-premuto { transform: scale(0.94); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.glance-pill:focus-visible { outline: 2px solid rgba(255,255,255,0.7); outline-offset: 2px; }
+.glance-val .cnt-u { font-size: 0.72em; font-weight: 600; opacity: 0.72; margin-left: 2px; letter-spacing: 0; }
+/* tipi nuovi: tinta propria quando "accesi" (le tre di sempre hanno le loro regole per id) */
+.glance-pill.cnt-tinta.active { background: rgba(var(--cnt-rgb), 0.15); border-color: rgba(var(--cnt-rgb), 0.4); box-shadow: 0 8px 25px rgba(var(--cnt-rgb), 0.22), inset 0 1px 2px rgba(255,255,255,0.3); }
+.glance-pill.cnt-tinta.active .glance-icon { background: rgb(var(--cnt-rgb)); box-shadow: 0 0 12px rgba(var(--cnt-rgb), 0.55), inset 0 2px 4px rgba(255,255,255,0.45); }
+.glance-pill.cnt-tinta.active .glance-icon i, .glance-pill.cnt-tinta.active .glance-icon svg { color: #000; }
+.wh-leggera .glance-pill.cnt-tinta.active { box-shadow: 0 3px 10px rgba(0,0,0,0.28), inset 0 1px 1px rgba(255,255,255,0.08); }
+@media (min-width: 1024px) {
+    .glance-row { flex-wrap: wrap; }
+}
+
+/* ---------------- i due fogli: base comune ---------------- */
+#active-entities-modal.cnt-foglio, #cnt-gestione-modal {
+    --cnt-rgb: 255, 214, 10;
+    --cnt-testo-2: rgba(235,235,245,0.62); --cnt-testo-3: rgba(235,235,245,0.42);
+    --cnt-pannello: rgba(var(--card-color), max(var(--card-opacity), 0.055));
+    --cnt-velo: rgba(0,0,0,0);   /* lo scrive lo script CONTATORI quando colore x trasparenza delle card fanno pannelli chiari */
+    --cnt-sep: rgba(255,255,255,0.075);
+    padding: 0; max-height: min(86vh, 860px); overflow: hidden;
+    background: linear-gradient(180deg, rgba(34,34,40,0.80) 0%, rgba(18,18,22,0.90) 100%);
+    backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-radius: 30px 30px 0 0; border-top: 1px solid rgba(255,255,255,0.18);
+    -webkit-tap-highlight-color: transparent;
+}
+#active-entities-modal.cnt-foglio::before, #cnt-gestione-modal::before {
+    content: ''; position: absolute; left: 0; right: 0; top: 0; height: 180px; pointer-events: none; border-radius: inherit;
+    background: radial-gradient(120% 100% at 18% -20%, rgba(var(--cnt-rgb), 0.20), rgba(var(--cnt-rgb), 0) 65%);
+    transition: background 0.3s ease;
+}
+#active-entities-modal.cnt-foglio > *:not(.close-modal-btn), #cnt-gestione-modal > *:not(.close-modal-btn) { position: relative; }
+#active-entities-modal.cnt-foglio .modal-handle, #cnt-gestione-modal .modal-handle { margin: 10px auto 6px; width: 40px; background: rgba(255,255,255,0.32); }
+@media (min-width: 600px) and (max-width: 1023.98px) {
+    #active-entities-modal.cnt-foglio, #cnt-gestione-modal { left: 0; right: 0; margin: 0 auto; max-width: 560px; border-left: 1px solid rgba(255,255,255,0.08); border-right: 1px solid rgba(255,255,255,0.08); }
+}
+@media (min-width: 1024px) {
+    #active-entities-modal.cnt-foglio, #cnt-gestione-modal { width: 540px; padding: 0; border-radius: 30px; max-height: min(80vh, 780px); border: 1px solid rgba(255,255,255,0.16); }
+    #active-entities-modal.cnt-foglio .close-modal-btn, #cnt-gestione-modal .close-modal-btn { top: 22px; right: 22px; width: 36px; height: 36px; }
+    #active-entities-modal.cnt-foglio .close-modal-btn svg, #cnt-gestione-modal .close-modal-btn svg { width: 17px; height: 17px; }
+    #active-entities-modal.cnt-foglio .cnt-testa, #cnt-gestione-modal .cnt-testa { padding-top: 26px; padding-right: 70px; }
+}
+.wh-leggera #active-entities-modal.cnt-foglio, .wh-leggera #cnt-gestione-modal {
+    background: linear-gradient(180deg, rgba(46,46,54,0.985) 0%, rgba(24,24,29,0.985) 55%, rgba(20,20,24,0.985) 100%);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+
+/* testata: tessera con l'icona, titolo, riga sotto */
+.cnt-testa { display: flex; align-items: center; justify-content: flex-start; gap: 14px; margin: 0; padding: 6px 22px 16px; text-align: left; }
+.cnt-testa-ico {
+    width: 48px; height: 48px; flex-shrink: 0; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(160deg, rgba(var(--cnt-rgb), 1) 0%, rgba(var(--cnt-rgb), 0.78) 100%); color: #111;
+    box-shadow: 0 8px 22px rgba(var(--cnt-rgb), 0.32), inset 0 1px 0 rgba(255,255,255,0.45);
+}
+.cnt-testa-ico.spenta { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.75); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
+.cnt-testa-ico svg, .cnt-testa-ico i { width: 22px; height: 22px; stroke-width: 2.2; }
+.cnt-testa-testi { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.cnt-testa .modal-title { font-size: 1.28rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; text-shadow: none; }
+.cnt-sotto { font-size: 0.84rem; font-weight: 500; color: var(--cnt-testo-2); line-height: 1.3; min-height: 1.1em; }
+.cnt-sotto b { color: #FFF; font-weight: 700; font-variant-numeric: tabular-nums; }
+.cnt-sotto .cnt-pt { opacity: 0.5; margin: 0 5px; }
+
+/* zona che scorre */
+.cnt-scorre { flex: 1 1 auto; min-height: 0; padding: 0 16px 12px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.cnt-gruppo { margin-top: 4px; }
+.cnt-gruppo + .cnt-gruppo { margin-top: 14px; }
+.cnt-gruppo-t {
+    display: flex; align-items: center; gap: 7px; padding: 6px 6px 8px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--cnt-testo-3);
+}
+.cnt-gruppo-t svg, .cnt-gruppo-t i { width: 13px; height: 13px; opacity: 0.85; }
+.cnt-gruppo-t .cnt-gruppo-n { margin-left: auto; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.cnt-blocco {
+    border-radius: 20px; overflow: hidden; background: linear-gradient(var(--cnt-velo), var(--cnt-velo)), var(--cnt-pannello);
+    border: 1px solid rgba(255,255,255,0.08); border-top-color: rgba(255,255,255,0.14);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.wh-leggera .cnt-blocco {
+    background: linear-gradient(var(--cnt-velo), var(--cnt-velo)), linear-gradient(160deg, rgba(var(--card-color), calc(var(--card-opacity) + 0.075)) 0%, rgba(var(--card-color), calc(var(--card-opacity) + 0.025)) 100%);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+
+/* voce dell'elenco: e' un pulsante (tocco = comando) */
+.cnt-voce {
+    position: relative; display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 13px;
+    width: 100%; min-height: 64px; margin: 0; padding: 11px 14px; border: 0; background: transparent; color: #FFF;
+    font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; overflow: hidden;
+    transition: background-color 0.18s ease, height 0.32s cubic-bezier(0.32, 0.72, 0, 1), min-height 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+                padding 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.22s ease, transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.cnt-voce + .cnt-voce::before { content: ''; position: absolute; top: 0; left: 69px; right: 0; height: 1px; background: var(--cnt-sep); }
+.cnt-voce:disabled, .cnt-voce.solo { cursor: default; }
+@media (hover: hover) { .cnt-voce:not(.solo):not(:disabled):hover { background: rgba(255,255,255,0.045); } }
+.cnt-voce:not(.solo):not(:disabled):active { background: rgba(255,255,255,0.07); }
+.cnt-voce:focus-visible { outline: 2px solid rgba(var(--cnt-rgb), 0.85); outline-offset: -2px; border-radius: 14px; }
+.cnt-v-ico {
+    position: relative; width: 42px; height: 42px; border-radius: 14px; display: flex; align-items: center; justify-content: center; overflow: hidden;
+    background: rgb(var(--cnt-c, var(--cnt-rgb))); color: #111;
+    box-shadow: 0 0 16px rgba(var(--cnt-c, var(--cnt-rgb)), 0.35), inset 0 1px 0 rgba(255,255,255,0.5);
+    transition: background-color 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+}
+.cnt-v-ico.neutra { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.88); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
+.cnt-v-ico svg, .cnt-v-ico i { width: 19px; height: 19px; stroke-width: 2.1; }
+.cnt-v-ico img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cnt-v-ico .cnt-v-ini { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; }
+.cnt-v-testi { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+/* nome e stato vanno a capo (al massimo 2 righe ciascuno) invece di finire con i puntini */
+.cnt-v-nome { font-size: 0.95rem; font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; color: #FFF; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cnt-v-stato { min-width: 0; font-size: 0.78rem; font-weight: 500; line-height: 1.3; color: var(--cnt-testo-2); overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cnt-v-stato:empty { display: none; }
+.cnt-v-stato .cnt-v-pt { opacity: 0.45; margin: 0 5px; }
+.cnt-v-stato .cnt-v-forte { color: rgba(var(--cnt-c, var(--cnt-rgb)), 1); font-weight: 650; }
+.cnt-v-az {
+    width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.1);
+    transition: background-color 0.18s ease, transform 0.18s ease;
+}
+.cnt-v-az svg, .cnt-v-az i { width: 17px; height: 17px; stroke-width: 2.3; }
+.cnt-v-az.freccia { background: transparent; border-color: transparent; color: var(--cnt-testo-3); width: 22px; }
+.cnt-v-val { font-size: 0.95rem; font-weight: 700; font-variant-numeric: tabular-nums; color: #FFF; padding-left: 4px; }
+.cnt-voce:not(.solo):not(:disabled):active .cnt-v-az { transform: scale(0.9); background: rgba(var(--cnt-rgb), 0.3); }
+/* comando partito: l'icona si spegne, al posto del tasto una rotellina */
+.cnt-voce.va .cnt-v-ico { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); box-shadow: none; }
+.cnt-voce.va .cnt-v-ico img { opacity: 0.35; }
+.cnt-voce.va .cnt-v-az svg { display: none; }
+.cnt-voce.va .cnt-v-az::after {
+    content: ''; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); border-top-color: #FFF;
+    animation: cnt-gira 0.7s linear infinite;
+}
+@keyframes cnt-gira { to { transform: rotate(360deg); } }
+/* la voce esce: si chiude in altezza e scivola via */
+.cnt-voce.esce { opacity: 0; transform: translateX(28px); min-height: 0; padding-top: 0; padding-bottom: 0; pointer-events: none; }
+.cnt-voce.entra { animation: cnt-entra 0.34s cubic-bezier(0.32, 0.72, 0, 1); }
+@keyframes cnt-entra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.cnt-gruppo.esce { opacity: 0; transition: opacity 0.2s ease; }
+@media (prefers-reduced-motion: reduce) { .cnt-voce, .cnt-voce.entra { transition: none; animation: none; } }
+
+/* niente da mostrare */
+.cnt-vuoto { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 30px 20px 34px; animation: cnt-entra 0.34s ease; }
+.cnt-vuoto-ico {
+    width: 64px; height: 64px; border-radius: 22px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(var(--cnt-velo), var(--cnt-velo)), var(--cnt-pannello); border: 1px solid rgba(255,255,255,0.09); color: rgba(255,255,255,0.55);
+}
+.cnt-vuoto-ico svg, .cnt-vuoto-ico i { width: 28px; height: 28px; }
+.cnt-vuoto-t { font-size: 1.02rem; font-weight: 650; color: #FFF; }
+.cnt-vuoto-s { font-size: 0.84rem; color: var(--cnt-testo-2); max-width: 300px; line-height: 1.4; }
+
+/* piede: comando per tutte le voci */
+.cnt-piede { flex-shrink: 0; display: flex; gap: 10px; padding: 12px 16px calc(14px + var(--safe-bottom)); border-top: 1px solid rgba(255,255,255,0.07); }
+.cnt-piede[hidden] { display: none; }
+@media (min-width: 1024px) { .cnt-piede { padding-bottom: 18px; } }
+.cnt-tasto {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 0 16px; margin: 0;
+    border-radius: 16px; border: 1px solid rgba(var(--cnt-rgb), 0.38); background: rgba(var(--cnt-rgb), 0.16); color: #FFF;
+    font: inherit; font-size: 0.95rem; font-weight: 650; letter-spacing: -0.01em; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s ease, background-color 0.18s ease, opacity 0.2s ease;
+}
+.cnt-tasto svg, .cnt-tasto i { width: 18px; height: 18px; color: rgb(var(--cnt-rgb)); }
+.cnt-tasto:active { transform: scale(0.98); }
+@media (hover: hover) { .cnt-tasto:hover { background: rgba(var(--cnt-rgb), 0.24); } }
+.cnt-tasto:disabled { opacity: 0.45; cursor: default; }
+.cnt-tasto.neutro { flex: 0 1 auto; border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.07); }
+.cnt-tasto.neutro svg, .cnt-tasto.neutro i { color: rgba(255,255,255,0.8); }
+.cnt-tasto.pieno { background: #F4F4F7; border-color: #F4F4F7; color: #0B0B10; }
+@media (hover: hover) { .cnt-tasto.pieno:hover { background: #FFF; } }
+.cnt-tasto:focus-visible { outline: 2px solid rgba(var(--cnt-rgb), 0.9); outline-offset: 2px; }
+
+/* ---------------- foglio "Contatori" (pressione lunga) ---------------- */
+#cnt-gestione-modal { --cnt-rgb: 120, 170, 255; }
+.cnt-sezione-t { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 14px 6px 8px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cnt-testo-3); }
+.cnt-sezione-t:first-child { padding-top: 2px; }
+.cnt-sezione-n { font-size: 0.72rem; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--cnt-testo-3); }
+.cnt-g-riga {
+    position: relative; display: grid; grid-template-columns: 30px 38px minmax(0, 1fr) auto auto; align-items: center; gap: 11px;
+    min-height: 62px; padding: 10px 10px 10px 12px; background: transparent; touch-action: pan-y;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.cnt-g-riga + .cnt-g-riga::before { content: ''; position: absolute; top: 0; left: 92px; right: 0; height: 1px; background: var(--cnt-sep); }
+.cnt-g-riga.cnt-trascina { z-index: 5; background: rgba(48,48,56,0.97); border-radius: 16px; box-shadow: 0 16px 36px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12); transition: box-shadow 0.2s ease; }
+.cnt-g-riga.cnt-trascina::before, .cnt-g-riga.cnt-trascina + .cnt-g-riga::before { display: none; }
+.cnt-g-riga.cnt-evidenza { animation: cnt-evidenza 1.6s ease 0.25s 1; }
+@keyframes cnt-evidenza { 0%, 100% { background: transparent; } 25%, 60% { background: rgba(var(--cnt-c), 0.16); } }
+.cnt-g-pm {
+    width: 30px; height: 30px; border-radius: 50%; border: 0; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #FFF; -webkit-tap-highlight-color: transparent; transition: transform 0.15s ease, opacity 0.2s ease;
+}
+.cnt-g-pm svg, .cnt-g-pm i { width: 16px; height: 16px; stroke-width: 3; }
+.cnt-g-pm.togli { background: #FF453A; box-shadow: 0 3px 10px rgba(255,69,58,0.35); }
+.cnt-g-pm.metti { background: #30D158; box-shadow: 0 3px 10px rgba(48,209,88,0.32); }
+.cnt-g-pm:active { transform: scale(0.88); }
+.cnt-g-pm:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
+.cnt-g-pm:focus-visible { outline: 2px solid #FFF; outline-offset: 2px; }
+.cnt-g-ico { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgb(var(--cnt-c)); color: #111; box-shadow: 0 0 14px rgba(var(--cnt-c), 0.28), inset 0 1px 0 rgba(255,255,255,0.45); }
+.cnt-g-ico svg, .cnt-g-ico i { width: 18px; height: 18px; stroke-width: 2.2; }
+.cnt-g-testi { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cnt-g-nome { font-size: 0.94rem; font-weight: 600; color: #FFF; letter-spacing: -0.01em; line-height: 1.25; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cnt-g-descr { font-size: 0.76rem; color: var(--cnt-testo-2); line-height: 1.3; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.cnt-g-val { font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.86); padding: 3px 8px; border-radius: 9px; background: rgba(255,255,255,0.07); white-space: nowrap; max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
+.cnt-g-val:empty { display: none; }
+/* righe strette (sotto 380 px di pagina, anche con Grandezza pagina > 100%): il valore va sotto la descrizione,
+   cosi' nome e descrizione hanno tutta la larghezza e non finiscono con i puntini */
+.cnt-g-pm { grid-area: pm; } .cnt-g-ico { grid-area: ico; } .cnt-g-testi { grid-area: testi; } .cnt-g-val { grid-area: val; } .cnt-g-presa { grid-area: presa; }
+.cnt-g-riga { grid-template-areas: "pm ico testi val presa"; }
+.cnt-g-riga.aggiungi { grid-template-areas: "pm ico testi val"; }
+@media (max-width: 379.98px) {
+    .cnt-g-riga { grid-template-columns: 30px 38px minmax(0, 1fr) auto; grid-template-areas: "pm ico testi presa" "pm ico val presa"; row-gap: 5px; }
+    .cnt-g-riga.aggiungi { grid-template-columns: 30px 38px minmax(0, 1fr); grid-template-areas: "pm ico testi" "pm ico val"; }
+    .cnt-g-val { justify-self: start; max-width: 100%; }
+}
+.cnt-g-presa {
+    width: 34px; height: 44px; margin: -6px -4px -6px 0; display: flex; align-items: center; justify-content: center; border-radius: 10px;
+    color: rgba(255,255,255,0.42); cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.cnt-g-presa:active, .cnt-trascina .cnt-g-presa { cursor: grabbing; color: #FFF; }
+.cnt-g-presa svg, .cnt-g-presa i { width: 20px; height: 20px; }
+.cnt-g-riga.aggiungi { grid-template-columns: 30px 38px minmax(0, 1fr) auto; cursor: pointer; }
+.cnt-g-riga.aggiungi .cnt-g-ico { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12); }
+@media (hover: hover) { .cnt-g-riga.aggiungi:hover { background: rgba(255,255,255,0.04); } }
+.cnt-g-vuoto { padding: 16px 14px; font-size: 0.84rem; color: var(--cnt-testo-2); text-align: center; }
+.cnt-g-nota { display: flex; gap: 8px; align-items: flex-start; padding: 12px 6px 4px; font-size: 0.76rem; line-height: 1.4; color: var(--cnt-testo-3); }
+.cnt-g-nota svg, .cnt-g-nota i { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; }
 </style>
 {%- if inverter_attivo %}{# [ENERGIA] M1 #}<link rel="stylesheet" href="/static/energia.css?v=2026-10-04c">{% endif %}
 {%- if calendari_attivo %}{# [CALENDARI] P1 #}<link rel="stylesheet" href="/static/calendari.css?v=2026-10-05b">{% endif %}
@@ -4751,29 +5055,33 @@ html.wh-scala .imp-pagina {
                     </div>
                 </div>
 
-                <div class="glance-row">
-                    <div class="glance-pill" id="pill-lights" onclick="showActiveEntities('lights')">
-                        <div class="glance-icon"><i data-lucide="power"></i></div>
+                <!-- CONTATORI (15/10/2026): quali e in che ordine li sceglie ogni dispositivo (pressione lunga su un contatore ->
+                     foglio "Contatori"); senza una scelta salvata restano i tre di sempre. Il tocco apre il foglio del contatore.
+                     Tutto il comportamento e' nello script "CONTATORI" in fondo alla pagina. -->
+                {%- set CNT_TIPI = {
+                    'luci':       {'pill': 'pill-lights',        'val': 'count-lights',        'icona': 'power',       'etichetta': 'Luci Attive',    'rgb': '255, 214, 10'},
+                    'media':      {'pill': 'pill-media',         'val': 'count-media',         'icona': 'music',       'etichetta': 'In Play',        'rgb': '10, 132, 255'},
+                    'tapparelle': {'pill': 'pill-covers',        'val': 'count-covers',        'icona': 'blinds',      'etichetta': 'Aperte',         'rgb': '81, 217, 8'},
+                    'clima':      {'pill': 'pill-cnt-clima',     'val': 'count-cnt-clima',     'icona': 'thermometer', 'etichetta': 'Clima attivo',   'rgb': '255, 159, 10'},
+                    'aperture':   {'pill': 'pill-cnt-aperture',  'val': 'count-cnt-aperture',  'icona': 'door-open',   'etichetta': 'Porte/finestre', 'rgb': '255, 105, 97'},
+                    'consumi':    {'pill': 'pill-cnt-consumi',   'val': 'count-cnt-consumi',   'icona': 'zap',         'etichetta': 'Consumo',        'rgb': '48, 209, 88'},
+                    'tv':         {'pill': 'pill-cnt-tv',        'val': 'count-cnt-tv',        'icona': 'tv',          'etichetta': 'TV accese',      'rgb': '191, 90, 242'},
+                    'persone':    {'pill': 'pill-cnt-persone',   'val': 'count-cnt-persone',   'icona': 'users',       'etichetta': 'In casa',        'rgb': '100, 210, 255'},
+                    'allarme':    {'pill': 'pill-cnt-allarme',   'val': 'count-cnt-allarme',   'icona': 'shield',      'etichetta': 'Allarme',        'rgb': '48, 209, 88'}
+                } %}
+                {%- set cnt_scelti = (contatori_salvati if (contatori_salvati is defined and contatori_salvati) else ['luci', 'media', 'tapparelle']) %}
+                <div class="glance-row" id="glance-row">
+                    {%- for tipo in cnt_scelti if tipo in CNT_TIPI %}{% set t = CNT_TIPI[tipo] %}
+                    <div class="glance-pill{% if tipo not in ('luci', 'media', 'tapparelle') %} cnt-tinta{% endif %}" id="{{ t.pill }}" data-cnt="{{ tipo }}" role="button" tabindex="0" style="--cnt-rgb: {{ t.rgb }}">
+                        <div class="glance-icon"><i data-lucide="{{ t.icona }}"></i></div>
                         <div class="glance-text">
-                            <div class="glance-val" id="count-lights">0</div>
-                            <div class="glance-lbl">Luci Attive</div>
+                            <div class="glance-val" id="{{ t.val }}">0</div>
+                            <div class="glance-lbl">{{ t.etichetta }}</div>
                         </div>
                     </div>
-                    <div class="glance-pill" id="pill-media" onclick="showActiveEntities('media')">
-                        <div class="glance-icon"><i data-lucide="music"></i></div>
-                        <div class="glance-text">
-                            <div class="glance-val" id="count-media">0</div>
-                            <div class="glance-lbl">In Play</div>
-                        </div>
-                    </div>
-<div class="glance-pill" id="pill-covers" onclick="showActiveEntities('covers')">
-    <div class="glance-icon"><i data-lucide="blinds"></i></div>
-    <div class="glance-text">
-        <div class="glance-val" id="count-covers">0</div>
-        <div class="glance-lbl">Aperte</div>
-    </div>
-</div>
+                    {%- endfor %}
                 </div>
+                <script>window.__WH_CNT_TIPI__ = {{ CNT_TIPI | tojson }};window.__WH_CNT_UTENTE__ = {{ (session.get('user_id') if session else none) | tojson }};window.__WH_CONTATORI__ = {% if contatori_salvati is defined %}{{ (contatori_salvati or none) | tojson }}{% else %}undefined{% endif %};</script>
             </div>
 
             {% macro render_devices(device_list, custom_icons, chiave='') %}
@@ -4851,11 +5159,12 @@ html.wh-scala .imp-pagina {
 
             {% elif domain == 'media_player' and device.attributes.wach_tv %}
             {% set current_icon = custom_icons.get(device.entity_id, 'tv') if custom_icons else 'tv' %}
-            <div class="hk-card type-tv state-{{ device.state }}" data-id="{{ device.entity_id }}" data-state="{{ device.state }}" data-marca="{{ device.attributes.marca | default('') }}" data-nome="{{ device.attributes.friendly_name | default('TV') }}">
+            {% set tv_problema = device.attributes.stato_tv in ('non_raggiungibile', 'chiede_permesso', 'serve_riabbinare', 'rifiuta_collegamento') %}
+            <div class="hk-card type-tv state-{{ device.state }}" data-id="{{ device.entity_id }}" data-state="{{ device.state }}" data-marca="{{ device.attributes.marca | default('') }}" data-nome="{{ device.attributes.friendly_name | default('TV') }}" data-stato-tv="{{ device.attributes.stato_tv | default('') }}" data-stato-testo="{{ device.attributes.stato_testo | default('') }}" data-aiuto="{{ device.attributes.aiuto | default('') }}">
                 <div class="hk-icon-wrapper"><i data-lucide="{{ current_icon }}"></i></div>
                 <div class="hk-text-wrapper">
                     <div class="hk-name" data-no-tr>{{ device.attributes.friendly_name | default('TV') }}</div>
-                    <div class="hk-state" id="state-{{ device.entity_id | replace('.', '-') }}">{% if device.state == 'on' %}Accesa{% else %}Spenta{% endif %}</div>
+                    <div class="hk-state{% if tv_problema %} tv-problema{% endif %}" id="state-{{ device.entity_id | replace('.', '-') }}">{% if device.attributes.stato_testo %}{{ device.attributes.stato_testo }}{% elif device.state == 'on' %}Accesa{% else %}Spenta{% endif %}</div>
                 </div>
                 <div class="tv-card-power"><button type="button" onclick="tvCardPower(event, '{{ device.entity_id }}')" title="Accendi / Spegni"><i data-lucide="power"></i></button></div>
             </div>
@@ -5507,13 +5816,48 @@ html.wh-scala .imp-pagina {
     <div class="modal-overlay" id="modal-overlay"></div>
     <script>window.__offlineIds = {{ (offline_ids or []) | tojson }}; window.__ordiniSalvati = {{ (ordini_salvati or []) | tojson }}; window.__allargate = {{ (allargate or []) | tojson }}; window.__WH_PLANCIA__ = {{ ((plancia_salvata or {}) | tojson) if plancia_salvata is defined else 'null' }};{% if cruscotto_salvato is defined %}window.__WH_CRUSCOTTO__ = {{ (cruscotto_salvato or {}) | tojson }};{% endif %}window.__fusoCasa = {{ (fuso_casa or '') | tojson }};window.__sfondoImpianto = {{ (sfondo_impianto or '') | tojson }};</script>
 
-    <div class="bottom-modal" id="active-entities-modal">
+    <!-- FOGLIO DI UN CONTATORE (rifatto il 15/10/2026, script "CONTATORI" in fondo alla pagina): elenco per stanza,
+         tocco su una voce = spegne / chiude / mette in pausa, in fondo il comando per tutte. Stesso id di prima. -->
+    <div class="bottom-modal cnt-foglio" id="active-entities-modal" role="dialog" aria-labelledby="active-modal-title">
         <div class="modal-handle"></div>
-        <button class="close-modal-btn" onclick="closeAllModals()"><i data-lucide="x"></i></button>
-        <div class="modal-header"><div class="modal-title" id="active-modal-title">Entità Attive</div></div>
-        <div class="modal-scroll-area">
-            <div id="active-entities-list" style="display:flex; flex-direction:column; gap:12px; padding-bottom:20px;">
+        <button class="close-modal-btn" type="button" onclick="closeAllModals()" title="Chiudi" aria-label="Chiudi"><i data-lucide="x"></i></button>
+        <div class="modal-header cnt-testa">
+            <div class="cnt-testa-ico" id="cnt-testa-ico"><i data-lucide="power"></i></div>
+            <div class="cnt-testa-testi">
+                <div class="modal-title" id="active-modal-title">Luci attive</div>
+                <div class="cnt-sotto" id="cnt-sotto"></div>
             </div>
+        </div>
+        <div class="modal-scroll-area cnt-scorre" id="cnt-scorre">
+            <div id="active-entities-list" class="cnt-elenco"></div>
+        </div>
+        <div class="cnt-piede" id="cnt-piede" hidden>
+            <button type="button" class="cnt-tasto" id="cnt-tutti"><i data-lucide="power"></i><span id="cnt-tutti-t">Spegni tutte</span></button>
+        </div>
+    </div>
+
+    <!-- FOGLIO "CONTATORI" (15/10/2026): si apre con la pressione lunga su un contatore. Togliere, aggiungere, riordinare;
+         le scelte valgono per questo dispositivo (POST /api/mobile/contatori, come l'ordine delle card). -->
+    <div class="bottom-modal" id="cnt-gestione-modal" role="dialog" aria-labelledby="cnt-g-titolo">
+        <div class="modal-handle"></div>
+        <button class="close-modal-btn" type="button" onclick="closeAllModals()" title="Chiudi" aria-label="Chiudi"><i data-lucide="x"></i></button>
+        <div class="modal-header cnt-testa">
+            <div class="cnt-testa-ico"><i data-lucide="layout-grid"></i></div>
+            <div class="cnt-testa-testi">
+                <div class="modal-title" id="cnt-g-titolo">Contatori</div>
+                <div class="cnt-sotto">Scegli quali contatori vedere in alto e in che ordine.</div>
+            </div>
+        </div>
+        <div class="modal-scroll-area cnt-scorre" id="cnt-g-scorre">
+            <div class="cnt-sezione-t"><span>In alto</span><span class="cnt-sezione-n">Trascina per cambiare l'ordine</span></div>
+            <div class="cnt-blocco" id="cnt-g-scelti"></div>
+            <div class="cnt-sezione-t" id="cnt-g-altri-t"><span>Aggiungi</span></div>
+            <div class="cnt-blocco" id="cnt-g-altri"></div>
+            <div class="cnt-g-nota"><i data-lucide="smartphone"></i><span>Le scelte valgono solo per questo dispositivo.</span></div>
+        </div>
+        <div class="cnt-piede">
+            <button type="button" class="cnt-tasto neutro" id="cnt-g-ripristina"><i data-lucide="rotate-ccw"></i><span>Ripristina</span></button>
+            <button type="button" class="cnt-tasto pieno" id="cnt-g-fine"><span>Fine</span></button>
         </div>
     </div>
 
@@ -6561,6 +6905,7 @@ html.wh-scala .imp-pagina {
             </div>
             <button type="button" class="tv-power-btn" id="tv-modal-power" data-k="power" title="Accendi / Spegni"><i data-lucide="power"></i></button>
         </div>
+        <div class="tv-avviso" id="tv-avviso"></div>
         <div class="modal-scroll-area tv-body">
             <div class="tv-row tv-apps">
                 <button type="button" class="tv-chip netflix" data-k="app:netflix">Netflix</button>
@@ -6573,7 +6918,7 @@ html.wh-scala .imp-pagina {
             <div class="tv-row">
                 <button type="button" class="tv-key" data-k="source"><i data-lucide="plug"></i><span>Sorgente</span></button>
                 <button type="button" class="tv-key" data-k="tv"><i data-lucide="tv"></i><span>TV</span></button>
-                <button type="button" class="tv-key" data-k="guide"><i data-lucide="list"></i><span>Guida</span></button>
+                <button type="button" class="tv-key solo-non-hisense" data-k="guide"><i data-lucide="list"></i><span>Guida</span></button>
                 <button type="button" class="tv-key" data-k="info"><i data-lucide="info"></i><span>Info</span></button>
             </div>
             <div class="tv-dpad">
@@ -6625,7 +6970,6 @@ html.wh-scala .imp-pagina {
                 <button type="button" class="tv-chip" data-k="hdmi3">HDMI 3</button>
                 <button type="button" class="tv-chip" data-k="hdmi4">HDMI 4</button>
             </div>
-            <div class="tv-avviso" id="tv-avviso"></div>
         </div>
     </div>
 
@@ -7740,6 +8084,10 @@ function applyBackground(bg) {
         }
 
         function showActiveEntities(type) {
+            // il foglio del contatore e' quello nuovo (script "CONTATORI" in fondo alla pagina, 15/10/2026); qui sotto
+            // resta l'elenco di prima solo se quello script mancasse
+            const nuovo = { lights: 'luci', media: 'media', covers: 'tapparelle' }[type] || type;
+            if (window.whContatori) { window.whContatori.apri(nuovo); return; }
             const listEl = document.getElementById('active-entities-list');
             const titleEl = document.getElementById('active-modal-title');
             listEl.innerHTML = '';
@@ -7747,7 +8095,9 @@ function applyBackground(bg) {
             let selector = '';
             if(type === 'lights') {
                 titleEl.innerText = 'Dispositivi Accesi';
-                selector = '.hk-card.state-on:not(.type-cover):not(.type-tv), .hk-card.state-open:not(.type-cover), .hk-card.state-heat:not(.type-cover), .hk-card.state-cool:not(.type-cover), .hk-card.state-auto:not(.type-cover)';
+                // SOLO luci (light.*) e interruttori (switch.*) accesi, come il contatore "Luci attive" (14/10/2026):
+                // prima si prendeva ogni card accesa/in funzione, termostati in caldo/freddo/auto compresi
+                selector = '.hk-card.state-on[data-id^="light."], .hk-card.state-on[data-id^="switch."]';
             } else if (type === 'media') {
                 titleEl.innerText = 'In Riproduzione';
                 selector = '.hk-card.type-media_player.state-playing';
@@ -8463,6 +8813,8 @@ setInterval(fetchRealWeather, 300000);
         setInterval(updateDateTime, 1000); updateDateTime();
 
         function updateGlanceSummary() {
+            // contatori scelti per dispositivo (script "CONTATORI" in fondo alla pagina, 15/10/2026): conta e scrive tutto li'
+            if (window.whContatori) { window.whContatori.aggiorna(); return; }
             // Stessi conteggi di prima (una volta per entita', anche se la card compare in piu' stanze), ma
             // passando le card della pagina una volta sola invece di tre ricerche su tutto il documento, e
             // scrivendo i numeri solo quando cambiano (29/09/2026)
@@ -8470,17 +8822,20 @@ setInterval(fetchRealWeather, 300000);
             const tutte = whCard.tutte();
             for (let i = 0; i < tutte.length; i++) {
                 const card = tutte[i], cl = card.classList;
-                // Filtro via le tapparelle e le TV dal conteggio (la TV accesa non e' una luce)
-                if ((cl.contains('state-on') || cl.contains('state-open') || cl.contains('state-heat') || cl.contains('state-cool') || cl.contains('state-auto'))
-                    && !cl.contains('type-cover') && !cl.contains('type-tv')) accese.add(card.dataset.id);
+                // "Luci attive" conta SOLO luci (light.*) e interruttori (switch.*) accesi (14/10/2026): prima contava ogni
+                // card accesa o in funzione (termostati in caldo/freddo/auto, ventilatori, input_boolean...), tolte tapparelle e TV
+                const id = card.dataset.id || '';
+                if (cl.contains('state-on') && (id.startsWith('light.') || id.startsWith('switch.'))) accese.add(id);
                 if (cl.contains('type-media_player') && cl.contains('state-playing')) inPlay.add(card.dataset.id);
                 if (cl.contains('type-cover') && cl.contains('state-open')) aperte.add(card.dataset.id);
             }
             const scrivi = (el, n) => { if (el && el.textContent !== String(n)) el.innerText = n; };
             scrivi(document.getElementById('count-lights'), accese.size);
-            document.getElementById('pill-lights').classList.toggle('active', accese.size > 0);
+            const pillLights = document.getElementById('pill-lights');   // i contatori si possono togliere (15/10/2026)
+            if (pillLights) pillLights.classList.toggle('active', accese.size > 0);
             scrivi(document.getElementById('count-media'), inPlay.size);
-            document.getElementById('pill-media').classList.toggle('active', inPlay.size > 0);
+            const pillMedia = document.getElementById('pill-media');
+            if (pillMedia) pillMedia.classList.toggle('active', inPlay.size > 0);
             // Conteggio Tapparelle
             scrivi(document.getElementById('count-covers'), aperte.size);
             const pillCovers = document.getElementById('pill-covers');
@@ -8827,7 +9182,7 @@ setInterval(fetchRealWeather, 300000);
             document.getElementById('tv-modal-name').innerText = nome;
             document.getElementById('tv-modal').dataset.marca = card.dataset.marca || '';
             document.getElementById('tv-numpad').classList.remove('open');
-            aggiornaModaleTv(card.classList.contains('state-on'));
+            aggiornaModaleTv(card.classList.contains('state-on'), { stato_testo: card.dataset.statoTesto || '', aiuto: card.dataset.aiuto || '' });
             document.getElementById('modal-overlay').classList.add('active');
             document.getElementById('tv-modal').classList.add('active');
             document.getElementById('app-wrapper').classList.add('modal-active');
@@ -8841,11 +9196,24 @@ setInterval(fetchRealWeather, 300000);
             if (dot) dot.classList.toggle('on', !!acceso);
             if (st) {
                 // Android TV manda anche volume e app in uso: si mostrano accanto allo stato
-                let testo = acceso ? 'Accesa' : 'Spenta';
+                let testo = (attrs && attrs.stato_testo) || (acceso ? 'Accesa' : 'Spenta');
                 if (acceso && attrs && typeof attrs.volume_level === 'number') testo += ' \u00b7 Vol ' + Math.round(attrs.volume_level * 100) + '%' + (attrs.is_volume_muted ? ' (muto)' : '');
                 st.innerText = testo;
             }
             if (pw) pw.classList.toggle('on', !!acceso);
+            // cosa fare quando la TV ha un problema (Da riabbinare, Accetta sulla TV...): resta visibile
+            const av = document.getElementById('tv-avviso');
+            if (av && attrs && typeof attrs.aiuto === 'string') {
+                if (attrs.aiuto) {
+                    clearTimeout(av._timer);
+                    av.textContent = attrs.aiuto;
+                    av.dataset.fisso = '1';
+                    av.classList.add('visibile');
+                } else if (av.dataset.fisso) {
+                    delete av.dataset.fisso;
+                    av.classList.remove('visibile');
+                }
+            }
         }
 
         function avvisoTv(testo) {
@@ -8882,6 +9250,7 @@ setInterval(fetchRealWeather, 300000);
                         card.classList.toggle('state-on', acceso); card.classList.toggle('state-off', !acceso);
                         card.dataset.state = acceso ? 'on' : 'off';
                         const s = card.querySelector('.hk-state'); if (s) s.innerText = acceso ? 'Accesa' : 'Spenta';
+                        card.dataset.testoMostrato = '';   // il giro dal vivo riscrive lo stato vero
                     }
                     if (tvModalEntity === entityId) aggiornaModaleTv(acceso);
                     if (window.pendingEntities) window.pendingEntities.set(entityId, Date.now() + 6000);
@@ -10626,14 +10995,21 @@ function setTimerPreset(minutes) {
                     // --- CARD SMART TV: solo acceso/spento (e il telecomando, se aperto su questa TV) ---
                     if (card.classList.contains('type-tv')) {
                         const acceso = (newState === 'on');
+                        const at = data.attributes || {};
                         if (card.dataset.state !== newState) {
                             card.classList.toggle('state-on', acceso);
                             card.classList.toggle('state-off', !acceso);
                             card.dataset.state = newState;
-                            const st = card.querySelector('.hk-state');
-                            if (st) st.innerText = acceso ? 'Accesa' : 'Spenta';
                         }
-                        if (tvModalEntity === entityId) aggiornaModaleTv(acceso, data.attributes || {});
+                        const st = card.querySelector('.hk-state');
+                        const testo = at.stato_testo || (acceso ? 'Accesa' : 'Spenta');
+                        // si riscrive solo se cambia (il testo mostrato puo' essere gia' tradotto)
+                        if (st && card.dataset.testoMostrato !== testo) { st.innerText = testo; card.dataset.testoMostrato = testo; }
+                        if (st) st.classList.toggle('tv-problema', ['non_raggiungibile', 'chiede_permesso', 'serve_riabbinare', 'rifiuta_collegamento'].indexOf(at.stato_tv) >= 0);
+                        card.dataset.statoTv = at.stato_tv || '';
+                        card.dataset.statoTesto = at.stato_testo || '';
+                        card.dataset.aiuto = at.aiuto || '';
+                        if (tvModalEntity === entityId) aggiornaModaleTv(acceso, at);
                         return;
                     }
 
@@ -17328,6 +17704,1104 @@ function hkOsserva(card) {
     oss.observe(wrapper, { attributes: true, attributeFilter: ['class'] });
     if (imp) oss.observe(imp, { attributes: true, attributeFilter: ['class'] });
     aggiorna();
+})();
+</script>
+<!-- chiedi()/avvisa() per i fogli dei contatori: popup.js altrimenti arriva solo con i Calendari (si carica una volta sola) -->
+<script src="/static/popup.js" defer></script>
+<script>
+/* =====================================================================
+   CONTATORI IN ALTO (15/10/2026)
+   Le pillole sotto il meteo ("Luci attive", "In play", "Aperte"...) e i loro fogli.
+   - QUALI CONTATORI: si scelgono per dispositivo con una pressione lunga su una pillola (dito o mouse,
+     ~0,5 s senza muoversi; il tasto destro fa lo stesso) -> foglio "Contatori": togliere, aggiungere,
+     trascinare per l'ordine, ripristinare. Si salvano con POST /api/mobile/contatori (cookie wh_dispositivo,
+     come l'ordine delle card) e in localStorage 'wh_contatori' (copia del dispositivo: se il server non ha
+     la riga, per esempio cookie nuovo, vale questa e si rimanda). Mai scelto = luci, in play, aperte.
+   - TIPI: luci (SOLO light.* e switch.* accesi), media in riproduzione, tapparelle aperte, termostati attivi
+     (hvac_action heating/cooling; senza hvac_action conta il modo heat/cool), porte e finestre aperte
+     (binary_sensor door/window/garage_door/opening), consumi (prese con misura, altrimenti sensori di potenza),
+     TV accese, persone in casa (/api/zone, la mappa), allarme. Si offrono solo i tipi che l'impianto ha.
+   - TOCCO su una pillola -> foglio del contatore (#active-entities-modal): voci per stanza; tocco su una voce =
+     spegne (luci, prese: /api/toggle come l'icona della card, aggiornamento subito e ritorno indietro se il
+     server rifiuta), chiude (tapparelle: /api/cover_control 'down', come il tasto della card), pausa (media:
+     /api/media_control 'media_pause'), spegne la TV (tvCmd 'power_off'); termostati e sensori aprono il loro
+     pannello; "Spegni tutte"/"Chiudi tutte" chiedono conferma con chiedi(). L'allarme apre la sua finestra.
+   Le card non cambiano: si leggono classi e attributi come fa updateGlanceSummary (che ora chiama qui).
+   ===================================================================== */
+(function () {
+    'use strict';
+    const BASE = window.__WH_CNT_TIPI__ || null;
+    const riga = document.getElementById('glance-row');
+    if (!BASE || !riga || !document.getElementById('active-entities-modal')) return;
+
+    const ORDINE = ['luci', 'media', 'tapparelle', 'clima', 'aperture', 'consumi', 'tv', 'persone', 'allarme'];
+    const DI_SEMPRE = ['luci', 'media', 'tapparelle'];          // le tre di prima: si vedono sempre, anche a zero
+    const PREDEFINITI = DI_SEMPRE.slice();
+    // copia locale per utente: sullo stesso telefono un altro utente non eredita (ne' salva a suo nome) la scelta di chi c'era prima
+    const UTENTE = (window.__WH_CNT_UTENTE__ === undefined || window.__WH_CNT_UTENTE__ === null) ? '' : String(window.__WH_CNT_UTENTE__);
+    const LS = 'wh_contatori_u' + UTENTE, LS_INVIO = 'wh_contatori_da_inviare_u' + UTENTE;
+    const LINGUA = ((document.documentElement.getAttribute('lang') || 'it').slice(0, 2)) === 'en' ? 'en' : 'it';
+    const APERTURE = { door: 1, window: 1, garage_door: 1, opening: 1 };
+
+    // testi (frasi intere: i18n.js le traduce nel DOM; nomi di entita', stanze e persone hanno data-no-tr)
+    const TESTI = {
+        luci:       { nome: 'Luci attive', descr: 'Luci e interruttori accesi', parola: 'accese', parola1: 'accesa', aiuto: 'Tocca per spegnere',
+                      vuoto: 'Nessuna luce accesa', vuotoS: 'Luci e interruttori sono tutti spenti.', az: 'power',
+                      tutti: 'Spegni tutte', chiediT: 'Spegnere tutte le luci?', chiediM: 'Si spengono le luci di questo elenco. Prese e interruttori restano accesi: si spengono uno alla volta toccandoli.', chiediSi: 'Spegni tutte', chiediIco: 'power' },
+        media:      { nome: 'In riproduzione', descr: 'Casse e lettori che stanno suonando', parola: 'in riproduzione', aiuto: 'Tocca per mettere in pausa',
+                      vuoto: 'Niente in riproduzione', vuotoS: 'Nessuna cassa o lettore sta suonando.', az: 'pause',
+                      tutti: 'Metti tutto in pausa', chiediT: 'Mettere tutto in pausa?', chiediM: 'Si fermano le casse e i lettori di questo elenco.', chiediSi: 'Metti in pausa', chiediIco: 'help-circle' },
+        tapparelle: { nome: 'Tapparelle aperte', descr: 'Tapparelle e tende aperte', parola: 'aperte', parola1: 'aperta', aiuto: 'Tocca per chiudere',
+                      vuoto: 'Tutto chiuso', vuotoS: 'Nessuna tapparella aperta.', az: 'arrow-down-to-line',
+                      tutti: 'Chiudi tutte', chiediT: 'Chiudere tutte le tapparelle?', chiediM: 'Si chiudono le tapparelle aperte di questo elenco.', chiediSi: 'Chiudi tutte', chiediIco: 'help-circle' },
+        clima:      { nome: 'Clima attivo', descr: 'In riscaldamento o raffreddamento', parola: 'attivi', parola1: 'attivo', aiuto: 'Tocca per regolare',
+                      vuoto: 'Nessun termostato attivo', vuotoS: 'Nessun termostato sta scaldando o raffreddando.', az: 'chevron-right' },
+        aperture:   { nome: 'Porte e finestre aperte', descr: 'Sensori di apertura di porte e finestre', parola: 'aperte', parola1: 'aperta', aiuto: 'Tocca per i dettagli',
+                      vuoto: 'Tutto chiuso', vuotoS: 'Porte e finestre risultano chiuse.', az: 'chevron-right' },
+        consumi:    { nome: 'Consumo', descr: 'Prese con misura e sensori di potenza', parola: 'in totale', aiuto: 'Tocca una presa per spegnerla',
+                      vuoto: 'Nessun consumo', vuotoS: 'Nessuna presa o sensore misura potenza in questo momento.', az: 'power' },
+        tv:         { nome: 'TV accese', descr: 'Televisori accesi', parola: 'accese', parola1: 'accesa', aiuto: 'Tocca per spegnere',
+                      vuoto: 'Nessuna TV accesa', vuotoS: 'I televisori sono tutti spenti.', az: 'power',
+                      tutti: 'Spegni tutte', chiediT: 'Spegnere tutte le TV?', chiediM: 'Si spengono i televisori accesi di questo elenco.', chiediSi: 'Spegni tutte', chiediIco: 'power' },
+        persone:    { nome: 'Persone in casa', descr: 'Chi è in casa secondo la mappa', parola: 'in casa', aiuto: '',
+                      vuoto: 'Nessuna posizione', vuotoS: 'Nessuno ha mandato la sua posizione nelle ultime 24 ore.', az: '',
+                      tutti: 'Apri la mappa', tuttiIco: 'map-pin' },
+        allarme:    { nome: 'Allarme', descr: "Stato e tastierino dell'allarme", parola: '', aiuto: '', vuoto: '', vuotoS: '', az: '' }
+    };
+    const NON_DISPONIBILE = 'Al momento non ci sono dispositivi di questo tipo';
+
+    // ------------------------------------------------------------ piccoli aiuti
+    const $ = id => document.getElementById(id);
+    function el(tag, cls, testo) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (testo !== undefined && testo !== null) e.textContent = String(testo);
+        return e;
+    }
+    function icona(nome) { const i = document.createElement('i'); i.setAttribute('data-lucide', nome); return i; }
+    function icone(root) { try { if (typeof whIcone === 'function') whIcone(root); else if (window.lucide) lucide.createIcons({ root: root }); } catch (e) {} }
+    function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+    function num(v) { if (v === undefined || v === null || v === '') return null; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; }
+    function testoDi(e) { return e ? (e.textContent || '').replace(/\s+/g, ' ').trim() : ''; }
+    function fmtNum(n, cifre) { try { return n.toLocaleString(LINGUA === 'en' ? 'en-US' : 'it-IT', { maximumFractionDigits: cifre, minimumFractionDigits: 0 }); } catch (e) { return String(Math.round(n * 10) / 10); } }
+    function fmtW(w) {
+        if (w >= 1000) return { n: fmtNum(w / 1000, w >= 10000 ? 1 : 2), u: 'kW' };
+        return { n: fmtNum(Math.round(w), 0), u: 'W' };
+    }
+    function fmtGradi(t) { return t === null ? '--' : fmtNum(t, 1) + '°'; }
+    function toast(m) { if (typeof hkToast === 'function') hkToast(m); }
+    // conferma: chiedi() di popup.js; se mancasse, la finestra interna della pagina (askAppConfirm)
+    function conferma(testo, o) {
+        if (typeof chiedi === 'function') return chiedi(testo, o);
+        if (typeof askAppConfirm === 'function') return askAppConfirm({ title: o.titolo, message: testo, confirmText: o.si, icon: o.icona === 'refresh-cw' ? 'rotate-ccw' : 'power' });
+        return Promise.resolve(true);
+    }
+    function vibra(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {} }
+    function valido(l) {
+        if (!Array.isArray(l)) return [];
+        return l.filter((t, i) => typeof t === 'string' && BASE[t] && l.indexOf(t) === i);
+    }
+    function statoClasse(card) {
+        const cl = card.classList;
+        for (let i = 0; i < cl.length; i++) if (cl[i].indexOf('state-') === 0) return cl[i].slice(6);
+        return card.dataset.state || '';
+    }
+
+    // ------------------------------------------------------------ attributi letti dal giro degli stati (termostati)
+    // Senza una vista attiva i termostati del telefono non hanno hvac_action e temperature aggiornate sulla card:
+    // si prendono dal gancio whViste.annota (come fa il blocco Hue), solo per i termostati.
+    const ATTR = new Map();
+    (function aggancia() {
+        const v = window.whViste;
+        if (!v || typeof v.annota !== 'function' || v.__cnt) return;
+        const prima = v.annota;
+        v.annota = function (cards, dati) {
+            const r = prima.apply(this, arguments);
+            try {
+                if (cards && cards[0] && cards[0].classList.contains('type-climate') && dati && dati.state !== 'unavailable')
+                    ATTR.set(cards[0].dataset.id, dati.attributes || {});
+            } catch (e) {}
+            return r;
+        };
+        v.__cnt = true;
+    })();
+
+    // ------------------------------------------------------------ comandi appena partiti (voce nascosta finche' lo stato non segue)
+    // tapparella in chiusura (il motore puo' metterci un minuto), lettore messo in pausa, TV in spegnimento
+    const NASC = new Map();
+    function nascondi(id, tipo, ms, card) { NASC.set(id, { tipo, fino: Date.now() + ms, pos: card ? num(card.dataset.position) : null }); }
+    function nascosto(id, card) {
+        const m = NASC.get(id);
+        if (!m) return false;
+        if (Date.now() > m.fino) { NASC.delete(id); return false; }
+        if (m.tipo === 'cover') {
+            if (card.classList.contains('state-opening')) { NASC.delete(id); return false; }
+            const p = num(card.dataset.position);
+            if (p !== null && m.pos !== null && p > m.pos) { NASC.delete(id); return false; }   // la sta riaprendo qualcuno
+        }
+        return true;
+    }
+
+    // ------------------------------------------------------------ zone (persone in casa) e allarme
+    let zone = null, zoneT = 0, zoneInCorso = null;
+    function leggiZone(subito) {
+        if (zoneInCorso) return zoneInCorso;
+        if (!subito && zone && Date.now() - zoneT < 55000) return Promise.resolve(zone);
+        zoneInCorso = fetch('/api/zone', { cache: 'no-store', credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : null)
+            .then(d => {
+                if (d && Array.isArray(d.zone)) { zone = d; zoneT = Date.now(); }
+                else if (!zone) { zone = { zone: [], persone: [] }; zoneT = Date.now(); }
+                return zone;
+            })
+            .catch(() => zone)
+            .then(z => { zoneInCorso = null; aggiorna(); return z; });
+        return zoneInCorso;
+    }
+    function persone() {
+        if (!zone) return null;
+        const tutte = Array.isArray(zone.persone) ? zone.persone.slice() : [];
+        const out = [];
+        const casa = (zone.zone || []).find(z => z.casa) || null;
+        tutte.forEach(p => {
+            const dove = (zone.zone || []).filter(z => Array.isArray(z.dentro) && z.dentro.indexOf(p) >= 0);
+            out.push({ nome: p, inCasa: !!(casa && dove.indexOf(casa) >= 0), zone: dove.map(z => z.nome || z.chiave) });
+        });
+        return out;
+    }
+    function allarme() {
+        let u = null, s = null;
+        try { u = allarmeUltimo; } catch (e) { u = null; }
+        if (!u) return null;
+        const configurato = !!u.is_configured || (u.status && u.status !== 'disarmed');
+        try { s = allarmeAspetto(); } catch (e) { s = null; }
+        return { configurato, stato: u.status || 'disarmed', s };
+    }
+
+    // ------------------------------------------------------------ lettura delle card: UNA passata per tutti i tipi
+    function scansiona() {
+        const visti = new Map(), elenco = [];
+        const tutte = (typeof whCard !== 'undefined') ? whCard.tutte() : document.querySelectorAll('.hk-card[data-id]');
+        for (let i = 0; i < tutte.length; i++) {
+            const c = tutte[i], id = c.dataset.id;
+            if (!id) continue;
+            const g = c.closest('.grid-hk');
+            let e = visti.get(id);
+            if (!e) { e = { id, card: c, chiave: g ? (g.dataset.chiave || '') : null, ord: i }; visti.set(id, e); elenco.push(e); }
+            else if (e.chiave === null && g) { e.card = c; e.chiave = g.dataset.chiave || ''; }   // meglio la card nella griglia che la copia in un avviso
+        }
+        const r = { disp: {}, voci: { luci: [], media: [], tapparelle: [], clima: [], aperture: [], consumi: [], tv: [] }, prese: 0, wPrese: 0, wSensori: 0 };
+        for (let i = 0; i < elenco.length; i++) {
+            const e = elenco[i], c = e.card, cl = c.classList, id = e.id;
+            if (id.indexOf('light.') === 0 || id.indexOf('switch.') === 0) {
+                r.disp.luci = true;
+                if (cl.contains('state-on')) r.voci.luci.push(e);
+            }
+            if (cl.contains('type-media_player')) {
+                r.disp.media = true;
+                if (cl.contains('state-playing')) { if (!nascosto(id, c)) r.voci.media.push(e); }
+                else if (NASC.has(id)) NASC.delete(id);
+            } else if (cl.contains('type-cover')) {
+                r.disp.tapparelle = true;
+                if (cl.contains('state-open')) { if (!nascosto(id, c)) r.voci.tapparelle.push(e); }
+                else if (NASC.has(id) && (cl.contains('state-closed') || cl.contains('state-closing'))) NASC.delete(id);
+            } else if (cl.contains('type-climate')) {
+                r.disp.clima = true;
+                const k = clima(c);
+                if (k.attivo) { e.clima = k; r.voci.clima.push(e); }
+            } else if (cl.contains('type-tv')) {
+                r.disp.tv = true;
+                if (cl.contains('state-on') && !nascosto(id, c)) r.voci.tv.push(e);
+            } else if (cl.contains('type-sensor')) {
+                const classe = c.dataset.classe || '';
+                if (id.indexOf('binary_sensor.') === 0 && APERTURE[classe]) {
+                    r.disp.aperture = true;
+                    if (testoDi(c.querySelector('.sensor-value')) === 'on') r.voci.aperture.push(e);
+                } else if (classe === 'power') {
+                    r.disp.consumi = true;
+                    let w = num(testoDi(c.querySelector('.sensor-value')));
+                    const u = testoDi(c.querySelector('.sensor-unit')).toLowerCase();
+                    if (w !== null && u === 'kw') w *= 1000;
+                    if (w !== null && w > 0 && !c.classList.contains('offline')) { e.w = w; e.sensore = true; r.voci.consumi.push(e); r.wSensori += w; }
+                }
+            }
+            if (cl.contains('type-switch') && c.dataset.potenza !== undefined && c.dataset.potenza !== '') {
+                r.disp.consumi = true; r.prese++;
+                const w = num(c.dataset.potenza);
+                if (cl.contains('state-on') && w !== null && w > 0) { e.w = w; r.voci.consumi.push(e); r.wPrese += w; }
+            }
+        }
+        r.watt = r.prese ? r.wPrese : r.wSensori;      // con prese misurate il totale e' il loro (i sensori di potenza possono contare due volte)
+        const p = persone();
+        r.persone = p;
+        r.disp.persone = !!(p && p.length);
+        const a = allarme();
+        r.allarme = a;
+        r.disp.allarme = !!(a && a.configurato);
+        return r;
+    }
+
+    function clima(card) {
+        const id = card.dataset.id, a = ATTR.get(id);
+        const modo = statoClasse(card) || card.dataset.mode || 'off';
+        let azione;
+        if (a) azione = (a.hvac_action === undefined || a.hvac_action === null) ? null : String(a.hvac_action);
+        else azione = card.dataset.action || null;
+        let attivo;
+        if (modo === 'off' || modo === 'unavailable' || modo === 'unknown' || card.classList.contains('offline')) attivo = false;
+        else if (azione === 'heating' || azione === 'cooling') attivo = true;
+        else if (azione === null) attivo = modo === 'heat' || modo === 'cool' || modo === 'heat_cool';   // senza hvac_action (KNX...): conta il modo
+        else attivo = false;
+        const freddo = azione === 'cooling' || (azione === null && modo === 'cool');
+        const attuale = a && a.current_temperature !== undefined && a.current_temperature !== null ? num(a.current_temperature) : num(card.dataset.current);
+        const target = a && a.temperature !== undefined && a.temperature !== null ? num(a.temperature) : num(card.dataset.target);
+        return { attivo, freddo, attuale, target };
+    }
+
+    // valore mostrato sulla pillola: { n: '3' | '1,2', u: 'kW' | '', acceso: bool }
+    function valore(tipo, r) {
+        if (tipo === 'consumi') { const f = fmtW(r.watt); return { n: f.n, u: f.u, acceso: r.watt > 0 }; }
+        if (tipo === 'persone') {
+            if (!r.persone) return { n: '–', u: '', acceso: false };
+            const n = r.persone.filter(p => p.inCasa).length;
+            return { n: String(n), u: '', acceso: n > 0 };
+        }
+        if (tipo === 'allarme') {
+            if (!r.allarme || !r.allarme.s) return { n: '–', u: '', acceso: false };
+            return { n: r.allarme.s.barra, u: '', acceso: r.allarme.stato !== 'disarmed', rgb: r.allarme.s.rgb, icona: r.allarme.s.icona };
+        }
+        const n = (r.voci[tipo] || []).length;
+        return { n: String(n), u: '', acceso: n > 0 };
+    }
+
+    // ------------------------------------------------------------ scelte del dispositivo
+    let scelti;
+    (function iniziali() {
+        const dalServer = window.__WH_CONTATORI__;            // [..] | null (mai scelto) | undefined (server senza contatori)
+        let locale = [];
+        try { locale = valido(JSON.parse(lsGet(LS) || 'null')); } catch (e) { locale = []; }
+        let rimanda = false, reset = false;
+        try { lsDel('wh_contatori'); lsDel('wh_contatori_da_inviare'); } catch (e) {}   // chiavi senza utente (solo versioni di prova)
+        const sospeso = lsGet(LS_INVIO);
+        if (sospeso === 'reset') {                                                     // "Ripristina" non era arrivato al server
+            scelti = PREDEFINITI.slice();
+            if (Array.isArray(dalServer)) { rimanda = true; reset = true; } else lsDel(LS_INVIO);
+        }
+        else if (sospeso === '1' && locale.length) { scelti = locale; rimanda = dalServer !== undefined; }   // l'ultimo salvataggio non era arrivato
+        else if (Array.isArray(dalServer) && valido(dalServer).length) { scelti = valido(dalServer); lsSet(LS, JSON.stringify(scelti)); }
+        else if (locale.length) { scelti = locale; rimanda = dalServer === null && locale.join() !== PREDEFINITI.join(); }   // cookie nuovo / riga persa: lo ricorda il dispositivo
+        else scelti = PREDEFINITI.slice();
+        if (rimanda) setTimeout(() => invia(reset), 1500);
+    })();
+
+    let invioT = null;
+    function salva() {
+        lsSet(LS, JSON.stringify(scelti));
+        lsSet(LS_INVIO, '1');
+        clearTimeout(invioT);
+        invioT = setTimeout(() => invia(), 400);
+    }
+    function invia(reset) {
+        const corpo = reset ? { reset: true } : { contatori: scelti };
+        return fetch('/api/mobile/contatori', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(corpo) })
+            .then(r => {
+                if (r.status === 404) { lsDel(LS_INVIO); return; }          // server senza l'API: la scelta resta sul dispositivo
+                return r.json().then(d => { if (r.ok && d && d.status === 'success') lsDel(LS_INVIO); });
+            })
+            .catch(() => {});                                                // senza rete: si rimanda al prossimo avvio
+    }
+
+    // ------------------------------------------------------------ la riga delle pillole
+    function pillola(tipo) {
+        const b = BASE[tipo];
+        let p = $(b.pill);
+        if (p) return p;
+        p = el('div', 'glance-pill' + (DI_SEMPRE.indexOf(tipo) < 0 ? ' cnt-tinta' : ''));
+        p.id = b.pill; p.dataset.cnt = tipo; p.setAttribute('role', 'button'); p.tabIndex = 0;
+        p.style.setProperty('--cnt-rgb', b.rgb);
+        const ic = el('div', 'glance-icon'); ic.appendChild(icona(b.icona));
+        const tx = el('div', 'glance-text');
+        const v = el('div', 'glance-val', '0'); v.id = b.val;
+        tx.appendChild(v); tx.appendChild(el('div', 'glance-lbl', b.etichetta));
+        p.appendChild(ic); p.appendChild(tx);
+        return p;
+    }
+    function disegnaRiga() {
+        const voluti = scelti.map(pillola);
+        Array.from(riga.querySelectorAll('.glance-pill')).forEach(p => { if (voluti.indexOf(p) < 0) p.remove(); });
+        voluti.forEach(p => riga.appendChild(p));
+        icone(riga);
+        aggiorna();
+    }
+    function scriviPillola(p, tipo, v, disp) {
+        const val = p.querySelector('.glance-val');
+        const firma = v.n + '|' + v.u;
+        if (val && val._cnt !== firma) {
+            val._cnt = firma;
+            val.textContent = v.n;
+            if (v.u) val.appendChild(el('span', 'cnt-u', v.u));
+        }
+        p.classList.toggle('active', !!v.acceso);
+        if (v.rgb && p._rgb !== v.rgb) { p._rgb = v.rgb; p.style.setProperty('--cnt-rgb', v.rgb); }
+        if (v.icona && p._ico !== v.icona) {
+            p._ico = v.icona;
+            const ic = p.querySelector('.glance-icon');
+            if (ic) { ic.textContent = ''; ic.appendChild(icona(v.icona)); icone(ic); }
+        }
+        const nascondere = DI_SEMPRE.indexOf(tipo) < 0 && disp === false;
+        if (p.hidden !== nascondere) p.hidden = nascondere;
+    }
+
+    // ------------------------------------------------------------ aggiornamento (lo chiama updateGlanceSummary)
+    let ultimo = null;
+    function aggiorna() {
+        const r = scansiona();
+        ultimo = r;
+        let visibili = 0;
+        scelti.forEach(tipo => {
+            const p = $(BASE[tipo].pill);
+            if (!p) return;
+            // persone e allarme si sanno dopo la prima lettura: fino ad allora la pillola resta (con '–')
+            const noto = tipo === 'persone' ? !!zone : (tipo === 'allarme' ? !!r.allarme : true);
+            scriviPillola(p, tipo, valore(tipo, r), noto ? !!r.disp[tipo] : undefined);
+            if (!p.hidden) visibili++;
+        });
+        if (!visibili && scelti.length) { const p = $(BASE[scelti[0]].pill); if (p) p.hidden = false; }   // mai una riga vuota: si perderebbe la pressione lunga
+        if (aperto) rinfrescaFoglio();
+        if (gestioneAperta()) {
+            const firma = ORDINE.filter(t => r.disp[t]).join();
+            if (firma !== gest._disp && !gest.querySelector('.cnt-trascina')) disegnaGestione(r, true);
+            else valoriGestione(r);
+        }
+        return r;
+    }
+
+    // ------------------------------------------------------------ foglio del contatore
+    const modale = $('active-entities-modal');
+    const elencoEl = $('active-entities-list');
+    let aperto = null;               // tipo mostrato
+    let ricostruisciT = null;
+
+    // Pannelli leggibili con qualsiasi colore delle card: il pannello e' colore card x trasparenza sopra il fondo scuro
+    // del foglio; se ne esce un grigio chiaro (es. bianco al 40%) il giallo dello stato e i grigi secondari non si leggono.
+    // Si calcola la luminanza del pannello e, oltre 0,05 (circa #3E3E3E), si mette sotto un velo nero quanto basta.
+    function lin(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+    function lum(r, g, b) { return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b); }
+    function velo() {
+        let v = 0;
+        try {
+            const cs = getComputedStyle(document.documentElement);
+            const col = (cs.getPropertyValue('--card-color') || '').split(',').map(x => parseFloat(x));
+            let op = parseFloat(cs.getPropertyValue('--card-opacity'));
+            if (col.length === 3 && col.every(x => !isNaN(x)) && !isNaN(op)) {
+                const leggera = document.documentElement.classList.contains('wh-leggera');
+                const fondo = leggera ? [35, 35, 41] : [26, 26, 31];
+                op = Math.min(1, leggera ? op + 0.05 : Math.max(op, 0.055));
+                const p = col.map((x, i) => x * op + fondo[i] * (1 - op));
+                const L = k => lum(p[0] * (1 - k), p[1] * (1 - k), p[2] * (1 - k));
+                if (L(0) > 0.05) {
+                    let a = 0, b = 0.9;
+                    for (let i = 0; i < 18; i++) { const m = (a + b) / 2; if (L(m) > 0.05) a = m; else b = m; }
+                    v = Math.ceil(b * 100) / 100;
+                }
+            }
+        } catch (e) { v = 0; }
+        const s = 'rgba(0,0,0,' + v + ')';
+        [modale, gest].forEach(m => { if (m && m.style.getPropertyValue('--cnt-velo') !== s) m.style.setProperty('--cnt-velo', s); });
+        return v;
+    }
+    function apriModale(m) {
+        if (document.querySelector('.bottom-modal.active') && typeof closeAllModals === 'function') closeAllModals();
+        velo();
+        const ov = $('modal-overlay'), w = $('app-wrapper');
+        if (ov) ov.classList.add('active');
+        m.classList.add('active');
+        if (w) w.classList.add('modal-active');
+    }
+    function foglioAperto() { return !!aperto && modale.classList.contains('active'); }
+
+    function nomeDi(card) {
+        if (card.classList.contains('type-media_player')) return card.dataset.nome || testoDi(card.querySelector('.hk-name')) || card.dataset.id;
+        return testoDi(card.querySelector('.hk-name, .cam-title')) || card.dataset.nome || card.dataset.id;
+    }
+    function svgDi(card, ripiego) {
+        const s = card.querySelector('.hk-icon-wrapper > svg');
+        if (s) { const c = s.cloneNode(true); c.removeAttribute('id'); return c; }
+        return icona(ripiego);
+    }
+    function rgbLuce(card) {
+        const v = card.dataset.rgb;
+        if (!v || v === '255,255,255') return null;
+        const p = v.split(',').map(Number);
+        return (p.length === 3 && p.every(n => !isNaN(n))) ? p.join(', ') : null;
+    }
+
+    // descrizione completa delle voci di un tipo (solo per il foglio aperto)
+    function vociDi(tipo, r) {
+        if (tipo === 'persone') {
+            return (r.persone || []).map((p, i) => ({
+                id: 'persona:' + p.nome, stanza: p.inCasa ? 'In casa' : 'Fuori casa', stanzaTr: true, ord: p.inCasa ? 0 : 1, nome: p.nome,
+                stato: [{ t: p.zone.length ? p.zone.join(', ') : 'Fuori dalle zone', noTr: !!p.zone.length }],
+                iniz: (p.nome || '?').trim().charAt(0).toUpperCase(), neutra: !p.inCasa, az: '', solo: true
+            }));
+        }
+        const lista = (r.voci[tipo] || []).map(e => {
+            const c = e.card, chiave = e.chiave || '';
+            const pz = chiave.split('/');
+            const v = { id: e.id, card: c, nome: nomeDi(c), stanza: pz[0] || 'Altro', stanzaTr: !pz[0], zona: pz.length > 1 ? pz.slice(1).join('/') : '', ord: e.ord, stato: [], az: TESTI[tipo].az };
+            if (tipo === 'luci') {
+                if (e.id.indexOf('light.') === 0) {
+                    v.stato.push({ t: testoDi(c.querySelector('.hk-state')) || 'Accesa', forte: true });
+                    v.rgb = rgbLuce(c);
+                } else {
+                    const w = num(c.dataset.potenza);
+                    v.stato.push({ t: 'Acceso', forte: true });
+                    if (w !== null && w > 0) { const f = fmtW(w); v.stato.push({ t: f.n + ' ' + f.u, noTr: true }); }
+                }
+                v.ico = svgDi(c, 'power');
+                v.cmd = 'spegni';
+            } else if (tipo === 'media') {
+                const tit = c.dataset.title || '', art = c.dataset.artist || '';
+                if (tit) v.stato.push({ t: tit, noTr: true });
+                if (art) v.stato.push({ t: art, noTr: true });
+                if (!tit && !art) v.stato.push({ t: 'In riproduzione', forte: true });
+                const img = c.querySelector('img.media-card-art');
+                v.img = (img && c.classList.contains('has-art') && img.getAttribute('src')) ? img.getAttribute('src') : '';
+                v.ico = icona('music');
+                v.cmd = 'pausa';
+            } else if (tipo === 'tapparelle') {
+                const pos = num(c.dataset.position);
+                v.stato.push({ t: 'Aperta', forte: true });
+                if (pos !== null && pos > 0 && pos < 100) v.stato.push({ t: Math.round(pos) + '%', noTr: true });
+                v.ico = svgDi(c, 'blinds');
+                v.cmd = 'chiudi';
+            } else if (tipo === 'clima') {
+                const k = e.clima || clima(c);
+                v.rgb = k.freddo ? '100, 210, 255' : '255, 159, 10';
+                v.stato.push({ t: k.freddo ? 'Raffredda' : 'Riscalda', forte: true });
+                v.stato.push({ t: fmtGradi(k.attuale) + (k.target !== null ? ' → ' + fmtGradi(k.target) : ''), noTr: true });
+                v.ico = svgDi(c, 'thermometer');
+                v.cmd = 'apri';
+            } else if (tipo === 'aperture') {
+                v.stato.push({ t: 'Aperta', forte: true });
+                v.ico = svgDi(c, 'door-open');
+                v.cmd = 'apri';
+            } else if (tipo === 'consumi') {
+                const f = fmtW(e.w || 0);
+                v.valore = f.n + ' ' + f.u;
+                v.w = e.w || 0;
+                // i sensori di potenza (spesso il contatore di tutta la casa) stanno in un gruppo a parte, fuori dal totale delle prese
+                if (e.sensore) { v.zona = [pz[0] || '', v.zona].filter(Boolean).join(' · '); v.stanza = 'Sensori di potenza'; v.stanzaTr = true; v.ord = 1e9; v.ico = svgDi(c, 'zap'); v.cmd = 'apri'; v.az = 'chevron-right'; v.neutra = true; }
+                else { v.stato.push({ t: 'Presa accesa' }); v.ico = svgDi(c, 'power'); v.cmd = 'spegni'; }
+            } else if (tipo === 'tv') {
+                v.stato.push({ t: 'Accesa', forte: true });
+                v.ico = svgDi(c, 'tv');
+                v.cmd = 'tv';
+            }
+            return v;
+        });
+        return lista;
+    }
+
+    function gruppi(voci, tipo) {
+        const m = new Map();
+        voci.forEach(v => {
+            let g = m.get(v.stanza);
+            if (!g) { g = { stanza: v.stanza, tr: !!v.stanzaTr, ord: v.ord, voci: [] }; m.set(v.stanza, g); }
+            g.ord = Math.min(g.ord, v.ord);
+            g.voci.push(v);
+        });
+        const out = Array.from(m.values()).sort((a, b) => a.ord - b.ord);
+        out.forEach(g => g.voci.sort(tipo === 'consumi' ? ((a, b) => b.w - a.w) : ((a, b) => a.nome.localeCompare(b.nome, LINGUA === 'en' ? 'en' : 'it', { sensitivity: 'base', numeric: true }))));
+        return out;
+    }
+
+    function rigaVoce(v, tipo) {
+        const b = el('button', 'cnt-voce' + (v.solo ? ' solo' : ''));
+        b.type = 'button';
+        b.dataset.id = v.id;
+        b._voce = v;
+        if (v.solo) b.tabIndex = -1;
+        const ic = el('span', 'cnt-v-ico' + (v.neutra ? ' neutra' : ''));
+        if (v.rgb) b.style.setProperty('--cnt-c', v.rgb);           // icona e stato in evidenza col colore della voce
+        if (v.img) { const im = document.createElement('img'); im.alt = ''; im.src = v.img; im.onerror = () => im.remove(); ic.appendChild(v.ico); ic.appendChild(im); }
+        else if (v.iniz) { const s = el('span', 'cnt-v-ini', v.iniz); s.setAttribute('data-no-tr', ''); ic.appendChild(s); }
+        else if (v.ico) ic.appendChild(v.ico);
+        const tx = el('span', 'cnt-v-testi');
+        const nm = el('span', 'cnt-v-nome', v.nome); nm.setAttribute('data-no-tr', '');
+        const st = el('span', 'cnt-v-stato');
+        scriviStato(st, v);
+        tx.appendChild(nm); tx.appendChild(st);
+        b.appendChild(ic); b.appendChild(tx);
+        if (v.valore) { const vv = el('span', 'cnt-v-val', v.valore); vv.setAttribute('data-no-tr', ''); b.appendChild(vv); }
+        else if (v.az) { const a = el('span', 'cnt-v-az' + (v.az === 'chevron-right' ? ' freccia' : '')); a.appendChild(icona(v.az)); b.appendChild(a); }
+        else b.appendChild(el('span', ''));
+        return b;
+    }
+    function scriviStato(st, v) {
+        const firma = (v.zona || '') + '|' + v.stato.map(s => s.t).join('|');
+        if (st._cnt === firma) return;
+        st._cnt = firma;
+        st.textContent = '';
+        const pezzi = [];
+        if (v.zona) { const z = el('span', 'cnt-v-zona', v.zona); z.setAttribute('data-no-tr', ''); pezzi.push(z); }
+        v.stato.forEach(s => { const x = el('span', s.forte ? 'cnt-v-forte' : '', s.t); if (s.noTr) x.setAttribute('data-no-tr', ''); pezzi.push(x); });
+        pezzi.forEach((p, i) => { if (i) st.appendChild(el('span', 'cnt-v-pt', '·')); st.appendChild(p); });
+    }
+
+    function disegnaTesta(tipo, voci, r) {
+        const t = TESTI[tipo], b = BASE[tipo];
+        modale.style.setProperty('--cnt-rgb', b.rgb);
+        modale.dataset.tipo = tipo;
+        const tit = $('active-modal-title');
+        if (tit._cnt !== tipo) { tit._cnt = tipo; tit.textContent = t.nome; }
+        const ico = $('cnt-testa-ico');
+        if (ico._cnt !== b.icona) { ico._cnt = b.icona; ico.textContent = ''; ico.appendChild(icona(b.icona)); icone(ico); }
+        const v = valore(tipo, r);
+        ico.classList.toggle('spenta', !v.acceso);
+        const sotto = $('cnt-sotto');
+        const quanti = tipo === 'consumi' ? (v.n + ' ' + v.u) : v.n;
+        const firma = tipo + '|' + quanti + '|' + (v.acceso ? 1 : 0);
+        if (sotto._cnt !== firma) {
+            sotto._cnt = firma;
+            sotto.textContent = '';
+            const n = el('b', '', quanti); n.setAttribute('data-no-tr', '');
+            sotto.appendChild(n);
+            let parola = (quanti === '1' && t.parola1) ? t.parola1 : t.parola;
+            if (tipo === 'consumi' && r.prese) parola = 'dalle prese';   // con prese misurate il totale e' il loro
+            if (parola) { sotto.appendChild(document.createTextNode(' ')); sotto.appendChild(el('span', '', parola)); }
+            if (t.aiuto && voci.some(x => !x.solo)) { sotto.appendChild(el('span', 'cnt-pt', '·')); sotto.appendChild(el('span', '', t.aiuto)); }
+        }
+        // piede: comando per tutte (luci, media, tapparelle, TV) o la mappa (persone)
+        const piede = $('cnt-piede'), tasto = $('cnt-tutti');
+        const comandabili = voci.filter(x => inTutti(tipo, x));
+        const mostra = !!t.tutti && (tipo === 'persone' || comandabili.length > 0);
+        piede.hidden = !mostra;
+        if (mostra && tasto._cnt !== tipo) {
+            tasto._cnt = tipo;
+            tasto.textContent = '';
+            tasto.appendChild(icona(t.tuttiIco || t.az || 'power'));
+            const s = el('span', '', t.tutti); s.id = 'cnt-tutti-t';
+            tasto.appendChild(s);
+            icone(tasto);
+        }
+    }
+
+    function disegnaElenco(tipo, r, nuovi) {
+        const voci = vociDi(tipo, r);
+        disegnaTesta(tipo, voci, r);
+        elencoEl.textContent = '';
+        if (!voci.length) {
+            const t = TESTI[tipo];
+            const box = el('div', 'cnt-vuoto');
+            const ic = el('div', 'cnt-vuoto-ico'); ic.appendChild(icona(BASE[tipo].icona));
+            box.appendChild(ic);
+            box.appendChild(el('div', 'cnt-vuoto-t', t.vuoto));
+            box.appendChild(el('div', 'cnt-vuoto-s', t.vuotoS));
+            elencoEl.appendChild(box);
+            icone(elencoEl);
+            return;
+        }
+        gruppi(voci, tipo).forEach(g => {
+            const gr = el('section', 'cnt-gruppo');
+            gr.dataset.stanza = g.stanza;
+            const gt = el('div', 'cnt-gruppo-t');
+            const nome = el('span', '', g.stanza); if (!g.tr) nome.setAttribute('data-no-tr', '');
+            gt.appendChild(nome);
+            const n = el('span', 'cnt-gruppo-n', String(g.voci.length)); n.setAttribute('data-no-tr', '');
+            gt.appendChild(n);
+            const blocco = el('div', 'cnt-blocco');
+            g.voci.forEach(v => { const b = rigaVoce(v, tipo); if (nuovi && nuovi.has(v.id)) b.classList.add('entra'); blocco.appendChild(b); });
+            gr.appendChild(gt); gr.appendChild(blocco);
+            elencoEl.appendChild(gr);
+        });
+        icone(elencoEl);
+    }
+
+    function righeVive() { return Array.from(elencoEl.querySelectorAll('.cnt-voce:not(.esce)')); }
+    // voci toccate dal comando per tutte. Luci: SOLO light.* -- prese e interruttori (lavastoviglie, frigorifero,
+    // router su presa smart...) contano nel contatore ma si spengono solo una alla volta, col tocco sulla voce
+    function inTutti(tipo, v) {
+        if (!v || v.solo || !v.cmd || v.cmd === 'apri') return false;
+        if (tipo === 'luci') return String(v.id).indexOf('light.') === 0;
+        return true;
+    }
+    function togliRiga(b) {
+        if (!b || b.classList.contains('esce')) return;
+        b.style.height = b.offsetHeight + 'px';
+        void b.offsetHeight;
+        b.classList.add('esce');
+        b.style.height = '0px';
+        setTimeout(() => {
+            const blocco = b.parentNode, gr = blocco && blocco.closest('.cnt-gruppo');
+            b.remove();
+            if (gr && !gr.querySelector('.cnt-voce')) gr.remove();
+            else if (gr) { const n = gr.querySelector('.cnt-gruppo-n'); if (n) n.textContent = String(gr.querySelectorAll('.cnt-voce:not(.esce)').length); }
+            if (aperto && !elencoEl.querySelector('.cnt-voce')) disegnaElenco(aperto, ultimo || scansiona());
+        }, 340);
+    }
+
+    // il foglio segue le card (polling, WebSocket, comandi dati da altri): voci nuove entrano, quelle sparite escono
+    function rinfrescaFoglio(forza) {
+        if (!modale.classList.contains('active')) { aperto = null; return; }
+        const tipo = aperto, r = ultimo || scansiona();
+        if (tipo === 'allarme') return;
+        const voci = vociDi(tipo, r);
+        const ids = new Set(voci.map(v => v.id));
+        const vive = righeVive();
+        const presenti = new Set(vive.map(b => b.dataset.id));
+        const inCorso = vive.some(b => b.classList.contains('va'));
+        vive.forEach(b => { if (!ids.has(b.dataset.id) && !b.classList.contains('va')) togliRiga(b); });
+        const nuovi = new Set(voci.filter(v => !presenti.has(v.id)).map(v => v.id));
+        const vuoto = !elencoEl.querySelector('.cnt-voce') && !elencoEl.querySelector('.cnt-vuoto');
+        if (forza || vuoto || (nuovi.size && !inCorso) || (!voci.length && !elencoEl.querySelector('.cnt-vuoto') && !vive.length)) {
+            clearTimeout(ricostruisciT);
+            ricostruisciT = setTimeout(() => { if (aperto === tipo) disegnaElenco(tipo, scansiona(), nuovi); }, vive.some(b => !ids.has(b.dataset.id)) ? 360 : 0);
+            return;
+        }
+        // testi delle voci rimaste (percentuale, temperatura, brano, consumo)
+        const perId = new Map(voci.map(v => [v.id, v]));
+        vive.forEach(b => {
+            const v = perId.get(b.dataset.id); if (!v) return;
+            b._voce = v;
+            const st = b.querySelector('.cnt-v-stato'); if (st) scriviStato(st, v);
+            const vv = b.querySelector('.cnt-v-val'); if (vv && v.valore && vv.textContent !== v.valore) vv.textContent = v.valore;
+            if (!b.classList.contains('va')) { if (v.rgb) b.style.setProperty('--cnt-c', v.rgb); else b.style.removeProperty('--cnt-c'); }
+        });
+        disegnaTesta(tipo, voci, r);
+    }
+
+    function apri(tipo) {
+        if (!BASE[tipo]) return;
+        if (tipo === 'allarme') { if (typeof openAlarmModal === 'function') openAlarmModal(); return; }
+        if (tipo === 'persone') leggiZone(true);
+        aperto = tipo;
+        const r = scansiona(); ultimo = r;
+        disegnaElenco(tipo, r);
+        $('cnt-scorre').scrollTop = 0;
+        apriModale(modale);
+    }
+
+    // ------------------------------------------------------------ comandi (le stesse API delle card)
+    function esito(r) {
+        return r.json().catch(() => ({})).then(d => {
+            if (!r.ok || (d && d.status === 'error')) throw new Error((d && d.message) ? String(d.message) : 'Comando non riuscito');
+            return d;
+        });
+    }
+    function errore(e) { return (e && e.message && !(e instanceof TypeError)) ? e.message : 'Nessuna risposta dal server'; }
+    function notifica(id) {
+        try { if (window.whViste) whViste.cambiata(id); } catch (e) {}
+        if (typeof updateGlanceSummary === 'function') updateGlanceSummary(); else aggiorna();
+    }
+
+    // luce / interruttore / presa: come il tocco sull'icona della card (stato subito, /api/toggle, comandiTocco),
+    // in piu' il ritorno allo stato di prima se il server risponde con un errore
+    function spegni(v) {
+        const id = v.id, cards = (typeof whCard !== 'undefined' ? whCard.di(id) : null) || [];
+        const prima = cards.map(c => {
+            const st = c.querySelector('.hk-state'), ic = c.querySelector('.hk-icon-wrapper');
+            return { c, cls: c.className, stato: c.dataset.state, testo: st ? st.innerText : null, bg: ic ? ic.style.background : '', ombra: ic ? ic.style.boxShadow : '', pot: c.dataset.potenza };
+        });
+        if (window.pendingEntities) window.pendingEntities.set(id, Date.now());
+        cards.forEach(c => {
+            c.classList.remove('state-on', 'state-off', 'state-open', 'state-closed');
+            c.classList.add('state-off');
+            c.dataset.state = 'off';
+            const st = c.querySelector('.hk-state');
+            if (st) st.innerText = c.classList.contains('hk-card-source') ? 'Spento' : 'off';
+            if (c.classList.contains('type-switch') && c.dataset.potenza) c.dataset.potenza = '0';
+            const ic = c.querySelector('.hk-icon-wrapper');
+            if (ic) { ic.style.background = ''; ic.style.boxShadow = ''; }
+        });
+        const dopo = cards.map(c => c.className);
+        notifica(id);
+        if (window.comandoToccoParte) window.comandoToccoParte(id);
+        return fetch('/api/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: id, state: 'off' }) })
+            .then(esito)
+            .catch(e => {
+                prima.forEach((p, i) => {
+                    if (p.c.className !== dopo[i]) return;                  // nel frattempo la card e' cambiata: vale quella
+                    p.c.className = p.cls;
+                    if (p.stato === undefined) delete p.c.dataset.state; else p.c.dataset.state = p.stato;
+                    const st = p.c.querySelector('.hk-state'); if (st && p.testo !== null) st.innerText = p.testo;
+                    const ic = p.c.querySelector('.hk-icon-wrapper'); if (ic) { ic.style.background = p.bg; ic.style.boxShadow = p.ombra; }
+                    if (p.pot !== undefined) p.c.dataset.potenza = p.pot;
+                });
+                if (window.pendingEntities) window.pendingEntities.delete(id);
+                notifica(id);
+                throw new Error(errore(e));
+            })
+            .finally(() => { if (window.comandoToccoArrivato) window.comandoToccoArrivato(id); });
+    }
+    function chiudi(v) {
+        nascondi(v.id, 'cover', 90000, v.card);
+        notifica(v.id);
+        return fetch('/api/cover_control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: v.id, action: 'down' }) })
+            .then(esito)
+            .catch(e => { NASC.delete(v.id); notifica(v.id); throw new Error(errore(e)); });
+    }
+    function pausa(v) {
+        nascondi(v.id, 'media', 20000);
+        notifica(v.id);
+        return fetch('/api/media_control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: v.id, action: 'media_pause' }) })
+            .then(esito)
+            .catch(e => { NASC.delete(v.id); notifica(v.id); throw new Error(errore(e)); });
+    }
+    // TV: /api/tv_control 'power_off' come il tasto del telecomando (tvCmd), ma chiamato da qui per avere il messaggio
+    // del server nel toast (tvCmd lo scrive solo dentro il telecomando); a comando riuscito la card si aggiorna come in tvCmd
+    function tvSpenta(id) {
+        document.querySelectorAll('.type-tv[data-id="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]').forEach(card => {
+            card.classList.remove('state-on'); card.classList.add('state-off');
+            card.dataset.state = 'off';
+            const s = card.querySelector('.hk-state'); if (s) s.innerText = 'Spenta';
+            card.dataset.testoMostrato = '';                 // il giro dal vivo riscrive lo stato vero
+        });
+        try { if (typeof tvModalEntity !== 'undefined' && tvModalEntity === id && typeof aggiornaModaleTv === 'function') aggiornaModaleTv(false); } catch (e) {}
+        if (window.pendingEntities) window.pendingEntities.set(id, Date.now() + 6000);
+    }
+    function tvSpegni(v) {
+        nascondi(v.id, 'tv', 15000);
+        notifica(v.id);
+        return fetch('/api/tv_control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: v.id, azione: 'power_off' }) })
+            .then(esito)
+            .then(() => { tvSpenta(v.id); NASC.delete(v.id); notifica(v.id); })
+            .catch(e => { NASC.delete(v.id); notifica(v.id); throw new Error(errore(e)); });
+    }
+    function apriCard(v) {
+        const card = v.card;
+        if (!card) return;
+        if (typeof closeAllModals === 'function') closeAllModals();
+        aperto = null;
+        setTimeout(() => {
+            try {
+                if (window.whViste && whViste.comandi && typeof whViste.comandi.apri === 'function') whViste.comandi.apri(card);
+                else card.click();
+            } catch (e) { card.click(); }
+        }, 60);
+    }
+    const COMANDI = { spegni, chiudi, pausa, tv: tvSpegni };
+
+    function esegui(b) {
+        const v = b && b._voce;
+        if (!v || v.solo || b.classList.contains('va') || b.classList.contains('esce')) return null;
+        if (v.cmd === 'apri') { apriCard(v); return null; }
+        const f = COMANDI[v.cmd];
+        if (!f) return null;
+        vibra(12);
+        b.classList.add('va');
+        b.setAttribute('aria-busy', 'true');
+        let p;
+        try { p = f(v); } catch (e) { p = Promise.reject(e); }
+        setTimeout(() => togliRiga(b), 230);
+        return p.catch(e => {
+            toast(e && e.message ? e.message : 'Comando non riuscito');
+            // la voce torna nell'elenco (lo stato della card e' tornato com'era)
+            setTimeout(() => { if (aperto) rinfrescaFoglio(true); }, 380);
+            throw e;
+        });
+    }
+
+    elencoEl.addEventListener('click', e => {
+        const b = e.target.closest('.cnt-voce');
+        if (!b || !elencoEl.contains(b)) return;
+        const p = esegui(b);
+        if (p) p.catch(() => {});
+    });
+
+    $('cnt-tutti').addEventListener('click', () => {
+        const tipo = aperto;
+        if (!tipo) return;
+        const t = TESTI[tipo];
+        if (tipo === 'persone') { location.href = '/map'; return; }
+        const righe = righeVive().filter(b => inTutti(tipo, b._voce) && !b.classList.contains('va'));
+        if (!righe.length) return;
+        const vai = () => {
+            righe.forEach((b, i) => setTimeout(() => { const p = esegui(b); if (p) p.catch(() => {}); }, i * 90));
+        };
+        conferma(t.chiediM, { titolo: t.chiediT, si: t.chiediSi, no: 'Annulla', icona: t.chiediIco || 'power' }).then(ok => { if (ok) vai(); });
+    });
+
+    // ------------------------------------------------------------ pressione lunga e tocco sulle pillole
+    let lp = null, sopprimiFino = 0, gestioneDa = 0;
+    function annullaLp() {
+        if (!lp) return;
+        clearTimeout(lp.timer);
+        if (lp.pill) lp.pill.classList.remove('cnt-premuto');
+        lp = null;
+    }
+    riga.addEventListener('pointerdown', e => {
+        const pill = e.target.closest('.glance-pill');
+        if (!pill || !riga.contains(pill)) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        annullaLp();
+        lp = { pill, x: e.clientX, y: e.clientY, fatto: false };
+        pill.classList.add('cnt-premuto');
+        lp.timer = setTimeout(() => {
+            if (!lp) return;
+            lp.fatto = true;
+            lp.pill.classList.remove('cnt-premuto');
+            vibra(25);
+            sopprimiFino = Date.now() + 1500;          // il click che segue il rilascio non apre il foglio del contatore
+            apriGestione(lp.pill.dataset.cnt);
+        }, 480);
+    });
+    document.addEventListener('pointermove', e => {
+        if (!lp || lp.fatto) return;
+        if (Math.abs(e.clientX - lp.x) > 8 || Math.abs(e.clientY - lp.y) > 8) annullaLp();   // e' uno scorrimento
+    }, { passive: true });
+    ['pointerup', 'pointercancel'].forEach(n => document.addEventListener(n, () => {
+        if (lp && lp.fatto) sopprimiFino = Date.now() + 600;
+        annullaLp();
+    }, { passive: true }));
+    document.addEventListener('scroll', () => { if (lp && !lp.fatto) annullaLp(); }, { passive: true, capture: true });
+    riga.addEventListener('click', e => {
+        const pill = e.target.closest('.glance-pill');
+        if (!pill || !riga.contains(pill)) return;
+        if (Date.now() < sopprimiFino) { sopprimiFino = 0; e.preventDefault(); e.stopPropagation(); return; }
+        apri(pill.dataset.cnt);
+    });
+    riga.addEventListener('contextmenu', e => {
+        const pill = e.target.closest('.glance-pill');
+        if (!pill || !riga.contains(pill)) return;
+        e.preventDefault();
+        if (lp && lp.fatto) return;
+        annullaLp();
+        apriGestione(pill.dataset.cnt);
+    });
+    riga.addEventListener('keydown', e => {
+        const pill = e.target.closest && e.target.closest('.glance-pill');
+        if (!pill) return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); apri(pill.dataset.cnt); }
+        else if ((e.key === 'F10' && e.shiftKey) || e.key === 'ContextMenu') { e.preventDefault(); apriGestione(pill.dataset.cnt); }
+    });
+
+    // ------------------------------------------------------------ foglio "Contatori"
+    const gest = $('cnt-gestione-modal');
+    const boxScelti = $('cnt-g-scelti'), boxAltri = $('cnt-g-altri');
+    const righeG = new Map();
+    function gestioneAperta() { return gest.classList.contains('active'); }
+
+    function apriGestione(tipo) {
+        if (Date.now() - gestioneDa < 700) return;
+        gestioneDa = Date.now();
+        leggiZone(false);
+        const r = scansiona(); ultimo = r;
+        disegnaGestione(r, false);
+        apriModale(gest);
+        const rg = righeG.get(tipo);
+        if (rg) {
+            rg.classList.remove('cnt-evidenza'); void rg.offsetWidth; rg.classList.add('cnt-evidenza');
+            setTimeout(() => rg.classList.remove('cnt-evidenza'), 2000);
+            const sc = $('cnt-g-scorre');
+            if (sc) sc.scrollTop = 0;
+        }
+    }
+
+    function rigaG(tipo) {
+        let rg = righeG.get(tipo);
+        if (rg) return rg;
+        const b = BASE[tipo], t = TESTI[tipo];
+        rg = el('div', 'cnt-g-riga');
+        rg.dataset.tipo = tipo;
+        rg.style.setProperty('--cnt-c', b.rgb);
+        const pm = el('button', 'cnt-g-pm'); pm.type = 'button';
+        const ic = el('span', 'cnt-g-ico'); ic.appendChild(icona(b.icona));
+        const tx = el('span', 'cnt-g-testi');
+        tx.appendChild(el('span', 'cnt-g-nome', b.etichetta));     // lo stesso nome della pillola in alto
+        tx.appendChild(el('span', 'cnt-g-descr', t.descr));
+        const val = el('span', 'cnt-g-val'); val.setAttribute('data-no-tr', '');
+        const presa = el('span', 'cnt-g-presa'); presa.appendChild(icona('grip-vertical'));
+        presa.setAttribute('aria-hidden', 'true');
+        rg.appendChild(pm); rg.appendChild(ic); rg.appendChild(tx); rg.appendChild(val); rg.appendChild(presa);
+        pm.addEventListener('click', ev => { ev.stopPropagation(); if (rg.classList.contains('aggiungi')) metti(tipo); else togli(tipo); });
+        rg.addEventListener('click', ev => { if (rg.classList.contains('aggiungi') && !ev.target.closest('.cnt-g-pm')) metti(tipo); });
+        presa.addEventListener('pointerdown', ev => trascina(ev, rg));
+        righeG.set(tipo, rg);
+        return rg;
+    }
+    function modoRiga(rg, scelta, disp) {
+        const tipo = rg.dataset.tipo, pm = rg.querySelector('.cnt-g-pm');
+        const modo = (scelta ? 's' : 'a') + (disp ? 1 : 0) + (scelti.length <= 1 ? 'u' : '');
+        if (rg._modo === modo) return;
+        rg._modo = modo;
+        rg.classList.toggle('aggiungi', !scelta);
+        pm.className = 'cnt-g-pm ' + (scelta ? 'togli' : 'metti');
+        pm.textContent = '';
+        pm.appendChild(icona(scelta ? 'minus' : 'plus'));
+        const nome = BASE[tipo].etichetta;
+        pm.setAttribute('aria-label', (scelta ? 'Togli' : 'Aggiungi') + ': ' + nome);
+        pm.title = scelta ? 'Togli' : 'Aggiungi';
+        pm.disabled = scelta && scelti.length <= 1;           // almeno un contatore: senza, non ci sarebbe niente da tenere premuto
+        rg.querySelector('.cnt-g-presa').style.display = scelta ? '' : 'none';
+        const d = rg.querySelector('.cnt-g-descr');
+        const testo = (scelta && !disp && DI_SEMPRE.indexOf(tipo) < 0) ? NON_DISPONIBILE : TESTI[tipo].descr;
+        if (d.textContent !== testo) d.textContent = testo;
+        icone(rg);
+    }
+    function disegnaGestione(r, anima) {
+        const prima = anima ? posizioni() : null;
+        gest._disp = ORDINE.filter(t => r.disp[t]).join();
+        const disp = r.disp;
+        scelti.forEach(t => { const rg = rigaG(t); modoRiga(rg, true, DI_SEMPRE.indexOf(t) >= 0 || !!disp[t] || (t === 'persone' && !zone)); boxScelti.appendChild(rg); });
+        const altri = ORDINE.filter(t => scelti.indexOf(t) < 0 && disp[t]);
+        Array.from(boxAltri.children).forEach(c => { if (!c.classList.contains('cnt-g-riga') || altri.indexOf(c.dataset.tipo) < 0) c.remove(); });
+        altri.forEach(t => { const rg = rigaG(t); modoRiga(rg, false, true); boxAltri.appendChild(rg); });
+        if (!altri.length) {
+            const vuoto = el('div', 'cnt-g-vuoto', 'Hai già tutti i contatori disponibili.');
+            boxAltri.appendChild(vuoto);
+        }
+        // tipi non disponibili e non scelti: fuori dal foglio
+        righeG.forEach((rg, t) => { if (scelti.indexOf(t) < 0 && altri.indexOf(t) < 0 && rg.parentNode) rg.remove(); });
+        valoriGestione(r);
+        icone(gest);
+        if (prima) anima_(prima);
+    }
+    function valoriGestione(r) {
+        righeG.forEach((rg, t) => {
+            if (!rg.parentNode) return;
+            const v = valore(t, r), s = rg.querySelector('.cnt-g-val');
+            // lo stato dell'allarme e' una frase (data-no-tr sul valore): si traduce qui
+            const testo = v.n === '–' ? '' : (t === 'allarme' && window.WH_T ? window.WH_T(v.n) : (v.n + (v.u ? ' ' + v.u : '')));
+            if (s.textContent !== testo) s.textContent = testo;
+        });
+    }
+    function posizioni() { const m = new Map(); righeG.forEach((rg, t) => { if (rg.parentNode) m.set(t, rg.getBoundingClientRect().top); }); return m; }
+    function anima_(prima) {
+        righeG.forEach((rg, t) => {
+            if (!rg.parentNode) return;
+            const y0 = prima.get(t), y1 = rg.getBoundingClientRect().top;
+            if (y0 === undefined) { rg.animate && rg.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.32,.72,0,1)' }); return; }
+            const d = y0 - y1;
+            if (Math.abs(d) < 1 || !rg.animate) return;
+            rg.animate([{ transform: 'translateY(' + d + 'px)' }, { transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.32,.72,0,1)' });
+        });
+    }
+    function cambiaScelti(nuovi) {
+        scelti = nuovi;
+        salva();
+        disegnaRiga();
+        riga.scrollLeft = 0;
+        disegnaGestione(ultimo || scansiona(), true);
+    }
+    function togli(tipo) {
+        if (scelti.length <= 1) return;
+        vibra(10);
+        cambiaScelti(scelti.filter(t => t !== tipo));
+    }
+    function metti(tipo) {
+        if (scelti.indexOf(tipo) >= 0) return;
+        vibra(10);
+        if (tipo === 'persone') leggiZone(true);
+        cambiaScelti(scelti.concat([tipo]));
+    }
+
+    // trascinamento per l'ordine: la riga segue il dito; superata meta' della vicina, si scambiano (la vicina scivola)
+    function trascina(ev, rg) {
+        if (rg.classList.contains('aggiungi')) return;
+        if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+        ev.preventDefault();
+        const presa = ev.currentTarget;
+        try { presa.setPointerCapture(ev.pointerId); } catch (e) {}
+        let y0 = ev.clientY, yDito = ev.clientY, giroT = 0, ultimoT = 0, finito = false;
+        const sc = $('cnt-g-scorre');
+        rg.classList.add('cnt-trascina');
+        rg.style.transition = 'none';
+        vibra(8);
+        const scorri = (vicina, giu) => {
+            const top0 = vicina.offsetTop;
+            if (giu) boxScelti.insertBefore(vicina, rg); else boxScelti.insertBefore(rg, vicina);
+            const d = top0 - vicina.offsetTop;
+            if (vicina.animate) vicina.animate([{ transform: 'translateY(' + d + 'px)' }, { transform: 'none' }], { duration: 200, easing: 'cubic-bezier(.32,.72,0,1)' });
+            return giu ? vicina.offsetHeight : -vicina.offsetHeight;
+        };
+        const posa = cy => {
+            let dy = cy - y0;
+            const centro = rg.offsetTop + dy + rg.offsetHeight / 2;
+            const dopo = rg.nextElementSibling, prima = rg.previousElementSibling;
+            if (dopo && centro > dopo.offsetTop + dopo.offsetHeight / 2) { y0 += scorri(dopo, true); vibra(5); }
+            else if (prima && centro < prima.offsetTop + prima.offsetHeight / 2) { y0 += scorri(prima, false); vibra(5); }
+            dy = cy - y0;
+            // limiti dentro il riquadro "In alto" (offsetTop di riga e riquadro si misurano dalla stessa area che scorre:
+            // prima si usava solo quello della riga e in cima la riga saliva sotto il titolo, tagliata dal riquadro)
+            const su = rg.offsetTop - boxScelti.offsetTop;
+            const min = -su, max = boxScelti.offsetHeight - su - rg.offsetHeight;
+            rg.style.transform = 'translateY(' + Math.max(min, Math.min(max, dy)) + 'px)';
+        };
+        // vicino al bordo alto o basso dell'area che scorre (44 px) l'elenco scorre da solo, piu' veloce quanto piu' ci si
+        // avvicina; la riga resta sotto il dito (lo scorrimento sposta il punto di partenza) e gli scambi continuano
+        const BORDO = 44;
+        const autoScorri = t => {
+            giroT = 0;
+            if (finito || !sc) return;
+            const r = sc.getBoundingClientRect(), dt = ultimoT ? Math.min(48, t - ultimoT) : 16;
+            ultimoT = t;
+            let v = 0;
+            if (yDito < r.top + BORDO) v = -Math.min(1, (r.top + BORDO - yDito) / BORDO);
+            else if (yDito > r.bottom - BORDO) v = Math.min(1, (yDito - (r.bottom - BORDO)) / BORDO);
+            if (!v) { ultimoT = 0; return; }
+            const prima = sc.scrollTop;
+            sc.scrollTop = prima + v * 0.9 * dt;              // fino a ~900 px al secondo
+            const fatto = sc.scrollTop - prima;
+            if (fatto) { y0 -= fatto; posa(yDito); }
+            if (fatto || (v < 0 ? sc.scrollTop > 0 : sc.scrollTop < sc.scrollHeight - sc.clientHeight)) giroT = requestAnimationFrame(autoScorri);
+            else ultimoT = 0;
+        };
+        // move/up/cancel si ascoltano sulla finestra (solo questo puntatore): spostando la riga trascinata nel DOM
+        // (insertBefore) il browser toglie la cattura del puntatore e il rilascio, se il dito non e' piu' sopra
+        // l'impugnatura, non arriverebbe a lei (riga rimasta "presa" e ordine non salvato)
+        const pid = ev.pointerId;
+        const muovi = e => {
+            if (e.pointerId !== pid) return;
+            yDito = e.clientY;
+            posa(yDito);
+            if (!giroT) giroT = requestAnimationFrame(autoScorri);
+        };
+        const fine = e => {
+            if (finito || (e && e.pointerId !== pid)) return;
+            finito = true;
+            if (giroT) { cancelAnimationFrame(giroT); giroT = 0; }
+            window.removeEventListener('pointermove', muovi, true);
+            window.removeEventListener('pointerup', fine, true);
+            window.removeEventListener('pointercancel', fine, true);
+            rg.style.transition = 'transform 0.22s cubic-bezier(.32,.72,0,1)';
+            rg.style.transform = '';
+            setTimeout(() => { rg.classList.remove('cnt-trascina'); rg.style.transition = ''; }, 230);
+            const nuovo = Array.from(boxScelti.querySelectorAll('.cnt-g-riga')).map(x => x.dataset.tipo);
+            if (nuovo.join() !== scelti.join()) { scelti = valido(nuovo); salva(); disegnaRiga(); riga.scrollLeft = 0; }
+        };
+        window.addEventListener('pointermove', muovi, true);
+        window.addEventListener('pointerup', fine, true);
+        window.addEventListener('pointercancel', fine, true);
+    }
+
+    $('cnt-g-fine').addEventListener('click', () => { if (typeof closeAllModals === 'function') closeAllModals(); });
+    $('cnt-g-ripristina').addEventListener('click', () => {
+        const vai = () => {
+            scelti = PREDEFINITI.slice();
+            lsDel(LS); lsSet(LS_INVIO, 'reset');          // niente copia locale: al prossimo avvio non si ricrea la riga sul server
+            clearTimeout(invioT);
+            invia(true).then(() => {});
+            disegnaRiga();
+            riga.scrollLeft = 0;
+            disegnaGestione(ultimo || scansiona(), true);
+        };
+        if (scelti.join() === PREDEFINITI.join()) return;
+        conferma('Tornano i tre contatori di sempre: luci attive, in play e aperte.', { titolo: 'Ripristinare i contatori?', si: 'Ripristina', no: 'Annulla', icona: 'refresh-cw' }).then(ok => { if (ok) vai(); });
+    });
+
+    // ------------------------------------------------------------ avvio
+    window.whContatori = { aggiorna, apri, apriGestione, scelti: () => scelti.slice() };
+    const resi = Array.from(riga.querySelectorAll('.glance-pill')).map(p => p.dataset.cnt);
+    if (resi.join() !== scelti.join()) disegnaRiga(); else { icone(riga); aggiorna(); }
+    if (scelti.indexOf('persone') >= 0) leggiZone(true);
+    // persone in casa: si rilegge ogni minuto solo se il contatore e' in vista (o il suo foglio e' aperto)
+    setInterval(() => {
+        if (document.hidden) return;
+        if (scelti.indexOf('persone') >= 0 || aperto === 'persone') leggiZone(false);
+    }, 60000);
 })();
 </script>
 {%- if hue_bridges %}

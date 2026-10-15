@@ -943,7 +943,19 @@
         .tv-rename { display: none; gap: 8px; align-items: center; margin-top: 8px; }
         .tv-rename.open { display: flex; }
         .tv-rename .premium-input { padding: 7px 10px; font-size: 0.82rem; flex: 1; }
+        .tv-item-aiuto { font-size: 0.74rem; color: var(--warning); margin-top: 3px; line-height: 1.35; }
+        .tv-riabbina-box { display: none; flex-direction: column; gap: 8px; margin-top: 8px; }
+        .tv-riabbina-box.open { display: flex; }
+        .tv-dettaglio { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; word-break: break-word; }
         .tv-pin-box { display: none; flex: 1 1 100%; gap: 8px; align-items: center; }
+        .tv-found-nota { font-size: 0.74rem; color: #8A6D1F; margin-top: 4px; line-height: 1.4; }
+        .tv-found-altra .cam-found-ico { background: #F2F2F7; }
+        .tv-found-altra .cam-found-ico i { color: var(--text-muted); }
+        .tv-hs-stato { font-size: 0.78rem; line-height: 1.45; padding: 8px 10px; border-radius: 10px; background: #F7F7FA; color: var(--text-main); margin-bottom: 10px; }
+        .tv-hs-stato.ok { background: #E4F8EA; color: #1E6B34; }
+        .tv-hs-stato.ko { background: #FFF8E5; color: #6B5A2A; }
+        .tv-hs-file { width: 100%; font-size: 0.8rem; padding: 8px; border: 1px dashed #D5DEEA; border-radius: 10px; background: #FAFAFC; box-sizing: border-box; }
+        #tv-hisense.open .cam-manual-body { max-height: 900px; }
         /* --- NVR: registrazioni --- */
         .nvr-box { background: #FFF; border: 1px solid #E5E5EA; border-radius: 16px; padding: 14px; margin-bottom: 16px; }
         .nvr-box-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
@@ -2611,7 +2623,7 @@
     </div>
 
 <div class="integration-card" data-key="tv">
-        <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); loadTvDevices();">
+        <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); loadTvDevices(true);">
             <div class="integration-title"><i data-lucide="tv"></i> Smart TV</div>
             <div style="display:flex; align-items:center; gap:12px;">
                 <div class="setup-badge bg-tv">TV</div>
@@ -2637,13 +2649,17 @@
                 <div id="tv-guide" class="cam-guide">
                     <div class="cam-guide-step"><b>1.</b> Accendi la TV e collegala alla stessa rete del server (Wi-Fi o cavo).</div>
                     <div class="cam-guide-step"><b>2.</b> Premi <i>Cerca TV in rete</i>, poi <i>Collega</i> sulla TV trovata.</div>
-                    <div class="cam-guide-step"><b>3.</b> <b>Samsung e LG</b>: sullo schermo compare la richiesta di Wach0ss Home, premi <i>Consenti</i> con il telecomando. <b>Android TV</b> (Sony, Philips, TCL, Hisense, Xiaomi&hellip;): la TV mostra un codice, scrivilo qui.</div>
+                    <div class="cam-guide-step"><b>3.</b> <b>Samsung</b>: sullo schermo compare la richiesta di Wach0ss Home, premi <i>Consenti</i> con il telecomando. <b>LG</b>: premi <i>Accetta</i> (se la TV mostra invece un codice, scrivilo qui). <b>Android TV / Google TV</b> (Sony, Philips, TCL, Hisense Google TV, Xiaomi&hellip;): la TV mostra un codice di 6 caratteri, scrivilo qui. <b>Hisense VIDAA</b>: la TV mostra un codice di 4 cifre, scrivilo qui (serve il <i>Pacchetto Hisense</i>, vedi sotto).</div>
                     <div class="cam-guide-warn">
                         <b>Per accenderla dall'app</b> la TV deve restare in rete anche da spenta: Samsung <b>Accensione tramite dispositivo mobile</b> (Impostazioni &rarr; Generali &rarr; Rete &rarr; Impostazioni avanzate), LG <b>Mobile TV On</b> / <b>Wake on LAN</b>, Android TV: <b>Rete in standby</b> se prevista dal modello.
                     </div>
+                    <div class="cam-guide-step"><b>Perch&eacute; resti collegata</b>, sulla TV: Samsung <b>Notifica di accesso: Solo la prima volta</b> (Generali &rarr; Gestione dispositivi esterni &rarr; Gestione connessione dispositivi) e <b>IP Remote</b> attivo; LG <b>LG Connect Apps</b> attivo e non usare <i>Revoca abbinamento</i>; TCL <b>Servizio senza schermo</b> (Alimentazione ed energia); Hisense VIDAA <b>Accensione rapida</b> e <b>Wake on LAN</b> attivi.</div>
+                    <div class="cam-guide-step">Se una TV risulta <i>Da riabbinare</i>, premi <b>Riabbina</b> accanto al suo nome: resta la stessa TV nelle stanze.</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">Consiglio: nel router prenota un indirizzo IP fisso per la TV (prenotazione DHCP). Se cambia indirizzo Wach0ss la ritrova da solo, ma ci mette qualche minuto.</div>
                     <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 10px;">
                         Se la TV non compare (alcuni router bloccano la ricerca), usa l'inserimento manuale con il suo indirizzo IP.
                     </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">Philips non Android, Panasonic e TV Fire TV compaiono nella ricerca ma non si possono comandare: la nota accanto dice cosa fare.</div>
                 </div>
 
                 <button type="button" class="btn-sm primary" id="btn-scan-tv" onclick="scanTv()" style="width: 100%; justify-content: center; padding: 10px;">
@@ -2673,9 +2689,11 @@
                         <div class="input-group" style="flex: 1;">
                             <label class="input-label">Marca</label>
                             <select id="tv-man-marca" class="premium-input">
+                                <option value="auto" selected>Riconosci da sola</option>
                                 <option value="samsung">Samsung</option>
                                 <option value="lg">LG (webOS)</option>
                                 <option value="android">Android TV / Google TV</option>
+                                <option value="hisense">Hisense VIDAA</option>
                             </select>
                         </div>
                     </div>
@@ -2691,6 +2709,46 @@
                         <button type="button" class="btn-sm primary" id="tv-man-go" onclick="collegaTvManuale()"><i data-lucide="link"></i> Collega</button>
                     </div>
                     <div class="cam-msg" id="tv-man-msg"></div>
+                </div>
+            </div>
+
+            <!-- PACCHETTO HISENSE: certificati e costanti dell'app Hisense, NON inclusi in Wach0ss -->
+            <div class="cam-manual" id="tv-hisense">
+                <button type="button" class="cam-manual-head" onclick="document.getElementById('tv-hisense').classList.toggle('open'); tvHisenseStato();">
+                    <span class="cam-manual-left">
+                        <i data-lucide="package"></i>
+                        <span>
+                            <span class="cam-manual-title">Pacchetto Hisense</span>
+                            <span class="cam-manual-sub">Serve solo per le TV Hisense con sistema VIDAA</span>
+                        </span>
+                    </span>
+                    <i data-lucide="chevron-down" class="cam-manual-chevron"></i>
+                </button>
+                <div class="cam-manual-body">
+                    <div class="tv-hs-stato" id="tv-hs-stato">Controllo&hellip;</div>
+                    <div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.45; margin-bottom: 10px;">Le TV Hisense con sistema VIDAA accettano solo l'app Hisense: per comandarle serve un pacchetto con il suo certificato e le sue costanti, che non &egrave; incluso in Wach0ss. Carica il file .json del pacchetto e, se il certificato non &egrave; gi&agrave; dentro, anche certificato e chiave (.pem e .key) oppure il file .p12. Il pacchetto viene verificato prima di salvarlo e finisce nei backup.</div>
+                    <input type="file" id="tv-hs-file" class="tv-hs-file" multiple accept=".json,.pem,.crt,.cer,.key,.p12,.pfx">
+                    <div class="flex-row" style="margin-top: 8px;">
+                        <div class="input-group" style="flex: 1;">
+                            <label class="input-label">Password del .p12</label>
+                            <input type="password" id="tv-hs-pass" class="premium-input" placeholder="Solo per i file .p12/.pfx" autocomplete="off">
+                        </div>
+                        <div class="input-group" style="flex: 1;">
+                            <label class="input-label">Certificato per</label>
+                            <select id="tv-hs-profilo" class="premium-input">
+                                <option value="tutti">Tutti i profili</option>
+                                <option value="modern">VIDAA 2024+ (modern)</option>
+                                <option value="middle">VIDAA 2022-2023 (middle)</option>
+                                <option value="remotenow">2018-2021 (remotenow)</option>
+                                <option value="legacy">Modelli vecchi (legacy)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-actions" style="margin-top: 10px;">
+                        <button type="button" class="btn-sm primary" id="tv-hs-carica" onclick="tvHisenseCarica()"><i data-lucide="upload"></i> Carica</button>
+                        <button type="button" class="btn-sm" id="tv-hs-togli" onclick="tvHisenseTogli()" style="display:none; color: var(--danger);"><i data-lucide="trash-2"></i> Togli</button>
+                    </div>
+                    <div class="cam-msg" id="tv-hs-msg"></div>
                 </div>
             </div>
 
@@ -9330,7 +9388,7 @@ async function refreshIntegrationCard(card) {
         if (key === 'remotehub' && typeof loadRemoteHubs === 'function') loadRemoteHubs();
         if (key === 'shelly' && typeof loadShellyDevices === 'function') loadShellyDevices();
         if (key === 'sonos' && typeof loadSonosDevices === 'function') loadSonosDevices();
-        if (key === 'tv' && typeof loadTvDevices === 'function') loadTvDevices();
+        if (key === 'tv' && typeof loadTvDevices === 'function') loadTvDevices(true);
 {%- if sonoff_modulo %}
         if (key === 'sonoff' && typeof loadSonoffDevices === 'function') { sonoffStato(); loadSonoffDevices(); }
 {%- endif%}
@@ -10182,17 +10240,18 @@ async function scanTv() {
 
 function rigaTvTrovata(tv) {
     const riga = document.createElement('div');
-    riga.className = 'cam-found';
-    let azione;
-    if (tv.collegata) azione = '<span class="cam-badge-ok">&check; gi\u00e0 collegata</span>';
+    riga.className = 'cam-found' + (tv.marca === 'altra' ? ' tv-found-altra' : '');
+    let azione = '';
+    if (tv.collegata) azione = '<span class="cam-badge-ok">&check; gi\u00e0 collegata' + (tv.ip_aggiornato ? ' (indirizzo aggiornato)' : '') + '</span>';
     else if (tv.abbinabile) azione = '<button type="button" class="btn-sm primary cam-pick"><i data-lucide="link"></i> Collega</button>';
-    else azione = '<span class="cam-found-ip">libreria non installata sul server</span>';
+    else if (tv.marca === 'hisense') azione = '<button type="button" class="btn-sm tv-hs-apri"><i data-lucide="package"></i> Pacchetto</button>';
     riga.innerHTML = `
         <div class="cam-found-top">
             <span class="cam-found-ico"><i data-lucide="tv"></i></span>
             <div style="flex:1; min-width:0;">
                 <div class="cam-found-name"></div>
                 <div class="cam-found-ip"></div>
+                <div class="tv-found-nota" style="display:none;"></div>
             </div>
             ${azione}
         </div>
@@ -10207,6 +10266,19 @@ function rigaTvTrovata(tv) {
         <div class="cam-msg"></div>`;
     riga.querySelector('.cam-found-name').textContent = tv.nome;
     riga.querySelector('.cam-found-ip').textContent = tv.ip + ' \u00b7 ' + tv.marca_nome + (tv.modello ? ' \u00b7 ' + tv.modello : '');
+    // TV trovata ma non collegabile (Hisense senza pacchetto, altre marche): la nota dice cosa fare
+    if (!tv.collegata && !tv.abbinabile && tv.nota) {
+        const nota = riga.querySelector('.tv-found-nota');
+        nota.textContent = tv.nota;
+        nota.style.display = 'block';
+    }
+    const hsApri = riga.querySelector('.tv-hs-apri');
+    if (hsApri) hsApri.onclick = () => {
+        const box = document.getElementById('tv-hisense');
+        box.classList.add('open');
+        tvHisenseStato();
+        box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
     const pick = riga.querySelector('.cam-pick');
     const cred = riga.querySelector('.cam-cred');
     if (pick) pick.onclick = () => {
@@ -10217,7 +10289,7 @@ function rigaTvTrovata(tv) {
     };
     const go = riga.querySelector('.cam-go');
     if (go) go.onclick = () => collegaTv({
-        ip: tv.ip, marca: tv.marca, mac: tv.mac || '', modello: tv.modello || '',
+        ip: tv.ip, marca: tv.marca, mac: tv.mac || '', modello: tv.modello || '', uid: tv.uid || '',
         nome: riga.querySelector('.tv-n').value.trim() || tv.nome,
         msg: riga.querySelector('.cam-msg'), go: go,
         pinBox: riga.querySelector('.tv-pin-box'), pinInput: riga.querySelector('.tv-pin'), pinGo: riga.querySelector('.tv-pin-go'),
@@ -10250,14 +10322,32 @@ function tvEsc(t) {
     return String(t).replace(/[&<>"]/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[ch]));
 }
 
+// Errore dell'abbinamento: il messaggio (tradotto) e, sotto, il testo grezzo della TV (non si traduce)
+function tvErrore(el, d, ripiego) {
+    tvMsg(el, 'errore', tvEsc((d && d.message) || ripiego));
+    if (d && d.dettaglio) {
+        const det = document.createElement('div');
+        det.className = 'tv-dettaglio';
+        det.setAttribute('data-no-tr', '');
+        det.textContent = 'TV: ' + d.dettaglio;
+        el.appendChild(det);
+    }
+}
+
 async function collegaTv(c) {
     c.go.disabled = true;
     let conto = null;
     if (c.marca === 'android') {
         tvMsg(c.msg, 'attesa', 'Guarda la TV: tra poco mostra un codice&hellip;');
+    } else if (c.marca === 'hisense') {
+        tvMsg(c.msg, 'attesa', 'Guarda la TV: tra poco mostra un codice di 4 cifre&hellip;');
+    } else if (c.marca === 'auto') {
+        tvMsg(c.msg, 'attesa', 'Riconosco la TV e mi collego: se sullo schermo compare una richiesta, accettala con il telecomando della TV&hellip;');
     } else {
         const fine = Date.now() + TV_ATTESA_CONSENTI * 1000;
-        tvMsg(c.msg, 'attesa', '<span class="tv-attesa-testo">Guarda la TV e premi Consenti con il suo telecomando</span> <b class="tv-conto"></b>');
+        tvMsg(c.msg, 'attesa', c.marca === 'lg'
+            ? '<span class="tv-attesa-testo">Guarda la TV e premi Accetta con il suo telecomando</span> <b class="tv-conto"></b>'
+            : '<span class="tv-attesa-testo">Guarda la TV e premi Consenti con il suo telecomando</span> <b class="tv-conto"></b>');
         const testo = c.msg.querySelector('.tv-attesa-testo'), num = c.msg.querySelector('.tv-conto');
         const scrivi = () => {
             const s = Math.max(0, Math.ceil((fine - Date.now()) / 1000));
@@ -10270,14 +10360,24 @@ async function collegaTv(c) {
     try {
         const r = await fetch('/api/tv/pair', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ ip: c.ip, marca: c.marca, nome: c.nome, mac: c.mac, modello: c.modello })
+            body: JSON.stringify(c.tid ? { tid: c.tid } : { ip: c.ip, marca: c.marca, nome: c.nome, mac: c.mac, modello: c.modello, uid: c.uid || '' })
         });
         const d = await r.json();
+        if (d.marca) c.marca = d.marca;      // "Riconosci da sola": ora si sa che TV e'
         if (d.status === 'pin') {
             c.pinBox.style.display = 'flex';
-            c.go.style.display = 'none';
-            tvMsg(c.msg, 'attesa', 'Scrivi qui il codice che vedi sulla TV e premi Conferma.');
+            // Riabbina: c.go e' il pulsante Riabbina della riga, che chiude il riquadro: deve restare
+            if (c.tid) { c.go.disabled = false; tvRiabbinaCodice = c.ip; } else c.go.style.display = 'none';
+            tvMsg(c.msg, 'attesa', d.cifre === '4' ? 'Scrivi qui il codice di 4 cifre che vedi sulla TV e premi Conferma.'
+                                                   : 'Scrivi qui il codice che vedi sulla TV e premi Conferma.');
             c.pinInput.value = '';
+            // Android: 6 caratteri (cifre e lettere A-F); LG e Hisense: solo cifre (Hisense: 4)
+            const soloCifre = d.cifre === 'numerico' || d.cifre === '4';
+            c.pinInput.setAttribute('inputmode', soloCifre ? 'numeric' : 'text');
+            c.pinInput.setAttribute('autocapitalize', soloCifre ? 'off' : 'characters');
+            if (d.cifre === '4') c.pinInput.setAttribute('maxlength', '4'); else c.pinInput.removeAttribute('maxlength');
+            c.pinInput.placeholder = d.cifre === '4' ? 'Codice di 4 cifre' : 'Codice mostrato dalla TV';
+            c.pinInput.onkeydown = (e) => { if (e.key === 'Enter') c.pinGo.click(); };
             c.pinInput.focus();
             c.pinGo.onclick = async () => {
                 const pin = c.pinInput.value.trim();
@@ -10290,13 +10390,21 @@ async function collegaTv(c) {
                         body: JSON.stringify({ ip: c.ip, pin, nome: c.nome })
                     });
                     const d2 = await r2.json();
-                    if (d2.status !== 'success') { tvMsg(c.msg, 'errore', d2.message || 'Codice non accettato'); c.pinGo.disabled = false; return; }
+                    if (d2.status !== 'success') {
+                        tvErrore(c.msg, d2, 'Codice non accettato');
+                        c.pinGo.disabled = false;
+                        if (d2.codice && d2.codice !== 'pin_sbagliato') {
+                            c.pinBox.style.display = 'none'; c.go.style.display = ''; c.go.disabled = false;
+                            if (c.tid) tvRiabbinaCodice = null;      // il server ha gia' chiuso l'abbinamento
+                        }
+                        return;
+                    }
                     tvCollegata(c, d2);
                 } catch (e) { tvMsg(c.msg, 'errore', 'Errore di rete'); c.pinGo.disabled = false; }
             };
             return;
         }
-        if (d.status !== 'success') { tvMsg(c.msg, 'errore', tvEsc(d.message || 'Collegamento non riuscito')); c.go.disabled = false; return; }
+        if (d.status !== 'success') { tvErrore(c.msg, d, 'Collegamento non riuscito'); c.go.disabled = false; return; }
         tvCollegata(c, d);
     } catch (e) {
         tvMsg(c.msg, 'errore', 'Errore di rete durante il collegamento');
@@ -10306,8 +10414,93 @@ async function collegaTv(c) {
     }
 }
 
+// Pacchetto Hisense: stato, caricamento (json + certificato), rimozione con chiedi()
+function tvHisenseScrivi(st) {
+    const box = document.getElementById('tv-hs-stato');
+    const togli = document.getElementById('tv-hs-togli');
+    if (!box) return;
+    box.className = 'tv-hs-stato ' + (st.caricato ? 'ok' : (st.presente ? 'ko' : ''));
+    box.innerHTML = '';
+    const riga = document.createElement('div');
+    if (st.caricato) {
+        riga.textContent = st.profili.every(p => p.certificato) ? 'Pacchetto caricato e verificato.'
+            : 'Pacchetto caricato e verificato, ma alcuni profili non hanno il certificato: caricalo qui sotto.';
+        const prof = document.createElement('div');
+        prof.className = 'tv-dettaglio';
+        prof.innerHTML = '<span>Profili</span>: <span data-no-tr></span>';
+        prof.lastChild.textContent = st.profili.map(p => p.nome).join(', ');
+        box.appendChild(riga);
+        box.appendChild(prof);
+    } else if (st.presente) {
+        riga.textContent = 'Pacchetto presente ma non valido: le TV Hisense VIDAA non si collegano.';
+    } else {
+        riga.textContent = 'Nessun pacchetto: le TV Hisense VIDAA si trovano ma non si collegano.';
+    }
+    if (!riga.parentNode) box.appendChild(riga);
+    const det = document.createElement('div');
+    det.setAttribute('data-no-tr', '');
+    det.className = 'tv-dettaglio';
+    det.textContent = [st.origine, st.errore].filter(Boolean).join(' \u00b7 ');
+    if (det.textContent) box.appendChild(det);
+    if (togli) togli.style.display = st.presente ? '' : 'none';
+}
+
+async function tvHisenseStato() {
+    try {
+        const r = await fetch('/api/tv/hisense/pacchetto', { cache: 'no-store' });
+        tvHisenseScrivi(await r.json());
+    } catch (e) { /* card chiusa o server non raggiungibile: si riprova all'apertura */ }
+}
+
+async function tvHisenseCarica() {
+    const msg = document.getElementById('tv-hs-msg');
+    const file = document.getElementById('tv-hs-file');
+    const btn = document.getElementById('tv-hs-carica');
+    if (!file.files.length) { tvMsg(msg, 'errore', 'Scegli il file .json del pacchetto (ed eventualmente certificato e chiave).'); return; }
+    const fd = new FormData();
+    Array.from(file.files).forEach(f => fd.append('file', f, f.name));
+    fd.append('password', document.getElementById('tv-hs-pass').value);
+    fd.append('profilo', document.getElementById('tv-hs-profilo').value);
+    btn.disabled = true;
+    tvMsg(msg, 'attesa', 'Verifico il pacchetto&hellip;');
+    try {
+        const r = await fetch('/api/tv/hisense/pacchetto', { method: 'POST', body: fd });
+        const d = await r.json();
+        if (d.status !== 'success') { tvErrore(msg, d, 'Pacchetto non caricato'); return; }
+        tvMsg(msg, 'ok', tvEsc(d.message || 'Pacchetto caricato'));
+        tvHisenseScrivi(d);
+        file.value = '';
+        document.getElementById('tv-hs-pass').value = '';
+        showToast('Pacchetto Hisense caricato', 'success');
+    } catch (e) {
+        tvMsg(msg, 'errore', 'Errore di rete');
+    } finally { btn.disabled = false; }
+}
+
+async function tvHisenseTogli() {
+    if (!await chiedi('Togliere il pacchetto Hisense? Le TV Hisense VIDAA restano salvate ma non si comandano finch\u00e9 non lo carichi di nuovo.',
+                      { titolo: 'Togli pacchetto', si: 'Togli', pericolo: true })) return;
+    const msg = document.getElementById('tv-hs-msg');
+    try {
+        const r = await fetch('/api/tv/hisense/pacchetto', { method: 'DELETE' });
+        const d = await r.json();
+        if (d.status !== 'success') { tvErrore(msg, d, 'Non riuscito'); return; }
+        tvMsg(msg, 'ok', tvEsc(d.message || ''));
+        tvHisenseScrivi(d);
+    } catch (e) { tvMsg(msg, 'errore', 'Errore di rete'); }
+}
+
 function tvCollegata(c, d) {
     integrationsDirty = true;
+    if (c.pinBox) c.pinBox.style.display = 'none';      // codice accettato: il campo non serve piu'
+    if (c.tid) {
+        // Riabbina: stessa TV, stesse stanze; si rilegge solo la lista
+        tvRiabbinaCodice = null;      // abbinamento chiuso dal server: niente da annullare
+        tvMsg(c.msg, 'ok', 'Abbinata di nuovo: la TV resta dove era, nelle stanze e negli scenari.');
+        showToast('TV abbinata di nuovo: ' + (d.nome || ''), 'success');
+        setTimeout(() => { tvRiabbinaAperta = null; loadTvDevices(); }, 2500);
+        return;
+    }
     tvMsg(c.msg, 'ok', 'Collegata! Ora la trovi tra i dispositivi: trascinala in una stanza e nell\u2019app avrai il telecomando.');
     showToast('TV collegata: ' + (d.nome || ''), 'success');
     setTimeout(() => { if (c.card) refreshIntegrationCard(c.card); }, 1200);
@@ -12077,9 +12270,52 @@ async function sonoffProva(id, btn) {
 }
 {%- endif%}
 
-async function loadTvDevices() {
+// Lista delle TV collegate: si rilegge ogni 10 s finche' la card e' aperta (stato, "Da riabbinare"),
+// ma non mentre e' aperto un Riabbina (si perderebbe il campo del codice).
+let tvListaTimer = null;
+let tvRiabbinaAperta = null;
+let tvRiabbinaDal = 0;
+let tvRiabbinaCodice = null;      // IP della TV che sta mostrando il codice di un Riabbina (canale aperto sul server)
+// un Riabbina lasciato a meta' non ferma la lista per sempre: dopo 125 s il codice e' comunque
+// scaduto sul server (2 minuti), e riaprire la card riparte da capo
+const TV_RIABBINA_MAX = 125000;
+
+// Chiude il Riabbina aperto. Se la TV mostrava un codice, il server chiude subito l'abbinamento
+// lasciato a meta' (la TV torna comandabile invece di restare "in abbinamento" per 2 minuti).
+function tvAzzeraRiabbina() {
+    const ip = tvRiabbinaCodice;
+    tvRiabbinaAperta = null;
+    tvRiabbinaCodice = null;
+    if (!ip) return Promise.resolve();
+    return fetch('/api/tv/pair/pin', { method: 'POST', headers: {'Content-Type': 'application/json'},
+                                       body: JSON.stringify({ ip, annulla: true }) }).catch(() => {});
+}
+
+function tvChiudiRiabbina() {
+    tvAzzeraRiabbina().then(() => loadTvDevices());
+}
+
+function tvProgrammaLista() {
+    clearTimeout(tvListaTimer);
+    tvListaTimer = setTimeout(() => {
+        const card = document.querySelector('.integration-card[data-key="tv"]');
+        if (tvRiabbinaAperta !== null && Date.now() - tvRiabbinaDal > TV_RIABBINA_MAX) tvAzzeraRiabbina();
+        // card aperta nel pannello (open) o nella pagina di dettaglio dello Store (detail-visible), e in vista
+        const aperta = card && card.offsetParent !== null && (card.classList.contains('open') || card.classList.contains('detail-visible'));
+        if (aperta && !document.hidden) {
+            if (tvRiabbinaAperta === null) loadTvDevices(); else tvProgrammaLista();
+        }
+    }, 10000);
+}
+
+async function loadTvDevices(daCapo) {
     const box = document.getElementById('tv-devices-list');
     if (!box) return;
+    if (tvRiabbinaAperta !== null && (daCapo === true || Date.now() - tvRiabbinaDal > TV_RIABBINA_MAX)) {
+        await tvAzzeraRiabbina();                     // card aperta di nuovo, o Riabbina scaduto: da capo
+    }
+    tvProgrammaLista();
+    if (tvRiabbinaAperta !== null) return;
     let lista = [];
     try {
         const r = await fetch('/api/tv/list', { cache: 'no-store' });
@@ -12100,19 +12336,51 @@ async function loadTvDevices() {
                 <span style="min-width:0;">
                     <span class="tv-item-name"></span>
                     <div class="tv-item-sub"></div>
+                    <div class="tv-item-aiuto" style="display:none;"></div>
                     <div class="tv-rename">
                         <input type="text" class="premium-input tv-rename-in" maxlength="60">
                         <button type="button" class="btn-sm primary tv-rename-ok"><i data-lucide="check"></i></button>
                     </div>
+                    <div class="tv-riabbina-box">
+                        <div class="cam-msg"></div>
+                        <div class="tv-pin-box">
+                            <input type="text" class="premium-input tv-pin" placeholder="Codice mostrato dalla TV" inputmode="numeric" autocomplete="off" style="flex:1;">
+                            <button type="button" class="btn-sm primary tv-pin-go"><i data-lucide="check"></i> Conferma</button>
+                        </div>
+                        <button type="button" class="btn-sm tv-riabbina-chiudi" style="align-self:flex-start;"><i data-lucide="x"></i> Annulla</button>
+                    </div>
                 </span>
             </span>
             <span class="tv-item-actions">
+                <button type="button" class="btn-sm tv-riabbina-btn" title="Riabbina"><i data-lucide="link-2"></i></button>
                 <button type="button" class="btn-sm tv-rename-btn" title="Rinomina"><i data-lucide="pencil"></i></button>
                 <button type="button" class="btn-sm tv-power-btn" title="${tv.on ? 'Spegni' : 'Accendi'}"><i data-lucide="power"></i></button>
                 <a href="/remove_tv/${tv.id}" onclick="removeIntegrationItem(event, this.href, 'Rimuovere questa TV?')" style="color:var(--danger); display:inline-flex;" title="Rimuovi"><i data-lucide="trash-2" style="width:16px;"></i></a>
             </span>`;
         riga.querySelector('.tv-item-name').textContent = tv.nome;
-        riga.querySelector('.tv-item-sub').textContent = tv.marca_nome + ' \u00b7 ' + tv.ip + (tv.modello ? ' \u00b7 ' + tv.modello : '') + ' \u00b7 ' + (tv.on ? 'Accesa' : 'Spenta') + (tv.abbinata ? '' : ' \u00b7 da abbinare') + (tv.problema ? ' \u00b7 ' + tv.problema : '');
+        riga.querySelector('.tv-item-sub').textContent = tv.marca_nome + ' \u00b7 ' + tv.ip + (tv.modello ? ' \u00b7 ' + tv.modello : '') + ' \u00b7 ' + (tv.stato_testo || (tv.on ? 'Accesa' : 'Spenta'));
+        const aiuto = riga.querySelector('.tv-item-aiuto');
+        if (tv.aiuto) { aiuto.textContent = tv.aiuto; aiuto.style.display = 'block'; }
+        const rbBox = riga.querySelector('.tv-riabbina-box'), rbBtn = riga.querySelector('.tv-riabbina-btn');
+        if (tv.stato === 'serve_riabbinare') rbBtn.style.color = 'var(--warning)';
+        riga.querySelector('.tv-riabbina-chiudi').onclick = () => { rbBox.classList.remove('open'); tvChiudiRiabbina(); };
+        rbBtn.onclick = async () => {
+            if (rbBox.classList.contains('open')) { rbBox.classList.remove('open'); tvChiudiRiabbina(); return; }
+            if (tv.stato === 'accesa' && tv.abbinata
+                && !await chiedi('La TV funziona: vuoi davvero rifare l\u2019abbinamento?', { titolo: 'Riabbina', si: 'Riabbina' })) return;
+            rbBox.classList.add('open');
+            tvRiabbinaAperta = tv.id;
+            tvRiabbinaDal = Date.now();
+            collegaTv({
+                tid: tv.id, ip: tv.ip, marca: tv.marca, nome: tv.nome, mac: tv.mac || '', modello: tv.modello || '',
+                msg: rbBox.querySelector('.cam-msg'), go: rbBtn,
+                pinBox: rbBox.querySelector('.tv-pin-box'), pinInput: rbBox.querySelector('.tv-pin'), pinGo: rbBox.querySelector('.tv-pin-go'),
+                card: riga.closest('.integration-card')
+            });
+            // la lista resta ferma finche' il riquadro e' aperto (codice da scrivere, errore da leggere):
+            // si chiude con Annulla o premendo di nuovo Riabbina, da solo quando l'abbinamento riesce,
+            // riaprendo la card o dopo TV_RIABBINA_MAX
+        };
         const ren = riga.querySelector('.tv-rename'), inp = riga.querySelector('.tv-rename-in');
         riga.querySelector('.tv-rename-btn').onclick = () => { ren.classList.toggle('open'); inp.value = tv.nome; if (ren.classList.contains('open')) inp.focus(); };
         riga.querySelector('.tv-rename-ok').onclick = async () => {
@@ -14276,7 +14544,7 @@ function openIntegrationDetail(key) {
     if (key === 'shelly') loadShellyDevices();
     if (key === 'sonos') loadSonosDevices();
 {% if annunci_modulo %}    if (key === 'annunci') annCarica();
-{% endif %}    if (key === 'tv') loadTvDevices();
+{% endif %}    if (key === 'tv') loadTvDevices(true);
 {%- if sonoff_modulo %}
     if (key === 'sonoff') { sonoffStato(); loadSonoffDevices(); }
 {%- endif%}
