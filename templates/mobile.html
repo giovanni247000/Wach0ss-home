@@ -2123,7 +2123,7 @@
         .gm-etichetta { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin: 4px 0 4px; flex-shrink: 0; }
         .gm-lista { display: flex; flex-direction: column; overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
         #group-modal .gm-lista { flex: 1; }
-        .gm-riga { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 0; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
+        .gm-riga { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 0; border-bottom: 0.5px solid rgba(255,255,255,0.08); flex-shrink: 0; }   /* la lista scorre, le righe non si schiacciano */
         .gm-riga:last-child { border-bottom: none; }
         .gm-ico { width: 36px; height: 36px; border-radius: 11px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.78); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .2s, color .2s; }
         .gm-ico svg { width: 18px; height: 18px; }
@@ -2162,13 +2162,16 @@
         #luce-membri[hidden] { display: none; }
         #luce-membri .gm-lista { max-height: 34vh; }
         /* pannello luce di un gruppo: i blocchi tengono la loro altezza e il pannello scorre (la barra grande ha touch-action: none) */
-        #light-modal.con-membri { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+        #light-modal.con-membri { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        #light-modal.con-membri::-webkit-scrollbar { display: none; }   /* barra nascosta come in .modal-scroll-area: su schermo grande (6px) stava sul bordo del modale e usciva dagli angoli tondi */
         #light-modal.con-membri > * { flex-shrink: 0; }
         #light-modal.con-membri #luce-membri .gm-lista { max-height: none; overflow: visible; }
         #gm-tutto { height: 44px; padding: 6px 0; box-sizing: border-box; background-clip: content-box; }   /* 52x32 visibile, 44 di tocco */
         #gm-tutto::after { top: 9px; }
+        @media (min-width: 1024px) { #group-modal .gm-testa { padding-right: 44px; } }   /* schermo grande: la X di chiusura non copre l'interruttore generale */
         .hk-pannello #group-modal .gm-testa { padding-right: 44px; margin-top: 0; }   /* card allargata: lascia posto al tasto "Riduci" */
         .hk-pannello #group-modal .gm-titolo { font-size: 17px; }
+        .hk-pannello .gm-lista, .hk-pannello #light-modal.con-membri { overscroll-behavior: auto; }   /* card allargata: qui non traboccano, rotella e dito passano al pannello della card */
         /* foglio di modifica: a tutta altezza, sopra anche alle Impostazioni */
         #group-edit-modal { height: 94vh; height: 94dvh; max-height: 94dvh; z-index: 2700; padding-top: 10px; }
         .ge-barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 52px; margin: 0 -8px 6px; flex-shrink: 0; border-bottom: 0.5px solid rgba(255,255,255,0.1); }
@@ -10611,6 +10614,7 @@ document.body.addEventListener('touchmove', function(e) {
             // o se stiamo trascinando uno slider (type="range") o toccando i colori
             if (!e.target.closest('#app-wrapper') && 
                 !e.target.closest('.modal-scroll-area') && 
+                !e.target.closest('.gm-lista, .ge-corpo, #light-modal.con-membri, .all-aperti') &&   /* gruppi (membri, foglio di modifica, pannello luce) e sensori aperti: stanno fuori da #app-wrapper e scorrono col dito */
                 !e.target.closest('.imp-pagina') && 
                 !e.target.closest('#upd-overlay') && 
                 !e.target.closest('.floating-nav-wrapper') &&   /* barra laterale (iPad): scorre col dito se le stanze sono tante */
@@ -12831,7 +12835,7 @@ function initSwipeAndExplode() {
             if (window.innerWidth >= 1024) return; // Disabilita su Desktop
             if (modal.classList.contains('incorporato')) return;   // ospitato in una card allargata: niente swipe
             // dentro il contenuto che scorre: la finestra si trascina solo col contenuto tutto in cima
-            scroller = e.currentTarget && e.currentTarget.closest ? e.currentTarget.closest('.modal-scroll-area') : null;
+            scroller = e.currentTarget && e.currentTarget.closest ? e.currentTarget.closest('.modal-scroll-area, #light-modal.con-membri') : null;   // pannello luce di un gruppo: scorre il modale intero
             if (scroller && scroller.scrollTop > 0) return;
             startY = e.touches[0].clientY;
             isDragging = true;
@@ -19354,7 +19358,7 @@ function hkOsserva(card) {
         const s = document.getElementById('luce-membri'); if (!s) return;
         const lm = document.getElementById('light-modal');
         if (!card.dataset.gruppo) { s.hidden = true; delete s.dataset.gid; if (lm) lm.classList.remove('con-membri'); return; }
-        s.hidden = false; s.dataset.gid = card.dataset.id; if (lm) lm.classList.add('con-membri');
+        s.hidden = false; s.dataset.gid = card.dataset.id; if (lm) { lm.classList.add('con-membri'); lm.scrollTop = 0; }   // si riapre dall'alto
         carica(card.dataset.id, document.getElementById('luce-membri-lista'));
     };
     // interruttore grande: tutto il gruppo, come il tocco sull'icona della card
