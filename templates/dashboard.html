@@ -641,6 +641,7 @@
         .hk-prova.in-corso { opacity: 0.5; pointer-events: none; }
         .hk-prova.errore { animation: ambShake 0.35s ease; border-color: var(--danger); color: var(--danger); background: #FFF0F0; }
         .hk-card-source > .btn-danger { position: static !important; flex-shrink: 0; }   /* il cestino resta in riga, accanto al tasto prova */
+        .hk-card-source > .btn-ghost-mini { position: static !important; }                /* la matita del gruppo, in riga prima del cestino */
         .dashboard-droptarget .hk-prova { display: none; }                               /* nella griglia della stanza le card restano come prima */
         /* Tapparelle nella libreria: apri / ferma / chiudi (API /api/cover_control dell'app) */
         .hk-tapp { display: inline-flex; flex-shrink: 0; border: 1px solid #E5E5EA; border-radius: 8px; overflow: hidden; background: #F5F5F7; }
@@ -735,6 +736,60 @@
         .crea-note svg, .crea-note i { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; color: var(--accent); }
         .crea-submit { width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 600; gap: 8px; border-radius: var(--radius-md); }
         .crea-submit svg, .crea-submit i { width: 16px; height: 16px; }
+        /* ===== GRUPPI: comportamento, ricerca dei membri (gs-), modifica ===== */
+        .crea-submit:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+        .btn-ghost-mini {
+            width: 26px; height: 26px; padding: 0; border-radius: 8px; border: 1px solid #E5E5EA; background: #F5F5F7; color: var(--text-muted);
+            display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: var(--transition-smooth);
+        }
+        .btn-ghost-mini svg { width: 13px; height: 13px; }
+        .btn-ghost-mini:hover { border-color: var(--accent); color: var(--accent); background: #EEF5FF; }
+        .dashboard-droptarget .btn-ghost-mini { display: none; }
+        .gs-modifica .unified-tabs, .gs-modifica #tab-virtual { display: none !important; }
+        #unified-creation-modal [hidden] { display: none !important; }      /* hidden vince sui display dei componenti (chip, x, note) */
+        .crea-field > label .gs-conta { float: right; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--accent); font-size: 0.78rem; }
+        .gs-cerca { margin-bottom: 10px; }
+        .gs-cerca input { height: 40px; padding: 0 40px 0 38px; border-radius: 12px; -webkit-appearance: none; appearance: none; }
+        .gs-cerca input::-webkit-search-cancel-button { display: none; }
+        .gs-x {
+            position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 8px; border: none;
+            background: transparent; color: var(--text-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+        }
+        .gs-x:hover { background: #ECECF1; color: var(--text-main); }
+        .gs-x svg { width: 15px; height: 15px; }
+        .gs-filtri { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+        .gs-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+        .gs-chip {
+            height: 30px; padding: 0 11px; border-radius: 999px; border: 1px solid #E5E5EA; background: #FFFFFF; font-family: inherit;
+            font-size: 0.78rem; font-weight: 600; color: var(--text-muted); display: inline-flex; gap: 6px; align-items: center; cursor: pointer;
+            transition: var(--transition-smooth); white-space: nowrap;
+        }
+        .gs-chip b { font-weight: 600; opacity: .6; font-variant-numeric: tabular-nums; }
+        .gs-chip:hover { border-color: #C7C7CC; color: var(--text-main); }
+        .gs-chip.active { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+        .gs-chip.active b { opacity: .85; }
+        .gs-solo { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap; height: 30px; }
+        .gs-solo input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+        .crea-list.gs-lista { max-height: 320px; padding: 4px; gap: 2px; }
+        .crea-list.gs-lista.gs-tutte-nascoste { display: none; }
+        .gs-voce { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 10px; cursor: pointer; transition: background .15s; }
+        .gs-voce:hover { background: #FFFFFF; }
+        .gs-voce:has(input:checked) { background: #EAF3FF; }
+        .gs-voce input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); flex-shrink: 0; cursor: pointer; }
+        .gs-ico { width: 28px; height: 28px; border-radius: 8px; background: #FFFFFF; border: 1px solid #E5E5EA; display: flex; align-items: center; justify-content: center; color: var(--text-muted); flex-shrink: 0; }
+        .gs-ico svg { width: 15px; height: 15px; }
+        .gs-voce:has(input:checked) .gs-ico { color: var(--accent); border-color: #CFE3FA; }
+        .gs-voce.gs-assente .gs-ico { color: #C77800; background: #FFF6E5; border-color: #FFE2B0; }
+        .gs-nome { font-weight: 600; font-size: 14px; color: var(--text-main); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .gs-sub { font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48%; text-align: right; flex-shrink: 0; }
+        .gs-assente .gs-sub { color: #C77800; }
+        .gs-sicura .gs-sub, .gs-sicura .gs-ico { color: #C77800; }
+        .gs-nascosta { display: none !important; }
+        .gs-vuoto { padding: 18px; text-align: center; font-size: 0.82rem; color: var(--text-muted); background: #F9F9FB; border: 1px dashed #E5E5EA; border-radius: var(--radius-md); }
+        .gs-errore { color: #FF3B30; font-size: 13px; margin-top: 6px; font-weight: 500; }
+        .gs-nota-luce { background: #FFF8E1; color: #8A6100; margin: 10px 0 0 0; }
+        .gs-nota-luce svg, .gs-nota-luce i { color: #C77800; }
+        @media (max-width: 560px) { .gs-filtri { flex-direction: column; gap: 6px; } .gs-sub { max-width: 42%; } }
 
         
 
@@ -949,6 +1004,11 @@
         .tv-dettaglio { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; word-break: break-word; }
         .tv-pin-box { display: none; flex: 1 1 100%; gap: 8px; align-items: center; }
         .tv-found-nota { font-size: 0.74rem; color: #8A6D1F; margin-top: 4px; line-height: 1.4; }
+        /* Hisense collegata con i comandi base (senza pacchetto): etichetta, nota, offerta dopo un errore */
+        .tv-modo-base { display: inline-block; font-size: 0.66rem; font-weight: 700; color: #5E4BB8; background: #EFEBFF; padding: 2px 8px; border-radius: 20px; margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
+        .tv-item-nota { font-size: 0.74rem; color: var(--text-muted); margin-top: 3px; line-height: 1.35; }
+        .tv-link { background: none; border: none; padding: 0; margin-top: 4px; font: inherit; font-size: 0.74rem; font-weight: 600; color: var(--accent); text-decoration: underline; cursor: pointer; }
+        .tv-base-offri { margin-top: 8px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
         .tv-found-altra .cam-found-ico { background: #F2F2F7; }
         .tv-found-altra .cam-found-ico i { color: var(--text-muted); }
         .tv-hs-stato { font-size: 0.78rem; line-height: 1.45; padding: 8px 10px; border-radius: 10px; background: #F7F7FA; color: var(--text-main); margin-bottom: 10px; }
@@ -1655,6 +1715,52 @@
         }
     </style>
     <script src="/static/popup.js"></script>
+<style>
+/* ===== SCOPERTI: Shelly e Sonos non trovati (card, rete di casa, banner) ===== */
+.scop { display: flex; flex-direction: column; gap: 10px; }
+.scop-rete { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-md); background: #F5F7FA; border: 1px solid #E5E5EA; font-size: 0.85rem; color: var(--text-main); }
+.scop-rete > i, .scop-rete > svg { width: 18px; height: 18px; color: var(--text-muted); flex-shrink: 0; }
+.scop-rete.arancio { background: rgba(255,159,10,0.10); border-color: rgba(255,159,10,0.45); }
+.scop-rete.arancio > svg { color: #B25E00; }
+.scop-rete.rosso { background: rgba(255,69,58,0.08); border-color: rgba(255,69,58,0.45); }
+.scop-rete.rosso > svg { color: #C9241B; }
+.scop-testo { flex: 1; min-width: 0; line-height: 1.45; }
+.scop-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.78rem; color: var(--text-muted); overflow-wrap: anywhere; }
+.scop-cambia { flex-shrink: 0; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #D1D1D6; background: #FFF; color: var(--text-main); font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.scop-cambia:hover { background: #F2F2F7; }
+.scop-cambia.primario { background: var(--accent); border-color: var(--accent); color: #FFF; }
+.scop-cambia.primario:hover { filter: brightness(1.08); }
+.scop-imp { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-main); font-weight: 500; }
+.scop-imp select.premium-input { width: auto; min-width: 130px; height: 36px; padding: 0 10px; margin: 0; }
+.scop-disp { flex-wrap: wrap; gap: 8px 12px; align-items: flex-start !important; margin-bottom: 0 !important; }
+.scop-sx { display: flex; gap: 10px; min-width: 0; flex: 1 1 240px; }
+.scop-punto { width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+.scop-punto.verde { background: #30D158; } .scop-punto.arancio { background: #FF9F0A; } .scop-punto.rosso { background: #FF453A; }
+.scop-nome { font-weight: 600; font-size: 0.95rem; color: var(--text-main); overflow-wrap: anywhere; }
+.scop-det { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; line-height: 1.45; overflow-wrap: anywhere; }
+.scop-dx { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; flex-wrap: wrap; justify-content: flex-end; }
+.scop-badge { white-space: nowrap; padding: 5px 10px; }
+.scop-badge.verde { background: rgba(48,209,88,0.14); color: #1A7F37; }
+.scop-badge.arancio { background: rgba(255,159,10,0.16); color: #B25E00; }
+.scop-badge.rosso { background: rgba(255,69,58,0.12); color: #C9241B; }
+.scop-rimuovi { height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(220,53,69,0.35); background: #FFF; color: var(--danger); font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+.scop-rimuovi:hover { background: #FFF0F0; }
+.scop-tutti { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; border-radius: 10px; border: 1px dashed rgba(220,53,69,0.5); background: #FFF; color: var(--danger); font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+.scop-tutti svg { width: 16px; height: 16px; }
+.scop-tutti:hover { background: #FFF0F0; }
+.scop-sez { border: 1px solid #E5E5EA; border-radius: var(--radius-md); background: #FAFAFC; overflow: hidden; }
+.scop-sez summary { padding: 10px 14px; cursor: pointer; font-weight: 600; font-size: 0.85rem; color: var(--text-main); }
+.scop-voce { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 10px 14px; border-top: 1px solid #EEEEF2; flex-wrap: wrap; }
+.scop-ritrovato { color: #1A7F37; font-weight: 700; font-size: 0.85rem; }
+.scop-vuoto { text-align: center; padding: 16px; color: var(--text-muted); font-size: 0.85rem; background: #F9F9FB; border-radius: var(--radius-md); border: 1px dashed #D1D1D6; }
+.scop-vuoto.scop-errore { color: var(--danger); background: #FFF0F0; border-style: solid; border-color: #FFD6D6; }
+.scop-silente { display: inline-block; font-size: 0.72rem; font-weight: 700; color: #B25E00; background: rgba(255,159,10,0.14); padding: 2px 8px; border-radius: 20px; margin-left: 8px; white-space: nowrap; }
+#scop-banner { flex-shrink: 0; display: flex; gap: 12px; align-items: flex-start; margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; background: #FFF6E8; border: 1px solid rgba(255,159,10,0.5); color: var(--text-main); font-size: 0.85rem; line-height: 1.45; }
+#scop-banner > i, #scop-banner > svg { width: 20px; height: 20px; color: #B25E00; flex-shrink: 0; margin-top: 1px; }
+#scop-banner .scop-chiudi { flex-shrink: 0; width: 28px; height: 28px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+#scop-banner .scop-chiudi:hover { background: rgba(0,0,0,0.05); }
+#scop-banner .scop-chiudi svg { width: 16px; height: 16px; }
+</style>
 </head>
 <body>
 
@@ -1751,7 +1857,7 @@
                 <i data-lucide="radio-tower" style="width:16px; height:16px; margin-right:6px;"></i> Monitor KNX
             </a>
             {% endif %}
-            <a href="{{ url_for('automations_ui') }}" class="btn-launch btn-outline">
+            <a href="{{ url_for('automations_ui') }}?tema=chiaro" class="btn-launch btn-outline">
                 <i data-lucide="zap" style="width:16px; height:16px; margin-right:6px;"></i> Automazioni
             </a>
             <button class="btn-launch btn-outline" onclick="openUserManagement()">
@@ -1781,6 +1887,18 @@
         </div>
     </div>
 
+{% if scop_banner %}
+    <div id="scop-banner" role="status" data-chiave="{{ scop_banner.chiave }}">
+        <i data-lucide="wifi-off"></i>
+        <div class="scop-testo">
+            <b>Il server è su una rete diversa da quella di casa</b><br>
+            <span>{% if scop_banner.n == 1 %}1 dispositivo configurato (TP-Link, Tuya, Sonoff, Hue, MyHome) non è raggiungibile.{% else %}{{ scop_banner.n }} dispositivi configurati (TP-Link, Tuya, Sonoff, Hue, MyHome) non sono raggiungibili.{% endif %}</span>
+            <span>Toglili dalle loro integrazioni se non servono più.</span>
+        </div>
+        <button type="button" class="scop-chiudi" onclick="scopBannerChiudi()" title="Chiudi" aria-label="Chiudi"><i data-lucide="x"></i></button>
+    </div>
+    <script>try { var scopB = document.getElementById('scop-banner'); if (localStorage.getItem('wh_scop_banner') === scopB.dataset.chiave) scopB.style.display = 'none'; } catch (e) {}</script>
+{% endif %}
     <div class="workspace">
         <div class="panel panel-left" id="lib-pannello">
             <script>/* larghezza dell'elenco scelta su questo dispositivo: applicata subito, senza salti al caricamento */
@@ -1820,7 +1938,7 @@
                     {% set state = device.state %}
                     {% set display_state = 'Acceso' if state == 'on' else 'Spento' if state == 'off' else 'In riproduzione' if state == 'playing' else 'In pausa' if state == 'paused' else 'Aperta' if state == 'open' else 'Chiusa' if state == 'closed' else 'In apertura' if state == 'opening' else 'In chiusura' if state == 'closing' else 'Pulsante' if domain in ('button', 'input_button') else 'Offline' if device.attributes.offline else 'Immagine' if domain == 'image' else 'Pulisce' if state == 'cleaning' else 'Alla base' if state == 'docked' else 'Rientra' if state == 'returning' else 'Fermo' if state == 'idle' else state %}
                     
-                    <div class="hk-card-source" data-id="{{ device.entity_id }}" data-domain="{{ domain }}" data-state="{{ state }}" data-original-name="{{ device.attributes.friendly_name | default(device.entity_id) }}">
+                    <div class="hk-card-source" data-id="{{ device.entity_id }}" data-domain="{{ domain }}" data-state="{{ state }}" data-original-name="{{ device.attributes.friendly_name | default(device.entity_id) }}" data-sicurezza="{{ wh_sicurezza(device.entity_id, device.attributes) }}">
 <div class="hk-icon">
     {% if domain == 'light' %} <i data-lucide="lightbulb"></i>
     {% elif domain == 'switch' %} <i data-lucide="power"></i>
@@ -1867,7 +1985,7 @@
         {% elif '.virtual_' in device.entity_id %}
             <span class="entity-badge badge-virtual">Virtuale</span>
         {% elif domain == 'group' %}
-            <span class="entity-badge badge-virtual">Gruppo</span>
+            <span class="entity-badge badge-virtual">{% if device.attributes.wach_gruppo_modo == 'light' %}Gruppo · Luce{% else %}Gruppo{% endif %}</span>
         {% else %}
             <span class="entity-badge badge-ha">HA</span>
         {% endif %}
@@ -1875,7 +1993,7 @@
 </div>
 
 {% if domain in ('light', 'switch', 'group') %}
-<button type="button" class="hk-prova" onclick="libProva(event, '{{ device.entity_id }}')" title="Prova: accendi / spegni"><i data-lucide="power"></i></button>
+<button type="button" class="hk-prova" onclick='libProva(event, {{ device.entity_id|tojson }})' title="Prova: accendi / spegni"><i data-lucide="power"></i></button>
 {% endif %}
 {% if domain == 'cover' %}
 <div class="hk-tapp" title="Prova: apri / ferma / chiudi">
@@ -1892,7 +2010,8 @@
         <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
     </button>
     {% elif domain == 'group' %}
-    <button class="btn-danger" style="position:absolute; right:10px; width:26px; height:26px; padding:0; display:flex; align-items:center; justify-content:center; z-index: 10;" onclick="deleteGroupEntity('{{ device.entity_id }}')" title="Elimina Gruppo">
+    <button type="button" class="btn-ghost-mini" style="position:absolute; right:42px; z-index: 10;" onclick='event.stopPropagation(); modificaGruppo({{ device.entity_id|tojson }})' title="Modifica gruppo"><i data-lucide="pencil"></i></button>
+    <button class="btn-danger" style="position:absolute; right:10px; width:26px; height:26px; padding:0; display:flex; align-items:center; justify-content:center; z-index: 10;" onclick='deleteGroupEntity({{ device.entity_id|tojson }})' title="Elimina Gruppo">
         <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
     </button>
 {% elif '.virtual_' in device.entity_id %}
@@ -2101,8 +2220,8 @@
 
         <div class="crea-body">
             <div class="unified-tabs crea-tabs">
-                <button class="unified-tab active" onclick="switchUnifiedTab(event, 'virtual')"><i data-lucide="toggle-right"></i><span>Tasto Virtuale</span></button>
-                <button class="unified-tab" onclick="switchUnifiedTab(event, 'group')"><i data-lucide="layers"></i><span>Gruppo</span></button>
+                <button class="unified-tab active" data-tab="virtual" onclick="switchUnifiedTab(event, 'virtual')"><i data-lucide="toggle-right"></i><span>Tasto Virtuale</span></button>
+                <button class="unified-tab" data-tab="group" onclick="switchUnifiedTab(event, 'group'); gsFuoco()"><i data-lucide="layers"></i><span>Gruppo</span></button>
             </div>
 
             <div id="tab-virtual" class="unified-content active">
@@ -2144,18 +2263,47 @@
                     <label for="group-name">Nome del Gruppo</label>
                     <div class="crea-input-wrap">
                         <i data-lucide="tag"></i>
-                        <input type="text" id="group-name" placeholder="Es. Spegni Casa, Luci Sala…" autocomplete="off">
+                        <input type="text" id="group-name" placeholder="Es. Luci sala" autocomplete="off" maxlength="60" oninput="gsErrore(''); gsAggiorna()" onkeydown="if (event.key === 'Enter') event.preventDefault()">
                     </div>
+                    <div class="gs-errore" id="group-errore" role="alert" hidden></div>
                 </div>
 
                 <div class="crea-field">
-                    <label>Entità da controllare</label>
-                    <div id="group-entities-list" class="crea-list" data-testo="Nessuna entità disponibile"></div>
+                    <label>Comportamento</label>
+                    <div class="crea-choice" id="group-mode-choice">
+                        <button type="button" class="crea-choice-card active" data-mode="switch" onclick="gsScegliModo(this)">
+                            <span class="crea-choice-ico"><i data-lucide="toggle-right"></i></span>
+                            <span class="crea-choice-txt"><b>Interruttore</b><small>Accende e spegne tutto insieme</small></span>
+                            <i data-lucide="check" class="crea-choice-check"></i>
+                        </button>
+                        <button type="button" class="crea-choice-card" data-mode="light" onclick="gsScegliModo(this)">
+                            <span class="crea-choice-ico"><i data-lucide="lightbulb"></i></span>
+                            <span class="crea-choice-txt"><b>Luce</b><small>Con luminosità e colore quando i membri li supportano</small></span>
+                            <i data-lucide="check" class="crea-choice-check"></i>
+                        </button>
+                    </div>
+                    <div class="crea-note gs-nota-luce" id="group-nota-luce" hidden><i data-lucide="alert-triangle"></i><span>Nessun membro è una luce: luminosità e colore non avranno effetto</span></div>
+                    <div class="crea-note gs-nota-luce" id="group-nota-sicurezza" hidden><i data-lucide="lock"></i><span id="group-nota-sicurezza-t" data-no-tr>Le serrature non si comandano dai gruppi</span></div>
+                </div>
+
+                <div class="crea-field">
+                    <label for="group-cerca">Entità da controllare <span class="gs-conta"><span id="group-conta-n" data-no-tr>0</span> <span>selezionati</span></span></label>
+                    <div class="crea-input-wrap gs-cerca">
+                        <i data-lucide="search"></i>
+                        <input type="search" id="group-cerca" autocomplete="off" enterkeyhint="search" placeholder="Cerca per nome, stanza o tipo…" oninput="gsFiltra()" onkeydown="gsTasto(event)">
+                        <button type="button" class="gs-x" id="group-cerca-x" onclick="gsSvuota()" title="Svuota" aria-label="Svuota" hidden><i data-lucide="x"></i></button>
+                    </div>
+                    <div class="gs-filtri">
+                        <div class="gs-chips" id="group-chips"></div>
+                        <label class="gs-solo"><input type="checkbox" id="group-solo-sel" onchange="gsFiltra()"><span>Solo selezionati</span></label>
+                    </div>
+                    <div id="group-entities-list" class="crea-list gs-lista" data-testo="Nessuna entità disponibile" onchange="gsAggiorna()"></div>
+                    <div class="gs-vuoto" id="group-vuoto" hidden><span id="group-vuoto-a"><span>Nessun dispositivo corrisponde a</span> «<span id="group-vuoto-q" data-no-tr></span>»</span><span id="group-vuoto-b">Nessun risultato</span></div>
                 </div>
 
                 <div class="crea-note"><i data-lucide="info"></i><span>Un solo tocco sul gruppo comanda insieme tutte le entità selezionate.</span></div>
 
-                <button class="btn-launch btn-primary crea-submit" onclick="saveGroupEntity()"><i data-lucide="plus"></i> Crea Gruppo</button>
+                <button class="btn-launch btn-primary crea-submit" id="group-salva" onclick="saveGroupEntity()" disabled><span id="group-salva-ico" style="display:inline-flex"><i data-lucide="plus"></i></span> <span id="group-salva-t">Crea Gruppo</span></button>
             </div>
         </div>
     </div>
@@ -2377,7 +2525,7 @@
             </div>
             {% for ha in ha_instances %}
             <div class="integration-list-item">
-                <span>Istanza #{{ ha[0] }}</span>
+                <span>Istanza #{{ ha[0] }}{% set scop_gg = (fonti_silenti or {}).get('ha:%s' % ha[0]) %}{% if scop_gg %}<span class="scop-silente">{% if scop_gg == 1 %}Non risponde da 1 giorno{% else %}Non risponde da {{ scop_gg }} giorni{% endif %}</span>{% endif %}</span>
                 <a href="/remove_ha/{{ ha[0] }}" onclick="removeIntegrationItem(event, this.href, 'Rimuovere questa istanza Home Assistant?')" style="color:var(--danger)"><i data-lucide="trash-2" style="width:16px;"></i></a>
             </div>
             {% endfor %}
@@ -2650,6 +2798,7 @@
                     <div class="cam-guide-step"><b>1.</b> Accendi la TV e collegala alla stessa rete del server (Wi-Fi o cavo).</div>
                     <div class="cam-guide-step"><b>2.</b> Premi <i>Cerca TV in rete</i>, poi <i>Collega</i> sulla TV trovata.</div>
                     <div class="cam-guide-step"><b>3.</b> <b>Samsung</b>: sullo schermo compare la richiesta di Wach0ss Home, premi <i>Consenti</i> con il telecomando. <b>LG</b>: premi <i>Accetta</i> (se la TV mostra invece un codice, scrivilo qui). <b>Android TV / Google TV</b> (Sony, Philips, TCL, Hisense Google TV, Xiaomi&hellip;): la TV mostra un codice di 6 caratteri, scrivilo qui. <b>Hisense VIDAA</b>: la TV mostra un codice di 4 cifre, scrivilo qui (serve il <i>Pacchetto Hisense</i>, vedi sotto).</div>
+                    <div class="cam-guide-step"><b>Hisense VIDAA senza pacchetto</b>: si collega con i comandi base, senza codice (dall'app accensione, volume e muto). Col pacchetto premi Riabbina e scrivi il codice: resta la stessa TV, con il telecomando completo.</div>
                     <div class="cam-guide-warn">
                         <b>Per accenderla dall'app</b> la TV deve restare in rete anche da spenta: Samsung <b>Accensione tramite dispositivo mobile</b> (Impostazioni &rarr; Generali &rarr; Rete &rarr; Impostazioni avanzate), LG <b>Mobile TV On</b> / <b>Wake on LAN</b>, Android TV: <b>Rete in standby</b> se prevista dal modello.
                     </div>
@@ -2694,6 +2843,7 @@
                                 <option value="lg">LG (webOS)</option>
                                 <option value="android">Android TV / Google TV</option>
                                 <option value="hisense">Hisense VIDAA</option>
+                                <option value="hisense_base">Hisense VIDAA (comandi base, senza pacchetto)</option>
                             </select>
                         </div>
                     </div>
@@ -3332,7 +3482,7 @@
                 <i data-lucide="refresh-cw" style="width:16px; margin-right:8px;"></i> Cerca Nuovi Dispositivi
             </button>
             
-            <div id="shelly-devices-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <div id="shelly-devices-list" class="scop" data-integ="shelly">
                 </div>
         </div>
     </div>
@@ -3451,7 +3601,7 @@
                 <i data-lucide="refresh-cw" style="width:16px; margin-right:8px;"></i> Cerca Speaker Sonos
             </button>
             
-            <div id="sonos-devices-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <div id="sonos-devices-list" class="scop" data-integ="sonos">
                 <!-- I dispositivi verranno caricati qui via JavaScript -->
             </div>
         </div>
@@ -6686,43 +6836,6 @@ async function myhCopiaRegistro(btn) {
 
       
         
-        function openUnifiedModal() {
-            document.getElementById('unified-creation-modal').classList.add('active');
-            
-            // Pulisce preventivamente i campi di input per quando si riapre il modale
-            document.getElementById('virtual-name').value = '';
-            document.getElementById('group-name').value = '';
-            
-            // Genera la lista delle entità per il tab Gruppi (recuperato dal tuo vecchio codice)
-            const list = document.getElementById('group-entities-list');
-            // nell'ordine del server (dataset.libOrdine, scritto da libRegistra), non in quello della barra divisa in
-            // sezioni "Da assegnare" / "Gia' nelle stanze": elenco e gruppo salvato restano come prima
-            const cards = Array.from(document.querySelectorAll('#source-list .hk-card-source')).sort((a, b) => (+a.dataset.libOrdine || 0) - (+b.dataset.libOrdine || 0));
-            /* L'elenco si compone in memoria e si scrive UNA volta sola.
-               Prima si faceva list.innerHTML += dentro al ciclo: a ogni giro il
-               browser riscriveva in testo tutto l'elenco gia' fatto, lo ributtava
-               al parser e ricostruiva da capo ogni casella. Con cento entita' non
-               costruiva cento elementi ma cinquemila, e il costo cresceva col
-               quadrato: e' per questo che il + ci metteva a aprirsi.
-               E il nome si legge con textContent, non innerText: innerText e' il
-               testo COME SI VEDE, quindi obbliga a ricalcolare il layout a ogni
-               giro. La stringa che torna e' la stessa. */
-            const pezzi = [];
-            cards.forEach(card => {
-                const id = card.dataset.id;
-                const name = card.querySelector('.hk-name').textContent;
-                
-                if(id !== 'virtual_timer' && !id.startsWith('group.')) {
-                    pezzi.push(`
-                        <label class="checkbox-container" style="margin-bottom:4px; padding: 6px 10px;">
-                            <input type="checkbox" value="${id}" style="transform: scale(0.9); margin-right: 8px;">
-                            <span style="font-size: 0.85rem;"><span data-no-tr>${name}</span> <small style="color:#737373; font-weight:normal; margin-left:6px;">(${id.split('.')[0]})</small></span>
-                        </label>
-                    `);
-                }
-            });
-            list.innerHTML = pezzi.join('');
-        }
         async function deleteKnxEntity(entityId) {
             if(await chiedi("Rimuovere mapping KNX?", { titolo: "Rimuovi mapping", si: "Rimuovi", pericolo: true })) {
                 const r = await fetch('/api/knx/dispositivo', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({entity_id: entityId}) });
@@ -8352,36 +8465,49 @@ function animate() {
 
 async function saveGroupEntity() {
     const name = document.getElementById('group-name').value.trim();
+    // TUTTE le caselle spuntate, anche quelle nascoste dalla ricerca o dai filtri
     const checked = Array.from(document.querySelectorAll('#group-entities-list input:checked')).map(cb => cb.value);
-    
-    if(!name) return showToast("Devi dare un nome al gruppo", "error");
-    if(checked.length === 0) return showToast("Seleziona almeno un'entità", "error");
-    
-    const res = await fetch('/api/groups', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name: name, entities: checked})
-    });
-    
-    if(res.ok) {
-        showToast("Gruppo generato con successo!", "success");
-        closeUnifiedModal(); // <--- AGGIORNATO QUI
-        setTimeout(() => location.reload(), 1000);
-    } else {
-        showToast("Errore durante la creazione", "error");
+    if (!name) { gsErrore(gsT("Devi dare un nome al gruppo")); return; }
+    if (checked.length === 0) { gsErrore(gsT("Seleziona almeno un'entità")); return; }
+    const modifica = gsStato.modifica;
+    const corpo = { name: name, entities: checked, mode: gsModoAttuale() };
+    if (modifica) corpo.group_id = modifica;
+    const btn = document.getElementById('group-salva');
+    btn.disabled = true;
+    let res = null, dati = {};
+    try {
+        res = await fetch('/api/groups', { method: modifica ? 'PUT' : 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(corpo) });
+        dati = await res.json().catch(() => ({}));
+    } catch (e) {}
+    if (res && res.ok && dati.status === 'success') {
+        showToast(modifica ? "Gruppo aggiornato" : "Gruppo generato con successo!", "success");
+        closeUnifiedModal();
+        setTimeout(() => location.reload(), 900);
+        return;
     }
+    btn.disabled = false;
+    // 409 nome gia' usato, 400 dati non validi: sotto il nome, non con un avviso
+    let msg = (dati && dati.message) || (res ? "Errore durante il salvataggio" : "Server non raggiungibile");
+    const m = /^(Questo dispositivo non può far parte di un gruppo|Dispositivo non riconosciuto, riprova quando è raggiungibile): (.*)$/.exec(msg);
+    msg = m ? gsT(m[1]) + ': ' + libNome(m[2]) : gsT(msg);
+    gsErrore(msg);
 }
 
 async function deleteGroupEntity(groupId) {
-    if(await chiedi("Sei sicuro di voler eliminare questa entità Gruppo? (I dispositivi reali non verranno eliminati)", { titolo: "Elimina gruppo", si: "Elimina", pericolo: true })) {
-        await fetch('/api/groups', {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({group_id: groupId})
-        });
-        showToast("Gruppo eliminato", "success");
-        setTimeout(() => location.reload(), 800);
+    let g = null;
+    try { const r = await fetch('/api/groups?id=' + encodeURIComponent(groupId)); if (r.ok) g = await r.json(); } catch (e) {}
+    const nome = (g && g.name) || libNome(groupId);
+    const aut = (g && g.usi && g.usi.automazioni) || [];
+    let testo = gsT("Sei sicuro di voler eliminare questa entità Gruppo? (I dispositivi reali non verranno eliminati)");
+    if (aut.length) {
+        testo = '«' + nome + '» ' + gsT('è usato da') + ' ' + aut.length + ' ' + gsT(aut.length === 1 ? 'automazione' : 'automazioni')
+            + ' (' + aut.join(', ') + '). ' + gsT('Le automazioni resteranno ma non potranno più comandarlo. Elimino il gruppo?');
     }
+    if (!(await chiedi(testo, { titolo: "Elimina gruppo", si: "Elimina", pericolo: true }))) return;
+    const r = await fetch('/api/groups', { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({group_id: groupId}) }).catch(() => null);
+    if (!r || !r.ok) { showToast("Eliminazione non riuscita", "error"); return; }
+    showToast("Gruppo eliminato", "success");
+    setTimeout(() => location.reload(), 800);
 }
 
 // --- GESTIONE MODALE UNIFICATO ---
@@ -8395,47 +8521,229 @@ async function deleteGroupEntity(groupId) {
             document.getElementById('tab-' + tabId).classList.add('active');
         }
 
+        // =====================================================================
+        // --- GRUPPI: creazione e modifica, comportamento, ricerca dei membri (gs-) ---
+        // Le voci filtrate si NASCONDONO (classe gs-nascosta), non si tolgono: le spunte restano e il
+        // salvataggio legge TUTTE le caselle spuntate. In modifica i membri che non sono fra i dispositivi
+        // (offline, non trovati) stanno in testa, spuntati, come "Non disponibile": nessuno si perde in silenzio.
+        // =====================================================================
+        const GS_PAROLE = { light: 'luce luci light lights lampada', switch: 'interruttore presa prese switch plug', input_boolean: 'interruttore switch',
+            cover: 'tapparella tapparelle tenda cover shutter blind', climate: 'clima termostato climate thermostat', fan: 'ventilatore fan',
+            media_player: 'media cassa tv speaker player' };
+        const GS_CHIP = [['tutti', 'Tutti', null], ['luci', 'Luci', d => d === 'light'], ['prese', 'Prese e interruttori', d => d === 'switch' || d === 'input_boolean'],
+            ['tapparelle', 'Tapparelle', d => d === 'cover'], ['clima', 'Clima', d => d === 'climate' || d === 'fan'],
+            ['altro', 'Altro', d => !['light', 'switch', 'input_boolean', 'cover', 'climate', 'fan'].includes(d)]];
+        const GS_VIETATI = ['camera', 'image', 'sensor', 'binary_sensor', 'weather', 'group', 'allarme', 'timer'];
+        // [SERRATURE] serrature, allarmi, garage e cancelli: un gruppo non li comanda, la scelta non li offre.
+        // In un gruppo vecchio restano spuntati con "Non si comanda dal gruppo" e la nota (si possono togliere).
+        // [SICUREZZA2] anche i pulsanti (button, input_button: possono essere apricancelli). Avvisi del server dopo
+        // un comando di gruppo (tradotti con gsT): 'Dispositivo non riconosciuto, non comandato'
+        const GS_SICUREZZA = ['lock', 'alarm_control_panel', 'button', 'input_button'];
+        const gsStato = { chip: 'tutti', modifica: null, manuale: false, sicuri: new Set() };
+        const gsIcone = {};
+        function gsT(x) { return window.WH_T ? window.WH_T(x) : x; }
+        function gsEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+        function gsSvg(n) {
+            if (!gsIcone[n]) {
+                const s = document.createElement('span');
+                s.innerHTML = '<i data-lucide="' + n + '"></i>';
+                if (window.lucide) lucide.createIcons({ root: s });
+                gsIcone[n] = s.innerHTML;
+            }
+            return gsIcone[n];
+        }
+        function gsVietato(id, dom) {
+            return id === 'virtual_timer' || id.indexOf('.virtual_timer') >= 0 || id.indexOf('group.') === 0 || id.indexOf('allarme.') === 0 || GS_VIETATI.includes(dom);
+        }
+        function gsStanza(id) {
+            let posti = [];
+            try { posti = libPosti().get(id) || []; } catch (e) {}
+            const p = posti.find(x => x.stanza !== 'Preferiti');
+            return p ? p.stanza : '';
+        }
+        // voci dell'elenco: i dispositivi della barra (come prima) + in modifica i membri che non ci sono piu'
+        function gsCostruisci(selezionati) {
+            const scelti = new Set(selezionati || []);
+            const voci = [], visti = new Set();
+            document.querySelectorAll('#source-list .hk-card-source').forEach(card => {
+                const id = card.dataset.id || '';
+                const dom = card.dataset.domain || id.split('.')[0];
+                const sic = card.dataset.sicurezza || (GS_SICUREZZA.includes(dom) ? 'sicurezza' : '');
+                if (!id || visti.has(id) || ((gsVietato(id, dom) || sic) && !scelti.has(id))) return;
+                visti.add(id);
+                const nome = ((card.querySelector('.hk-name') || {}).textContent || id).trim();
+                const stato = ((card.querySelector('.hk-state span') || {}).textContent || '').trim();
+                const stanza = gsStanza(id);
+                const base = card.dataset.libCerca || libNorm([nome, card.dataset.originalName || '', id, dom, stanza].join(' '));
+                voci.push({ id, dom, nome, stato, stanza, presente: true, sic, cerca: base + ' ' + libNorm(GS_PAROLE[dom] || dom) });
+            });
+            (selezionati || []).forEach(id => {
+                if (visti.has(id)) return;
+                visti.add(id);
+                const dom = String(id).split('.')[0];
+                const nome = libNome(id);
+                voci.push({ id, dom, nome, stato: 'Non disponibile', stanza: gsStanza(id), presente: false,
+                    sic: (dom === 'lock' ? 'serratura' : (GS_SICUREZZA.includes(dom) || gsStato.sicuri.has(id) ? 'sicurezza' : '')),
+                    cerca: libNorm([nome, id, dom, GS_PAROLE[dom] || ''].join(' ')) });
+            });
+            const coll = new Intl.Collator('it', { sensitivity: 'base' });
+            voci.sort((a, b) => (a.presente === b.presente ? 0 : a.presente ? 1 : -1)
+                || (scelti.has(a.id) === scelti.has(b.id) ? 0 : scelti.has(a.id) ? -1 : 1)
+                || (!a.stanza - !b.stanza) || coll.compare(a.stanza, b.stanza) || coll.compare(a.nome, b.nome));
+            const list = document.getElementById('group-entities-list');
+            list.innerHTML = voci.map(v => {
+                const ico = v.presente ? (LIB_ICONE[v.dom] || 'cpu') : 'alert-triangle';
+                return '<label class="gs-voce' + (v.presente ? '' : ' gs-assente') + (v.sic ? ' gs-sicura' : '') + '" data-dom="' + gsEsc(v.dom) + '" data-sicura="' + gsEsc(v.sic || '') + '" data-cerca="' + gsEsc(v.cerca) + '" title="' + gsEsc(v.id) + '">'
+                    + '<input type="checkbox" value="' + gsEsc(v.id) + '"' + (scelti.has(v.id) ? ' checked' : '') + '>'
+                    + '<span class="gs-ico">' + gsSvg(v.sic && v.presente ? 'lock' : ico) + '</span>'
+                    + '<span class="gs-nome" data-no-tr>' + gsEsc(v.nome) + '</span>'
+                    + '<span class="gs-sub">' + (v.stanza ? '<span data-no-tr>' + gsEsc(v.stanza) + '</span><span> · </span>' : '')
+                    + (v.sic ? '<span data-no-tr>' + gsEsc(gsT('Non si comanda dal gruppo')) + '</span>' : '<span>' + gsEsc(v.stato) + '</span>') + '</span></label>';
+            }).join('');
+            // chip per tipo col numero di voci (quelli a zero non si vedono)
+            const chips = document.getElementById('group-chips');
+            chips.innerHTML = GS_CHIP.map(([k, t, f]) => {
+                const n = f ? voci.filter(v => f(v.dom)).length : voci.length;
+                return '<button type="button" class="gs-chip' + (k === gsStato.chip ? ' active' : '') + '" data-chip="' + k + '"' + (n || !f ? '' : ' hidden')
+                    + ' onclick="gsScegliChip(\'' + k + '\')"><span>' + t + '</span><b>' + n + '</b></button>';
+            }).join('');
+            gsFiltra();
+            gsAggiorna();
+        }
+        function gsScegliChip(k) {
+            gsStato.chip = k;
+            document.querySelectorAll('#group-chips .gs-chip').forEach(c => c.classList.toggle('active', c.dataset.chip === k));
+            gsFiltra();
+        }
+        function gsFiltra() {
+            const campo = document.getElementById('group-cerca');
+            const testo = campo ? campo.value : '';
+            const parole = libNorm(testo).split(/\s+/).filter(Boolean);
+            const chip = (GS_CHIP.find(c => c[0] === gsStato.chip) || GS_CHIP[0])[2];
+            const solo = document.getElementById('group-solo-sel').checked;
+            let mostrate = 0;
+            document.querySelectorAll('#group-entities-list .gs-voce').forEach(v => {
+                const ok = (!chip || chip(v.dataset.dom)) && (!solo || v.querySelector('input').checked)
+                    && parole.every(p => v.dataset.cerca.indexOf(p) >= 0);
+                v.classList.toggle('gs-nascosta', !ok);
+                if (ok) mostrate++;
+            });
+            document.getElementById('group-cerca-x').hidden = !testo;
+            const vuoto = document.getElementById('group-vuoto');
+            vuoto.hidden = mostrate > 0 || !document.querySelector('#group-entities-list .gs-voce');
+            document.getElementById('group-vuoto-q').textContent = testo.trim();
+            document.getElementById('group-vuoto-a').hidden = !testo.trim();
+            document.getElementById('group-vuoto-b').hidden = !!testo.trim();
+            document.getElementById('group-entities-list').classList.toggle('gs-tutte-nascoste', mostrate === 0);
+        }
+        function gsSvuota() {
+            const c = document.getElementById('group-cerca');
+            c.value = '';
+            gsFiltra();
+            c.focus();
+        }
+        function gsTasto(e) {
+            if (e.key === 'Enter') { e.preventDefault(); return; }                        // Invio non invia niente
+            if (e.key === 'Escape' && e.target.value) { e.preventDefault(); e.stopPropagation(); gsSvuota(); }
+        }
+        // contatore, tasto Salva, comportamento automatico finche' non lo sceglie l'utente, nota "nessuna luce"
+        function gsAggiorna() {
+            const spuntate = Array.from(document.querySelectorAll('#group-entities-list input:checked'));
+            document.getElementById('group-conta-n').textContent = spuntate.length;
+            const nome = document.getElementById('group-name').value.trim();
+            document.getElementById('group-salva').disabled = !nome || !spuntate.length;
+            const luci = spuntate.filter(c => c.closest('.gs-voce').dataset.dom === 'light').length;
+            if (!gsStato.manuale) gsModo(spuntate.length && luci === spuntate.length ? 'light' : 'switch');
+            const modo = gsModoAttuale();
+            document.getElementById('group-nota-luce').hidden = !(modo === 'light' && spuntate.length && !luci);
+            // [SERRATURE] gruppo vecchio con una serratura (o garage, cancello, allarme): il gruppo la salta
+            const sicure = spuntate.map(c => c.closest('.gs-voce').dataset.sicura).filter(Boolean);
+            const notaS = document.getElementById('group-nota-sicurezza');
+            if (notaS) {
+                notaS.hidden = !sicure.length;
+                document.getElementById('group-nota-sicurezza-t').textContent = gsT(sicure.some(s => s !== 'serratura')
+                    ? 'Serrature, garage, cancelli e allarmi non si comandano dai gruppi' : 'Le serrature non si comandano dai gruppi');
+            }
+            if (document.getElementById('group-solo-sel').checked) gsFiltra();
+        }
+        function gsModo(m) {
+            document.querySelectorAll('#group-mode-choice .crea-choice-card').forEach(c => c.classList.toggle('active', c.dataset.mode === m));
+        }
+        function gsModoAttuale() {
+            const a = document.querySelector('#group-mode-choice .crea-choice-card.active');
+            return a ? a.dataset.mode : 'switch';
+        }
+        function gsScegliModo(card) {
+            gsStato.manuale = true;
+            gsModo(card.dataset.mode);
+            gsAggiorna();
+        }
+        function gsErrore(testo) {
+            const e = document.getElementById('group-errore');
+            e.textContent = testo || '';
+            e.hidden = !testo;
+        }
+        function gsFuoco() {
+            if (window.matchMedia && matchMedia('(pointer:fine)').matches) setTimeout(() => { const c = document.getElementById('group-cerca'); if (c) c.focus(); }, 60);
+        }
+        // modo "crea" (o ritorno dal modo modifica): tutto come prima di aprire
+        function gsModoCrea() {
+            const modale = document.getElementById('unified-creation-modal');
+            delete modale.dataset.gruppo;
+            modale.classList.remove('gs-modifica');
+            const testa = modale.querySelector('.crea-head');
+            testa.querySelector('h3').textContent = 'Aggiungi Dispositivo';
+            testa.querySelector('p').hidden = false;
+            document.getElementById('group-salva-ico').innerHTML = gsSvg('plus');
+            document.getElementById('group-salva-t').textContent = 'Crea Gruppo';
+            gsStato.modifica = null; gsStato.manuale = false; gsStato.chip = 'tutti'; gsStato.sicuri = new Set();
+            document.getElementById('group-cerca').value = '';
+            document.getElementById('group-solo-sel').checked = false;
+            gsErrore('');
+        }
+
         function openUnifiedModal() {
+            gsModoCrea();
             document.getElementById('unified-creation-modal').classList.add('active');
-            
             // Pulisce preventivamente i campi di input per quando si riapre il modale
             document.getElementById('virtual-name').value = '';
             document.getElementById('group-name').value = '';
-            
-            // Genera la lista delle entità per il tab Gruppi (recuperato dal tuo vecchio codice)
-            const list = document.getElementById('group-entities-list');
-            // nell'ordine del server (dataset.libOrdine, scritto da libRegistra), non in quello della barra divisa in
-            // sezioni "Da assegnare" / "Gia' nelle stanze": elenco e gruppo salvato restano come prima
-            const cards = Array.from(document.querySelectorAll('#source-list .hk-card-source')).sort((a, b) => (+a.dataset.libOrdine || 0) - (+b.dataset.libOrdine || 0));
-            /* L'elenco si compone in memoria e si scrive UNA volta sola.
-               Prima si faceva list.innerHTML += dentro al ciclo: a ogni giro il
-               browser riscriveva in testo tutto l'elenco gia' fatto, lo ributtava
-               al parser e ricostruiva da capo ogni casella. Con cento entita' non
-               costruiva cento elementi ma cinquemila, e il costo cresceva col
-               quadrato: e' per questo che il + ci metteva a aprirsi.
-               E il nome si legge con textContent, non innerText: innerText e' il
-               testo COME SI VEDE, quindi obbliga a ricalcolare il layout a ogni
-               giro. La stringa che torna e' la stessa. */
-            const pezzi = [];
-            cards.forEach(card => {
-                const id = card.dataset.id;
-                const name = card.querySelector('.hk-name').textContent;
-                
-                if(id !== 'virtual_timer' && !id.startsWith('group.')) {
-                    pezzi.push(`
-                        <label class="checkbox-container" style="margin-bottom:4px; padding: 6px 10px;">
-                            <input type="checkbox" value="${id}" style="transform: scale(0.9); margin-right: 8px;">
-                            <span style="font-size: 0.85rem;"><span data-no-tr>${name}</span> <small style="color:#737373; font-weight:normal; margin-left:6px;">(${id.split('.')[0]})</small></span>
-                        </label>
-                    `);
-                }
-            });
-            list.innerHTML = pezzi.join('');
+            gsCostruisci([]);
+        }
+        async function modificaGruppo(id) {
+            let g = null;
+            try {
+                const r = await fetch('/api/groups?id=' + encodeURIComponent(id));
+                if (r.ok) g = await r.json();
+            } catch (e) {}
+            if (!g || !g.group_id) { showToast('Gruppo non trovato', 'error'); return; }
+            gsModoCrea();
+            const modale = document.getElementById('unified-creation-modal');
+            modale.dataset.gruppo = g.group_id;
+            modale.classList.add('gs-modifica');                // scheda "Tasto Virtuale" nascosta finche' non si richiude
+            modale.querySelector('.crea-head h3').textContent = 'Modifica gruppo';
+            modale.querySelector('.crea-head p').hidden = true;
+            document.querySelectorAll('#unified-creation-modal .unified-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'group'));
+            document.querySelectorAll('#unified-creation-modal .unified-content').forEach(c => c.classList.toggle('active', c.id === 'tab-group'));
+            document.getElementById('group-salva-ico').innerHTML = gsSvg('check');
+            document.getElementById('group-salva-t').textContent = 'Salva modifiche';
+            document.getElementById('group-name').value = g.name || '';
+            gsStato.modifica = g.group_id;
+            gsStato.sicuri = new Set(g.sicurezza || []);          // [SERRATURE] membri che il gruppo non comanda
+            gsStato.manuale = true;                               // il comportamento salvato resta com'e'
+            gsModo(g.mode === 'light' ? 'light' : 'switch');
+            modale.classList.add('active');
+            gsCostruisci(g.entities || []);
+            gsFuoco();
         }
 
         function closeUnifiedModal(e) {
             if(e) e.preventDefault();
             document.getElementById('unified-creation-modal').classList.remove('active');
+            gsModoCrea();
+            // le schede tornano su "Tasto Virtuale", come all'apertura della pagina
+            document.querySelectorAll('#unified-creation-modal .unified-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'virtual'));
+            document.querySelectorAll('#unified-creation-modal .unified-content').forEach(c => c.classList.toggle('active', c.id === 'tab-virtual'));
         }
         // --- Scelta visiva del comportamento del tasto virtuale ---
         // Le schede aggiornano la <select id="virtual-domain"> (nascosta), che resta
@@ -8843,8 +9151,13 @@ async function deleteGroupEntity(groupId) {
                 let dati = {}; try { dati = await res.json(); } catch (err) {}
                 if (!res.ok || dati.status === 'error') throw new Error(dati.message || ('risposta ' + res.status));
                 libAggiornaStato(entityId, nuovo);
+                if (dati.falliti && dati.falliti.length) {      // gruppo: qualche membro non ha risposto
+                    const tot = Object.keys(dati.esiti || {}).length || dati.falliti.length;
+                    showToast(dati.falliti.length + ' ' + gsT('di') + ' ' + tot + ' ' + gsT('dispositivi non hanno risposto'), 'error');
+                    return;
+                }
                 const nome = card.querySelector('.hk-name') ? card.querySelector('.hk-name').innerText : entityId;
-                showToast(nome + ' → ' + (nuovo === 'on' ? 'Acceso' : 'Spento'), 'success');
+                showToast(nome + ' → ' + (nuovo === 'on' ? 'Acceso' : 'Spento') + (dati.avviso ? '. ' + gsT(dati.avviso) : ''), 'success');
             } catch (err) {
                 btn.classList.remove('errore'); void btn.offsetWidth; btn.classList.add('errore');
                 showToast('Comando non riuscito: ' + err.message, 'error');
@@ -10242,8 +10555,12 @@ function rigaTvTrovata(tv) {
     const riga = document.createElement('div');
     riga.className = 'cam-found' + (tv.marca === 'altra' ? ' tv-found-altra' : '');
     let azione = '';
-    if (tv.collegata) azione = '<span class="cam-badge-ok">&check; gi\u00e0 collegata' + (tv.ip_aggiornato ? ' (indirizzo aggiornato)' : '') + '</span>';
+    // Hisense VIDAA senza pacchetto: si collega con i comandi base (accensione, volume e muto), senza codice
+    const base = !tv.collegata && !tv.abbinabile && tv.marca === 'hisense' && !!tv.base;
+    if (tv.collegata) azione = '<span class="cam-badge-ok">&check; gi\u00e0 collegata' + (tv.ip_aggiornato ? ' (indirizzo aggiornato)' : '') + '</span>'
+                             + (tv.collegata_base ? '<span class="tv-modo-base">comandi base</span>' : '');
     else if (tv.abbinabile) azione = '<button type="button" class="btn-sm primary cam-pick"><i data-lucide="link"></i> Collega</button>';
+    else if (base) azione = '<button type="button" class="btn-sm primary cam-pick"><i data-lucide="link"></i> Collega (comandi base)</button>';
     else if (tv.marca === 'hisense') azione = '<button type="button" class="btn-sm tv-hs-apri"><i data-lucide="package"></i> Pacchetto</button>';
     riga.innerHTML = `
         <div class="cam-found-top">
@@ -10252,6 +10569,7 @@ function rigaTvTrovata(tv) {
                 <div class="cam-found-name"></div>
                 <div class="cam-found-ip"></div>
                 <div class="tv-found-nota" style="display:none;"></div>
+                ${base ? '<button type="button" class="tv-link tv-hs-apri">Pacchetto Hisense</button>' : ''}
             </div>
             ${azione}
         </div>
@@ -10288,8 +10606,9 @@ function rigaTvTrovata(tv) {
         riga.querySelector('.tv-n').focus();
     };
     const go = riga.querySelector('.cam-go');
+    if (go && base) go.innerHTML = '<i data-lucide="link"></i> Collega (comandi base)';
     if (go) go.onclick = () => collegaTv({
-        ip: tv.ip, marca: tv.marca, mac: tv.mac || '', modello: tv.modello || '', uid: tv.uid || '',
+        ip: tv.ip, marca: tv.marca, mac: tv.mac || '', modello: tv.modello || '', uid: tv.uid || '', modo: base ? 'base' : '',
         nome: riga.querySelector('.tv-n').value.trim() || tv.nome,
         msg: riga.querySelector('.cam-msg'), go: go,
         pinBox: riga.querySelector('.tv-pin-box'), pinInput: riga.querySelector('.tv-pin'), pinGo: riga.querySelector('.tv-pin-go'),
@@ -10300,11 +10619,13 @@ function rigaTvTrovata(tv) {
 
 function collegaTvManuale() {
     const ip = document.getElementById('tv-man-ip').value.trim();
-    const marca = document.getElementById('tv-man-marca').value;
+    let marca = document.getElementById('tv-man-marca').value;
+    let modo = '';
+    if (marca === 'hisense_base') { marca = 'hisense'; modo = 'base'; }     // Hisense senza pacchetto: comandi base
     const msg = document.getElementById('tv-man-msg');
     if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(ip)) { tvMsg(msg, 'errore', 'Scrivi l\u2019indirizzo IP della TV (es. 192.168.1.60).'); return; }
     collegaTv({
-        ip, marca, mac: '', modello: '',
+        ip, marca, modo, mac: '', modello: '',
         nome: document.getElementById('tv-man-nome').value.trim(),
         msg, go: document.getElementById('tv-man-go'),
         pinBox: document.getElementById('tv-man-pin-box'), pinInput: document.getElementById('tv-man-pin'), pinGo: document.getElementById('tv-man-pin-go'),
@@ -10334,10 +10655,26 @@ function tvErrore(el, d, ripiego) {
     }
 }
 
+// Hisense: errori dopo i quali si puo' collegare con i comandi base (manca il pacchetto o il certificato)
+const TV_CODICI_BASE = ['pacchetto_mancante', 'cert_mancante', 'cert_rifiutato', 'credenziali_rifiutate'];
+
+function tvOffriBase(c, d) {
+    if (c.tid || c.modo === 'base' || (c.marca !== 'hisense' && c.marca !== 'auto') || TV_CODICI_BASE.indexOf(d && d.codice) < 0) return;
+    const box = document.createElement('div');
+    box.className = 'tv-base-offri';
+    box.innerHTML = '<button type="button" class="btn-sm"><i data-lucide="link"></i> Collega con i comandi base</button>'
+        + '<div class="tv-item-nota">Senza codice: dall\u2019app accensione, volume e muto. Col pacchetto potrai abbinarla col codice senza toglierla.</div>';
+    box.querySelector('button').onclick = () => { box.remove(); collegaTv(Object.assign({}, c, { modo: 'base' })); };
+    c.msg.appendChild(box);
+    lucide.createIcons({root: box});
+}
+
 async function collegaTv(c) {
     c.go.disabled = true;
     let conto = null;
-    if (c.marca === 'android') {
+    if (c.modo === 'base') {
+        tvMsg(c.msg, 'attesa', 'Collego la TV con i comandi base (senza codice)&hellip;');
+    } else if (c.marca === 'android') {
         tvMsg(c.msg, 'attesa', 'Guarda la TV: tra poco mostra un codice&hellip;');
     } else if (c.marca === 'hisense') {
         tvMsg(c.msg, 'attesa', 'Guarda la TV: tra poco mostra un codice di 4 cifre&hellip;');
@@ -10360,7 +10697,8 @@ async function collegaTv(c) {
     try {
         const r = await fetch('/api/tv/pair', {
             method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(c.tid ? { tid: c.tid } : { ip: c.ip, marca: c.marca, nome: c.nome, mac: c.mac, modello: c.modello, uid: c.uid || '' })
+            body: JSON.stringify(c.tid ? (c.modo === 'base' ? { tid: c.tid, modo: 'base' } : { tid: c.tid })
+                                       : { ip: c.ip, marca: c.marca, nome: c.nome, mac: c.mac, modello: c.modello, uid: c.uid || '', modo: c.modo || '' })
         });
         const d = await r.json();
         if (d.marca) c.marca = d.marca;      // "Riconosci da sola": ora si sa che TV e'
@@ -10370,6 +10708,14 @@ async function collegaTv(c) {
             if (c.tid) { c.go.disabled = false; tvRiabbinaCodice = c.ip; } else c.go.style.display = 'none';
             tvMsg(c.msg, 'attesa', d.cifre === '4' ? 'Scrivi qui il codice di 4 cifre che vedi sulla TV e premi Conferma.'
                                                    : 'Scrivi qui il codice che vedi sulla TV e premi Conferma.');
+            // Hisense: la TV non ha confermato che lo schermo e' acceso (standby rapido: il codice non si vede)
+            if (d.avviso) {
+                const av = document.createElement('div');
+                av.className = 'tv-avviso-schermo';
+                av.style.cssText = 'font-size:0.75rem; margin-top:4px; color:var(--warning, #b7791f);';
+                av.textContent = d.avviso;
+                c.msg.appendChild(av);
+            }
             c.pinInput.value = '';
             // Android: 6 caratteri (cifre e lettere A-F); LG e Hisense: solo cifre (Hisense: 4)
             const soloCifre = d.cifre === 'numerico' || d.cifre === '4';
@@ -10404,7 +10750,7 @@ async function collegaTv(c) {
             };
             return;
         }
-        if (d.status !== 'success') { tvErrore(c.msg, d, 'Collegamento non riuscito'); c.go.disabled = false; return; }
+        if (d.status !== 'success') { tvErrore(c.msg, d, 'Collegamento non riuscito'); c.go.disabled = false; tvOffriBase(c, d); return; }
         tvCollegata(c, d);
     } catch (e) {
         tvMsg(c.msg, 'errore', 'Errore di rete durante il collegamento');
@@ -10493,6 +10839,21 @@ async function tvHisenseTogli() {
 function tvCollegata(c, d) {
     integrationsDirty = true;
     if (c.pinBox) c.pinBox.style.display = 'none';      // codice accettato: il campo non serve piu'
+    if (d.modo === 'base') {
+        // Hisense con i comandi base: il server dice cosa si ottiene e cosa serve per il resto
+        tvMsg(c.msg, 'ok', tvEsc(d.message || 'Collegata con i comandi base'));
+        if (d.avviso) {
+            const av = document.createElement('div');
+            av.className = 'tv-avviso-schermo';
+            av.style.cssText = 'font-size:0.75rem; margin-top:4px; color:var(--warning, #b7791f);';
+            av.textContent = d.avviso;
+            c.msg.appendChild(av);
+        }
+        showToast('TV collegata: ' + (d.nome || ''), 'success');
+        if (c.tid) { tvRiabbinaCodice = null; setTimeout(() => { tvRiabbinaAperta = null; loadTvDevices(); }, 2500); return; }
+        setTimeout(() => { if (c.card) refreshIntegrationCard(c.card); }, 1200);
+        return;
+    }
     if (c.tid) {
         // Riabbina: stessa TV, stesse stanze; si rilegge solo la lista
         tvRiabbinaCodice = null;      // abbinamento chiuso dal server: niente da annullare
@@ -12337,6 +12698,7 @@ async function loadTvDevices(daCapo) {
                     <span class="tv-item-name"></span>
                     <div class="tv-item-sub"></div>
                     <div class="tv-item-aiuto" style="display:none;"></div>
+                    <div class="tv-item-nota" style="display:none;"></div>
                     <div class="tv-rename">
                         <input type="text" class="premium-input tv-rename-in" maxlength="60">
                         <button type="button" class="btn-sm primary tv-rename-ok"><i data-lucide="check"></i></button>
@@ -12363,10 +12725,22 @@ async function loadTvDevices(daCapo) {
         if (tv.aiuto) { aiuto.textContent = tv.aiuto; aiuto.style.display = 'block'; }
         const rbBox = riga.querySelector('.tv-riabbina-box'), rbBtn = riga.querySelector('.tv-riabbina-btn');
         if (tv.stato === 'serve_riabbinare') rbBtn.style.color = 'var(--warning)';
+        if (tv.modo === 'base') {
+            // Hisense con i comandi base: Riabbina = abbinala col codice (serve il pacchetto), stessa TV
+            const et = document.createElement('span');
+            et.className = 'tv-modo-base';
+            et.textContent = 'comandi base';
+            riga.querySelector('.tv-item-name').after(et);
+            const nota = riga.querySelector('.tv-item-nota');
+            if (tv.nota_modo) { nota.textContent = tv.nota_modo; nota.style.display = 'block'; }
+            rbBtn.title = 'Abbina col codice (telecomando completo)';
+            // da Wach0ss non si spegne: con la TV accesa il tasto non servirebbe a niente
+            if (tv.on) riga.querySelector('.tv-power-btn').style.visibility = 'hidden';
+        }
         riga.querySelector('.tv-riabbina-chiudi').onclick = () => { rbBox.classList.remove('open'); tvChiudiRiabbina(); };
         rbBtn.onclick = async () => {
             if (rbBox.classList.contains('open')) { rbBox.classList.remove('open'); tvChiudiRiabbina(); return; }
-            if (tv.stato === 'accesa' && tv.abbinata
+            if (tv.stato === 'accesa' && tv.abbinata && tv.modo !== 'base'
                 && !await chiedi('La TV funziona: vuoi davvero rifare l\u2019abbinamento?', { titolo: 'Riabbina', si: 'Riabbina' })) return;
             rbBox.classList.add('open');
             tvRiabbinaAperta = tv.id;
@@ -12521,53 +12895,305 @@ async function scanCameras() {
 
 // --- AUTO-DISCOVERY SHELLY ---
 async function loadShellyDevices() {
-    const container = document.getElementById('shelly-devices-list');
-    
-    // Mostriamo un feedback visivo di caricamento
-    container.innerHTML = `
-        <div style="text-align: center; padding: 16px; color: var(--text-muted); font-size: 0.85rem; font-weight: 500;">
-            <i data-lucide="loader-2" style="width:20px; height:20px; animation: spin 1s linear infinite; margin-bottom: 8px;"></i><br>
-            Scansione rete in corso...
-        </div>
-    `;
-    lucide.createIcons({root: container});
+    // [SCOPERTI] elenco con ONLINE/OFFLINE/NON TROVATO, rete di casa, rimozione (vedi scopCarica)
+    return scopCarica('shelly');
+}
+// ===== [SCOPERTI] Shelly e Sonos: rete di casa, dispositivi non trovati, rimozione (richiesta 6) =====
+// La card di Shelly e quella di Sonos hanno la stessa struttura: riga della rete di casa, scelta dei giorni,
+// elenco con ONLINE / OFFLINE / NON TROVATO e "Rimuovi", "Rimuovi tutti i non trovati", ignorati e rimossi
+// di recente con "Rimetti com'era". Tutti i testi passano nel DOM come nodi a se': i18n.js li traduce.
+const SCOP_NOMI = { shelly: 'Shelly', sonos: 'Sonos' };
+const scopDati = {};
+function scopEsc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function scopData(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const p = n => String(n).padStart(2, '0');
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function scopDa(min) {
+    if (min < 60) return 'da ' + Math.max(1, min) + ' min';
+    if (min < 1440) return 'da ' + Math.floor(min / 60) + ' h';
+    const g = Math.floor(min / 1440);
+    return 'da ' + g + (g === 1 ? ' giorno' : ' giorni');
+}
+function scopGiorni(n) {
+    n = Math.max(1, Math.ceil(n));
+    return n + (n === 1 ? ' giorno' : ' giorni');
+}
+function scopUsiHtml(u) {
+    const pezzi = [];
+    (u.stanze || []).forEach(s => pezzi.push(`<span data-no-tr>${scopEsc(s)}</span>`));
+    (u.gruppi || []).forEach(g => pezzi.push(`<span>gruppo</span> <span data-no-tr>${scopEsc(g)}</span>`));
+    (u.scene || []).forEach(s => pezzi.push(`<span>scenario</span> <span data-no-tr>${scopEsc(s)}</span>`));
+    (u.automazioni || []).forEach(a => pezzi.push(`<span>automazione</span> <span data-no-tr>${scopEsc(a)}</span>`));
+    if (u.allarme) pezzi.push('<span>allarme</span>');
+    return pezzi.join(' · ');
+}
+function scopUsiRighe(u) {
+    const r = [];
+    if ((u.stanze || []).length) r.push('Stanze: ' + u.stanze.join(', '));
+    if ((u.gruppi || []).length) r.push('Gruppi: ' + u.gruppi.join(', '));
+    if ((u.scene || []).length) r.push('Scenari: ' + u.scene.join(', '));
+    if (u.allarme) r.push("È nell'allarme");
+    if ((u.automazioni || []).length) r.push('Automazioni: ' + u.automazioni.join(', '));
+    return r;
+}
+function scopUnisci(lista) {
+    const t = { stanze: [], gruppi: [], scene: [], automazioni: [], allarme: false };
+    lista.forEach(x => {
+        const u = x.usi || {};
+        ['stanze', 'gruppi', 'scene', 'automazioni'].forEach(k => (u[k] || []).forEach(n => { if (!t[k].includes(n)) t[k].push(n); }));
+        if (u.allarme) t.allarme = true;
+    });
+    return t;
+}
+const SCOP_MOTIVI = { non_trovato: 'non trovato', altra_rete: "server su un'altra rete", manuale: 'tolto a mano', integrazione: 'integrazione tolta' };
 
-    try {
-        const res = await fetch('/api/shelly/list');
-        const devices = await res.json();
-        
-        if (devices.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 16px; color: var(--text-muted); font-size: 0.85rem; background: #F9F9FB; border-radius: var(--radius-md); border: 1px dashed #D1D1D6;">
-                    Nessun dispositivo Shelly trovato in rete.<br>Assicurati che siano collegati allo stesso WiFi.
-                </div>
-            `;
-            return;
-        }
-        
-        // Svuotiamo e popoliamo con i dispositivi trovati
-        container.innerHTML = '';
-        devices.forEach(d => {
-            // Estrae solo l'ID (es. rimuove "switch.shelly_") per renderlo leggibile
-            const shortId = d.entity_id.split('_')[1] || d.entity_id;
-            
-            container.innerHTML += `
-                <div class="integration-list-item" style="margin-bottom: 0;">
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">${d.attributes.friendly_name}</span>
-                        <span style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">ID: ${shortId.toUpperCase()}</span>
-                    </div>
-                    <div class="setup-badge" style="background: rgba(40, 167, 69, 0.1); color: var(--success);">ONLINE</div>
-                </div>
-            `;
-        });
-    } catch(e) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 16px; color: var(--danger); font-size: 0.85rem; background: #FFF0F0; border-radius: var(--radius-md);">
-                Errore durante la scansione. Riprova.
-            </div>
-        `;
+function scopReteHtml(integ, d) {
+    const r = d.rete || {};
+    const casa = r.casa, ora = r.adesso;
+    const cambia = `<button type="button" class="scop-cambia" onclick="scopCambiaRete('${integ}')">Cambia…</button>`;
+    let h = '';
+    if (r.stato === 'diversa' || r.stato === 'verifica') {
+        h += `<div class="scop-rete arancio"><i data-lucide="${r.stato === 'verifica' ? 'radar' : 'wifi-off'}"></i><div class="scop-testo">`
+           + `<b>${r.stato === 'verifica' ? 'Verifica della rete in corso…' : 'Il server è su una rete diversa da quella di casa'}</b>`
+           + (r.stato === 'verifica' ? `<div class="scop-det"><span>Se nessun dispositivo noto risponde, Shelly e Sonos verranno tolti tra pochi minuti.</span></div>` : '')
+           + (casa ? `<div class="scop-det"><span>Rete di casa</span>: <span class="scop-mono" data-no-tr>${scopEsc(casa.rete)} via ${scopEsc(casa.gw_ip)}</span></div>` : '')
+           + (ora ? `<div class="scop-det"><span>Rete attuale</span>: <span class="scop-mono" data-no-tr>${scopEsc(ora.rete)} via ${scopEsc(ora.gw_ip)}</span></div>` : '')
+           + `</div>${cambia}</div>`;
+    } else if (r.stato === 'senza_rete') {
+        h += `<div class="scop-rete arancio"><i data-lucide="wifi-off"></i><div class="scop-testo"><b>Il server non è collegato a nessuna rete</b></div></div>`;
+    } else if (casa) {
+        h += `<div class="scop-rete"><i data-lucide="router"></i><div class="scop-testo"><span>Rete di casa</span>: `
+           + `<span class="scop-mono" data-no-tr>${scopEsc(casa.rete)} via ${scopEsc(casa.gw_ip)}</span></div>${cambia}</div>`;
+    } else {
+        h += `<div class="scop-rete"><i data-lucide="router"></i><div class="scop-testo"><span>Rete di casa</span>: `
+           + `<span>si imposta da sola al primo dispositivo trovato</span></div>${ora ? cambia : ''}</div>`;
     }
+    if (d.freno) {
+        h += `<div class="scop-rete rosso"><i data-lucide="alert-triangle"></i><div class="scop-testo"><b>Nessun dispositivo Shelly o Sonos risponde: controlla la rete del server</b>`
+           + `<div class="scop-det"><span>Finché è così non si toglie niente da solo.</span></div></div></div>`;
+    }
+    return h;
+}
+
+function scopHtml(integ, d) {
+    let h = scopReteHtml(integ, d);
+    const g = d.rimozione_giorni;
+    h += `<label class="scop-imp"><span>Togli da soli i dispositivi non trovati dopo</span>`
+       + `<select class="premium-input" onchange="scopGiorniCambia('${integ}', this)">`
+       + [3, 7, 14, 30, 0].map(v => `<option value="${v}"${v === g ? ' selected' : ''}>${v ? v + ' giorni' : 'Mai'}</option>`).join('')
+       + `</select></label>`;
+    const lista = d.dispositivi || [];
+    if (!lista.length) {
+        h += integ === 'shelly'
+            ? `<div class="scop-vuoto"><span>Nessun dispositivo Shelly trovato in rete.</span><br><span>Assicurati che siano collegati allo stesso WiFi.</span></div>`
+            : `<div class="scop-vuoto"><span>Nessun Sonos trovato in rete.</span><br><span>Verifica che siano accesi e sulla stessa sottorete.</span></div>`;
+    }
+    lista.forEach((x, i) => {
+        let badge, colore;
+        if (x.stato === 'non_trovato') { colore = 'rosso'; badge = `<span>Non trovato</span> <span>${scopDa(Math.round(x.assente_giorni * 1440))}</span>`; }
+        else if (x.stato === 'offline') { colore = 'arancio'; badge = `<span>OFFLINE</span>${x.silenzio_min ? ` <span>${scopDa(x.silenzio_min)}</span>` : ''}`; }
+        else { colore = 'verde'; badge = '<span>ONLINE</span>'; }
+        const det = [];
+        if (x.stato !== 'online' && x.ultimo_visto) det.push(`<span>ultimo contatto</span> <span data-no-tr>${scopData(x.ultimo_visto)}</span>`);
+        if (x.stato === 'non_trovato' && x.rimozione_tra_giorni != null) det.push(`<span>verrà tolto tra</span> <span>${scopGiorni(x.rimozione_tra_giorni)}</span>`);
+        const usi = scopUsiHtml(x.usi || {});
+        h += `<div class="integration-list-item scop-disp" data-id="${scopEsc(x.id)}" data-stato="${x.stato}">`
+           + `<div class="scop-sx"><span class="scop-punto ${colore}"></span><div style="min-width:0;">`
+           + `<div class="scop-nome" data-no-tr>${scopEsc(x.nome)}</div>`
+           + `<div class="scop-mono" data-no-tr>${scopEsc(x.ip)}</div>`
+           + (det.length ? `<div class="scop-det">${det.join(' · ')}</div>` : '')
+           + (usi ? `<div class="scop-det"><span>usato in</span>: ${usi}</div>` : '')
+           + `</div></div><div class="scop-dx"><span class="setup-badge scop-badge ${colore}">${badge}</span>`
+           + `<button type="button" class="scop-rimuovi" onclick="scopTogli('${integ}', ${i})">Rimuovi</button></div></div>`;
+    });
+    const nonTrovati = lista.filter(x => x.stato === 'non_trovato').length;   // gli offline da pochi minuti no
+    if (nonTrovati) {
+        h += `<button type="button" class="scop-tutti" onclick="scopTogliNonTrovati('${integ}')"><i data-lucide="trash-2"></i> <span>Rimuovi tutti i non trovati</span> (${nonTrovati})</button>`;
+    }
+    const ign = d.ignorati || [];
+    if (ign.length) {
+        h += `<details class="scop-sez"><summary><span>Ignorati</span> (${ign.length})</summary>`
+           + ign.map((x, i) => `<div class="scop-voce"><span class="scop-nome" data-no-tr>${scopEsc(x.nome)}</span>`
+               + `<button type="button" class="scop-cambia" onclick="scopNonIgnorare('${integ}', ${i})">Non ignorare più</button></div>`).join('')
+           + `</details>`;
+    }
+    const rim = d.rimossi_recenti || [];
+    if (rim.length) {
+        const ritrovati = rim.filter(x => x.ritrovato).length;
+        h += `<details class="scop-sez"${ritrovati ? ' open' : ''}><summary><span>Rimossi di recente</span> (${rim.length})</summary>`
+           + rim.map((x, i) => {
+                 const era = scopUsiHtml(x.era_in || {});
+                 return `<div class="scop-voce"><div style="min-width:0; flex:1;">`
+                    + (x.ritrovato ? `<span class="scop-ritrovato">Ritrovato</span>: ` : '')
+                    + `<span class="scop-nome" data-no-tr>${scopEsc(x.nome)}</span>`
+                    + `<div class="scop-det"><span>${SCOP_MOTIVI[x.motivo] || scopEsc(x.motivo)}</span>`
+                    + (x.quando ? ` · <span data-no-tr>${scopData(x.quando)}</span>` : '')
+                    + (era ? ` · <span>era in</span>: ${era}` : '') + `</div></div>`
+                    + (x.ritrovato ? `<button type="button" class="scop-cambia primario" onclick="scopRimetti('${integ}', ${i})">Rimetti com'era</button>` : '')
+                    + `</div>`;
+             }).join('')
+           + `</details>`;
+    }
+    return h;
+}
+
+async function scopCarica(integ) {
+    const box = document.getElementById(integ + '-devices-list');
+    if (!box) return;
+    if (!box.dataset.pronto) {
+        box.innerHTML = `<div class="scop-vuoto"><i data-lucide="loader-2" style="width:20px; height:20px; animation: spin 1s linear infinite;"></i><br><span>Ricerca in corso…</span></div>`;
+        lucide.createIcons({ root: box });
+    }
+    let d;
+    try {
+        const r = await fetch('/api/scoperti/' + integ, { cache: 'no-store', credentials: 'same-origin' });
+        d = await r.json();
+        if (!r.ok || d.status !== 'success') throw new Error(d.message || ('HTTP ' + r.status));
+    } catch (e) {
+        box.innerHTML = `<div class="scop-vuoto scop-errore"><span>Errore durante la scansione. Riprova.</span></div>`;
+        return;
+    }
+    scopDati[integ] = d;
+    box.dataset.pronto = '1';
+    box.innerHTML = scopHtml(integ, d);
+    lucide.createIcons({ root: box });
+}
+
+async function scopTogli(integ, i) {
+    const x = ((scopDati[integ] || {}).dispositivi || [])[i];
+    if (!x) return;
+    const online = x.stato === 'online';
+    const righe = [online
+        ? `«${x.nome}» risponde ancora: verrà ignorato e non tornerà finché non lo togli dagli ignorati.`
+        : `Togli «${x.nome}» da tutto l'impianto?`];
+    righe.push(...scopUsiRighe(x.usi || {}));
+    if (((x.usi || {}).automazioni || []).length) righe.push('Le automazioni resteranno ma non potranno più comandarlo.');
+    if (!online) righe.push('Se torna in rete verrà ritrovato come nuovo dispositivo.');
+    if (!await chiedi(righe.join('\n'), { titolo: 'Rimuovi dispositivo', si: 'Rimuovi', pericolo: true, icona: 'trash-2' })) return;
+    try {
+        const r = await fetch(`/api/scoperti/${integ}/${encodeURIComponent(x.id)}`, {
+            method: 'DELETE', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ignora: online }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || j.status !== 'success') throw new Error(j.message || ('HTTP ' + r.status));
+        showToast(online ? 'Dispositivo rimosso e ignorato' : 'Dispositivo rimosso', 'success');
+        integrationsDirty = true;
+    } catch (e) {
+        await avvisa(e.message || 'Rimozione non riuscita', { titolo: 'Rimuovi dispositivo' });
+    }
+    scopCarica(integ);
+}
+
+async function scopTogliNonTrovati(integ) {
+    const lista = ((scopDati[integ] || {}).dispositivi || []).filter(x => x.stato === 'non_trovato');
+    if (!lista.length) return;
+    const tot = scopUnisci(lista);
+    const righe = [lista.length === 1 ? 'Togli 1 dispositivo non trovato?' : `Togli ${lista.length} dispositivi non trovati?`, lista.map(x => x.nome).join(', ')];
+    righe.push(...scopUsiRighe(tot));
+    if (tot.automazioni.length) righe.push('Le automazioni resteranno ma non potranno più comandarli.');
+    if (!await chiedi(righe.join('\n'), { titolo: 'Rimuovi tutti i non trovati', si: 'Rimuovi', pericolo: true, icona: 'trash-2' })) return;
+    try {
+        const r = await fetch(`/api/scoperti/${integ}/togli_non_trovati`, { method: 'POST', credentials: 'same-origin' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || j.status !== 'success') throw new Error(j.message || ('HTTP ' + r.status));
+        showToast('Dispositivi rimossi', 'success');
+        integrationsDirty = true;
+    } catch (e) {
+        await avvisa(e.message || 'Rimozione non riuscita', { titolo: 'Rimuovi tutti i non trovati' });
+    }
+    scopCarica(integ);
+}
+
+async function scopNonIgnorare(integ, i) {
+    const x = ((scopDati[integ] || {}).ignorati || [])[i];
+    if (!x) return;
+    await fetch(`/api/scoperti/${integ}/ignorati/${encodeURIComponent(x.id)}`, { method: 'DELETE', credentials: 'same-origin' });
+    showToast('Non è più ignorato: verrà ritrovato alla prossima ricerca', 'success');
+    setTimeout(() => scopCarica(integ), 1500);
+    scopCarica(integ);
+}
+
+async function scopRimetti(integ, i) {
+    const x = ((scopDati[integ] || {}).rimossi_recenti || [])[i];
+    if (!x) return;
+    try {
+        const r = await fetch(`/api/scoperti/ripristina/${x.rid}`, { method: 'POST', credentials: 'same-origin' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || j.status !== 'success') throw new Error(j.message || ('HTTP ' + r.status));
+        showToast("Rimesso com'era", 'success');
+        integrationsDirty = true;
+    } catch (e) {
+        await avvisa(e.message || 'Ripristino non riuscito', { titolo: "Rimetti com'era" });
+    }
+    scopCarica(integ);
+}
+
+async function scopGiorniCambia(integ, sel) {
+    try {
+        const r = await fetch('/api/rete_casa', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify({ rimozione_giorni: parseInt(sel.value, 10) }) });
+        if (!r.ok) throw new Error();
+        showToast('Salvato', 'success');
+    } catch (e) {
+        showToast('Errore durante il salvataggio', 'error');
+    }
+    Object.keys(scopDati).forEach(k => scopCarica(k));
+}
+
+async function scopCambiaRete(integ) {
+    const r = ((scopDati[integ] || {}).rete) || {};
+    const casa = r.casa, ora = r.adesso;
+    if (!ora) { await avvisa('Il server non è collegato a nessuna rete', { titolo: 'Rete di casa' }); return; }
+    const righe = [casa ? `Rete di casa: ${casa.rete} via ${casa.gw_ip}` : 'Rete di casa: non ancora impostata',
+                   `Rete attuale: ${ora.rete} via ${ora.gw_ip}`,
+                   'Se hai cambiato router o il server è in una casa nuova, imposta la rete attuale come rete di casa: Shelly e Sonos non verranno tolti per il cambio di rete.'];
+    if (!await chiedi(righe.join('\n'), { titolo: 'Rete di casa', si: 'Questa è la rete di casa', icona: 'info' })) return;
+    try {
+        const x = await fetch('/api/rete_casa', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ adotta: true }) });
+        const j = await x.json().catch(() => ({}));
+        if (!x.ok || j.status !== 'success') throw new Error(j.message || ('HTTP ' + x.status));
+        showToast('Salvato', 'success');
+    } catch (e) {
+        await avvisa(e.message || 'Errore durante il salvataggio', { titolo: 'Rete di casa' });
+    }
+    Object.keys(scopDati).forEach(k => scopCarica(k));
+}
+
+async function scopTogliIntegrazione(key) {
+    let d = scopDati[key];
+    try {
+        const r = await fetch('/api/scoperti/' + key, { cache: 'no-store', credentials: 'same-origin' });
+        if (r.ok) d = await r.json();
+    } catch (e) {}
+    const lista = (d && d.dispositivi) || [];
+    const tot = scopUnisci(lista);
+    const righe = [key === 'shelly' ? "Togli l'integrazione Shelly?" : "Togli l'integrazione Sonos?"];
+    if (lista.length) righe.push(lista.length === 1 ? '1 dispositivo verrà tolto.' : `${lista.length} dispositivi verranno tolti.`);
+    righe.push(...scopUsiRighe(tot));
+    if (tot.automazioni.length) righe.push('Le automazioni resteranno ma non potranno più comandarli.');
+    righe.push(key === 'shelly' ? "La ricerca degli Shelly si ferma finché non riaggiungi l'integrazione dallo Store."
+                                : "La ricerca delle casse Sonos si ferma finché non riaggiungi l'integrazione dallo Store.");
+    if (!await chiedi(righe.join('\n'), { titolo: 'Rimuovi integrazione', si: 'Togli', pericolo: true, icona: 'trash-2' })) return;
+    try {
+        const r = await fetch('/api/' + key + '/config', { method: 'DELETE', credentials: 'same-origin' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        showToast('Integrazione rimossa', 'success');
+        setTimeout(() => { window.location.href = window.location.pathname + '?setup=open'; }, 800);
+    } catch (e) {
+        showToast('Errore durante la rimozione', 'error');
+    }
+}
+
+function scopBannerChiudi() {
+    const b = document.getElementById('scop-banner');
+    if (!b) return;
+    b.style.display = 'none';
+    try { localStorage.setItem('wh_scop_banner', b.dataset.chiave || ''); } catch (e) {}
 }
 
 // Aggiungiamo una piccola animazione CSS per il loader
@@ -12914,55 +13540,8 @@ async function annSvuotaCache() {
 
 {% endif %}// --- AUTO-DISCOVERY SONOS ---
 async function loadSonosDevices() {
-    const container = document.getElementById('sonos-devices-list');
-    
-    // Mostriamo un feedback visivo di caricamento
-    container.innerHTML = `
-        <div style="text-align: center; padding: 16px; color: var(--text-muted); font-size: 0.85rem; font-weight: 500;">
-            <i data-lucide="loader-2" style="width:20px; height:20px; animation: spin 1s linear infinite; margin-bottom: 8px;"></i><br>
-            Ricerca speaker in corso...
-        </div>
-    `;
-    lucide.createIcons({root: container});
-
-    try {
-        const res = await fetch('/api/sonos/list');
-        const devices = await res.json();
-        
-        if (devices.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 16px; color: var(--text-muted); font-size: 0.85rem; background: #F9F9FB; border-radius: var(--radius-md); border: 1px dashed #D1D1D6;">
-                    Nessun Sonos trovato in rete.<br>Verifica che siano accesi e sulla stessa sottorete.
-                </div>
-            `;
-            return;
-        }
-        
-        // Svuotiamo e popoliamo con i dispositivi trovati
-        container.innerHTML = '';
-        devices.forEach(d => {
-            const name = d.attributes.friendly_name || 'Speaker Sconosciuto';
-            const uid = d.entity_id.split('sonos_')[1] || d.entity_id;
-            
-            container.innerHTML += `
-                <div class="integration-list-item" style="margin-bottom: 0;">
-                    <div style="display: flex; flex-direction: column;">
-                        <span style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;" data-no-tr>${name}</span>
-                        <span style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">UID: ${uid.toUpperCase()}</span>
-                    </div>
-                    ${d.attributes.offline
-                        ? '<div class="setup-badge" style="background: rgba(255, 159, 10, 0.12); color: var(--warning);" title="La cassa non ha risposto all\'ultima interrogazione: resta in elenco finche\' non torna">OFFLINE</div>'
-                        : '<div class="setup-badge" style="background: rgba(40, 167, 69, 0.1); color: var(--success);">ONLINE</div>'}
-                </div>
-            `;
-        });
-    } catch(e) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 16px; color: var(--danger); font-size: 0.85rem; background: #FFF0F0; border-radius: var(--radius-md);">
-                Errore durante la scansione. Riprova.
-            </div>
-        `;
-    }
+    // [SCOPERTI] stessa card di Shelly (vedi scopCarica)
+    return scopCarica('sonos');
 }
 
 
@@ -13687,8 +14266,8 @@ const INTEGRATIONS_CATALOG = [
 {%- endif%}
     {%- if tplink_presente %}{ key: 'tplink', name: 'TP-Link Tapo', icon: 'plug', color: '#0E9AAA', logo: null, category: 'Dispositivi Wi-Fi', desc: "Prese, multiprese, lampadine e strisce LED Tapo e sensori dell'hub H100, comandati in rete locale. Le telecamere Tapo restano in Telecamere RTSP.", installed: {{ 'true' if tplink_attivo else 'false' }}, removable: true },{% endif %}
     {% if tuya_presente %}{ key: 'tuya', name: 'Tuya / Smart Life', icon: 'wifi', color: '#FF4800', logo: null, category: 'Dispositivi Wi-Fi', desc: "Prese, lampadine, strisce LED e tapparelle Tuya / Smart Life comandate in rete locale, senza passare dal cloud.", installed: {{ 'true' if tuya_attivo else 'false' }}, removable: true },{% endif %}
-    { key: 'shelly', name: 'Shelly Devices', icon: 'zap', color: '#0FC6A5', logo: null, category: 'Zeroconf', desc: 'Scopri automaticamente i dispositivi Shelly nella rete locale.', installed: true, removable: false, systemType: true },
-    { key: 'sonos', name: 'Sonos', icon: 'speaker', color: '#111111', logo: null, category: 'Audio', desc: 'Collega gli speaker Sonos per la riproduzione multiroom.', installed: {{ 'true' if (sonos_ip or sonos_found) else 'false' }}, removable: true },
+    { key: 'shelly', name: 'Shelly Devices', icon: 'zap', color: '#0FC6A5', logo: null, category: 'Zeroconf', desc: 'Scopri automaticamente i dispositivi Shelly nella rete locale.', installed: {{ 'true' if shelly_presenti else 'false' }}, removable: true },
+    { key: 'sonos', name: 'Sonos', icon: 'speaker', color: '#111111', logo: null, category: 'Audio', desc: 'Collega gli speaker Sonos per la riproduzione multiroom.', installed: {{ 'true' if sonos_presente else 'false' }}, removable: true },
 {% if annunci_modulo %}    { key: 'annunci', name: 'Annunci vocali', icon: 'megaphone', color: '#FF9F0A', logo: null, category: 'Audio', desc: "Fai parlare le casse Sonos: avvisi dalle automazioni e dall'allarme, con la voce generata in casa (senza internet).", installed: {{ 'true' if (annunci_config and annunci_config.attivo) else 'false' }}, removable: true },
 {% endif %}    { key: 'telegram', name: 'Bot Telegram', icon: 'send', color: '#29A9EA', logo: null, category: 'Notifiche', desc: 'Ricevi notifiche e avvisi dalle automazioni via Telegram.', installed: {{ 'true' if tg_token else 'false' }}, removable: true },
     { key: 'zerotier', name: 'ZeroTier VPN', icon: 'network', color: '#F79A3E', logo: null, category: 'Rete', desc: 'Accedi da remoto in sicurezza tramite rete VPN privata.', installed: {{ 'true' if zerotier_networks else 'false' }}, removable: true },
@@ -14458,6 +15037,9 @@ function renderStoreCategorie() {
 
 function downloadIntegration(key, btn) {
     if (btn.disabled) return;
+    if (key === 'shelly' || key === 'sonos') {   // [SCOPERTI] riaggiunta dallo Store: la ricerca riparte
+        fetch('/api/' + key + '/config', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ attivo: 1 }) }).catch(() => {});
+    }
     btn.disabled = true;
     btn.classList.add('downloading');
     btn.innerHTML = '<i data-lucide="loader-2"></i>';
@@ -14592,6 +15174,7 @@ async function refreshAsyncStoreStatus() {
 }
 
 async function uninstallIntegration(key) {
+    if (key === 'shelly' || key === 'sonos') return scopTogliIntegrazione(key);   // [SCOPERTI] conferma con stanze, gruppi, scenari, automazioni
     if (!await chiedi("Rimuovere questa integrazione? La configurazione salvata verra' eliminata e l'integrazione tornera' disponibile nello store.", { titolo: "Rimuovi integrazione", si: "Rimuovi", pericolo: true })) return;
 
     try {
@@ -14623,7 +15206,7 @@ async function uninstallIntegration(key) {
         } else if (key === 'knx') {
             await fetch('/remove_knx');
         } else if (key === 'sonos') {
-            await fetch('/setup', { method: 'POST', body: new URLSearchParams({ sonos_ip: '' }) });
+            await fetch('/api/sonos/config', { method: 'DELETE', credentials: 'same-origin' });   // [SCOPERTI] ricerca spenta: le casse non ricompaiono
 {% if annunci_modulo %}        } else if (key === 'annunci') {
             // via impostazioni, casse, cache delle frasi e voci scaricate (Piper, se installato, resta: e' una libreria)
             await fetch('/api/annunci/config?voci=1', { method: 'DELETE', credentials: 'same-origin' });
@@ -14899,6 +15482,7 @@ async function loadRemoteHubs() {
                 <div style="display: flex; flex-direction: column;">
                     <span style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">${h.name}</span>
                     <span style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">${h.ip}:${h.port} (Utente: ${h.username})</span>
+                    ${h.silente_giorni ? `<span class="scop-silente" style="margin-left:0; align-self:flex-start; margin-top:4px;">${h.silente_giorni === 1 ? 'Non risponde da 1 giorno' : 'Non risponde da ' + h.silente_giorni + ' giorni'}</span>` : ''}
                 </div>
                 <button onclick="removeRemoteHub(${h.id})" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i data-lucide="trash-2" style="width:18px;"></i></button>
             </div>

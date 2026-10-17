@@ -1197,7 +1197,13 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
     const DOM_AZIONI = ['light', 'switch', 'media_player', 'scene'];
     const dellAllarme = e => e.domain === 'allarme' || e.entity_id.indexOf('allarme.') === 0;
     const perSensori = e => !dellAllarme(e) && (DOM_SENSORI.includes(e.domain) || e.entity_id.includes('.shelly_') || e.entity_id.includes('.knx_'));
-    const perAzioni = e => !dellAllarme(e) && (DOM_AZIONI.includes(e.domain) || e.entity_id.includes('shelly_') || e.entity_id.includes('knx_'));
+    /* [SICUREZZA2] serrature, garage, cancelli, valvole del gas, pulsanti e centrali (e.sicurezza dal server, o il tipo):
+       l'allarme non li comanda (allo scatto 'acceso' vorrebbe dire aprirli) e il server non li accetta fra le azioni */
+    const AZ_VIETATI = ['lock', 'alarm_control_panel', 'button', 'input_button'];
+    const azioneVietata = id => { const e = S.entita.find(x => x.entity_id === id); return !!((e && e.sicurezza) || AZ_VIETATI.includes(String(id).split('.')[0])); };
+    const perAzioni = e => !dellAllarme(e) && !e.sicurezza && !AZ_VIETATI.includes(e.domain) && (DOM_AZIONI.includes(e.domain) || e.entity_id.includes('shelly_') || e.entity_id.includes('knx_'));
+    /* una configurazione vecchia che li ha: si tolgono dalla scelta (non vengono comandati comunque); salvando spariscono */
+    function senzaVietate(insieme) { const via = Array.from(insieme).filter(azioneVietata); via.forEach(id => insieme.delete(id)); return via.length; }
 
     const GRUPPI = {
         binary_sensor: { t: 'Contatti e movimento', ico: 'scan-eye', c: 'c-orange' },
@@ -1891,10 +1897,11 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         $('colonne').classList.remove('in-errore');
         $('passi').hidden = false;
         S.entitaOk = ent.status === 'fulfilled' && Array.isArray(ent.value);
-        S.entita = S.entitaOk ? ent.value.filter(e => e && typeof e.entity_id === 'string').map(e => ({ entity_id: e.entity_id, name: e.name || e.entity_id, domain: e.domain || e.entity_id.split('.')[0] })) : [];
+        S.entita = S.entitaOk ? ent.value.filter(e => e && typeof e.entity_id === 'string').map(e => ({ entity_id: e.entity_id, name: e.name || e.entity_id, domain: e.domain || e.entity_id.split('.')[0], sicurezza: e.sicurezza || '' })) : [];
         S.chatOk = chat.status === 'fulfilled' && Array.isArray(chat.value);
         S.chat = S.chatOk ? chat.value.filter(c => c && c.id != null) : [];
         applicaConfig(conf.value);
+        if (S.azioniTolte) mostraToast(T('Serrature, garage, cancelli e pulsanti non si comandano dall\'allarme: salva per toglierli dalle azioni.'), true);
         S.pronto = true;
         disegnaLista('sensori'); disegnaLista('azioni');
         if (!PIN4.test(S.salvato.pin)) S.pin.editor = true;       // PIN salvato inutilizzabile: si propone subito quello nuovo
@@ -1913,6 +1920,7 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         };
         S.trigger = new Set(S.salvato.trigger);
         S.azioni = new Set(S.salvato.azioni);
+        S.azioniTolte = senzaVietate(S.azioni);         // [SICUREZZA2]
         S.immediati = new Set(S.salvato.immediati);
         S.notte = new Set(S.salvato.notte);
         S.tempi = { uscita: S.salvato.uscita, entrata: S.salvato.entrata, sirena: S.salvato.sirena };
@@ -1925,7 +1933,7 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         try {
             const v = await chiama('/api/entities_for_automations');
             if (!Array.isArray(v)) throw new Error('formato');
-            S.entita = v.filter(e => e && typeof e.entity_id === 'string').map(e => ({ entity_id: e.entity_id, name: e.name || e.entity_id, domain: e.domain || e.entity_id.split('.')[0] }));
+            S.entita = v.filter(e => e && typeof e.entity_id === 'string').map(e => ({ entity_id: e.entity_id, name: e.name || e.entity_id, domain: e.domain || e.entity_id.split('.')[0], sicurezza: e.sicurezza || '' }));
             S.entitaOk = true;
         } catch (e) { S.entitaOk = false; mostraToast('Ancora niente: il server non risponde.', true); }
         disegnaLista('sensori'); disegnaLista('azioni'); aggiorna();
@@ -2073,7 +2081,8 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         pin_errato: { t: 'PIN sbagliato', ico: 'key-round', c: 'c-yellow', allarme: true },
         bloccato: { t: 'Tastierino bloccato', ico: 'lock-keyhole', c: 'c-red', allarme: true, forte: true },
         sensori_esclusi: { t: 'Sensori esclusi', ico: 'eye-off', c: 'c-purple' },
-        configurazione: { t: 'Configurazione modificata', ico: 'sliders-horizontal', c: 'c-blue' }
+        configurazione: { t: 'Configurazione modificata', ico: 'sliders-horizontal', c: 'c-blue' },
+        azione_saltata: { t: 'Azione saltata', ico: 'shield-alert', c: 'c-orange' }
     };
     const GRAVI = ['intrusione', 'scattato', 'bloccato'];
     const R = { voci: [], caricato: false, ok: true, limite: 50, filtro: 'tutti', ultimo: 0, inCorso: false, prima: null, nuove: new Set(), errore: null };
@@ -2105,6 +2114,8 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
                 return { testo: t.indexOf(': ') > 0 ? T('PIN cambiato') : '' };
             case 'sirena_ferma':
                 return { testo: T('Finito il tempo della sirena; resta scattato finché non lo disinserisci.') };
+            case 'azione_saltata':          // [SICUREZZA2] testo nella lingua dell'impianto, con i nomi dei dispositivi
+                return { testo: t, nome: true };
             default:
                 return EV[v.evento] ? { testo: '' } : { testo: t, nome: true };
         }
@@ -2236,6 +2247,8 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         'Il tempo per entrare deve essere fra 0 e 300 secondi.': 'tempi',
         'La durata della sirena deve essere fra 0 e 30 minuti.': 'tempi',
         'Elenco di dispositivi non valido.': 'sensori',
+        'Serrature, garage, cancelli, pulsanti e allarmi non possono essere azioni dell\'allarme.': 'azioni',
+        'Dispositivo non riconosciuto, riprova quando è raggiungibile': 'azioni',
         'Dati non validi.': '',
 {% if annunci_modulo %}        'Il volume degli annunci deve essere fra 0 e 100.': 'azioni',
         'Una frase degli annunci supera i 200 caratteri.': 'azioni',
@@ -2403,7 +2416,7 @@ svg.lucide, .ico-svg svg { flex-shrink: 0; }
         if (!sporco()) return;
         if (chiedendo && !await chiedi('Torno a quello che è salvato adesso sul server.', { titolo: 'Annullare le modifiche?', si: 'Annulla le modifiche', no: 'Continua a modificare', icona: 'refresh-cw' })) return;
         const sv = S.salvato;
-        S.trigger = new Set(sv.trigger); S.azioni = new Set(sv.azioni);
+        S.trigger = new Set(sv.trigger); S.azioni = new Set(sv.azioni); senzaVietate(S.azioni);
         S.immediati = new Set(sv.immediati); S.notte = new Set(sv.notte);
         S.tempi = { uscita: sv.uscita, entrata: sv.entrata, sirena: sv.sirena };
 {% if annunci_modulo %}        S.notifica = sv.notifica; S.annunci = annunciCopia(sv.annunci);

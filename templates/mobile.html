@@ -2093,7 +2093,135 @@
         .hk-card.type-tv .hk-state.tv-problema, .hk-card.type-tv.state-on .hk-state.tv-problema { color: #FF9F0A; }
         #tv-modal[data-marca="android"] .solo-non-android { display: none; }
         #tv-modal[data-marca="hisense"] .solo-non-hisense { display: none; }   /* Hisense VIDAA: niente tasto Guida */
+        /* Hisense con i comandi base (senza pacchetto): solo accensione, volume e muto, con la riga che spiega perche' */
+        #tv-modal[data-modo="base"] .tv-body > *:not(.tv-rockers):not(.tv-base-nota) { display: none; }
+        #tv-modal[data-modo="base"] .solo-completo { display: none; }
+        .tv-base-nota { display: none; text-align: center; font-size: 0.8rem; line-height: 1.45; color: var(--text-muted); padding: 10px 14px; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
+        #tv-modal[data-modo="base"] .tv-base-nota { display: block; }
+        #tv-modal[data-modo="base"] .tv-body { padding-top: 6px; }
+        .tv-power-btn.tv-solo-accendi { opacity: 0.45; }
 
+        /* ===== GRUPPI: pannello dei membri (gm-) e foglio di modifica (ge-) ===== */
+        .hk-card[data-gruppo] .hk-state { text-transform: none; }   /* "2 di 5 accesi", non "2 Di 5 Accesi" */
+        .gm-testa { display: flex; align-items: center; gap: 14px; margin: -6px 0 18px; flex-shrink: 0; }
+        .gm-testa-ico { width: 44px; height: 44px; border-radius: 14px; background: rgba(255,255,255,0.10); color: #FFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .2s, color .2s; }
+        .gm-testa-ico svg, .gm-testa-ico i { width: 22px; height: 22px; }
+        .gm-testa-ico.acceso { background: rgba(10,132,255,0.28); color: #8EC5FF; }
+        .gm-testa-txt { flex: 1; min-width: 0; }
+        .gm-titolo { font-size: 20px; font-weight: 650; letter-spacing: -0.02em; color: #FFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 10px rgba(0,0,0,0.4); }
+        .gm-sotto { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 2px; font-variant-numeric: tabular-nums; }
+        .gm-int { position: relative; width: 52px; height: 32px; border-radius: 999px; border: none; padding: 0; margin: 0; flex-shrink: 0; cursor: pointer;
+                  background: rgba(255,255,255,0.18); transition: background .22s; -webkit-tap-highlight-color: transparent; }
+        .gm-int::after { content: ''; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #FFF;
+                         box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform .22s cubic-bezier(.25,1,.5,1); }
+        .gm-int.on { background: #30D158; }
+        .gm-int.on::after { transform: translateX(20px); }
+        .gm-int.piccolo { width: 46px; height: 28px; }
+        .gm-int.piccolo::after { width: 22px; height: 22px; }
+        .gm-int.piccolo.on::after { transform: translateX(18px); }
+        .gm-int:focus-visible, .gm-tasti button:focus-visible, .gm-modifica:focus-visible { outline: 2px solid #0A84FF; outline-offset: 2px; }
+        .gm-etichetta { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin: 4px 0 4px; flex-shrink: 0; }
+        .gm-lista { display: flex; flex-direction: column; overflow-y: auto; min-height: 0; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+        #group-modal .gm-lista { flex: 1; }
+        .gm-riga { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 6px 0; border-bottom: 0.5px solid rgba(255,255,255,0.08); }
+        .gm-riga:last-child { border-bottom: none; }
+        .gm-ico { width: 36px; height: 36px; border-radius: 11px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.78); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .2s, color .2s; }
+        .gm-ico svg { width: 18px; height: 18px; }
+        .gm-riga.acceso .gm-ico { background: rgba(10,132,255,0.24); color: #8EC5FF; }
+        .gm-riga.acceso.dom-light .gm-ico { background: rgba(255,214,10,0.22); color: #FFD60A; }
+        .gm-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .gm-nome { font-size: 15px; font-weight: 600; color: #FFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gm-stato { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 1px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gm-stato.errore { color: #FF453A; }
+        .gm-cmd { min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; }
+        .gm-cmd:empty { min-width: 0; }
+        .gm-cmd .gm-int.piccolo { margin: 8px 0; }
+        .gm-tasti { display: flex; gap: 8px; }
+        .gm-tasti button { width: 36px; height: 36px; border-radius: 10px; border: none; padding: 0; background: rgba(255,255,255,0.10); color: #FFF; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .gm-tasti button svg { width: 18px; height: 18px; }
+        .gm-tasti button:nth-child(2) svg { width: 12px; height: 12px; }
+        .gm-tasti button:active { transform: scale(.92); background: rgba(255,255,255,0.18); }
+        .gm-barra { -webkit-appearance: none; appearance: none; width: 100%; height: 32px; margin: 2px 0 -6px; background: transparent; cursor: pointer; touch-action: pan-y; }
+        .gm-barra::-webkit-slider-runnable-track { height: 4px; border-radius: 4px; background: linear-gradient(90deg, #FFD60A, rgba(255,214,10,0.35)); }
+        .gm-barra::-moz-range-track { height: 4px; border-radius: 4px; background: rgba(255,214,10,0.5); }
+        .gm-barra::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -8px; border-radius: 50%; background: #FFF; border: none; box-shadow: 0 2px 6px rgba(0,0,0,0.35); }
+        .gm-barra::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #FFF; border: none; }
+        .gm-off { opacity: .5; }
+        .gm-off .gm-stato { color: #FF9F0A; }
+        .gm-vuoto { padding: 22px 8px; text-align: center; color: rgba(255,255,255,0.6); font-size: 14px; }
+        .gm-modifica { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 44px; margin-top: 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12);
+                       background: rgba(255,255,255,0.06); color: #FFF; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+        .gm-modifica svg, .gm-modifica i { width: 16px; height: 16px; }
+        .gm-sk { height: 12px; width: 60%; border-radius: 6px; background: rgba(255,255,255,0.10); margin: 3px 0; }
+        .gm-sk.corto { width: 35%; }
+        .gm-scheletro .gm-ico, .gm-sk { animation: gmBrilla 1.2s ease-in-out infinite alternate; }
+        @keyframes gmBrilla { from { opacity: .5; } to { opacity: 1; } }
+        .wh-leggera .gm-scheletro .gm-ico, .wh-leggera .gm-sk { animation: none; }
+        @media (prefers-reduced-motion: reduce) { .gm-scheletro .gm-ico, .gm-sk { animation: none; } }
+        #luce-membri { margin-top: 18px; display: flex; flex-direction: column; min-height: 0; }
+        #luce-membri[hidden] { display: none; }
+        #luce-membri .gm-lista { max-height: 34vh; }
+        /* pannello luce di un gruppo: i blocchi tengono la loro altezza e il pannello scorre (la barra grande ha touch-action: none) */
+        #light-modal.con-membri { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+        #light-modal.con-membri > * { flex-shrink: 0; }
+        #light-modal.con-membri #luce-membri .gm-lista { max-height: none; overflow: visible; }
+        #gm-tutto { height: 44px; padding: 6px 0; box-sizing: border-box; background-clip: content-box; }   /* 52x32 visibile, 44 di tocco */
+        #gm-tutto::after { top: 9px; }
+        .hk-pannello #group-modal .gm-testa { padding-right: 44px; margin-top: 0; }   /* card allargata: lascia posto al tasto "Riduci" */
+        .hk-pannello #group-modal .gm-titolo { font-size: 17px; }
+        /* foglio di modifica: a tutta altezza, sopra anche alle Impostazioni */
+        #group-edit-modal { height: 94vh; height: 94dvh; max-height: 94dvh; z-index: 2700; padding-top: 10px; }
+        .ge-barra { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 52px; margin: 0 -8px 6px; flex-shrink: 0; border-bottom: 0.5px solid rgba(255,255,255,0.1); }
+        .ge-titolo { font-size: 17px; font-weight: 650; color: #FFF; text-align: center; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ge-testo-btn { min-width: 72px; min-height: 44px; padding: 0 8px; border: none; background: transparent; color: #0A84FF; font-family: inherit; font-size: 16px; font-weight: 500; cursor: pointer; }
+        .ge-testo-btn:first-child { text-align: left; }
+        .ge-salva { font-weight: 650; text-align: right; }
+        .ge-salva:disabled { color: rgba(255,255,255,0.3); cursor: default; }
+        .ge-salva[hidden] { visibility: hidden; display: block; }
+        .ge-corpo { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 8px 2px 12px; }
+        .ge-corpo .gm-etichetta { margin: 16px 0 8px; }
+        .ge-campo { width: 100%; box-sizing: border-box; height: 48px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.07); color: #FFF;
+                    padding: 0 14px; font-family: inherit; font-size: 16px; outline: none; }
+        .ge-campo:focus { border-color: #0A84FF; box-shadow: 0 0 0 3px rgba(10,132,255,0.3); }
+        .ge-errore { color: #FF453A; font-size: 13px; margin-top: 6px; }
+        .ge-seg { display: flex; gap: 4px; padding: 4px; background: rgba(255,255,255,0.06); border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); }
+        .ge-seg button { flex: 1; height: 40px; border-radius: 11px; border: none; background: transparent; color: rgba(255,255,255,0.6); font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+        .ge-seg button.attiva { background: rgba(255,255,255,0.16); color: #FFF; }
+        .ge-spiega { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 8px; }
+        .ge-nota { margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(255,159,10,0.14); color: #FFB340; font-size: 13px; }
+        .ge-cerca { position: relative; display: block; margin-bottom: 10px; }
+        .ge-cerca > svg, .ge-cerca > i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 17px; height: 17px; color: rgba(255,255,255,0.5); pointer-events: none; }
+        .ge-cerca input { width: 100%; box-sizing: border-box; height: 44px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.07); color: #FFF;
+                          padding: 0 44px 0 40px; font-family: inherit; font-size: 16px; outline: none; -webkit-appearance: none; appearance: none; }
+        .ge-cerca input::-webkit-search-cancel-button { display: none; }
+        .ge-cerca input:focus { border-color: #0A84FF; }
+        .ge-x { position: absolute; right: 0; top: 0; width: 44px; height: 44px; border: none; background: transparent; color: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+        .ge-x svg { width: 16px; height: 16px; }
+        .ge-chips { display: flex; gap: 6px; overflow-x: auto; margin: 0 -2px 8px; padding: 0 2px 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+        .ge-chips::-webkit-scrollbar { display: none; }
+        .ge-chip { flex-shrink: 0; height: 34px; padding: 0 13px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.75);
+                   font-family: inherit; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+        .ge-chip b { font-weight: 600; opacity: .6; }
+        .ge-chip.attiva { background: #0A84FF; border-color: #0A84FF; color: #FFF; }
+        .ge-solo { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; color: rgba(255,255,255,0.8); cursor: pointer; }
+        .ge-solo input { width: 20px; height: 20px; margin: 0; accent-color: #0A84FF; }
+        .ge-lista { display: flex; flex-direction: column; }
+        .ge-voce { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 4px 0; border-bottom: 0.5px solid rgba(255,255,255,0.07); cursor: pointer; }
+        .ge-voce input { width: 22px; height: 22px; margin: 0 2px; accent-color: #0A84FF; flex-shrink: 0; }
+        .ge-voce .gm-ico { width: 32px; height: 32px; border-radius: 10px; }
+        .ge-voce .gm-ico svg { width: 16px; height: 16px; }
+        .ge-voce:has(input:checked) .gm-ico { background: rgba(10,132,255,0.24); color: #8EC5FF; }
+        .ge-assente .gm-ico { background: rgba(255,159,10,0.18) !important; color: #FFB340 !important; }
+        .ge-assente .gm-stato { color: #FFB340; }
+        .ge-sicura .gm-stato { color: #FFB340; }
+        .gs-nascosta { display: none !important; }
+        #group-edit-modal [hidden]:not(.ge-salva), #group-modal [hidden], #hk-menu-gruppo[hidden] { display: none !important; }
+        .ge-vuoto { padding: 18px 8px; text-align: center; color: rgba(255,255,255,0.6); font-size: 14px; }
+        .ge-elimina { width: 100%; min-height: 48px; margin-top: 22px; border-radius: 14px; border: none; background: rgba(255,69,58,0.14); color: #FF453A; font-family: inherit; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .ge-nuovo { width: 100%; min-height: 48px; border-radius: 14px; border: none; background: #0A84FF; color: #FFF; font-family: inherit; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin: 6px 0 12px; }
+        .ge-nuovo svg, .ge-nuovo i { width: 18px; height: 18px; }
+        .ge-gruppo { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; padding: 6px 0; border: none; border-bottom: 0.5px solid rgba(255,255,255,0.08); background: transparent; color: #FFF; font-family: inherit; text-align: left; cursor: pointer; }
+        .ge-gruppo > svg { width: 18px; height: 18px; color: rgba(255,255,255,0.4); flex-shrink: 0; }
         /* ===== SELECT (Home Assistant): card con l'opzione corrente e foglio delle opzioni ===== */
         .hk-card.type-select .hk-state { color: var(--accent-cyan); font-weight: 600; text-transform: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         /* dispositivo la cui sorgente (Home Assistant, hub remoto, cassa) non risponde: resta al suo posto, segnato */
@@ -5088,6 +5216,8 @@ html.wh-scala .imp-pagina {
             <div class="grid-hk" data-chiave="{{ chiave }}">
 {% for device in device_list %}
             {% set domain = device.entity_id.split('.')[0] %}
+            {% set e_gruppo = domain == 'group' and device.attributes and device.attributes.wach_gruppo %}{# [GRUPPI] gruppo dell'app #}
+            {% if e_gruppo and device.attributes.wach_gruppo_modo == 'light' %}{% set domain = 'light' %}{% endif %}
             
             
 {% if domain == 'camera' or domain == 'image' %}
@@ -5160,7 +5290,7 @@ html.wh-scala .imp-pagina {
             {% elif domain == 'media_player' and device.attributes.wach_tv %}
             {% set current_icon = custom_icons.get(device.entity_id, 'tv') if custom_icons else 'tv' %}
             {% set tv_problema = device.attributes.stato_tv in ('non_raggiungibile', 'chiede_permesso', 'serve_riabbinare', 'rifiuta_collegamento') %}
-            <div class="hk-card type-tv state-{{ device.state }}" data-id="{{ device.entity_id }}" data-state="{{ device.state }}" data-marca="{{ device.attributes.marca | default('') }}" data-nome="{{ device.attributes.friendly_name | default('TV') }}" data-stato-tv="{{ device.attributes.stato_tv | default('') }}" data-stato-testo="{{ device.attributes.stato_testo | default('') }}" data-aiuto="{{ device.attributes.aiuto | default('') }}">
+            <div class="hk-card type-tv state-{{ device.state }}" data-id="{{ device.entity_id }}" data-state="{{ device.state }}" data-marca="{{ device.attributes.marca | default('') }}" data-modo="{{ device.attributes.tv_modo | default('') }}" data-nome="{{ device.attributes.friendly_name | default('TV') }}" data-stato-tv="{{ device.attributes.stato_tv | default('') }}" data-stato-testo="{{ device.attributes.stato_testo | default('') }}" data-aiuto="{{ device.attributes.aiuto | default('') }}">
                 <div class="hk-icon-wrapper"><i data-lucide="{{ current_icon }}"></i></div>
                 <div class="hk-text-wrapper">
                     <div class="hk-name" data-no-tr>{{ device.attributes.friendly_name | default('TV') }}</div>
@@ -5179,12 +5309,14 @@ html.wh-scala .imp-pagina {
 {% elif domain == 'cover' %} {% set default_icon = 'blinds' %}
 {% elif domain == 'media_player' %} {% set default_icon = 'music' %}
 {% elif domain == 'climate' %} {% set default_icon = 'thermometer' %}
+{% elif domain == 'group' %} {% set default_icon = 'layers' %}
 {% endif %}
                     
                     {% set current_icon = custom_icons.get(device.entity_id, default_icon) if custom_icons else default_icon %}
                     
                     <div class="hk-card type-{{ domain }} state-{{ device.state }}" 
                          data-id="{{ device.entity_id }}"
+                         {% if e_gruppo %} data-gruppo="1" data-modo="{{ device.attributes.wach_gruppo_modo }}" data-accesi="{{ device.attributes.membri_accesi | default(0) }}" data-totali="{{ device.attributes.membri_totali | default(0) }}"{% endif %}
                          {% if domain == 'light' %} 
                          data-brightness="{{ device.attributes.brightness | default(255) }}"
                          {% set rgb = device.attributes.rgb_color %}
@@ -5792,6 +5924,10 @@ html.wh-scala .imp-pagina {
             <svg class="hk-ico-riduci" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>
             <span id="hk-menu-allarga">Allarga card</span>
         </button>
+        {% if session.role == 'admin' %}<button type="button" data-az="modifica-gruppo" id="hk-menu-gruppo" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+            <span>Modifica gruppo</span>
+        </button>{% endif %}
         <div class="hk-menu-nota" id="hk-menu-nota"></div>
         <!-- dai widget della Plancia e del Cruscotto (viste su schermi grandi): Stile (scelte del tipo, riempite da whViste; per i sensori del Cruscotto anche "Mostra in"), Nascondi, Personalizza -->
         <div class="hk-menu-plancia" id="hk-menu-plancia">
@@ -6154,6 +6290,11 @@ html.wh-scala .imp-pagina {
                         <span class="imp-testo"><b>Editor delle automazioni</b><small>Crea nuove regole, modificale e provale</small></span>
                         <i data-lucide="chevron-right" class="imp-freccia"></i>
                     </a>
+                    <button type="button" class="imp-riga" onclick="geElenco()">
+                        <span class="acc-ico c-teal"><i data-lucide="layers"></i></span>
+                        <span class="imp-testo"><b>Gruppi</b><small>Crea e modifica i gruppi di dispositivi</small></span>
+                        <i data-lucide="chevron-right" class="imp-freccia"></i>
+                    </button>
                 </div>
                 {% else %}
                 <div class="imp-auto-avviso">
@@ -6833,7 +6974,72 @@ html.wh-scala .imp-pagina {
             </div>
             <p class="luce-didascalia">Da caldo a freddo</p>
         </div>
+
+        <!-- [GRUPPI] membri del gruppo luce (visibile solo se il pannello e' aperto su un gruppo) -->
+        <div id="luce-membri" hidden>
+            <div class="gm-etichetta">Membri del gruppo</div>
+            <div class="gm-lista" id="luce-membri-lista"></div>
+            {% if session.role == 'admin' %}<button type="button" class="gm-modifica" onclick="gmModifica()"><i data-lucide="pencil"></i><span>Modifica il gruppo</span></button>{% endif %}
+        </div>
     </div>
+
+    <!-- ===== GRUPPI: pannello dei membri (gruppo interruttore) ===== -->
+    <div class="bottom-modal" id="group-modal" role="dialog" aria-labelledby="gm-titolo">
+        <div class="modal-handle"></div>
+        <button class="close-modal-btn" onclick="closeAllModals()"><i data-lucide="x"></i></button>
+        <div class="gm-testa">
+            <div class="gm-testa-ico" id="gm-ico"><i data-lucide="layers"></i></div>
+            <div class="gm-testa-txt">
+                <div class="gm-titolo" id="gm-titolo" data-no-tr>Gruppo</div>
+                <div class="gm-sotto" id="gm-sotto" data-no-tr></div>
+            </div>
+            <button type="button" class="gm-int" id="gm-tutto" role="switch" aria-checked="false" aria-label="Accendi o spegni tutto il gruppo" onclick="gmTutto(event)"></button>
+        </div>
+        <div class="gm-etichetta">Membri del gruppo</div>
+        <div class="gm-lista" id="gm-lista"></div>
+        {% if session.role == 'admin' %}<button type="button" class="gm-modifica" onclick="gmModifica()"><i data-lucide="pencil"></i><span>Modifica il gruppo</span></button>{% endif %}
+    </div>
+
+    {% if session.role == 'admin' %}
+    <!-- ===== GRUPPI: foglio di modifica (amministratore) ===== -->
+    <div class="bottom-modal" id="group-edit-modal" role="dialog" aria-labelledby="ge-titolo">
+        <div class="ge-barra">
+            <button type="button" class="ge-testo-btn" onclick="geAnnulla()">Annulla</button>
+            <div class="ge-titolo" id="ge-titolo">Modifica gruppo</div>
+            <button type="button" class="ge-testo-btn ge-salva" id="ge-salva" onclick="geSalva()" disabled>Salva</button>
+        </div>
+        <div class="ge-corpo" id="ge-corpo">
+            <div id="ge-elenco" hidden>
+                <button type="button" class="ge-nuovo" onclick="geApri(null)"><i data-lucide="plus"></i><span>Nuovo gruppo</span></button>
+                <div id="ge-gruppi"></div>
+            </div>
+            <div id="ge-modulo">
+                <div class="gm-etichetta">Nome</div>
+                <input type="text" class="ge-campo" id="ge-nome" maxlength="60" autocomplete="off" placeholder="Es. Luci sala" oninput="geAggiorna()" onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.blur(); }">
+                <div class="ge-errore" id="ge-errore" role="alert" hidden></div>
+                <div class="gm-etichetta">Comportamento</div>
+                <div class="ge-seg" id="ge-seg" role="group">
+                    <button type="button" data-mode="switch" class="attiva" aria-pressed="true" onclick="geModo('switch', true)">Interruttore</button>
+                    <button type="button" data-mode="light" aria-pressed="false" onclick="geModo('light', true)">Luce</button>
+                </div>
+                <div class="ge-spiega" id="ge-spiega">Accende e spegne tutto insieme</div>
+                <div class="ge-nota" id="ge-nota-luce" hidden>Nessun membro è una luce: luminosità e colore non avranno effetto</div>
+                <div class="ge-nota" id="ge-nota-sicurezza" data-no-tr hidden>Le serrature non si comandano dai gruppi</div>
+                <div class="gm-etichetta"><span>Membri</span> · <span id="ge-conta" data-no-tr>0</span> <span>selezionati</span></div>
+                <label class="ge-cerca">
+                    <i data-lucide="search"></i>
+                    <input type="search" id="ge-cerca" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="Cerca per nome, stanza o tipo…" oninput="geFiltra()" onkeydown="geTasto(event)">
+                    <button type="button" class="ge-x" id="ge-x" onclick="geSvuota()" aria-label="Svuota" hidden><i data-lucide="x"></i></button>
+                </label>
+                <div class="ge-chips" id="ge-chips"></div>
+                <label class="ge-solo"><input type="checkbox" id="ge-solo" onchange="geFiltra()"><span>Solo selezionati</span></label>
+                <div class="ge-lista" id="ge-lista" onchange="geAggiorna()"></div>
+                <div class="ge-vuoto" id="ge-vuoto" hidden><span id="ge-vuoto-a"><span>Nessun dispositivo corrisponde a</span> «<span id="ge-vuoto-q" data-no-tr></span>»</span><span id="ge-vuoto-b">Nessun risultato</span></div>
+                <button type="button" class="ge-elimina" id="ge-elimina" onclick="geElimina()" hidden>Elimina gruppo</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
 
 
@@ -6907,6 +7113,7 @@ html.wh-scala .imp-pagina {
         </div>
         <div class="tv-avviso" id="tv-avviso"></div>
         <div class="modal-scroll-area tv-body">
+            <div class="tv-base-nota">Comandi base: accensione, volume e muto. Per spegnere la TV e per gli altri tasti serve il Pacchetto Hisense: l'installatore lo carica dalla dashboard e abbina la TV col codice.</div>
             <div class="tv-row tv-apps">
                 <button type="button" class="tv-chip netflix" data-k="app:netflix">Netflix</button>
                 <button type="button" class="tv-chip youtube" data-k="app:youtube">YouTube</button>
@@ -6942,9 +7149,9 @@ html.wh-scala .imp-pagina {
                 </div>
                 <div class="tv-rocker-mid">
                     <button type="button" class="tv-key" data-k="mute"><i data-lucide="volume-x"></i></button>
-                    <button type="button" class="tv-key" id="tv-num-toggle" onclick="document.getElementById('tv-numpad').classList.toggle('open')"><i data-lucide="hash"></i></button>
+                    <button type="button" class="tv-key solo-completo" id="tv-num-toggle" onclick="document.getElementById('tv-numpad').classList.toggle('open')"><i data-lucide="hash"></i></button>
                 </div>
-                <div class="tv-rocker">
+                <div class="tv-rocker solo-completo">
                     <button type="button" data-k="ch_up"><i data-lucide="chevron-up"></i></button>
                     <span>CH</span>
                     <button type="button" data-k="ch_down"><i data-lucide="chevron-down"></i></button>
@@ -9127,13 +9334,16 @@ setInterval(fetchRealWeather, 300000);
         }
 
         // Contrassegno "Offline" sulla card: la sorgente non risponde, il dispositivo resta al suo posto
-        function segnaOffline(card, offline) {
+        function segnaOffline(card, offline, giorni) {
             if (!card) return;
             const era = card.classList.contains('offline');
-            if (offline === era) return;
-            card.classList.toggle('offline', offline);
+            // [SCOPERTI] Shelly/Sonos assenti da almeno un giorno: "Offline · 3 g" (assente_giorni dal server)
+            const testo = offline && giorni >= 1 ? 'Offline · ' + Math.floor(giorni) + ' g' : 'Offline';
             let et = card.querySelector('.hk-offline');
-            if (offline && !et) { et = document.createElement('span'); et.className = 'hk-offline'; et.textContent = 'Offline'; card.appendChild(et); }
+            if (offline === era && (!offline || !et || et.dataset.t === testo)) return;
+            card.classList.toggle('offline', offline);
+            if (offline && !et) { et = document.createElement('span'); et.className = 'hk-offline'; card.appendChild(et); }
+            if (offline && et.dataset.t !== testo) { et.textContent = testo; et.dataset.t = testo; }
         }
         (window.__offlineIds || []).forEach(id => document.querySelectorAll(`.hk-card[data-id="${id}"]`).forEach(c => segnaOffline(c, true)));
 
@@ -9181,6 +9391,7 @@ setInterval(fetchRealWeather, 300000);
             const nome = card.dataset.nome || (card.querySelector('.hk-name') || {}).innerText || 'TV';
             document.getElementById('tv-modal-name').innerText = nome;
             document.getElementById('tv-modal').dataset.marca = card.dataset.marca || '';
+            document.getElementById('tv-modal').dataset.modo = card.dataset.modo || '';   // 'base': Hisense senza pacchetto
             document.getElementById('tv-numpad').classList.remove('open');
             aggiornaModaleTv(card.classList.contains('state-on'), { stato_testo: card.dataset.statoTesto || '', aiuto: card.dataset.aiuto || '' });
             document.getElementById('modal-overlay').classList.add('active');
@@ -9201,6 +9412,8 @@ setInterval(fetchRealWeather, 300000);
                 st.innerText = testo;
             }
             if (pw) pw.classList.toggle('on', !!acceso);
+            // comandi base: la TV accesa non si spegne da qui (il tocco spiega perche')
+            if (pw) pw.classList.toggle('tv-solo-accendi', !!acceso && document.getElementById('tv-modal').dataset.modo === 'base');
             // cosa fare quando la TV ha un problema (Da riabbinare, Accetta sulla TV...): resta visibile
             const av = document.getElementById('tv-avviso');
             if (av && attrs && typeof attrs.aiuto === 'string') {
@@ -9267,6 +9480,9 @@ setInterval(fetchRealWeather, 300000);
             const btn = event.currentTarget;
             btn.style.transform = 'scale(0.85)';
             setTimeout(() => btn.style.transform = '', 200);
+            // comandi base con la TV accesa: il server dice perche' non si spegne, e lo si legge nel telecomando
+            const card = btn.closest('.type-tv');
+            if (card && card.dataset.modo === 'base' && card.classList.contains('state-on')) apriTelecomando(card);
             tvCmd(entityId, 'power', null);
         }
 
@@ -9600,6 +9816,7 @@ if (card.classList.contains('type-camera')) {
                 document.getElementById('modal-overlay').classList.add('active'); document.getElementById('media-modal').classList.add('active'); document.getElementById('app-wrapper').classList.add('modal-active'); return;
             }
 
+            if (card.dataset.gruppo && card.classList.contains('type-group') && !isIconClick) { apriGruppo(card); return; }   // [GRUPPI] pannello dei membri
             if (card.classList.contains('type-light') && !isIconClick) {
                 currentModalEntity = card.dataset.id; document.getElementById('modal-light-name').innerText = card.querySelector('.hk-name').innerText;
                 window.luceLivello = parseInt(card.dataset.brightness) || 255;
@@ -9608,6 +9825,7 @@ if (card.classList.contains('type-camera')) {
                 document.getElementById('light-modal').classList.remove('luce-trascina');
                 luceScheda('colori');
                 luceDisegna();
+                if (window.gmLuceMembri) gmLuceMembri(card);   // [GRUPPI] membri del gruppo luce in fondo al pannello
                 document.getElementById('modal-overlay').classList.add('active'); document.getElementById('light-modal').classList.add('active'); document.getElementById('app-wrapper').classList.add('modal-active'); return;
             }
             
@@ -9650,9 +9868,13 @@ const entityId = card.dataset.id;
             });
             
             if (window.whViste) whViste.cambiata(entityId);   // le viste degli schermi grandi seguono la card
+            if (card.dataset.gruppo && window.gmDopoTocco) gmDopoTocco(entityId, optimisticState);   // [GRUPPI] "5 di 5 accesi" / "Spento"
             updateGlanceSummary();
             window.comandoToccoParte(entityId);
-            try { await fetch('/api/toggle',{ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: entityId, state: optimisticState }) }); } catch(err) {}
+            try {
+                const rispostaToggle = await fetch('/api/toggle',{ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: entityId, state: optimisticState }) });
+                if (card.dataset.gruppo && window.gmEsitoToggle) gmEsitoToggle(rispostaToggle);   // [GRUPPI] "2 di 5 dispositivi non hanno risposto"
+            } catch(err) {}
             window.comandoToccoArrivato(entityId);
         });
 
@@ -10883,6 +11105,7 @@ function setTimerPreset(minutes) {
             if (!response.ok) return;
             
             const states = await response.json();
+            window.whStatiUltimi = states;   // [GRUPPI] il pannello dei membri si ridisegna da qui, senza richieste in piu'
             // --- NUOVO: INTERCETTA IL POPUP UI DAL MOTORE LOGICO ---
 // --- NUOVO: INTERCETTA IL POPUP UI DAL MOTORE LOGICO ---
             const idAvviso = states.ui_modal_trigger ? (states.ui_modal_trigger.id || ('senza-id-' + Date.now())) : null;
@@ -10971,7 +11194,7 @@ function setTimerPreset(minutes) {
                 if (!cards) continue;
                 if (window.whViste) whViste.annota(cards, data);   // dati in piu' per le viste degli schermi grandi (posizione, temperature, brano...)
                 cards.forEach(card => {
-                    if (card.classList.contains('hk-card')) segnaOffline(card, !!(data.attributes && data.attributes.offline));
+                    if (card.classList.contains('hk-card')) segnaOffline(card, !!(data.attributes && data.attributes.offline), data.attributes && data.attributes.assente_giorni);
                     if (data.attributes && data.attributes.offline) return;   // sorgente spenta: lo stato mostrato resta l'ultimo vero
                     
                     // --- INIZIO FIX SENSORI ---
@@ -11009,7 +11232,11 @@ function setTimerPreset(minutes) {
                         card.dataset.statoTv = at.stato_tv || '';
                         card.dataset.statoTesto = at.stato_testo || '';
                         card.dataset.aiuto = at.aiuto || '';
-                        if (tvModalEntity === entityId) aggiornaModaleTv(acceso, at);
+                        card.dataset.modo = at.tv_modo || '';     // da comandi base a completo dopo l'abbinamento col codice
+                        if (tvModalEntity === entityId) {
+                            document.getElementById('tv-modal').dataset.modo = card.dataset.modo;
+                            aggiornaModaleTv(acceso, at);
+                        }
                         return;
                     }
 
@@ -11122,6 +11349,7 @@ if (newState === 'off' || newState === 'closed') {
                 if (window.whViste) whViste.cambiata(entityId);   // le viste degli schermi grandi seguono la card
             }
             if (iconeNuove) whIcone();
+            if (window.gmDopoStati) gmDopoStati(states);   // [GRUPPI] "2 di 5 accesi", pannello dei membri aperto
             if (typeof updateGlanceSummary === 'function') {
                 updateGlanceSummary();
             }
@@ -14794,7 +15022,8 @@ var hkToastT = null;
 var hkPointerGiu = false;         // dito/mouse premuto dentro un pannello ospitato (slider in corso)
 var hkUltimoRiapri = 0;           // quando hkRiapri ha toccato il velo per ultimo (non e' un modale vero)
 const HK_PANNELLI = { 'type-light': 'light-modal', 'type-sensor': 'sensor-modal', 'type-cover': 'cover-modal', 'type-climate': 'climate-modal',
-                      'type-media_player': 'media-modal', 'type-tv': 'tv-modal', 'type-vacuum': 'vacuum-modal', 'type-select': 'select-modal' };
+                      'type-media_player': 'media-modal', 'type-tv': 'tv-modal', 'type-vacuum': 'vacuum-modal', 'type-select': 'select-modal',
+                      'type-group': 'group-modal' };
                       // (timer escluso: ha l'onclick inline sulla card e si ridisegna ogni secondo)
 const hkOrigine = {};             // id modale -> posizione originale nel DOM
 
@@ -14853,6 +15082,7 @@ function hkApriMenu(card, x, y) {
     bAll.classList.toggle('riduci', allargata);
     document.getElementById('hk-menu-allarga').textContent = allargata ? 'Riduci card' : 'Allarga card';
     document.getElementById('hk-menu-nota').textContent = (!haPannello && !allargata) ? 'Questa card non ha un pannello da mostrare' : '';
+    const bGruppo = document.getElementById('hk-menu-gruppo'); if (bGruppo) bGruppo.hidden = !card.dataset.gruppo;   // [GRUPPI] solo amministratore
     menu.style.left = '0px'; menu.style.top = '0px';
     menu.classList.add('on');
     const left = Math.max(8, Math.min(x, window.innerWidth - menu.offsetWidth - 8));     // offsetWidth ignora la scala della transizione
@@ -14868,6 +15098,7 @@ document.getElementById('hk-menu').addEventListener('click', (e) => {
     const card = hkMenuCard; hkChiudiMenu(); if (!card) return;
     e.stopPropagation();
     if (b.dataset.az === 'sposta') { entraModifica(); return; }
+    if (b.dataset.az === 'modifica-gruppo') { if (window.geApri) geApri(card.dataset.id); return; }   // [GRUPPI]
     if (b.dataset.az === 'allarga') hkAllarga(card, !card.classList.contains('hk-allargata'));
 });
 document.addEventListener('pointerdown', (e) => {
@@ -18199,6 +18430,8 @@ function hkOsserva(card) {
                 v.stato.push({ t: 'Accesa', forte: true });
                 v.ico = svgDi(c, 'tv');
                 v.cmd = 'tv';
+                // comandi base (Hisense senza pacchetto): non si spegne da qui, si apre il telecomando
+                if (c.dataset.modo === 'base') { v.cmd = 'apri'; v.az = 'chevron-right'; }
             }
             return v;
         });
@@ -18871,5 +19104,556 @@ function hkOsserva(card) {
 })();
 </script>
 {%- endif %}
+<script>
+/* ===== GRUPPI (16/10/2026): testo delle card, pannello dei membri, foglio di modifica (amministratore) =====
+   Tocco sull'icona della card = accende/spegne tutto il gruppo (come prima). Tocco sul resto = pannello:
+   modo interruttore #group-modal, modo luce #light-modal con in fondo la sezione #luce-membri.
+   Ogni riga comanda il SUO membro (mai il gruppo). I dati arrivano da /api/groups/<id>/membri all'apertura,
+   poi a ogni giro del polling da window.whStatiUltimi (nessuna richiesta in piu'). */
+(function () {
+    'use strict';
+    const GM_ADMIN = {{ 'true' if session.role == 'admin' else 'false' }};
+    const T = t => (window.WH_T ? window.WH_T(t) : t);
+    const SOLA_LETTURA = ['sensor', 'binary_sensor', 'camera', 'image', 'weather'];
+    const ICONE = { light: 'lightbulb', switch: 'power', input_boolean: 'toggle-right', cover: 'blinds', media_player: 'music',
+                    climate: 'thermometer', fan: 'fan', sensor: 'activity', binary_sensor: 'activity', group: 'layers', scene: 'clapperboard',
+                    lock: 'lock', alarm_control_panel: 'shield' };
+    const svgCache = {};
+    function svg(n) {
+        if (!svgCache[n]) {
+            const s = document.createElement('span'); s.innerHTML = '<i data-lucide="' + n + '"></i>';
+            if (window.lucide) lucide.createIcons({ root: s });
+            svgCache[n] = s.innerHTML;
+        }
+        return svgCache[n];
+    }
+    function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+    function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+    function inAttesa(id) {
+        const p = window.pendingEntities && window.pendingEntities.get(id);
+        return (p && Date.now() - p < 3000) || false;
+    }
+
+    // ---------------------------------------------------------------- testo delle card dei gruppi
+    // acceso: "2 di 5 accesi" (luce: "60% · 2 di 5 accesi"); spento: "Spento"; nessun membro raggiungibile: "Non disponibile"
+    function gruppoTestoStato(card, attrs) {
+        const st = card.querySelector('.hk-state'); if (!st) return;
+        const a = attrs || {};
+        if (a.membri_accesi !== undefined) card.dataset.accesi = a.membri_accesi;
+        if (a.membri_totali !== undefined) card.dataset.totali = a.membri_totali;
+        const stato = card.classList.contains('state-unavailable') ? 'unavailable' : (card.classList.contains('state-on') ? 'on' : 'off');
+        let testo;
+        if (stato === 'unavailable') testo = T('Non disponibile');
+        else if (stato === 'on') {
+            const acc = card.dataset.accesi || '0', tot = card.dataset.totali || '0';
+            testo = acc + ' ' + T('di') + ' ' + tot + ' ' + T('accesi');
+            if (card.classList.contains('type-light')) testo = Math.round(((parseInt(card.dataset.brightness, 10) || 255) / 255) * 100) + '% · ' + testo;
+        } else testo = T('Spento');
+        if (st.textContent !== testo) st.textContent = testo;
+        st.setAttribute('data-no-tr', '');           // gia' tradotto qui
+    }
+    window.gruppoTestoStato = gruppoTestoStato;
+    function testiIniziali() {
+        document.querySelectorAll('.hk-card[data-gruppo]').forEach(c => gruppoTestoStato(c, null));
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(testiIniziali, 0));
+    else setTimeout(testiIniziali, 0);
+    window.addEventListener('load', () => setTimeout(testiIniziali, 50));
+
+    // dopo ogni giro del polling (syncNativeDevices): testo delle card e righe del pannello aperto
+    window.gmDopoStati = function (states) {
+        document.querySelectorAll('.hk-card[data-gruppo]').forEach(card => {
+            const id = card.dataset.id;
+            if (inAttesa(id)) return;
+            const d = states[id];
+            if (d && (d.state === 'unavailable') !== card.classList.contains('state-unavailable')) {
+                card.className = card.className.replace(/\bstate-[a-zA-Z0-9_]+\b/g, '').trim();
+                card.classList.add('state-' + d.state); card.dataset.state = d.state;
+            }
+            gruppoTestoStato(card, d ? d.attributes : null);
+        });
+        aggiornaAperti();
+    };
+    // tocco sull'icona (accendi/spegni tutto): testo subito, poi il polling
+    window.gmDopoTocco = function (id, stato) {
+        document.querySelectorAll('.hk-card[data-gruppo][data-id="' + CSS.escape(id) + '"]').forEach(card => {
+            card.classList.remove('state-unavailable');
+            card.dataset.accesi = stato === 'on' ? (card.dataset.totali || '0') : '0';
+            gruppoTestoStato(card, null);
+        });
+        aggiornaAperti();
+    };
+    // risposta del comando di gruppo: chi non ha risposto lo si dice
+    window.gmEsitoToggle = async function (risposta) {
+        let d = {};
+        try { d = await risposta.json(); } catch (e) { return; }
+        if (d && d.falliti && d.falliti.length) {
+            const tot = Object.keys(d.esiti || {}).length || d.falliti.length;
+            if (typeof hkToast === 'function') hkToast(d.falliti.length + ' ' + T('di') + ' ' + tot + ' ' + T('dispositivi non hanno risposto'));
+        } else if (d && d.status === 'error' && d.message && typeof hkToast === 'function') hkToast(T(d.message));
+        else if (d && d.avviso && typeof hkToast === 'function') hkToast(T(d.avviso));      // [SERRATURE] saltata dal gruppo
+    };
+
+    // ---------------------------------------------------------------- pannello dei membri
+    const dati = {};            // gid -> ultima risposta di /membri (ordine, nomi, stanze, comandabile)
+    const erroriRiga = {};      // entity_id -> fino a quando mostrare "Non ha risposto"
+    let gmGid = null;
+
+    function statoMembro(m) {
+        // stato aggiornato dal polling se c'e', altrimenti quello dell'apertura
+        const s = window.whStatiUltimi && window.whStatiUltimi[m.entity_id];
+        if (!s) return { state: m.state, a: { brightness: m.brightness, supported_color_modes: m.supported_color_modes, current_position: m.current_position },
+                         offline: m.offline, mancante: m.mancante };
+        const a = s.attributes || {};
+        return { state: s.state, a, offline: !!a.offline || s.state === 'unavailable', mancante: false };
+    }
+    function dimmer(m, a) {
+        // solo_onoff dal server: luce virtuale o Shelly DELL'APP (un light.shelly_* di Home Assistant si regola)
+        const soloOnOff = m.solo_onoff !== undefined ? !!m.solo_onoff : (m.entity_id.indexOf('.virtual_') >= 0 || m.entity_id.indexOf('.shelly_') >= 0);
+        if (m.domain !== 'light' || soloOnOff) return false;
+        const modi = a.supported_color_modes;
+        return !Array.isArray(modi) || modi.some(x => x !== 'onoff');
+    }
+    function testoMembro(m, st) {
+        if (st.mancante || st.offline) return T('Offline');
+        if (erroriRiga[m.entity_id] && erroriRiga[m.entity_id] > Date.now()) return T('Non ha risposto');
+        const s = String(st.state || '').toLowerCase();
+        if (m.sicurezza) {
+            // [SERRATURE] serratura, garage, cancello, allarme: la riga non ha comandi (comandabile false dal server)
+            let base = '';
+            if (s === 'locked' || s === 'closed') base = T('Chiusa');
+            else if (s === 'unlocked' || s === 'open') base = T('Aperta');
+            return (base ? base + ' · ' : '') + T('Non si comanda dal gruppo');
+        }
+        if (m.domain === 'cover') {
+            const pos = st.a.current_position;
+            if (s === 'closed') return T('Chiusa');
+            if (s === 'opening') return T('In apertura');
+            if (s === 'closing') return T('In chiusura');
+            return T('Aperta') + (typeof pos === 'number' && pos > 0 && pos < 100 ? ' ' + pos + '%' : '');
+        }
+        if (m.domain === 'binary_sensor') {
+            // porta/finestra: Aperto/Chiuso; movimento: Movimento/Nessun movimento; il resto: Attivo/Inattivo
+            if (s !== 'on' && s !== 'off') return st.state;
+            const dc = String(st.a.device_class || m.device_class || ''), on = s === 'on';
+            if (['door', 'window', 'opening', 'garage_door'].indexOf(dc) >= 0) return T(on ? 'Aperto' : 'Chiuso');
+            if (['motion', 'occupancy', 'presence'].indexOf(dc) >= 0) return T(on ? 'Movimento' : 'Nessun movimento');
+            return T(on ? 'Attivo' : 'Inattivo');
+        }
+        if (m.domain === 'sensor') {
+            const u = st.a.unit_of_measurement || m.unita || '';
+            return String(st.state) + (u ? ' ' + u : '');
+        }
+        if (['on', 'open', 'playing', 'heat', 'cool', 'auto', 'heat_cool', 'dry', 'fan_only'].indexOf(s) >= 0) {
+            if (m.domain === 'light' && typeof st.a.brightness === 'number') return T('Acceso') + ' ' + Math.round(st.a.brightness / 255 * 100) + '%';
+            if (s === 'playing') return T('In riproduzione');
+            return T('Acceso');
+        }
+        return T('Spento');
+    }
+    function rigaHtml(m) {
+        const st = statoMembro(m);
+        const giu = st.mancante || st.offline || !m.comandabile;
+        const acceso = ['on', 'open', 'playing'].indexOf(String(st.state)) >= 0;
+        let cmd = '';
+        if (!giu) {
+            if (m.domain === 'cover') {
+                cmd = '<div class="gm-tasti"><button type="button" data-az="up" aria-label="Apri">' + svg('chevron-up') + '</button>'
+                    + '<button type="button" data-az="stop" aria-label="Ferma">' + svg('square') + '</button>'
+                    + '<button type="button" data-az="down" aria-label="Chiudi">' + svg('chevron-down') + '</button></div>';
+            } else {
+                cmd = '<button type="button" class="gm-int piccolo' + (acceso ? ' on' : '') + '" role="switch" aria-checked="' + acceso + '" aria-label="' + esc(m.name) + '"></button>';
+            }
+        }
+        const pct = typeof st.a.brightness === 'number' ? Math.max(1, Math.round(st.a.brightness / 255 * 100)) : 100;
+        const barra = (!giu && acceso && dimmer(m, st.a))
+            ? '<input type="range" class="gm-barra" min="1" max="100" value="' + pct + '" aria-label="Luminosità">' : '';
+        const errore = erroriRiga[m.entity_id] && erroriRiga[m.entity_id] > Date.now();
+        const fuori = st.mancante || st.offline;
+        return '<div class="gm-riga' + (fuori ? ' gm-off' : (giu ? ' gm-sola' : '')) + (acceso ? ' acceso' : '') + ' dom-' + esc(m.domain) + '" data-id="' + esc(m.entity_id) + '" data-dom="' + esc(m.domain) + '">'
+            + '<span class="gm-ico">' + svg(fuori ? 'alert-triangle' : (ICONE[m.domain] || 'cpu')) + '</span>'
+            + '<div class="gm-testo"><div class="gm-nome" data-no-tr>' + esc(m.name) + '</div>'
+            + '<div class="gm-stato' + (errore ? ' errore' : '') + '" data-no-tr>' + esc(testoMembro(m, st)) + '</div>' + barra + '</div>'
+            + '<div class="gm-cmd">' + cmd + '</div></div>';
+    }
+    function vuotoHtml() {
+        return '<div class="gm-vuoto"><span>' + esc(T('Nessun dispositivo in questo gruppo')) + '</span></div>';
+    }
+    function scheletro() {
+        return '<div class="gm-riga gm-scheletro"><span class="gm-ico"></span><div class="gm-testo"><div class="gm-sk"></div><div class="gm-sk corto"></div></div></div>'.repeat(3);
+    }
+    function nuovaRiga(html) {
+        const tmp = document.createElement('div'); tmp.innerHTML = html;
+        const el = tmp.firstChild; el._html = html; return el;
+    }
+    function disegna(cont, gid) {
+        const d = dati[gid];
+        if (!cont || !d) return;
+        if (!d.membri.length) { cont.innerHTML = vuotoHtml(); return; }
+        // righe gia' disegnate per gli stessi membri: si cambiano solo quelle diverse (un dito sulla barra non si perde)
+        const righe = cont.querySelectorAll('.gm-riga[data-id]');
+        const stessi = righe.length === d.membri.length && d.membri.every((m, i) => righe[i].dataset.id === m.entity_id);
+        if (!stessi) {
+            cont.textContent = '';
+            d.membri.forEach(m => cont.appendChild(nuovaRiga(rigaHtml(m))));
+            return;
+        }
+        d.membri.forEach((m, i) => {
+            const r = righe[i];
+            if (inAttesa(m.entity_id) || r.contains(document.activeElement) || (r._tocco && Date.now() - r._tocco < 3000)) return;
+            const html = rigaHtml(m);
+            if (r._html !== html) r.replaceWith(nuovaRiga(html));
+        });
+    }
+    function testata(gid) {
+        const card = document.querySelector('.hk-card[data-gruppo][data-id="' + CSS.escape(gid) + '"]');
+        const d = dati[gid];
+        const tit = document.getElementById('gm-titolo');
+        if (tit) tit.textContent = (card && card.querySelector('.hk-name') ? card.querySelector('.hk-name').textContent : (d && d.name) || gid).trim();
+        let acc = 0, tot = 0;
+        if (d) { tot = d.membri.length; acc = d.membri.filter(m => ['on', 'open', 'playing'].indexOf(String(statoMembro(m).state)) >= 0).length; }
+        const sotto = document.getElementById('gm-sotto');
+        if (sotto) sotto.textContent = T('Gruppo') + ' · ' + (tot ? acc + ' ' + T('di') + ' ' + tot + ' ' + T('accesi') : T('Nessun dispositivo in questo gruppo'));
+        const on = card ? card.classList.contains('state-on') : acc > 0;
+        const b = document.getElementById('gm-tutto');
+        if (b && !(b._tocco && Date.now() - b._tocco < 3000)) { b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
+        const ico = document.getElementById('gm-ico'); if (ico) ico.classList.toggle('acceso', on);
+    }
+    function aggiornaAperti() {
+        const gm = document.getElementById('group-modal');
+        if (gm && gm.classList.contains('active') && gmGid) { disegna(document.getElementById('gm-lista'), gmGid); testata(gmGid); }
+        const lm = document.getElementById('luce-membri');
+        if (lm && !lm.hidden && lm.dataset.gid) disegna(document.getElementById('luce-membri-lista'), lm.dataset.gid);
+    }
+    async function carica(gid, cont) {
+        if (!dati[gid]) cont.innerHTML = scheletro();
+        try {
+            const r = await fetch('/api/groups/' + encodeURIComponent(gid) + '/membri');
+            if (!r.ok) throw new Error(r.status);
+            dati[gid] = await r.json();
+        } catch (e) {
+            if (!dati[gid]) { cont.innerHTML = '<div class="gm-vuoto"><span>' + esc(T('Il dispositivo non risponde')) + '</span></div>'; return; }
+        }
+        cont.innerHTML = '';
+        disegna(cont, gid);
+        if (gmGid === gid) testata(gid);
+    }
+    window.apriGruppo = function (card) {
+        const gid = card.dataset.id;
+        currentModalEntity = gid; gmGid = gid;
+        const m = document.getElementById('group-modal');
+        m.dataset.gid = gid;
+        testata(gid);
+        carica(gid, document.getElementById('gm-lista'));
+        document.getElementById('modal-overlay').classList.add('active');
+        m.classList.add('active');
+        document.getElementById('app-wrapper').classList.add('modal-active');
+    };
+    // pannello luce: la sezione dei membri solo per i gruppi
+    window.gmLuceMembri = function (card) {
+        const s = document.getElementById('luce-membri'); if (!s) return;
+        const lm = document.getElementById('light-modal');
+        if (!card.dataset.gruppo) { s.hidden = true; delete s.dataset.gid; if (lm) lm.classList.remove('con-membri'); return; }
+        s.hidden = false; s.dataset.gid = card.dataset.id; if (lm) lm.classList.add('con-membri');
+        carica(card.dataset.id, document.getElementById('luce-membri-lista'));
+    };
+    // interruttore grande: tutto il gruppo, come il tocco sull'icona della card
+    window.gmTutto = function (e) {
+        if (e) e.stopPropagation();
+        const gid = gmGid; if (!gid) return;
+        const card = document.querySelector('.grid-hk .hk-card[data-gruppo][data-id="' + CSS.escape(gid) + '"]') || document.querySelector('.hk-card[data-gruppo][data-id="' + CSS.escape(gid) + '"]');
+        const b = document.getElementById('gm-tutto');
+        if (card) {
+            const ico = card.querySelector('.hk-icon-wrapper');
+            if (ico) { hkOspitando = true; try { ico.click(); } finally { hkOspitando = false; } }
+        } else {
+            const nuovo = b.classList.contains('on') ? 'off' : 'on';
+            fetch('/api/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: gid, state: nuovo }) })
+                .then(r => window.gmEsitoToggle(r)).catch(() => {});
+        }
+        const on = card ? card.classList.contains('state-on') : !b.classList.contains('on');
+        b._tocco = Date.now(); b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+        const ico2 = document.getElementById('gm-ico'); if (ico2) ico2.classList.toggle('acceso', on);
+        // le righe seguono subito (ottimistico): ogni membro comandabile nello stato chiesto
+        const d = dati[gid];
+        if (d && window.whStatiUltimi) d.membri.forEach(m => {
+            const s = window.whStatiUltimi[m.entity_id];
+            if (s && m.comandabile && !(s.attributes || {}).offline && m.domain !== 'cover') s.state = on ? 'on' : 'off';
+        });
+        aggiornaAperti();
+    };
+    window.gmModifica = function () {
+        const gid = gmGid || (document.getElementById('luce-membri') || {}).dataset && document.getElementById('luce-membri').dataset.gid;
+        if (gid && window.geApri) window.geApri(gid);
+    };
+    function segnaErrore(id) {
+        erroriRiga[id] = Date.now() + 4000;
+        aggiornaAperti();
+        setTimeout(aggiornaAperti, 4100);
+    }
+    // comandi sulle righe: sempre sul MEMBRO
+    const barraT = {};
+    document.addEventListener('click', async (e) => {
+        const riga = e.target.closest && e.target.closest('.gm-lista .gm-riga[data-id]'); if (!riga) return;
+        e.stopPropagation();
+        const id = riga.dataset.id, dom = riga.dataset.dom;
+        if (riga.classList.contains('gm-off')) { if (typeof hkToast === 'function') hkToast(T('Il dispositivo non risponde')); return; }
+        if (riga.classList.contains('gm-sola')) return;      // sensore: si legge e basta
+        const tasto = e.target.closest('.gm-tasti button');
+        if (tasto) {
+            riga._tocco = Date.now();
+            try {
+                const r = await fetch('/api/cover_control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: id, action: tasto.dataset.az }) });
+                if (!r.ok) segnaErrore(id);
+            } catch (err) { segnaErrore(id); }
+            return;
+        }
+        const int = e.target.closest('.gm-int');
+        if (!int) return;
+        const nuovo = int.classList.contains('on') ? 'off' : 'on';
+        riga._tocco = Date.now();
+        int.classList.toggle('on', nuovo === 'on'); int.setAttribute('aria-checked', nuovo === 'on' ? 'true' : 'false');
+        riga.classList.toggle('acceso', nuovo === 'on');
+        const s = window.whStatiUltimi && window.whStatiUltimi[id]; if (s) s.state = nuovo;
+        const st = riga.querySelector('.gm-stato'); if (st) st.textContent = nuovo === 'on' ? T('Acceso') : T('Spento');
+        if (window.pendingEntities) window.pendingEntities.set(id, Date.now());
+        if (window.comandoToccoParte) window.comandoToccoParte(id);
+        let ok = false;
+        try {
+            const r = await fetch('/api/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: id, state: nuovo }) });
+            const d = await r.json().catch(() => ({}));
+            ok = r.ok && d.status !== 'error';
+        } catch (err) {}
+        if (window.comandoToccoArrivato) window.comandoToccoArrivato(id);
+        if (!ok) {
+            if (s) s.state = nuovo === 'on' ? 'off' : 'on';           // torna allo stato vero
+            riga._tocco = 0;
+            if (window.pendingEntities) window.pendingEntities.delete(id);
+            segnaErrore(id);
+        }
+    }, true);
+    // barretta della luminosita': stesso ritardo di luceInvia (380 ms)
+    document.addEventListener('input', (e) => {
+        const b = e.target.closest && e.target.closest('.gm-lista .gm-barra'); if (!b) return;
+        const riga = b.closest('.gm-riga'); const id = riga.dataset.id;
+        riga._tocco = Date.now();
+        const v = parseInt(b.value, 10) || 1;
+        const st = riga.querySelector('.gm-stato'); if (st) st.textContent = T('Acceso') + ' ' + v + '%';
+        clearTimeout(barraT[id]);
+        if (window.pendingEntities) window.pendingEntities.set(id, Date.now());
+        barraT[id] = setTimeout(async () => {
+            if (window.comandoToccoParte) window.comandoToccoParte(id);
+            let ok = false;
+            try {
+                const r = await fetch('/api/light_control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity_id: id, brightness: Math.round(v * 255 / 100) }) });
+                ok = r.ok;
+            } catch (err) {}
+            if (window.comandoToccoArrivato) window.comandoToccoArrivato(id);
+            const s = window.whStatiUltimi && window.whStatiUltimi[id];
+            if (ok && s) { s.attributes = Object.assign({}, s.attributes, { brightness: Math.round(v * 255 / 100) }); }
+            if (!ok) segnaErrore(id);
+        }, 380);
+    }, true);
+    ['pointerdown', 'click'].forEach(ev => document.addEventListener(ev, (e) => {
+        if (e.target.closest && e.target.closest('.gm-barra')) e.stopPropagation();
+    }, true));
+
+    // ---------------------------------------------------------------- foglio di modifica (amministratore)
+    // stessa ricerca della dashboard: ogni parola cercata deve esserci (nome, stanza, tipo, id), chip per tipo,
+    // "Solo selezionati". Le voci filtrate si nascondono, le spunte restano.
+    const GS_PAROLE = { light: 'luce luci light lights lampada', switch: 'interruttore presa prese switch plug', input_boolean: 'interruttore switch',
+        cover: 'tapparella tapparelle tenda cover shutter blind', climate: 'clima termostato climate thermostat', fan: 'ventilatore fan',
+        media_player: 'media cassa tv speaker player' };
+    const GS_CHIP = [['tutti', 'Tutti', null], ['luci', 'Luci', d => d === 'light'], ['prese', 'Prese e interruttori', d => d === 'switch' || d === 'input_boolean'],
+        ['tapparelle', 'Tapparelle', d => d === 'cover'], ['clima', 'Clima', d => d === 'climate' || d === 'fan'],
+        ['altro', 'Altro', d => ['light', 'switch', 'input_boolean', 'cover', 'climate', 'fan'].indexOf(d) < 0]];
+    const VIETATI = ['camera', 'image', 'sensor', 'binary_sensor', 'weather', 'group', 'allarme', 'scene'];
+    // [SERRATURE] serrature, allarmi, garage, cancelli, valvole del gas (v.sicurezza dal server): mai offerti;
+    // in un gruppo vecchio restano spuntati con "Non si comanda dal gruppo" e la nota
+    // [SICUREZZA2] anche i pulsanti (button, input_button: possono essere apricancelli). Avvisi del server dopo
+    // un comando di gruppo (tradotti con T): 'Dispositivo non riconosciuto, non comandato'
+    const SICUREZZA = ['lock', 'alarm_control_panel', 'button', 'input_button'];
+    // filtro puro: [ids da mostrare]. lista: [{id, dom, cerca}], scelti: Set
+    function gsFiltra(lista, testo, chip, soloSel, scelti) {
+        const parole = norm(testo).split(/\s+/).filter(Boolean);
+        const f = (GS_CHIP.find(c => c[0] === chip) || GS_CHIP[0])[2];
+        return lista.filter(v => (!f || f(v.dom)) && (!soloSel || scelti.has(v.id)) && parole.every(p => v.cerca.indexOf(p) >= 0)).map(v => v.id);
+    }
+    window.gsFiltra = gsFiltra;
+    const ge = { gid: null, voci: [], chip: 'tutti', modo: 'switch', manuale: false, prima: null };
+    function geEl(id) { return document.getElementById(id); }
+    function geApriFoglio() {
+        const m = geEl('group-edit-modal');
+        const imp = document.getElementById('imp-pagina');
+        document.querySelectorAll('.bottom-modal.active').forEach(x => { if (x !== m) x.classList.remove('active'); });
+        document.getElementById('modal-overlay').classList.add('active');
+        document.getElementById('modal-overlay').classList.toggle('sopra-impostazioni', !!(imp && imp.classList.contains('aperta')));
+        m.classList.add('active');
+        document.getElementById('app-wrapper').classList.add('modal-active');
+    }
+    window.geAnnulla = function () { closeAllModals(); };
+    window.geElenco = async function () {
+        geEl('ge-titolo').textContent = T('Gruppi');
+        geEl('ge-elenco').hidden = false; geEl('ge-modulo').hidden = true; geEl('ge-salva').hidden = true;
+        geApriFoglio();
+        const box = geEl('ge-gruppi');
+        box.innerHTML = scheletro();
+        let gruppi = [];
+        try { const r = await fetch('/api/groups'); if (r.ok) gruppi = await r.json(); } catch (e) {}
+        box.innerHTML = gruppi.length ? gruppi.map(g => '<button type="button" class="ge-gruppo" data-gid="' + esc(g.group_id) + '">'
+            + '<span class="gm-ico">' + svg(g.mode === 'light' ? 'lightbulb' : 'layers') + '</span>'
+            + '<span class="gm-testo"><span class="gm-nome" data-no-tr>' + esc(g.name) + '</span><span class="gm-stato" data-no-tr>'
+            + esc(g.entities.length + ' ' + T('dispositivi') + ' · ' + T(g.mode === 'light' ? 'Luce' : 'Interruttore')) + '</span></span>'
+            + svg('chevron-right') + '</button>').join('') : '<div class="gm-vuoto"><span>' + esc(T('Nessun gruppo')) + '</span></div>';
+    };
+    document.addEventListener('click', (e) => {
+        const b = e.target.closest && e.target.closest('#ge-gruppi .ge-gruppo'); if (!b) return;
+        window.geApri(b.dataset.gid);
+    });
+    window.geApri = async function (gid) {
+        if (!GM_ADMIN) return;
+        ge.gid = gid || null; ge.chip = 'tutti'; ge.manuale = !!gid; ge.prima = null;
+        geEl('ge-titolo').textContent = T(gid ? 'Modifica gruppo' : 'Nuovo gruppo');
+        geEl('ge-elenco').hidden = true; geEl('ge-modulo').hidden = false; geEl('ge-salva').hidden = false;
+        geEl('ge-elimina').hidden = !gid;
+        geEl('ge-nome').value = ''; geEl('ge-cerca').value = ''; geEl('ge-solo').checked = false;
+        geErrore('');
+        geEl('ge-lista').innerHTML = scheletro();
+        geApriFoglio();
+        let ent = [], g = null;
+        try {
+            const [r1, r2] = await Promise.all([fetch('/api/entities_for_automations'), gid ? fetch('/api/groups?id=' + encodeURIComponent(gid)) : Promise.resolve(null)]);
+            if (r1 && r1.ok) ent = await r1.json();
+            if (r2 && r2.ok) g = await r2.json();
+        } catch (e) {}
+        if (gid && !g) { geErrore(T('Gruppo non trovato')); geEl('ge-lista').innerHTML = ''; return; }
+        ge.prima = g;
+        const membri = g ? g.entities : [];
+        const scelti = new Set(membri);
+        const visti = new Set();
+        const voci = [];
+        ent.forEach(v => {
+            const id = v.entity_id, dom = v.domain || id.split('.')[0];
+            if (visti.has(id) || v.rimosso) return;
+            const sic = v.sicurezza || (SICUREZZA.indexOf(dom) >= 0 ? 'sicurezza' : '');
+            if ((VIETATI.indexOf(dom) >= 0 || sic || id.indexOf('virtual_timer') >= 0 || id.indexOf('allarme.') === 0) && !scelti.has(id)) return;
+            visti.add(id);
+            voci.push({ id, dom, nome: v.name || id, stanza: v.stanza || '', stato: v.stato, offline: !!v.offline, brightness: v.brightness, presente: true, sic,
+                        cerca: norm([v.name, id, dom, v.stanza || '', GS_PAROLE[dom] || ''].join(' ')) });
+        });
+        membri.forEach(id => {
+            if (visti.has(id)) return;
+            visti.add(id);
+            const dom = id.split('.')[0];
+            const sicG = (g && Array.isArray(g.sicurezza) && g.sicurezza.indexOf(id) >= 0) || SICUREZZA.indexOf(dom) >= 0;
+            voci.push({ id, dom, nome: id, stanza: '', presente: false, sic: sicG ? (dom === 'lock' ? 'serratura' : 'sicurezza') : '',
+                        cerca: norm([id, dom, GS_PAROLE[dom] || ''].join(' ')) });
+        });
+        const coll = new Intl.Collator('it', { sensitivity: 'base' });
+        voci.sort((a, b) => (a.presente === b.presente ? 0 : a.presente ? 1 : -1) || (scelti.has(a.id) === scelti.has(b.id) ? 0 : scelti.has(a.id) ? -1 : 1)
+            || (!a.stanza - !b.stanza) || coll.compare(a.stanza, b.stanza) || coll.compare(a.nome, b.nome));
+        ge.voci = voci;
+        geEl('ge-nome').value = g ? g.name : '';
+        ge.modo = g && g.mode === 'light' ? 'light' : 'switch';
+        geEl('ge-lista').innerHTML = voci.map(v => {
+            const aperto = ['on', 'open', 'playing'].indexOf(String(v.stato)) >= 0;
+            const stato = v.sic ? T('Non si comanda dal gruppo') : !v.presente ? T('Non disponibile') : v.offline ? T('Offline')
+                : v.dom === 'cover' ? (v.stato === undefined ? '' : T(aperto || v.stato === 'opening' ? 'Aperta' : 'Chiusa'))
+                : (aperto ? T('Acceso') + (typeof v.brightness === 'number' ? ' ' + Math.round(v.brightness / 255 * 100) + '%' : '')
+                : (v.stato === undefined ? '' : T('Spento')));
+            return '<label class="ge-voce' + (v.presente ? '' : ' ge-assente') + (v.sic ? ' ge-sicura' : '') + '" data-id="' + esc(v.id) + '" data-sicura="' + esc(v.sic || '') + '" title="' + esc(v.id) + '">'
+                + '<input type="checkbox" value="' + esc(v.id) + '"' + (scelti.has(v.id) ? ' checked' : '') + '>'
+                + '<span class="gm-ico">' + svg(v.sic ? 'lock' : (v.presente ? (ICONE[v.dom] || 'cpu') : 'alert-triangle')) + '</span>'
+                + '<span class="gm-testo"><span class="gm-nome" data-no-tr>' + esc(v.nome) + '</span>'
+                + '<span class="gm-stato" data-no-tr>' + esc([v.stanza, stato].filter(Boolean).join(' · ')) + '</span></span></label>';
+        }).join('');
+        geEl('ge-chips').innerHTML = GS_CHIP.map(([k, t, f]) => {
+            const n = f ? voci.filter(v => f(v.dom)).length : voci.length;
+            return '<button type="button" class="ge-chip' + (k === ge.chip ? ' attiva' : '') + '" data-chip="' + k + '"' + (n || !f ? '' : ' hidden') + '><span>' + esc(T(t)) + '</span><b>' + n + '</b></button>';
+        }).join('');
+        geModo(ge.modo, false);
+        geFiltra();
+        geAggiorna();
+    };
+    document.addEventListener('click', (e) => {
+        const c = e.target.closest && e.target.closest('#ge-chips .ge-chip'); if (!c) return;
+        ge.chip = c.dataset.chip;
+        document.querySelectorAll('#ge-chips .ge-chip').forEach(x => x.classList.toggle('attiva', x === c));
+        geFiltra();
+    });
+    function scelti() { return new Set(Array.from(document.querySelectorAll('#ge-lista input:checked')).map(c => c.value)); }
+    window.geFiltra = function () {
+        const testo = geEl('ge-cerca').value;
+        const ok = new Set(gsFiltra(ge.voci, testo, ge.chip, geEl('ge-solo').checked, scelti()));
+        let n = 0;
+        document.querySelectorAll('#ge-lista .ge-voce').forEach(v => { const si = ok.has(v.dataset.id); v.classList.toggle('gs-nascosta', !si); if (si) n++; });
+        geEl('ge-x').hidden = !testo;
+        const vuoto = geEl('ge-vuoto');
+        vuoto.hidden = n > 0 || !ge.voci.length;
+        geEl('ge-vuoto-q').textContent = testo.trim();
+        geEl('ge-vuoto-a').hidden = !testo.trim(); geEl('ge-vuoto-b').hidden = !!testo.trim();
+    };
+    window.geSvuota = function () { geEl('ge-cerca').value = ''; window.geFiltra(); geEl('ge-cerca').focus(); };
+    window.geTasto = function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+        if (e.key === 'Escape' && e.target.value) { e.preventDefault(); e.stopPropagation(); window.geSvuota(); }
+    };
+    function geModo(m, manuale) {
+        ge.modo = m;
+        if (manuale) ge.manuale = true;
+        document.querySelectorAll('#ge-seg button').forEach(b => { b.classList.toggle('attiva', b.dataset.mode === m); b.setAttribute('aria-pressed', b.dataset.mode === m ? 'true' : 'false'); });
+        geEl('ge-spiega').textContent = T(m === 'light' ? 'Con luminosità e colore quando i membri li supportano' : 'Accende e spegne tutto insieme');
+        if (manuale) geAggiorna();
+    }
+    window.geModo = geModo;
+    function geErrore(t) { const e = geEl('ge-errore'); e.textContent = t || ''; e.hidden = !t; }
+    window.geAggiorna = function () {
+        const sel = Array.from(document.querySelectorAll('#ge-lista input:checked'));
+        geEl('ge-conta').textContent = sel.length;
+        const luci = sel.filter(c => c.value.split('.')[0] === 'light').length;
+        if (!ge.manuale) geModo(sel.length && luci === sel.length ? 'light' : 'switch', false);
+        geEl('ge-nota-luce').hidden = !(ge.modo === 'light' && sel.length && !luci);
+        // [SERRATURE] gruppo vecchio con una serratura (o garage, cancello, allarme): il gruppo la salta
+        const sicure = sel.map(c => c.closest('.ge-voce').dataset.sicura).filter(Boolean);
+        const notaS = geEl('ge-nota-sicurezza');
+        notaS.hidden = !sicure.length;
+        notaS.textContent = T(sicure.some(s => s !== 'serratura') ? 'Serrature, garage, cancelli e allarmi non si comandano dai gruppi' : 'Le serrature non si comandano dai gruppi');
+        geEl('ge-salva').disabled = !geEl('ge-nome').value.trim() || !sel.length;
+        if (geEl('ge-solo').checked) window.geFiltra();
+    };
+    window.geSalva = async function () {
+        const nome = geEl('ge-nome').value.trim();
+        const membri = Array.from(document.querySelectorAll('#ge-lista input:checked')).map(c => c.value);   // anche le voci nascoste
+        if (!nome || !membri.length) return;
+        const corpo = { name: nome, entities: membri, mode: ge.modo };
+        if (ge.gid) corpo.group_id = ge.gid;
+        geEl('ge-salva').disabled = true;
+        let r = null, d = {};
+        try {
+            r = await fetch('/api/groups', { method: ge.gid ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+            d = await r.json().catch(() => ({}));
+        } catch (e) {}
+        if (r && r.ok && d.status === 'success') { location.reload(); return; }
+        geEl('ge-salva').disabled = false;
+        let msg = (d && d.message) || 'Salvataggio non riuscito';
+        const m = /^(Questo dispositivo non può far parte di un gruppo|Dispositivo non riconosciuto, riprova quando è raggiungibile): (.*)$/.exec(msg);
+        geErrore(m ? T(m[1]) + ': ' + m[2] : T(msg));
+        geEl('ge-corpo').scrollTop = 0;
+    };
+    window.geElimina = async function () {
+        const g = ge.prima; if (!g) return;
+        const aut = (g.usi && g.usi.automazioni) || [];
+        let testo = T('Elimina gruppo') + ' «' + g.name + '»?';
+        if (aut.length) testo = '«' + g.name + '» ' + T('è usato da') + ' ' + aut.length + ' ' + T(aut.length === 1 ? 'automazione' : 'automazioni')
+            + ' (' + aut.join(', ') + '). ' + T('Le automazioni resteranno ma non potranno più comandarlo. Elimino il gruppo?');
+        if (!(await chiedi(testo, { titolo: T('Elimina gruppo'), si: T('Elimina'), pericolo: true }))) return;
+        try {
+            const r = await fetch('/api/groups', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group_id: g.group_id }) });
+            if (r.ok) { location.reload(); return; }
+        } catch (e) {}
+        geErrore(T('Eliminazione non riuscita'));
+    };
+})();
+</script>
 </body>
 </html>
