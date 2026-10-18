@@ -55,6 +55,12 @@ if ! "$PYTHON_BIN" -m pip install -r requirements.txt; then
     exit 1
 fi
 
+# 3-ter. Librerie FACOLTATIVE del ponte HomeKit (homekit.py): un errore qui NON ferma l'aggiornamento (la card
+# Apple Casa dira' "libreria non disponibile" e il resto della domotica gira come sempre)
+if [ -f requirements_homekit.txt ]; then
+    "$PYTHON_BIN" -m pip install -r requirements_homekit.txt -c requirements.txt || echo "[!] HomeKit: librerie non installate, la domotica prosegue"
+fi
+
 # 3-bis. CHE COSA GIRERA' DAVVERO
 # Python, trovando sia modulo.py sia modulo.so, carica SEMPRE il .so. Quindi un
 # .so vecchio rimasto sul disco nasconde per sempre un .py aggiornato: il codice
@@ -74,8 +80,8 @@ echo "--- Moduli che verranno caricati ---"
 CONTROLLO_ASSENTE=0
 # integrazioni del 02/10/2026: FACOLTATIVE (il rollback di una sola si fa togliendo il suo .py e il suo .so):
 # se mancano non e' un errore
-MODULI_FACOLTATIVI=" annunci tuya myhome inverter hue tplink sonoff calendari "
-for MODULO in app controllo_impianto knx_monitor smart_tv nvr rete annunci tuya myhome inverter hue tplink sonoff calendari; do
+MODULI_FACOLTATIVI=" annunci tuya myhome inverter hue tplink sonoff calendari homekit "
+for MODULO in app controllo_impianto knx_monitor smart_tv nvr rete annunci tuya myhome inverter hue tplink sonoff calendari homekit; do
     SO=$(ls "$INSTALL_DIR/$MODULO".*.so "$INSTALL_DIR/$MODULO.so" 2>/dev/null | head -1)
     PY="$INSTALL_DIR/$MODULO.py"
     if [ -n "$SO" ] && [ -f "$PY" ]; then
