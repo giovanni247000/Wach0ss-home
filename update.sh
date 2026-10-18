@@ -55,12 +55,6 @@ if ! "$PYTHON_BIN" -m pip install -r requirements.txt; then
     exit 1
 fi
 
-# 3-ter. Librerie FACOLTATIVE del ponte HomeKit (homekit.py): un errore qui NON ferma l'aggiornamento (la card
-# Apple Casa dira' "libreria non disponibile" e il resto della domotica gira come sempre)
-if [ -f requirements_homekit.txt ]; then
-    "$PYTHON_BIN" -m pip install -r requirements_homekit.txt -c requirements.txt || echo "[!] HomeKit: librerie non installate, la domotica prosegue"
-fi
-
 # 3-bis. CHE COSA GIRERA' DAVVERO
 # Python, trovando sia modulo.py sia modulo.so, carica SEMPRE il .so. Quindi un
 # .so vecchio rimasto sul disco nasconde per sempre un .py aggiornato: il codice

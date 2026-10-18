@@ -77,12 +77,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# 3-ter. Librerie FACOLTATIVE del ponte HomeKit (homekit.py): se non si installano si prosegue
-if [ -f "$INSTALL_DIR/requirements_homekit.txt" ]; then
-    "$PY_BIN" -m pip install --quiet -r "$INSTALL_DIR/requirements_homekit.txt" -c "$INSTALL_DIR/requirements.txt" >> "$PIP_LOG" 2>&1 \
-        || echo -e "\e[1;33m[!] HomeKit: librerie non installate, si potra' fare con un aggiornamento\e[0m"
-fi
-
 # 3b. Verifica decisiva: il modulo compilato si carica su QUESTA macchina?
 # Meglio accorgersene adesso, con un messaggio chiaro, che avere un servizio
 # che non parte e nessuno che capisce perche'.
