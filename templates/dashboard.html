@@ -5505,6 +5505,107 @@ async function myhCopiaRegistro(btn) {
     </div>
 {% endif %}{# [FUSIONE] fine della card degli inverter #}
 
+{% if homekit_modulo %}<!-- MODULO: HOMEKIT (homekit.py) - card con id= e API JSON proprie: non passa da /setup -->
+<style>
+        .bg-homekit { color: #FF9500; }
+        .integration-card[data-key="homekit"] [hidden] { display: none !important; }   /* hidden vince su .hkb-abbina (flex) */
+        .hkb-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 14px; }
+        .hkb-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: #F2F2F7; color: var(--text-muted); }
+        .hkb-badge.ok { background: #E4F8EA; color: #1E7B34; }
+        .hkb-badge.attesa { background: #FFF4E0; color: #A05A00; }
+        .hkb-badge.errore { background: #FDE8EA; color: #C4232F; }
+        .hkb-abbina { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+        .hkb-qr { width: 148px; height: 148px; padding: 6px; background: #FFFFFF; border: 1px solid #E5E5EA; border-radius: 14px; box-sizing: border-box; flex-shrink: 0; }
+        .hkb-qr img { width: 100%; height: 100%; display: block; }
+        .hkb-codice { font: 800 1.6rem/1.1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; font-variant-numeric: tabular-nums; margin: 4px 0 8px; color: var(--text-main); user-select: all; }
+        .hkb-abbina small, .hkb-nota { display: block; color: var(--text-muted); font-size: 0.78rem; line-height: 1.4; max-width: 360px; }
+        .hkb-valido { margin-top: 6px; font-size: 0.78rem; color: #A05A00; }
+        .hkb-scaduto { margin-top: 10px; }
+        .hkb-abbinato { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; font-size: 0.86rem; color: var(--text-main); }
+        .hkb-abbinato svg { width: 18px; height: 18px; color: #34C759; }
+        .hkb-abbinato .hkb-n { color: var(--text-muted); font-size: 0.8rem; }
+        .hkb-nota { margin-top: 8px; }
+        .hkb-stanze { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .hkb-stanze span { font-size: 0.76rem; padding: 4px 10px; border-radius: 999px; background: #FFF4E0; color: #A05A00; }
+        .hkb-vuoto { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }
+        .hkb-fuori { margin-top: 8px; font-size: 0.78rem; color: #C77800; }
+        #hkb-modale [hidden] { display: none !important; }
+        .crea-list.hkb-lista { max-height: max(140px, min(52vh, 460px, calc(100dvh - 450px))); padding: 4px; gap: 2px; }   /* 1024x768: Salva resta in vista */
+        #hkb-modale .hkb-piede { position: sticky; bottom: 0; z-index: 2; background: #FFFFFF; margin: -10px -24px -24px; padding: 10px 24px 24px; }   /* il modale scorre: Salva resta in fondo */
+        .hkb-stanza-testa { position: sticky; top: -4px; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #F9F9FB; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); cursor: pointer; }
+        .hkb-stanza-testa input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+        .hkb-stanza-n { margin-left: auto; font-variant-numeric: tabular-nums; }
+        .hkb-nd .hkb-stanza-testa { color: #C77800; cursor: default; }
+        .hkb-oltre { color: var(--danger) !important; }
+        .gs-voce.hkb-sospetto .gs-sub, .hkb-nd .gs-sub, .gs-voce.hkb-bloccata .gs-sub { color: #C77800; }
+        .gs-voce.hkb-sospetto .gs-sub, .hkb-nd .gs-sub, .gs-voce.hkb-bloccata .gs-sub { white-space: normal; max-width: 55%; line-height: 1.3; }   /* l'avviso si legge intero: va a capo */
+        .gs-voce.hkb-bloccata, .gs-voce.hkb-bloccata input { cursor: not-allowed; }   /* in attesa dei dati: non si spunta */
+        .gs-voce.hkb-bloccata:hover { background: transparent; }
+        .gs-voce.hkb-bloccata .gs-ico, .gs-voce.hkb-bloccata .gs-nome { opacity: .5; }
+        .integration-card[data-key="homekit"] .btn-sm:disabled, .integration-card[data-key="homekit"] .nvr-switch input:disabled + span { opacity: .45; cursor: not-allowed; }   /* senza libreria: si vede che sono spenti */
+        .integration-card[data-key="homekit"] .btn-sm.primary:disabled:hover { filter: none; }
+        .integration-card[data-key="homekit"] .btn-sm.danger:disabled:hover { background: transparent; }
+</style>
+<div class="integration-card" data-key="homekit">
+        <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); hkbCarica();">
+            <div class="integration-title"><i data-lucide="house-wifi"></i> Apple Casa (HomeKit)</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="setup-badge bg-homekit">HOMEKIT</div>
+                <i data-lucide="chevron-down" class="accordion-chevron" style="width:20px; height:20px;"></i>
+            </div>
+        </div>
+        <div class="integration-content">
+            <div class="cam-guide-warn" id="hkb-avviso-lib" style="display:none; margin:0 0 12px;">Libreria HAP-python non disponibile su questo server: aggiorna il sistema dalla pagina Aggiornamenti.</div>
+            <div class="nvr-stato" id="hkb-stato">
+                <div style="min-width:0;">
+                    <div class="nvr-stato-t" id="hkb-stato-t">Ponte spento</div>
+                    <div class="nvr-stato-s" id="hkb-stato-s">Attiva il ponte per comandare le entità scelte dall'app Casa di iPhone, iPad e Mac.</div>
+                </div>
+                <label class="nvr-switch" title="Attiva il ponte HomeKit"><input type="checkbox" id="hkb-attivo" onchange="hkbAttiva(this)"><span></span></label>
+            </div>
+            <div class="hkb-badges" id="hkb-badges"></div>
+
+            <div class="nvr-box" id="hkb-box-abbina">
+                <div class="nvr-box-h"><div><b>Abbinamento</b><small>Nell'app Casa tocca +, poi Aggiungi accessorio, e inquadra il codice QR.</small></div></div>
+                <div class="hkb-vuoto" id="hkb-spento">Attiva il ponte per vedere il codice.</div>
+                <div class="hkb-abbina" id="hkb-libero" hidden>
+                    <div class="hkb-qr" id="hkb-qr-box"><img id="hkb-qr" alt="Codice QR di abbinamento"></div>
+                    <div>
+                        <small>Codice di abbinamento</small>
+                        <div class="hkb-codice" id="hkb-codice" data-no-tr>---------</div>
+                        <small>Se l'iPhone avvisa che l'accessorio non è certificato, tocca Aggiungi comunque.</small>
+                        <div class="hkb-valido"><span>Il codice vale ancora per</span> <b id="hkb-minuti" data-no-tr>30</b> <span>minuti</span></div>
+                    </div>
+                </div>
+                <div class="hkb-scaduto" id="hkb-scaduto" hidden>
+                    <small class="hkb-nota">Per sicurezza il ponte accetta nuovi abbinamenti solo per 30 minuti.</small>
+                    <div class="card-actions"><button type="button" class="btn-sm primary" id="hkb-mostra" onclick="hkbMostraCodice(this)"><i data-lucide="qr-code"></i> Mostra codice</button></div>
+                </div>
+                <div class="hkb-abbinato" id="hkb-abbinato" hidden><i data-lucide="circle-check"></i> <span>Abbinato ad Apple Casa</span> <span class="hkb-n"><span>Abbinamenti:</span> <b id="hkb-n-abb" data-no-tr>1</b></span></div>
+                <small class="hkb-nota">Se hai tolto il ponte dall'app Casa mentre il server era spento, premi Ripristina abbinamento.</small>
+                <div class="card-actions"><button type="button" class="btn-sm danger" id="hkb-ripristina" onclick="hkbRipristina(this)"><i data-lucide="rotate-ccw"></i> Ripristina abbinamento</button></div>
+            </div>
+
+            <div class="nvr-box">
+                <div class="nvr-box-h"><div><b>Entità in Apple Casa</b><small>Solo le entità delle stanze, scelte una per una.</small></div><span class="cam-badge-ok"><span id="hkb-conta-card" data-no-tr>0/149</span></span></div>
+                <div class="hkb-stanze" id="hkb-riepilogo" data-no-tr></div>
+                <div class="hkb-vuoto" id="hkb-nessuna">Nessuna entità collegata</div>
+                <div class="hkb-vuoto" id="hkb-scelte-ferme" hidden><span>Entità scelte:</span> <b id="hkb-scelte-n" data-no-tr>0</b>. <span>Entrano in Apple Casa quando il ponte è in funzione.</span></div>
+                <div class="hkb-fuori" id="hkb-fuori" hidden><span>Scelte che non si possono collegare ora:</span> <b id="hkb-fuori-n" data-no-tr>0</b></div>
+                <div class="hkb-fuori" id="hkb-attesa" hidden><span>In Apple Casa senza risposta:</span> <b id="hkb-attesa-n" data-no-tr>0</b></div>
+                <div class="card-actions"><button type="button" class="btn-sm primary" id="hkb-scegli" onclick="hkbApriScelta()"><i data-lucide="list-checks"></i> Scegli le entità</button></div>
+            </div>
+
+            <div class="cam-guide-warn">Per usare Apple Casa fuori casa e per le sue automazioni serve un hub domestico: Apple TV o HomePod.</div>
+            <div class="cam-guide-warn">Le stanze si assegnano nell'app Casa: le entità nuove arrivano nella stanza del ponte.</div>
+            <div class="cam-guide-warn">Serrature, cancelli, garage, allarme e le sue uscite (sirene, prese, scene), valvole e pulsanti non si collegano mai ad Apple Casa, nemmeno attraverso scene, gruppi o automazioni di Wach0ss.</div>
+            <div class="cam-guide-warn">Non collegare interruttori che aprono porte o cancelli o comandano allarme o gas, nemmeno attraverso automazioni di Home Assistant (Wach0ss non le vede): Apple Casa li tratterebbe come luci.</div>
+            <div class="cam-guide-warn">Chiunque abbia accesso alla tua casa in Apple Casa comanda le entità collegate, anche da fuori casa.</div>
+            <div class="cam-msg" id="hkb-msg"></div>
+        </div>
+</div>
+
+{# [HOMEKIT] fine della card: endif con '-' (senza il modulo la pagina resta identica byte per byte) #}{% endif -%}
 {% if calendari_modulo %}<!-- MODULO: CALENDARI (calendari.py) - card con id= e API JSON proprie: non passa da /setup -->
 <style>
         .bg-calendari { color: #FF375F; }
@@ -5674,6 +5775,33 @@ async function myhCopiaRegistro(btn) {
 
 {% endif %}</div> </form>
 
+{% if homekit_modulo %}<!-- MODULO: HOMEKIT - scelta delle entita' (fuori dal form, dentro il takeover come lo Store) -->
+<div class="modal-overlay" id="hkb-modale" onclick="hkbChiudiScelta(event)">
+    <div class="icon-modal-content crea-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Entità in Apple Casa" style="max-width: 600px;">
+        <button type="button" class="modal-close" onclick="hkbChiudiScelta(event)" title="Chiudi"><i data-lucide="x"></i></button>
+        <div class="crea-head">
+            <div class="crea-head-ico" style="background:#FFF4E0; color:#FF9500;"><i data-lucide="house-wifi"></i></div>
+            <div><h3>Entità in Apple Casa</h3><p>Scegli quali entità delle stanze comandare dall'app Casa.</p></div>
+        </div>
+        <div class="crea-body">
+            <div class="crea-field">
+                <label for="hkb-cerca">Entità delle stanze <span class="gs-conta" id="hkb-conta"><span id="hkb-conta-n" data-no-tr>0/149</span> <span>selezionate</span></span></label>
+                <div class="crea-input-wrap gs-cerca"><i data-lucide="search"></i>
+                    <input type="search" id="hkb-cerca" autocomplete="off" enterkeyhint="search" placeholder="Cerca per nome, stanza o tipo…" oninput="hkbFiltra()" onkeydown="hkbTasto(event)">
+                    <button type="button" class="gs-x" id="hkb-cerca-x" onclick="hkbSvuota()" title="Svuota" aria-label="Svuota" hidden><i data-lucide="x"></i></button>
+                </div>
+                <div class="gs-filtri"><div class="gs-chips" id="hkb-chips"></div>
+                    <label class="gs-solo"><input type="checkbox" id="hkb-solo-sel" onchange="hkbFiltra()"><span>Solo selezionate</span></label></div>
+                <div id="hkb-lista" class="crea-list gs-lista hkb-lista" data-testo="Nessuna entità collegabile nelle stanze" onchange="hkbCambio(event)"></div>
+                <div class="gs-vuoto" id="hkb-vuoto" hidden><span id="hkb-vuoto-a"><span>Nessun dispositivo corrisponde a</span> «<span id="hkb-vuoto-q" data-no-tr></span>»</span><span id="hkb-vuoto-b">Nessun risultato</span></div>
+                <div class="gs-errore" id="hkb-errore" role="alert" hidden></div>
+            </div>
+            <div class="crea-note"><i data-lucide="lock"></i><span>Compaiono solo le entità delle stanze che Apple Casa sa comandare. Serrature, cancelli, garage, allarme e le sue uscite (sirene, prese, scene), valvole e pulsanti non ci sono, e nemmeno scene, gruppi e automazioni di Wach0ss che li comandano.</span></div>
+            <div class="hkb-piede"><button type="button" class="btn-launch btn-primary crea-submit" id="hkb-salva" onclick="hkbSalva()"><i data-lucide="check"></i> <span>Salva</span></button></div>
+        </div>
+    </div>
+</div>
+{# [HOMEKIT] fine del modale #}{% endif -%}
 <div class="modal-overlay" id="store-popup-overlay" onclick="closeStorePopup(event)">
     <div class="store-popup-content" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Store Integrazioni">
         <button class="modal-close" onclick="closeStorePopup(event)" title="Chiudi"><i data-lucide="x"></i></button>
@@ -14972,6 +15100,467 @@ openIntegrationDetail = (function (originale) {
     return function (key) {
         const r = originale.apply(this, arguments);
         if (key === 'calendari') calCarica();
+        return r;
+    };
+})(openIntegrationDetail);
+{%- endif %}
+{%- if homekit_modulo %}
+// --- [HOMEKIT] voce dello Store (categoria nuova 'Ecosistemi'), card del ponte, scelta delle entita', rimozione ---
+// Tutto qui dentro: le API vivono in homekit.py; senza il modulo questo blocco non c'e' e la pagina resta identica.
+INTEGRATIONS_CATALOG.push({ key: 'homekit', name: 'Apple Casa (HomeKit)', icon: 'house-wifi', color: '#FF9500', logo: null, category: 'Ecosistemi', desc: "Comanda dall'app Casa e con Siri le entità delle stanze che scegli tu. Serrature, cancelli, garage e allarme restano fuori.", installed: {{ 'true' if homekit_attivo else 'false' }}, removable: true });
+DETAIL_TITLES.homekit = ["Apple Casa (HomeKit)", "Ponte HomeKit: le entità delle stanze nell'app Casa."];
+STORE_CAT_ICONE['Ecosistemi'] = 'house-wifi';
+GUIDE_INTEGRAZIONI.homekit = { titolo: 'Come collegare Apple Casa', corpo: `<p>Wach0ss Home fa da ponte HomeKit: nell'app Casa compaiono solo le entità delle stanze che scegli qui.</p>
+        <ol>
+            <li>Attiva il ponte con l'interruttore.</li>
+            <li>Premi Scegli le entità e spunta quelle da comandare da Apple Casa.</li>
+            <li>Sull'iPhone apri l'app Casa, tocca + e poi Aggiungi accessorio.</li>
+            <li>Inquadra il codice QR della card, oppure tocca Altre opzioni e scrivi il codice di abbinamento.</li>
+            <li>Nell'app Casa assegna le stanze alle entità nuove.</li>
+        </ol>
+        <div class="nota">Il codice vale 30 minuti: se scade, premi Mostra codice. Dal telefono lo trovi in Impostazioni, alla riga Apple Casa.</div>
+        <div class="nota">Il server e l'iPhone devono stare nella stessa rete. Se il server ha un firewall, apri la porta del ponte (TCP) e la 5353 (UDP).</div>
+        <div class="nota">Se usi anche il ponte HomeKit di Home Assistant, non collegare le stesse entità da tutti e due: in Casa comparirebbero due volte.</div>
+        <div class="nota">Se cambi il server, il ponte va abbinato di nuovo e le stanze in Casa vanno rimesse: il backup non porta con sé l'abbinamento.</div>` };
+let HKB_MAX = 149;          // let (non const): la prova U4 lo abbassa
+const HKB_TIPI = { luce: 'Luce', interruttore: 'Interruttore', presa: 'Presa', ventilatore: 'Ventilatore', scena: 'Scena',
+    tapparella: 'Tapparella', termostato: 'Termostato', temperatura: 'Sensore di temperatura', umidita: 'Sensore di umidità',
+    luminosita: 'Sensore di luminosità', contatto: 'Sensore porta o finestra', movimento: 'Sensore di movimento',
+    presenza: 'Sensore di presenza', perdita: 'Sensore di allagamento', fumo: 'Sensore di fumo', monossido: 'Sensore di monossido',
+    gruppo: 'Gruppo', gruppo_luce: 'Gruppo di luci' };
+const HKB_MOTIVI = { sicurezza: 'Dispositivo di sicurezza: non si collega', sconosciuto: 'Dispositivo non riconosciuto: non si collega',
+    stanza: 'Non è in una stanza', compatibile: 'Apple Casa non sa comandarlo', raggiungibile: 'Non raggiungibile: riprova quando risponde',
+    gruppo: 'Gruppo di Home Assistant o con dispositivi non ammessi: non si collega',
+    scena: 'Scena di Home Assistant o con dispositivi non ammessi: non si collega',
+    automazione: "Avvia un'automazione che comanda dispositivi di sicurezza: non si collega",
+    id: 'Identificativo non valido', limite: 'Oltre il limite di 149 entità', attesa: 'In attesa dei dati del dispositivo' };
+const HKB_CHIP = [['tutti', 'Tutti'], ['luci', 'Luci'], ['prese', 'Prese e interruttori'], ['tapparelle', 'Tapparelle'],
+    ['clima', 'Clima'], ['sensori', 'Sensori'], ['altro', 'Altro']];
+// Stato della pagina: l'ultimo /stato disegnato, il polling, le scelte all'apertura del modale (il salvataggio manda
+// solo le DIFFERENZE: aggiungi/togli) e i nomi per i messaggi (anche delle scelte non disponibili).
+let hkbStato = null;
+let hkbPoll = null;
+let hkbSeguiFino = 0;       // dopo un'azione il polling continua comunque per 20 s: la risposta puo' arrivare prima che il governatore la prenda
+let hkbChip = 'tutti';
+let hkbIniziali = new Set();
+let hkbNomi = {};
+function hkbEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function hkbT(x) { return window.WH_T ? window.WH_T(x) : x; }
+function hkbVisibile() {
+    // la card si vede: dettaglio aperto (le altre card del dettaglio sono display:none) e pannello integrazioni aperto
+    const c = document.querySelector('.integration-card[data-key="homekit"]');
+    const pannello = document.getElementById('setup-modal');
+    return !!c && c.offsetParent !== null && (!pannello || pannello.classList.contains('active'));
+}
+function hkbJson(corpo) { return { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo || {}) }; }
+async function hkbFetch(url, opz) {
+    const r = await fetch(url, Object.assign({ credentials: 'same-origin', cache: 'no-store' }, opz || {}));
+    let d = null;
+    try { d = await r.json(); } catch (e) { d = null; }
+    if (!r.ok || !d || d.status !== 'success') {
+        // il server manda il messaggio gia' tradotto; 'error' e' la forma di login_required/admin_required
+        const err = new Error((d && (d.message || d.error)) || hkbT('Errore'));
+        err.status = r.status;
+        err.dati = d || {};
+        throw err;
+    }
+    return d;
+}
+function hkbMsg(testo, errore) {
+    const m = document.getElementById('hkb-msg');
+    if (!m) return;
+    m.textContent = testo || '';
+    m.style.display = testo ? 'block' : 'none';
+    m.style.color = errore ? 'var(--danger)' : '';
+}
+// stato da mostrare: con il ponte acceso ma il governatore che non ha ancora preso la richiesta ('fermo') e' un avvio
+function hkbStatoVisto(d) {
+    if (!d.attivo || !d.libreria) return 'fermo';
+    return (!d.stato || d.stato === 'fermo') ? 'avvio' : d.stato;
+}
+async function hkbCarica() {
+    if (!document.querySelector('.integration-card[data-key="homekit"]')) return;
+    try {
+        const d = await hkbFetch('/api/homekit/stato');
+        hkbMsg('');
+        hkbDisegna(d);
+        hkbPolling(d);
+    } catch (e) {
+        hkbMsg(hkbT('Impossibile leggere lo stato del ponte HomeKit.'), true);
+    }
+}
+function hkbPolling(d) {
+    const st = hkbStatoVisto(d);
+    const serve = hkbVisibile() && (Date.now() < hkbSeguiFino || st === 'avvio' || (d.attivo && !d.abbinato && st === 'attivo'));
+    if (serve && !hkbPoll) hkbPoll = setInterval(hkbAggiorna, 3000);
+    else if (!serve && hkbPoll) { clearInterval(hkbPoll); hkbPoll = null; }
+}
+async function hkbAggiorna() {
+    if (!hkbVisibile()) { clearInterval(hkbPoll); hkbPoll = null; return; }
+    try {
+        const d = await hkbFetch('/api/homekit/stato');
+        hkbDisegna(d);
+        hkbPolling(d);
+    } catch (e) {}
+}
+function hkbSegui() {
+    hkbSeguiFino = Date.now() + 20000;
+    setTimeout(hkbAggiorna, 1200);          // primo controllo presto: il ponte parte in un secondo circa
+}
+function hkbDisegna(d) {
+    const el = (id) => document.getElementById(id);
+    const card = document.querySelector('.integration-card[data-key="homekit"]');
+    if (!card || !el('hkb-stato')) return;
+    hkbStato = d;
+    const lib = !!d.libreria, st = hkbStatoVisto(d), troppi = st === 'scaduto' && !!d.tentativi;
+    // stato del ponte e interruttore (senza libreria si puo' solo spegnere)
+    el('hkb-avviso-lib').style.display = lib ? 'none' : 'block';
+    el('hkb-attivo').checked = !!d.attivo;
+    el('hkb-attivo').disabled = !lib && !d.attivo;
+    el('hkb-stato').classList.toggle('on', st === 'attivo');
+    el('hkb-stato').classList.toggle('problema', st === 'errore');
+    el('hkb-stato-t').textContent = hkbT(troppi ? 'Troppi tentativi' : { fermo: 'Ponte spento', avvio: 'Ponte in avvio', attivo: 'Ponte attivo', scaduto: 'Abbinamento scaduto', errore: 'Ponte in errore' }[st] || 'Ponte in errore');
+    const sub = el('hkb-stato-s');
+    if (st === 'errore') {
+        sub.setAttribute('data-no-tr', '');                 // testo del server, gia' tradotto
+        sub.textContent = d.errore || hkbT('Il ponte non è partito: controlla il registro del server.');
+    } else {
+        sub.removeAttribute('data-no-tr');
+        sub.textContent = hkbT(st === 'avvio' ? 'Avvio del ponte HomeKit in corso…'
+            : st === 'attivo' ? (d.abbinato ? "Le entità scelte sono nell'app Casa." : "Abbina il ponte dall'app Casa con il codice qui sotto.")
+            : troppi ? 'Troppi codici sbagliati: la finestra di abbinamento si è chiusa. Premi Mostra codice per riaprirla.'
+            : st === 'scaduto' ? 'Premi Mostra codice per abbinare il ponte nei prossimi 30 minuti.'
+            : "Attiva il ponte per comandare le entità scelte dall'app Casa di iPhone, iPad e Mac.");
+    }
+    // badge
+    const b = [];
+    if (d.attivo) {
+        if (d.abbinato) b.push('<span class="hkb-badge ok"><span>' + hkbEsc(hkbT('Abbinato')) + '</span></span>');
+        else if (st === 'attivo') b.push('<span class="hkb-badge attesa"><span>' + hkbEsc(hkbT('In attesa di abbinamento')) + '</span></span>');
+        else if (troppi) b.push('<span class="hkb-badge errore"><span>' + hkbEsc(hkbT('Troppi tentativi')) + '</span></span>');
+        else if (st === 'scaduto') b.push('<span class="hkb-badge attesa"><span>' + hkbEsc(hkbT('Abbinamento scaduto')) + '</span></span>');
+        if (d.porta) b.push('<span class="hkb-badge"><span>' + hkbEsc(hkbT('Porta')) + '</span> <b data-no-tr>' + hkbEsc(d.porta) + '</b></span>');
+        if (d.giro_ms !== null && d.giro_ms !== undefined) b.push('<span class="hkb-badge"><span>' + hkbEsc(hkbT('Ciclo')) + '</span> <b data-no-tr>' + hkbEsc(Math.round(Number(d.giro_ms) || 0)) + ' ms</b></span>');
+        if (d.comandi_appesi) b.push('<span class="hkb-badge errore"><span>' + hkbEsc(hkbT('Comandi appesi')) + '</span></span>');
+        if (st === 'errore') b.push('<span class="hkb-badge errore"><span>' + hkbEsc(hkbT('Errore')) + '</span></span>');
+    }
+    el('hkb-badges').innerHTML = b.join('');
+    // abbinamento: uno solo dei quattro riquadri (spento, abbinato, scaduto, codice)
+    const vedi = !d.attivo ? 'spento' : d.abbinato ? 'abbinato' : st === 'scaduto' ? 'scaduto' : d.codice ? 'libero' : '';
+    el('hkb-spento').hidden = vedi !== 'spento';
+    el('hkb-abbinato').hidden = vedi !== 'abbinato';
+    el('hkb-scaduto').hidden = vedi !== 'scaduto';
+    el('hkb-libero').hidden = vedi !== 'libero';
+    el('hkb-n-abb').textContent = String(Number(d.n_abbinamenti) || 0);
+    if (vedi === 'libero') {
+        el('hkb-codice').textContent = d.codice;
+        el('hkb-minuti').textContent = String(Math.max(1, Math.ceil((Number(d.finestra_s) || 0) / 60)));
+        if (d.qr) {
+            if (el('hkb-qr').getAttribute('src') !== d.qr) el('hkb-qr').setAttribute('src', d.qr);
+            el('hkb-qr-box').hidden = false;
+        } else {
+            el('hkb-qr').removeAttribute('src');
+            el('hkb-qr-box').hidden = true;                 // senza segno resta solo il codice
+        }
+    } else {
+        el('hkb-codice').textContent = '---------';
+        el('hkb-qr').removeAttribute('src');
+    }
+    el('hkb-ripristina').disabled = !lib;
+    el('hkb-mostra').disabled = !lib;
+    // entita': col ponte in funzione le ESPOSTE (riepilogo per stanza, scelte fuori dal ponte, accessori senza risposta);
+    // da fermo (spento, scaduto, errore, in avvio) le SCELTE, che entrano in Casa quando il ponte gira
+    const vivo = st === 'attivo', esposte = Number(d.esposte) || 0, scelte = Number(d.scelte) || 0;
+    el('hkb-conta-card').textContent = (vivo ? esposte : scelte) + '/' + (Number(d.max) || HKB_MAX);
+    el('hkb-riepilogo').innerHTML = vivo ? (d.stanze || []).map((s) => '<span>' + hkbEsc(s.nome) + ' <b>' + (Number(s.n) || 0) + '</b></span>').join('') : '';
+    el('hkb-nessuna').hidden = vivo ? !!esposte : !!scelte;
+    el('hkb-scelte-ferme').hidden = vivo || !scelte;
+    el('hkb-scelte-n').textContent = String(scelte);
+    [['fuori', d.fuori], ['attesa', d.attesa]].forEach(([k, l]) => {
+        const lista = Array.isArray(l) ? l : [];
+        el('hkb-' + k).hidden = !lista.length;
+        el('hkb-' + k + '-n').textContent = String(lista.length);
+        el('hkb-' + k + '-n').title = lista.map((x) => x.nome || x.id).join(', ');
+    });
+    if (window.lucide) lucide.createIcons({ root: card });
+}
+async function hkbAttiva(cb) {
+    const on = cb.checked;
+    cb.disabled = true;
+    try {
+        const d = await hkbFetch('/api/homekit/config', hkbJson({ attivo: on }));
+        hkbSegui();
+        hkbDisegna(d);
+        hkbPolling(d);
+        const item = INTEGRATIONS_CATALOG.find((i) => i.key === 'homekit');
+        if (item) item.installed = !!d.attivo;
+        integrationsDirty = true;
+        showToast(d.attivo ? 'Ponte HomeKit attivato' : 'Ponte HomeKit spento', 'success');
+    } catch (e) {
+        cb.checked = !on;
+        showToast(hkbEsc(e.message || 'Errore'), 'error');
+    } finally {
+        cb.disabled = !!hkbStato && !hkbStato.libreria && !hkbStato.attivo;
+    }
+}
+async function hkbMostraCodice(btn) {
+    if (btn) btn.disabled = true;
+    try {
+        const d = await hkbFetch('/api/homekit/abbinamento', hkbJson({}));
+        hkbSegui();
+        hkbDisegna(d);
+        hkbPolling(d);
+    } catch (e) {
+        showToast(hkbEsc(e.message || 'Errore'), 'error');
+    } finally {
+        if (btn) btn.disabled = !!hkbStato && !hkbStato.libreria;
+    }
+}
+async function hkbRipristina(btn) {
+    if (!await chiedi("Ripristinare l'abbinamento? Il ponte cambia identità: togli il vecchio ponte Wach0ss Home dall'app Casa e abbinalo di nuovo con il codice nuovo. Le stanze in Apple Casa andranno rimesse.", { titolo: 'Ripristina abbinamento', si: 'Ripristina abbinamento', pericolo: true, icona: 'link-2-off' })) return;
+    if (btn) btn.disabled = true;
+    try {
+        const d = await hkbFetch('/api/homekit/ripristina', hkbJson({ conferma: true }));
+        showToast('Abbinamento ripristinato', 'success');
+        hkbSegui();
+        hkbDisegna(d);
+        hkbPolling(d);
+    } catch (e) {
+        showToast(hkbEsc(e.message || 'Errore'), 'error');
+    } finally {
+        if (btn) btn.disabled = !!hkbStato && !hkbStato.libreria;
+    }
+}
+// --- scelta delle entita' (modello: il foglio dei gruppi, funzioni gs*) ---
+async function hkbApriScelta() {
+    const btn = document.getElementById('hkb-scegli');
+    if (btn) btn.disabled = true;
+    try {
+        const d = await hkbFetch('/api/homekit/entita');
+        hkbErrore('');
+        document.getElementById('hkb-cerca').value = '';
+        document.getElementById('hkb-solo-sel').checked = false;
+        hkbChip = 'tutti';
+        hkbCostruisci(d);
+        const modale = document.getElementById('hkb-modale');
+        modale.classList.add('active');
+        if (window.lucide) lucide.createIcons({ root: modale });
+        hkbFuoco();
+    } catch (e) {
+        showToast(hkbEsc(e.message || 'Errore'), 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+function hkbChiudiScelta(e) {
+    if (e) e.preventDefault();
+    document.getElementById('hkb-modale').classList.remove('active');
+}
+function hkbCostruisci(d) {
+    const nd = Array.isArray(d.non_disponibili) ? d.non_disponibili : [];
+    const stanze = Array.isArray(d.stanze) ? d.stanze : [];
+    hkbIniziali = new Set(Array.isArray(d.scelte) ? d.scelte : []);
+    hkbNomi = {};
+    const conta = {};
+    HKB_CHIP.forEach(([k]) => { conta[k] = 0; });
+    const sep = '<span> · </span>';
+    let html = '';
+    // scelte salvate che ora non si possono elencare: in testa, spuntate, si possono solo togliere (C4)
+    if (nd.length) {
+        html += '<div class="hkb-stanza hkb-nd" data-stanza="">'
+            + '<div class="hkb-stanza-testa"><span>Scelte non disponibili ora</span><span class="hkb-stanza-n" data-no-tr>' + nd.length + '</span></div>'
+            + nd.map((e) => {
+                const id = String(e.id || ''), nome = e.nome || id, motivo = hkbT(HKB_MOTIVI[e.motivo] || e.motivo || '');
+                hkbNomi[id] = nome;
+                const cerca = libNorm([nome, id, e.stanza || '', motivo].join(' '));
+                return '<label class="gs-voce gs-assente" data-chip="tutti" data-cerca="' + gsEsc(cerca) + '" title="' + gsEsc(id) + '">'
+                    + '<input type="checkbox" value="' + gsEsc(id) + '"' + (hkbIniziali.has(id) ? ' checked' : '') + '>'
+                    + '<span class="gs-ico">' + gsSvg('circle-alert') + '</span>'
+                    + '<span class="gs-nome" data-no-tr>' + gsEsc(nome) + '</span>'
+                    + '<span class="gs-sub">' + (e.stanza ? '<span data-no-tr>' + gsEsc(e.stanza) + ' · </span>' : '')
+                    + '<span>' + gsEsc(motivo) + '</span>' + sep + '<span>Togli la spunta per scollegarla</span></span></label>';
+            }).join('') + '</div>';
+    }
+    stanze.forEach((s) => {
+        const voci = Array.isArray(s.entita) ? s.entita : [];
+        if (!voci.length) return;
+        html += '<div class="hkb-stanza" data-stanza="' + gsEsc(s.nome) + '">'
+            + '<label class="hkb-stanza-testa" title="Seleziona tutta la stanza"><input type="checkbox" class="hkb-tutta">'
+            + '<span data-no-tr>' + gsEsc(s.nome) + '</span><span class="hkb-stanza-n" data-no-tr>0/' + voci.length + '</span></label>'
+            + voci.map((e) => {
+                const id = String(e.id || ''), nome = e.nome || id, dom = id.split('.')[0];
+                const etichetta = HKB_TIPI[e.tipo === 'luce' && id.indexOf('group.') === 0 ? 'gruppo_luce' : e.tipo] || e.tipo || '';
+                const chip = HKB_CHIP.some(([k]) => k === e.chip) ? e.chip : 'altro';
+                hkbNomi[id] = nome;
+                conta.tutti++;
+                if (chip !== 'tutti') conta[chip]++;
+                const cerca = libNorm([nome, id, s.nome, e.zona || '', etichetta, hkbT(etichetta), GS_PAROLE[dom] || ''].join(' '));
+                const ferma = !!e.bloccata;         // in attesa dei dati del dispositivo: si vede, non si spunta
+                return '<label class="gs-voce' + (ferma ? ' hkb-bloccata' : '') + (e.sospetto ? ' hkb-sospetto' : '') + (e.offline ? ' gs-assente' : '') + '" data-chip="' + gsEsc(chip) + '" data-cerca="' + gsEsc(cerca) + '" title="' + gsEsc(id) + '">'
+                    + '<input type="checkbox" value="' + gsEsc(id) + '"' + (hkbIniziali.has(id) ? ' checked' : '') + (ferma ? ' disabled' : '') + '>'
+                    + '<span class="gs-ico">' + gsSvg(e.icona || LIB_ICONE[dom] || 'cpu') + '</span>'
+                    + '<span class="gs-nome" data-no-tr>' + gsEsc(nome) + '</span>'
+                    + '<span class="gs-sub">' + (e.zona ? '<span data-no-tr>' + gsEsc(e.zona) + ' · </span>' : '')
+                    + '<span>' + gsEsc(etichetta) + '</span>'
+                    + (ferma ? sep + '<span>' + gsEsc(HKB_MOTIVI.attesa) + '</span>' : '')
+                    + (e.offline ? sep + '<span>Non raggiungibile</span>' : '')
+                    + (e.sospetto ? sep + '<span>Controlla: porte, allarme o gas</span>' : '') + '</span></label>';
+            }).join('') + '</div>';
+    });
+    document.getElementById('hkb-lista').innerHTML = html;
+    // chip per tipo col numero di voci (quelli a zero non si vedono, 'Tutti' resta)
+    document.getElementById('hkb-chips').innerHTML = HKB_CHIP.map(([k, t]) => {
+        const n = conta[k] || 0;
+        return '<button type="button" class="gs-chip' + (k === hkbChip ? ' active' : '') + '" data-chip="' + k + '"' + (n || k === 'tutti' ? '' : ' hidden')
+            + ' onclick="hkbScegliChip(\'' + k + '\')"><span>' + t + '</span><b>' + n + '</b></button>';
+    }).join('');
+    hkbFiltra();
+    hkbAggiornaConta();
+}
+function hkbScegliChip(k) {
+    hkbChip = k;
+    document.querySelectorAll('#hkb-chips .gs-chip').forEach((c) => c.classList.toggle('active', c.dataset.chip === k));
+    hkbFiltra();
+}
+// le voci filtrate si NASCONDONO (gs-nascosta) e restano spuntate; le scelte non disponibili restano sempre visibili
+function hkbFiltra() {
+    const campo = document.getElementById('hkb-cerca');
+    const testo = campo ? campo.value : '';
+    const parole = libNorm(testo).split(/\s+/).filter(Boolean);
+    const solo = document.getElementById('hkb-solo-sel').checked;
+    let mostrate = 0, totali = 0;
+    document.querySelectorAll('#hkb-lista .hkb-stanza:not(.hkb-nd)').forEach((s) => {
+        let qui = 0;
+        s.querySelectorAll('.gs-voce').forEach((v) => {
+            totali++;
+            const ok = (hkbChip === 'tutti' || v.dataset.chip === hkbChip) && (!solo || v.querySelector('input').checked)
+                && parole.every((p) => v.dataset.cerca.indexOf(p) >= 0);
+            v.classList.toggle('gs-nascosta', !ok);
+            if (ok) qui++;
+        });
+        s.classList.toggle('gs-nascosta', !qui);
+        mostrate += qui;
+    });
+    const nd = !!document.querySelector('#hkb-lista .hkb-nd');
+    document.getElementById('hkb-cerca-x').hidden = !testo;
+    document.getElementById('hkb-vuoto').hidden = mostrate > 0 || !totali;
+    document.getElementById('hkb-vuoto-q').textContent = testo.trim();
+    document.getElementById('hkb-vuoto-a').hidden = !testo.trim();
+    document.getElementById('hkb-vuoto-b').hidden = !!testo.trim();
+    document.getElementById('hkb-lista').classList.toggle('gs-tutte-nascoste', mostrate === 0 && totali > 0 && !nd);
+}
+function hkbSvuota() {
+    const c = document.getElementById('hkb-cerca');
+    c.value = '';
+    hkbFiltra();
+    c.focus();
+}
+function hkbTasto(e) {
+    if (e.key === 'Enter') { e.preventDefault(); return; }                        // Invio non invia niente
+    if (e.key === 'Escape' && e.target.value) { e.preventDefault(); e.stopPropagation(); hkbSvuota(); }
+}
+function hkbCambio(e) {
+    const t = e && e.target;
+    hkbErrore('');
+    if (t && t.classList && t.classList.contains('hkb-tutta')) {
+        // casella della stanza: spunta o toglie le voci VISIBILI della stanza, senza superare il limite
+        const voci = Array.from(t.closest('.hkb-stanza').querySelectorAll('.gs-voce:not(.gs-nascosta) input:not(:disabled)'));
+        if (t.checked) {
+            let n = hkbSpunte().size, oltre = false;
+            voci.forEach((i) => {
+                if (i.checked) return;
+                if (n >= HKB_MAX) { oltre = true; return; }
+                i.checked = true;
+                n++;
+            });
+            if (oltre) hkbErrore(hkbT('Al massimo 149 entità: togline qualcuna.'));
+        } else {
+            voci.forEach((i) => { i.checked = false; });
+        }
+    }
+    hkbAggiornaConta();
+}
+function hkbSpunte() {
+    return new Set(Array.from(document.querySelectorAll('#hkb-lista input[type="checkbox"]:checked:not(.hkb-tutta)')).map((i) => i.value));
+}
+function hkbAggiornaConta() {
+    const ora = hkbSpunte();
+    const n = ora.size;
+    document.getElementById('hkb-conta-n').textContent = n + '/' + HKB_MAX;
+    document.getElementById('hkb-conta').classList.toggle('hkb-oltre', n > HKB_MAX);
+    const uguale = n === hkbIniziali.size && Array.from(ora).every((x) => hkbIniziali.has(x));
+    document.getElementById('hkb-salva').disabled = n > HKB_MAX || uguale;
+    document.querySelectorAll('#hkb-lista .hkb-stanza:not(.hkb-nd)').forEach((s) => {
+        const tutte = Array.from(s.querySelectorAll('.gs-voce input:not(:disabled)'));   // le voci in attesa non contano
+        const sp = tutte.filter((i) => i.checked).length;
+        s.querySelector('.hkb-stanza-n').textContent = sp + '/' + tutte.length;
+        const t = s.querySelector('.hkb-tutta');
+        t.checked = tutte.length > 0 && sp === tutte.length;
+        t.indeterminate = sp > 0 && sp < tutte.length;
+    });
+    if (document.getElementById('hkb-solo-sel').checked) hkbFiltra();
+}
+function hkbErrore(testo) {
+    const e = document.getElementById('hkb-errore');
+    if (!e) return;
+    e.textContent = testo || '';
+    e.hidden = !testo;
+}
+function hkbFuoco() {
+    if (window.matchMedia && matchMedia('(pointer:fine)').matches) setTimeout(() => { const c = document.getElementById('hkb-cerca'); if (c) c.focus(); }, 60);
+}
+async function hkbSalva(conferma) {
+    const btn = document.getElementById('hkb-salva');
+    const ora = hkbSpunte();
+    if (ora.size > HKB_MAX) { hkbErrore(hkbT('Al massimo 149 entità: togline qualcuna.')); return; }
+    const aggiungi = Array.from(ora).filter((x) => !hkbIniziali.has(x));
+    const togli = Array.from(hkbIniziali).filter((x) => !ora.has(x));
+    hkbErrore('');
+    btn.disabled = true;
+    let ancora = false;
+    try {
+        await hkbFetch('/api/homekit/entita', hkbJson({ aggiungi, togli, conferma_sospetti: !!conferma }));
+        showToast('Entità salvate', 'success');
+        hkbChiudiScelta();
+        hkbSegui();                         // il ponte si riavvia 5 s dopo l'ultima modifica: la card lo segue
+        hkbCarica();
+    } catch (e) {
+        const d = e.dati || {};
+        if (d.codice === 'sospetti') {
+            // chiedi() scrive con textContent: niente hkbEsc
+            const nomi = (Array.isArray(d.sospetti) ? d.sospetti : []).map((s) => s.nome || hkbNomi[s.id] || s.id);
+            ancora = await chiedi(hkbT('Alcune entità sembrano comandare porte, cancelli, allarme o gas: Apple Casa le comanderebbe senza chiedere conferma. Collegarle lo stesso?') + ' ' + nomi.join(', '),
+                { titolo: 'Controlla prima di collegare', si: 'Collega', pericolo: true, icona: 'alert-triangle' });
+        } else if (d.codice === 'rifiutate') {
+            const elenco = (Array.isArray(d.rifiutate) ? d.rifiutate : []).map((r) => (hkbNomi[r.id] || r.id) + ': ' + hkbT(HKB_MOTIVI[r.motivo] || r.motivo || '')).join('; ');
+            hkbErrore(hkbT('Alcune entità non si possono collegare ad Apple Casa.') + ' ' + elenco);
+        } else {
+            hkbErrore(e.message || hkbT('Errore'));
+        }
+    } finally {
+        hkbAggiornaConta();
+    }
+    if (ancora) return hkbSalva(true);
+}
+// Rimozione dallo Store: popup proprio (le scelte restano salvate), poi come le altre integrazioni.
+uninstallIntegration = (function (originale) {
+    return async function (key) {
+        if (key !== 'homekit') return originale.apply(this, arguments);
+        if (!await chiedi("Rimuovere Apple Casa? Il ponte si ferma e l'abbinamento viene cancellato: togli anche il ponte Wach0ss Home dall'app Casa. Le entità scelte restano salvate.", { titolo: 'Rimuovi Apple Casa', si: 'Rimuovi', pericolo: true, icona: 'link-2-off' })) return;
+        try {
+            const r = await fetch('/api/homekit/config', { method: 'DELETE', credentials: 'same-origin' });
+            if (!r.ok) throw new Error('');
+            showToast('Integrazione rimossa', 'success');
+            setTimeout(() => { window.location.href = window.location.pathname + '?setup=open'; }, 800);
+        } catch (e) {
+            showToast('Errore durante la rimozione', 'error');
+        }
+    };
+})(uninstallIntegration);
+openIntegrationDetail = (function (originale) {
+    return function (key) {
+        const r = originale.apply(this, arguments);
+        if (key === 'homekit') hkbCarica();
         return r;
     };
 })(openIntegrationDetail);

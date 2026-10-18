@@ -6174,7 +6174,51 @@ html.wh-scala .imp-pagina {
                     <i data-lucide="chevron-right" class="imp-freccia"></i>
                 </a>
                 {% endif %}
-                <a href="{{ url_for('dashboard') }}" id="btn-goto-config" class="imp-riga" onclick="checkDesktopConfig(event)">
+{% if homekit_attivo and session.role == 'admin' %}<!-- [HOMEKIT] (homekit.py) abbinamento con Apple Casa dal telefono: la riga c'e' solo con il ponte attivo -->
+                <button type="button" class="imp-riga" id="hkb-mob-riga" onclick="hkbMobAbbina(this, event)">
+                    <span class="acc-ico c-orange"><i data-lucide="house-wifi"></i></span>
+                    <span class="imp-testo"><b>Apple Casa</b><small id="hkb-mob-sub">Tocca per vedere il codice di abbinamento</small><small class="hkb-mob-codice" id="hkb-mob-codice" data-no-tr hidden style="margin-top: 4px; font: 800 1.2rem/1.2 ui-monospace, Menlo, monospace; letter-spacing: .08em; color: inherit; -webkit-user-select: all; user-select: all;"></small></span>
+                    <i data-lucide="chevron-right" class="imp-freccia"></i>
+                    <script>
+                    /* [HOMEKIT] riapre per 30 minuti l'abbinamento e mostra il codice da scrivere nell'app Casa (Altre
+                       opzioni): dallo stesso iPhone il QR non si inquadra. Solo admin; nessun polling continuo.
+                       Lo script sta DENTRO il bottone e lo stile del codice e' in linea: un elemento fra due righe
+                       .imp-riga toglierebbe il separatore (.imp-riga + .imp-riga). */
+                    async function hkbMobAbbina(riga, ev) {
+                        const T = (x) => (window.WH_T ? window.WH_T(x) : x);
+                        const sub = document.getElementById('hkb-mob-sub'), cod = document.getElementById('hkb-mob-codice');
+                        if (ev && ev.target && ev.target.closest && ev.target.closest('#hkb-mob-codice') && !cod.hidden) return;   // tocco sul codice: lo si seleziona
+                        if (riga.dataset.occupato) return;
+                        riga.dataset.occupato = '1';
+                        sub.textContent = T('Avvio del ponte HomeKit in corso…');
+                        cod.hidden = true;
+                        try {
+                            let r = await fetch('/api/homekit/abbinamento', { method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                                headers: { 'Content-Type': 'application/json' }, body: '{}' });
+                            for (let i = 0; i < 10; i++) {
+                                const d = await r.json().catch(() => null);
+                                if (!r.ok || !d || d.status !== 'success') { sub.textContent = T('Impossibile leggere lo stato del ponte HomeKit.'); return; }
+                                if (d.abbinato) { sub.textContent = T('Abbinato ad Apple Casa'); return; }
+                                if (d.codice) {
+                                    cod.textContent = d.codice;
+                                    cod.hidden = false;
+                                    sub.textContent = T("Nell'app Casa tocca +, Aggiungi accessorio, Altre opzioni e scrivi questo codice:");
+                                    return;
+                                }
+                                if (d.stato === 'errore') { sub.textContent = d.errore || T('Il ponte non risponde: riprova tra poco.'); return; }   // errore gia' tradotto dal server
+                                await new Promise((ok) => setTimeout(ok, 1500));
+                                r = await fetch('/api/homekit/stato', { credentials: 'same-origin', cache: 'no-store' });
+                            }
+                            sub.textContent = T('Il ponte non risponde: riprova tra poco.');
+                        } catch (e) {
+                            sub.textContent = T('Impossibile leggere lo stato del ponte HomeKit.');
+                        } finally {
+                            delete riga.dataset.occupato;
+                        }
+                    }
+                    </script>
+                </button>
+{% endif %}                <a href="{{ url_for('dashboard') }}" id="btn-goto-config" class="imp-riga" onclick="checkDesktopConfig(event)">
                     <span class="acc-ico c-gray"><i data-lucide="settings-2"></i></span>
                     <span class="imp-testo"><b>Pannello di controllo</b><small>La configurazione completa, dal computer</small></span>
                     <i data-lucide="chevron-right" class="imp-freccia"></i>
