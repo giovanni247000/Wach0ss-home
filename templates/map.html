@@ -54,6 +54,14 @@ html, body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
 }
+/* Web app aggiunta alla schermata Home (iOS 26): height:100% e' lo schermo MENO la barra di stato e in fondo
+   restava una fascia vuota alta quanto la barra di stato. Con 100vh la finestra si allarga a tutto schermo;
+   body relative perche' mappa, pannello e barra del tempo (position:absolute) seguano il body e non il riquadro
+   iniziale della pagina, che resta piu' corto. Solo nella web app: Safari, l'app iOS e il computer non cambiano. */
+@media (display-mode: standalone) {
+    html, body { height: 100vh; }
+    body { position: relative; }
+}
 
 /* ================= LA MAPPA ========================================= */
 /* z-index 0: i segni sulla mappa (che hanno un loro z-index, per non coprirsi fra loro) restano sotto i pannelli */

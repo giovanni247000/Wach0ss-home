@@ -18,6 +18,11 @@
 
 :root { --blu: #0A84FF; --rosso: #FF453A; --giallo: #FFD60A; --verde: #30D158; --testo2: rgba(255,255,255,0.55); --bordo: rgba(255,255,255,0.09); --vetro: linear-gradient(180deg, rgba(255,255,255,0.075), rgba(255,255,255,0.04)); }
 html, body { margin: 0; padding: 0; background: #0B0B0F; color: #FFF; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
+/* Web app aggiunta alla schermata Home (iOS 26, barra di stato trasparente): la finestra parte alta quanto lo
+   schermo MENO la barra di stato e si allarga a tutto schermo solo se la pagina e' alta almeno 100vh. Qui tutto
+   e' position:fixed (la pagina e' alta 0): in fondo restava una fascia vuota alta quanto la barra di stato.
+   Come fa gia' /mobile (body min-height 100vh). Solo nella web app: Safari, l'app iOS e il computer non cambiano. */
+@media (display-mode: standalone) { html { min-height: 100vh; } }
 * { box-sizing: border-box; }
 button { -webkit-appearance: none; appearance: none; font-family: inherit; }
 .nvr-pagina { position: fixed; inset: 0; display: flex; flex-direction: column; background: radial-gradient(1200px 600px at 20% -10%, rgba(10,132,255,0.10), transparent 60%), #0B0B0F; color: #FFF; }
