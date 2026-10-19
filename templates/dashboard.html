@@ -352,11 +352,67 @@
         .modal-close:hover { background: #E5E5EA; }
         .modal-close svg { width: 18px; height: 18px; }
 
-        .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(46px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px; }
-        .icon-option { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); background: #F5F5F7; color: var(--text-main); cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
-        .icon-option:hover { background: #E5E5EA; } 
-        .icon-option svg { width: 22px; height: 22px; stroke-width: 1.5; } 
-        .icon-option.active-icon { border-color: var(--accent); background: #E5F1FF; color: var(--accent); }
+        /* --- SELETTORE DI ICONE (19/10/2026): ricerca, categorie, riquadri grandi col nome, «Ultime usate» e in fondo
+           tutte le icone del pacchetto. La finestra si allarga solo quando c'e' il selettore (stanza e dispositivo). --- */
+        #edit-modal .icon-modal-content.icp-largo { max-width: 720px; }
+        .icp-testa { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; min-height: 34px; }
+        .icp-etichetta { font-size: 0.85rem; font-weight: 600; color: var(--text-main); }
+        .icp-anteprima { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .icp-anteprima .icp-ico { width: 32px; height: 32px; border-radius: var(--radius-sm); background: #E5F1FF; color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .icp-anteprima svg { width: 18px; height: 18px; stroke-width: 1.75; }
+        .icp-ant-testo { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; text-align: right; }
+        .icp-ant-testo small { font-size: 0.66rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .icp-ant-testo b { font-size: 0.82rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+        .icp-ricerca { margin-bottom: 10px; }
+        .icp-ricerca .search-box { height: 40px; padding-right: 40px; font-size: 0.9rem; }
+        .icp-ricerca .icp-svuota { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; padding: 0; border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .icp-ricerca .icp-svuota[hidden] { display: none; }
+        .icp-ricerca .icp-svuota svg { position: static; transform: none; width: 16px; height: 16px; }
+        /* fila delle categorie: scorre di lato (anche con la rotella); dove continua c'e' una sfumatura con la freccia */
+        .icp-fila { position: relative; margin-bottom: 6px; }
+        .icp-fila[hidden] { display: none; }
+        .icp-chips { position: relative; display: flex; gap: 6px; overflow-x: auto; padding: 4px; margin: 0 -4px; scrollbar-width: none; overscroll-behavior-x: contain; }
+        .icp-chips::-webkit-scrollbar { display: none; }
+        .icp-freccia { position: absolute; top: 0; bottom: 0; z-index: 2; width: 52px; padding: 0; border: none; display: flex; align-items: center; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+        .icp-freccia.icp-sx { left: -4px; justify-content: flex-start; padding-left: 2px; background: linear-gradient(90deg, #FFFFFF 40%, rgba(255, 255, 255, 0)); }
+        .icp-freccia.icp-dx { right: -4px; justify-content: flex-end; padding-right: 2px; background: linear-gradient(270deg, #FFFFFF 40%, rgba(255, 255, 255, 0)); }
+        .icp-fila.a-sx .icp-sx, .icp-fila.a-dx .icp-dx { opacity: 1; pointer-events: auto; }
+        .icp-freccia span { width: 28px; height: 28px; border-radius: 50%; border: 1px solid #E5E5EA; background: #FFFFFF; color: var(--text-main); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+        .icp-freccia svg { width: 15px; height: 15px; }
+        @media (hover: hover) { .icp-freccia:hover span { background: #F2F2F7; } }
+        .icp-chip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px; border: 1px solid #E5E5EA; background: #FFFFFF; color: var(--text-main); font: inherit; font-size: 0.76rem; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s; }
+        .icp-chip svg { width: 14px; height: 14px; color: var(--text-muted); }
+        .icp-chip.attiva { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+        .icp-chip.attiva svg { color: #FFFFFF; }
+        .icp-chip.icp-indietro { color: var(--accent); border-color: #D1D1D6; font-weight: 600; }
+        .icp-chip.icp-indietro svg { color: var(--accent); }
+        .icp-scorri { position: relative; height: min(46vh, 430px); height: min(46dvh, 430px); min-height: 220px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+                      border: 1px solid #E5E5EA; border-radius: var(--radius-md); background: #FAFAFC; padding: 0 10px 12px; margin-bottom: 16px; }
+        .icp-titolo { position: sticky; top: 0; z-index: 1; display: flex; align-items: baseline; gap: 6px; margin: 0 -10px 6px; padding: 11px 12px 7px; background: #FAFAFC; box-shadow: 0 1px 0 #ECECF0;
+                      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+        .icp-titolo small { font-size: 0.66rem; font-weight: 600; letter-spacing: 0; color: #AEAEB2; }
+        .icp-griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+        .icp-tessera { min-width: 0; height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 6px; padding: 14px 4px 6px;
+                       border-radius: var(--radius-md); border: 1px solid #ECECF0; background: #FFFFFF; color: var(--text-main); font: inherit; cursor: pointer;
+                       transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s; }
+        .icp-tessera svg { width: 26px; height: 26px; stroke-width: 1.6; flex-shrink: 0; pointer-events: none; }
+        /* il nome sotto: fino a due righe, poi i puntini; l'icona resta alla stessa altezza in tutta la riga */
+        .icp-tessera span { max-width: 100%; font-size: 0.68rem; line-height: 1.2; color: var(--text-muted); text-align: center; overflow-wrap: anywhere; pointer-events: none;
+                            display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+        @media (hover: hover) { .icp-tessera:hover { background: #F2F2F7; border-color: #D8D8DD; } .icp-chip:hover:not(.attiva) { background: #F2F2F7; } }
+        .icp-tessera:focus { outline: none; }
+        .icp-tessera:focus-visible, .icp-chip:focus-visible, .icp-tutte:focus-visible, .icp-svuota:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+        .icp-tessera.icp-attuale { border-color: var(--accent); background: #E5F1FF; color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+        .icp-tessera.icp-attuale span { color: var(--accent); font-weight: 600; }
+        .icp-tessera.icp-tecnico span { font-size: 0.64rem; letter-spacing: -0.01em; }      /* fuori dall'elenco: sotto c'e' il nome lucide */
+        .icp-piede { display: flex; justify-content: center; padding: 16px 0 4px; }
+        .icp-tutte { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--radius-sm); border: 1px solid #D1D1D6; background: #FFFFFF; color: var(--accent); font: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+        .icp-tutte svg { width: 16px; height: 16px; }
+        @media (hover: hover) { .icp-tutte:hover { background: #F2F7FD; border-color: var(--accent); } }
+        .icp-vuoto { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 12px; color: var(--text-muted); font-size: 0.85rem; }
+        .icp-vuoto svg { width: 28px; height: 28px; stroke-width: 1.5; }
+        .icp-stato { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        @media (pointer: coarse) { .icp-ricerca .search-box { font-size: 16px; } }      /* sotto i 16px Safari ingrandisce la pagina */
 
         .setup-section { background: #F9F9FB; padding: 16px; border-radius: var(--radius-md); margin-bottom: 16px; border: 1px solid #E5E5EA; text-align: left; }
         .setup-section h3 { margin-top: 0; margin-bottom: 12px; font-size: 0.95rem; color: var(--text-main); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;}
@@ -2117,8 +2173,22 @@
             </div>
 
             <div id="edit-icon-section">
-                <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">Assegna Icona</label>
-                <div class="icon-grid" id="icon-grid-container" style="margin-bottom: 16px;"></div>
+                <div class="icp-testa">
+                    <div class="icp-etichetta" id="icp-titolo">Assegna Icona</div>
+                    <div class="icp-anteprima" id="icp-anteprima" data-no-tr></div>
+                </div>
+                <div class="search-icon-wrapper icp-ricerca">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="icp-cerca" class="search-box" placeholder="Cerca: lampada, lavatrice, tapparella..." aria-label="Cerca un'icona" aria-controls="icon-grid-container" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+                    <button type="button" class="icp-svuota" id="icp-svuota" title="Svuota la ricerca" aria-label="Svuota la ricerca" hidden><i data-lucide="x"></i></button>
+                </div>
+                <div class="icp-fila" id="icp-fila" data-no-tr>
+                    <button type="button" class="icp-freccia icp-sx" data-verso="-1" tabindex="-1" aria-hidden="true"></button>
+                    <div class="icp-chips" id="icp-chips" role="group" data-no-tr></div>
+                    <button type="button" class="icp-freccia icp-dx" data-verso="1" tabindex="-1" aria-hidden="true"></button>
+                </div>
+                <div class="icp-scorri" id="icon-grid-container" role="region" aria-describedby="icp-titolo" data-no-tr></div>
+                <div class="icp-stato" id="icp-stato" role="status" aria-live="polite" data-no-tr></div>
             </div>
             
             <div id="delete-confirm-box" style="display:none; background: #FFF0F0; border: 1px solid #FFDCDC; padding: 12px; border-radius: var(--radius-sm); margin-bottom: 16px;">
@@ -5545,6 +5615,30 @@ async function myhCopiaRegistro(btn) {
         .integration-card[data-key="homekit"] .btn-sm:disabled, .integration-card[data-key="homekit"] .nvr-switch input:disabled + span { opacity: .45; cursor: not-allowed; }   /* senza libreria: si vede che sono spenti */
         .integration-card[data-key="homekit"] .btn-sm.primary:disabled:hover { filter: none; }
         .integration-card[data-key="homekit"] .btn-sm.danger:disabled:hover { background: transparent; }
+        .hkb-sezione { display: flex; align-items: center; gap: 8px; margin: 12px 10px 4px; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+        .hkb-testa-gruppo { cursor: default; }
+        .hkb-apri, .hkb-nc-testa { display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 0; margin: 0; border: 0; background: transparent; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; text-align: left; cursor: pointer; }
+        .hkb-apri > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .hkb-apri svg, .hkb-nc-testa svg { width: 14px; height: 14px; flex-shrink: 0; transition: transform .15s; }
+        .hkb-chiuso > .hkb-stanza-testa .hkb-apri svg, .hkb-nc.hkb-chiuso > .hkb-nc-testa svg { transform: rotate(-90deg); }
+        .hkb-chiuso > .hkb-corpo, .hkb-nc.hkb-chiuso > .hkb-nc-corpo { display: none; }
+        .hkb-nc { margin-top: 10px; border-top: 1px solid #E5E5EA; padding-top: 4px; }
+        .hkb-nc-testa { width: 100%; padding: 10px; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+        .hkb-ncg .hkb-stanza-testa { background: #FBFBFC; }
+        .gs-voce.hkb-nc-voce { cursor: default; }
+        .gs-voce.hkb-nc-voce:hover { background: transparent; }
+        .gs-voce.hkb-nc-voce .gs-ico, .gs-voce.hkb-nc-voce .gs-nome { opacity: .55; }
+        .gs-voce.hkb-nc-voce .gs-sub { white-space: normal; max-width: 60%; line-height: 1.3; }   /* il motivo si legge intero */
+        .hkb-nascoste { margin: 10px 10px 6px; font-size: .76rem; line-height: 1.4; color: var(--text-muted); }
+        .hkb-nascoste > div + div { margin-top: 4px; }
+        @media (max-width: 560px) { .gs-voce.hkb-nc-voce .gs-sub { max-width: 52%; } }
+        .hkb-sic-testo { min-width: 0; }
+        #hkb-box-sicurezza .cam-guide-warn { margin-top: 0; }
+        #hkb-modale .gs-nome { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }   /* i nomi lunghi si leggono interi, anche accanto a un motivo lungo */
+        #hkb-modale .gs-sub { white-space: normal; line-height: 1.3; }   /* (correzione 2) niente puntini: tipo, avviso e motivo vanno a capo */
+        .hkb-carica { padding: 18px 10px; font-size: .86rem; color: var(--text-muted); }
+        .hkb-scelte-sic { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin: 6px 10px 10px; padding: 10px 12px; border-radius: 10px; background: #FFF6E5; color: #A05A00; font-size: .8rem; line-height: 1.4; }
+        .hkb-scelte-sic > span { flex: 1; min-width: 200px; }
 </style>
 <div class="integration-card" data-key="homekit">
         <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); hkbCarica();">
@@ -5587,18 +5681,25 @@ async function myhCopiaRegistro(btn) {
             </div>
 
             <div class="nvr-box">
-                <div class="nvr-box-h"><div><b>Entità in Apple Casa</b><small>Solo le entità delle stanze, scelte una per una.</small></div><span class="cam-badge-ok"><span id="hkb-conta-card" data-no-tr>0/149</span></span></div>
+                <div class="nvr-box-h"><div><b>Entità in Apple Casa</b><small>Le entità che scegli tu, una per una, fra tutte quelle dell'app.</small></div><span class="cam-badge-ok"><span id="hkb-conta-card" data-no-tr>0/149</span></span></div>
                 <div class="hkb-stanze" id="hkb-riepilogo" data-no-tr></div>
                 <div class="hkb-vuoto" id="hkb-nessuna">Nessuna entità collegata</div>
                 <div class="hkb-vuoto" id="hkb-scelte-ferme" hidden><span>Entità scelte:</span> <b id="hkb-scelte-n" data-no-tr>0</b>. <span>Entrano in Apple Casa quando il ponte è in funzione.</span></div>
                 <div class="hkb-fuori" id="hkb-fuori" hidden><span>Scelte che non si possono collegare ora:</span> <b id="hkb-fuori-n" data-no-tr>0</b></div>
                 <div class="hkb-fuori" id="hkb-attesa" hidden><span>In Apple Casa senza risposta:</span> <b id="hkb-attesa-n" data-no-tr>0</b></div>
+                <div class="hkb-fuori" id="hkb-conferma" hidden><span>Da riconfermare in «Scegli le entità» (ora sono dispositivi di sicurezza o li comandano):</span> <b id="hkb-conferma-n" data-no-tr>0</b></div>
                 <div class="card-actions"><button type="button" class="btn-sm primary" id="hkb-scegli" onclick="hkbApriScelta()"><i data-lucide="list-checks"></i> Scegli le entità</button></div>
+            </div>
+
+            <div class="nvr-box" id="hkb-box-sicurezza">
+                <div class="nvr-box-h"><div class="hkb-sic-testo"><b>Includi dispositivi di sicurezza</b><small>Serrature, garage e cancelli, allarme, valvole, sirene e pulsanti di porte, cancelli e allarme.</small></div><label class="nvr-switch" title="Includi dispositivi di sicurezza"><input type="checkbox" id="hkb-sicurezza" onchange="hkbSicurezza(this)"><span></span></label></div>
+                <div class="hkb-vuoto" id="hkb-sic-spenta">Spenta: non si collegano ad Apple Casa e non compaiono fra le entità da scegliere.</div>
+                <div class="cam-guide-warn" id="hkb-sic-accesa" hidden>Accesa: si scelgono come le altre entità, con una conferma. Apple chiede Face ID o il codice per serrature, garage e allarme, anche da Siri, ma le automazioni di Casa possono comandarli. Allarme: da Casa si inserisce (Fuori, e Notte se la modalità Notte ha i suoi sensori) e se ne vede lo stato; il disinserimento da Casa viene rifiutato, serve il PIN nell'app Wach0ss.</div>
             </div>
 
             <div class="cam-guide-warn">Per usare Apple Casa fuori casa e per le sue automazioni serve un hub domestico: Apple TV o HomePod.</div>
             <div class="cam-guide-warn">Le stanze si assegnano nell'app Casa: le entità nuove arrivano nella stanza del ponte.</div>
-            <div class="cam-guide-warn">Serrature, cancelli, garage, allarme e le sue uscite (sirene, prese, scene), valvole e pulsanti non si collegano mai ad Apple Casa, nemmeno attraverso scene, gruppi o automazioni di Wach0ss.</div>
+            <div class="cam-guide-warn">Senza «Includi dispositivi di sicurezza», serrature, cancelli, garage, allarme e sirene, valvole e i pulsanti di porte, cancelli e allarme non si collegano ad Apple Casa, nemmeno attraverso scene, gruppi o automazioni di Wach0ss.</div>
             <div class="cam-guide-warn">Non collegare interruttori che aprono porte o cancelli o comandano allarme o gas, nemmeno attraverso automazioni di Home Assistant (Wach0ss non le vede): Apple Casa li tratterebbe come luci.</div>
             <div class="cam-guide-warn">Chiunque abbia accesso alla tua casa in Apple Casa comanda le entità collegate, anche da fuori casa.</div>
             <div class="cam-msg" id="hkb-msg"></div>
@@ -5777,26 +5878,27 @@ async function myhCopiaRegistro(btn) {
 
 {% if homekit_modulo %}<!-- MODULO: HOMEKIT - scelta delle entita' (fuori dal form, dentro il takeover come lo Store) -->
 <div class="modal-overlay" id="hkb-modale" onclick="hkbChiudiScelta(event)">
-    <div class="icon-modal-content crea-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Entità in Apple Casa" style="max-width: 600px;">
+    <div class="icon-modal-content crea-modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-label="Entità in Apple Casa" style="max-width: 760px;">
         <button type="button" class="modal-close" onclick="hkbChiudiScelta(event)" title="Chiudi"><i data-lucide="x"></i></button>
         <div class="crea-head">
             <div class="crea-head-ico" style="background:#FFF4E0; color:#FF9500;"><i data-lucide="house-wifi"></i></div>
-            <div><h3>Entità in Apple Casa</h3><p>Scegli quali entità delle stanze comandare dall'app Casa.</p></div>
+            <div><h3>Entità in Apple Casa</h3><p>Scegli quali entità comandare dall'app Casa: tutte quelle dell'app, in una stanza o no.</p></div>
         </div>
         <div class="crea-body">
             <div class="crea-field">
-                <label for="hkb-cerca">Entità delle stanze <span class="gs-conta" id="hkb-conta"><span id="hkb-conta-n" data-no-tr>0/149</span> <span>selezionate</span></span></label>
+                <label for="hkb-cerca">Entità dell'app <span class="gs-conta" id="hkb-conta"><span id="hkb-conta-n" data-no-tr>0/149</span> <span>selezionate</span></span></label>
                 <div class="crea-input-wrap gs-cerca"><i data-lucide="search"></i>
-                    <input type="search" id="hkb-cerca" autocomplete="off" enterkeyhint="search" placeholder="Cerca per nome, stanza o tipo…" oninput="hkbFiltra()" onkeydown="hkbTasto(event)">
+                    <input type="search" id="hkb-cerca" autocomplete="off" enterkeyhint="search" placeholder="Cerca per nome, stanza, tipo o integrazione…" oninput="hkbCerca()" onkeydown="hkbTasto(event)">
                     <button type="button" class="gs-x" id="hkb-cerca-x" onclick="hkbSvuota()" title="Svuota" aria-label="Svuota" hidden><i data-lucide="x"></i></button>
                 </div>
                 <div class="gs-filtri"><div class="gs-chips" id="hkb-chips"></div>
                     <label class="gs-solo"><input type="checkbox" id="hkb-solo-sel" onchange="hkbFiltra()"><span>Solo selezionate</span></label></div>
-                <div id="hkb-lista" class="crea-list gs-lista hkb-lista" data-testo="Nessuna entità collegabile nelle stanze" onchange="hkbCambio(event)"></div>
+                <div id="hkb-lista" class="crea-list gs-lista hkb-lista" data-testo="Nessuna entità collegabile" onchange="hkbCambio(event)"></div>
                 <div class="gs-vuoto" id="hkb-vuoto" hidden><span id="hkb-vuoto-a"><span>Nessun dispositivo corrisponde a</span> «<span id="hkb-vuoto-q" data-no-tr></span>»</span><span id="hkb-vuoto-b">Nessun risultato</span></div>
                 <div class="gs-errore" id="hkb-errore" role="alert" hidden></div>
             </div>
-            <div class="crea-note"><i data-lucide="lock"></i><span>Compaiono solo le entità delle stanze che Apple Casa sa comandare. Serrature, cancelli, garage, allarme e le sue uscite (sirene, prese, scene), valvole e pulsanti non ci sono, e nemmeno scene, gruppi e automazioni di Wach0ss che li comandano.</span></div>
+            <div class="crea-note hkb-nota-mod" id="hkb-nota-spenta"><i data-lucide="lock"></i><span>Si spuntano le entità che Apple Casa sa comandare; le altre sono in fondo, fra le non collegabili, con il motivo. Serrature, cancelli, garage, allarme e sirene, valvole e i pulsanti di porte, cancelli e allarme si collegano solo con «Includi dispositivi di sicurezza» accesa nella card, come scene, gruppi e automazioni di Wach0ss che li comandano.</span></div>
+            <div class="crea-note hkb-nota-mod" id="hkb-nota-accesa" hidden><i data-lucide="shield-alert"></i><span>«Includi dispositivi di sicurezza» è accesa: serrature, garage e cancelli, allarme, valvole e sirene si scelgono come le altre entità, con una conferma al salvataggio. L'allarme da Casa si inserisce e se ne vede lo stato; il disinserimento vuole il PIN nell'app Wach0ss. Restano fuori i gruppi e le scene di Home Assistant che li contengono: li comanderebbero senza i comandi espliciti di Wach0ss.</span></div>
             <div class="hkb-piede"><button type="button" class="btn-launch btn-primary crea-submit" id="hkb-salva" onclick="hkbSalva()"><i data-lucide="check"></i> <span>Salva</span></button></div>
         </div>
     </div>
@@ -6992,15 +7094,924 @@ async function myhCopiaRegistro(btn) {
         }
         {% endif %}
 
-        const availableIcons = [ 'home', 'tv', 'utensils', 'bed', 'bath', 'car', 'tree-pine', 'sofa', 'lamp', 'lamp-desk', 'lightbulb', 'power', 'speaker', 'music', 'radio', 'fan', 'router', 'gamepad-2', 'shield', 'lock', 'unlock', 'thermometer', 'droplet', 'plug', 'zap', 'blinds', 'camera', 'wind', 'snowflake', 'flame', 'battery', 'smartphone', 'laptop', 'monitor', 'cpu', 'activity', 'moon', 'sun' ];
-        
-        function renderIconGridOptions() { 
-            const container = document.getElementById('icon-grid-container');
-            container.innerHTML = availableIcons.map(icon => `<div class="icon-option ${icon === selectedIcon ? 'active-icon' : ''}" onclick="selectIcon('${icon}')"><i data-lucide="${icon}"></i></div>`).join(''); 
-            lucide.createIcons({root: container});
+        // --- SELETTORE DI ICONE (19/10/2026) ---
+        // Prima: 38 icone fisse in una griglia piccola, senza nomi. Ora quasi 400 icone di lucide 1.41 (il pacchetto e'
+        // gia' in static/vendor: nessun download) scelte per la casa e divise per categorie, ricerca in italiano e in
+        // inglese (senza accenti, anche con pezzi di parola e coi plurali), «Ultime usate» in cima (solo in questo
+        // browser), l'icona attuale evidenziata e in fondo tutte le icone del pacchetto. Si salva sempre il nome lucide,
+        // come prima: /api/icons, le card della dashboard e la pagina mobile non cambiano.
+        // Ogni voce: 'nome-lucide|Etichetta|Label|parole chiave (italiano e inglese)'. Etichette e categorie sono gia'
+        // nelle due lingue qui (sono dati, non frasi dell'interfaccia: non vanno nel dizionario, dove tradurrebbero anche
+        // una stanza chiamata «Cucina»). Elenco verificato col pacchetto: nessun nome vuoto, nessun alias doppio.
+        const ICP_CATALOGO = [
+            ['luci', 'Luci', 'Lights', 'lightbulb', [
+                'lightbulb|Luce|Light|luce lampada accendi illuminazione light lamp bulb lampadine luci lights',
+                'lightbulb-off|Luce spenta|Light off|lampadina spenta spegni buio dark off',
+                'lamp|Lampada|Lamp|abat-jour lume comodino lampada da tavolo table lamp bedside',
+                'lamp-desk|Lampada scrivania|Desk lamp|studio ufficio scrivania lettura desk office reading',
+                'lamp-floor|Piantana|Floor lamp|lampada da terra stelo salotto floor standing',
+                'lamp-ceiling|Lampadario|Ceiling lamp|plafoniera soffitto pendente sospensione ceiling pendant chandelier lampadari luce',
+                'lamp-wall-up|Applique|Wall light|muro parete luce su wall sconce up',
+                'lamp-wall-down|Applique giù|Wall light down|muro parete luce giu wall sconce down',
+                'spotlight|Faretto|Spotlight|faro faretti spot incasso proiettore luce',
+                'flashlight|Torcia|Flashlight|pila emergenza torch',
+                'sun|Sole|Sun|giorno luce luminosita fotovoltaico day bright sunny',
+                'sun-dim|Luce soffusa|Dim light|dimmer bassa soffusa notturna dim low',
+                'sun-medium|Luce media|Medium light|dimmer media medium brightness',
+                'sunrise|Alba|Sunrise|mattina sveglia risveglio morning dawn',
+                'sunset|Tramonto|Sunset|sera crepuscolo evening dusk',
+                'sun-moon|Giorno e notte|Day and night|automatico crepuscolare auto day night',
+                'moon|Luna|Moon|notte sera dormire night sleep',
+                'moon-star|Notte stellata|Starry night|notte stelle buonanotte night stars',
+                'sparkles|Atmosfera|Sparkles|scintille magia decorazioni natale ambient magic christmas',
+                'palette|Colori|Palette|colore tavolozza rgb led color colour',
+                'rainbow|Arcobaleno|Rainbow|colori rgb striscia led strip',
+                'lighthouse|Faro|Lighthouse|lampione luce esterna faro lamp post',
+            ]],
+            ['prese', 'Prese e interruttori', 'Plugs and switches', 'plug', [
+                'plug|Presa|Plug|presa spina corrente socket outlet elettrica smart plug intelligente',
+                'plug-2|Spina tonda|Round plug|presa schuko spina socket outlet',
+                'plug-zap|Presa attiva|Live plug|presa corrente energia consumo socket power smart plug',
+                'unplug|Scollegato|Unplugged|stacca spina scollega disconnect plug',
+                'power|Accensione|Power|on off accendi spegni interruttore switch',
+                'power-off|Spegnimento|Power off|spegni spento off shutdown',
+                'circle-power|Pulsante|Power button|tasto accensione bottone button',
+                'toggle-left|Interruttore|Switch|levetta toggle switch spento off',
+                'toggle-right|Interruttore acceso|Switch on|levetta toggle switch acceso on',
+                'mouse-pointer-click|Clic|Click|premi pulsante tocco push button press',
+                'bell-electric|Campanello|Doorbell|suoneria campanello elettrico citofono doorbell chime intercom videocitofono',
+                'house-plug|Casa collegata|Home power|presa casa corrente home socket',
+                'usb|USB|USB|caricatore cavo usb charger',
+                'cable|Cavo|Cable|filo prolunga cablaggio wire extension',
+                'sliders-horizontal|Regolazioni|Controls|dimmer cursori regola slider adjust',
+                'sliders-vertical|Cursori|Sliders|dimmer mixer livelli slider levels',
+                'timer|Timer|Timer|temporizzatore conto alla rovescia countdown',
+                'workflow|Scenario|Workflow|automazione scena flusso automation scene',
+                'circle-play|Avvia|Start|play scena scenario esegui run',
+                'list-checks|Lista|Checklist|elenco script controllo list',
+                'bot|Automazione|Automation|robot bot assistente',
+                'wand-sparkles|Scena|Scene|bacchetta magia scenario magic',
+            ]],
+            ['clima', 'Clima e aria', 'Climate and air', 'thermometer', [
+                'thermometer|Termometro|Thermometer|temperatura gradi clima temperature degrees termostato cronotermostato valvola termostatica thermostat sonda',
+                'thermometer-sun|Caldo|Hot|temperatura calore estate riscaldamento heat summer',
+                'thermometer-snowflake|Freddo|Cold|temperatura gelo inverno raffrescamento frost winter cool',
+                'heater|Stufa|Heater|riscaldamento termosifone radiatore calorifero stufetta heating radiator termostato cronotermostato thermostat termosifoni',
+                'flame|Fiamma|Flame|fuoco caldaia gas riscaldamento barbecue fire boiler termostato cronotermostato thermostat scaldabagno valvola water heater',
+                'flame-kindling|Camino|Fireplace|legna fuoco caminetto stufa a pellet fireplace wood',
+                'fan|Ventilatore|Fan|ventola pale aria ventilazione cappa aspirante cooker hood ceiling fan',
+                'air-vent|Climatizzatore|Air conditioner|condizionatore clima split aria bocchetta ac vent aircon condizionata air conditioning hvac',
+                'snowflake|Raffrescamento|Cooling|fiocco di neve freddo neve condizionatore cool snow aircon climatizzatore',
+                'sun-snow|Caldo e freddo|Heat and cool|pompa di calore stagione inverno estate heat pump',
+                'wind|Vento|Wind|aria ventilazione corrente breeze ventilation',
+                'wind-arrow-down|Ricambio aria|Air intake|ventilazione vmc aria fresca fresh air',
+                'droplets|Umidità|Humidity|umido gocce deumidificatore irrigazione humid allagamento leak sensore acqua',
+                'droplet-off|Deumidificatore|Dehumidifier|secco asciutto umidita dry',
+                'leaf|Eco|Eco|foglia risparmio verde ecologico pianta green saving',
+                'cloud|Nuvola|Cloud|meteo tempo nuvoloso weather',
+                'cloud-sun|Variabile|Partly cloudy|meteo sole nuvole weather',
+                'cloudy|Nuvoloso|Cloudy|meteo nuvole coperto overcast',
+                'cloud-rain|Pioggia|Rain|meteo piove rain weather',
+                'cloud-lightning|Temporale|Storm|meteo fulmine tuono thunderstorm',
+                'cloud-snow|Neve|Snow|meteo nevicata snowfall',
+                'cloud-fog|Nebbia|Fog|meteo foschia mist',
+                'umbrella|Ombrello|Umbrella|pioggia riparo rain',
+            ]],
+            ['aperture', 'Tapparelle, finestre e porte', 'Blinds, windows and doors', 'blinds', [
+                'blinds|Tapparella|Blind|tapparelle avvolgibile persiana veneziana tenda shutter roller tende curtain curtains',
+                'app-window|Finestra|Window|vetro finestra window',
+                'columns-2|Finestra a due ante|Double window|ante finestra portafinestra french window',
+                'grid-2x2|Vetrata|Glass window|finestra vetri riquadri pane',
+                'panel-top-close|Tenda alzata|Shade up|tenda aperta tapparella su shade open tende tendaggio curtain curtains sipario',
+                'panel-top-open|Tenda abbassata|Shade down|tenda chiusa tapparella giu shade closed tende tendaggio curtain curtains sipario',
+                'arrow-up-from-line|Su|Up|apri alza sali tapparella open raise',
+                'arrow-down-to-line|Giù|Down|chiudi abbassa scendi tapparella close lower',
+                'move-vertical|Scorrimento|Sliding|tapparella cancello scorrevole slide',
+                'door-open|Porta aperta|Open door|porta ingresso entrata door entrance corridoio hallway disimpegno entryway',
+                'door-closed|Porta|Door|porta chiusa ingresso closed door corridoio hallway disimpegno',
+                'door-closed-locked|Porta chiusa a chiave|Locked door|porta serratura blindata locked',
+                'door-stairwell|Porta scale|Stairwell door|vano scale uscita stairs',
+                'warehouse|Garage|Garage|basculante box rimessa magazzino serranda autorimessa',
+                'fence|Cancello|Gate|recinzione recinto staccionata gate fence cancelletto ringhiera railing',
+                'brick-wall|Muro|Wall|parete mattoni wall bricks',
+                'square-arrow-right-enter|Ingresso|Entrance|entrata arrivo entra enter',
+                'square-arrow-right-exit|Uscita|Exit|esci partenza leave',
+                'mailbox|Cassetta postale|Mailbox|posta lettere buca delle lettere mail',
+                'bell-ring|Campanello che suona|Ringing bell|campanello suona citofono doorbell ring',
+            ]],
+            ['sicurezza', 'Sicurezza', 'Security', 'shield', [
+                'shield|Scudo|Shield|protezione sicurezza allarme protection',
+                'shield-check|Protetto|Protected|allarme inserito armato sicuro armed',
+                'shield-alert|Allarme|Alarm|allerta avviso intrusione alert',
+                'shield-off|Disinserito|Disarmed|allarme spento disattivato off',
+                'shield-half|Parziale|Partial|allarme parziale notte partial arm',
+                'lock|Lucchetto|Lock|chiuso serratura bloccato locked padlock',
+                'unlock|Sbloccato|Unlocked|aperto lucchetto serratura sblocca open lock padlock',
+                'lock-keyhole|Serratura|Lock keyhole|serratura smart lock chiave',
+                'key|Chiave|Key|chiavi accesso access',
+                'fingerprint|Impronta|Fingerprint|biometrico impronta digitale biometric',
+                'scan-face|Viso|Face ID|riconoscimento facciale volto face recognition',
+                'camera|Fotocamera|Camera|telecamera foto macchina fotografica photo',
+                'cctv|Telecamera|CCTV|videosorveglianza sorveglianza ipcam security camera videocitofono intercom',
+                'video|Videocamera|Video camera|registrazione video recording',
+                'webcam|Webcam|Webcam|telecamera interna videochiamata',
+                'eye|Occhio|Eye|vista sorveglianza guarda watch',
+                'eye-off|Privacy|Privacy|nascosto oscurato non guardare hidden',
+                'siren|Sirena|Siren|allarme sirena antifurto alarm',
+                'bell|Campana|Bell|notifica avviso suoneria notification',
+                'bell-off|Silenzioso|Muted|notifiche spente non disturbare silent mute',
+                'alarm-smoke|Rilevatore di fumo|Smoke detector|fumo incendio antincendio smoke fire',
+                'fire-extinguisher|Estintore|Fire extinguisher|incendio antincendio fuoco fire',
+                'triangle-alert|Attenzione|Warning|pericolo avviso allerta danger',
+                'radar|Radar|Radar|presenza movimento rilevatore motion presence',
+                'scan-eye|Rilevamento|Detection|sensore presenza scansione detect',
+                'vault|Cassaforte|Safe|forziere caveau valori safe box',
+            ]],
+            ['elettrodomestici', 'Elettrodomestici', 'Appliances', 'washing-machine', [
+                'washing-machine|Lavatrice|Washing machine|lavanderia bucato lavaggio asciugatrice laundry washer dryer',
+                'refrigerator|Frigorifero|Fridge|frigo freezer congelatore refrigerator',
+                'microwave|Microonde|Microwave|forno forno a microonde oven fornetto',
+                'cooking-pot|Pentola|Cooking pot|fornello piano cottura induzione cucinare pot stove bollitore kettle',
+                'sandwich|Toast|Toast|tostapane toaster panino piastra colazione sandwich breakfast',
+                'robot-vacuum|Robot aspirapolvere|Robot vacuum|aspirapolvere roomba pulizie vacuum cleaner',
+                'blender|Frullatore|Blender|mixer frullato robot da cucina',
+                'coffee|Caffè|Coffee|macchina del caffe tazza moka espresso cappuccino mug bollitore kettle te tea tisana',
+                'printer|Stampante|Printer|stampa fotocopie print',
+                'shredder|Distruggi documenti|Shredder|distruggidocumenti carta paper',
+                'spray-can|Diffusore|Spray|profumatore deodorante bomboletta spray air freshener',
+                'shirt|Vestiti|Clothes|asciugatrice vestiti maglietta panni stendino bucato clothes laundry',
+                'brush-cleaning|Pulizie|Cleaning|spazzola pulizia lavaggio cleaning brush',
+                'broom|Scopa|Broom|pulizie spazzare sweep',
+                'mop|Lavapavimenti|Mop|mocio pavimenti pulizia floor',
+                'bubbles|Lavaggio|Wash|bolle sapone schiuma lavastoviglie dishwasher soap',
+            ]],
+            ['cucina', 'Cucina', 'Kitchen', 'utensils', [
+                'utensils|Posate|Cutlery|cucina pranzo cena forchetta coltello tavola dining room',
+                'utensils-crossed|Ristorante|Restaurant|posate incrociate mangiare pranzo eat',
+                'chef-hat|Cuoco|Chef|cappello da chef cucinare ricette cooking',
+                'soup|Zuppa|Soup|minestra pentola brodo bowl',
+                'cup-soda|Bibita|Soft drink|bevanda lattina cannuccia soda drink',
+                'glass-water|Bicchiere d\'acqua|Glass of water|acqua bere bicchiere water drink',
+                'wine|Vino|Wine|calice cantina aperitivo enoteca',
+                'bottle-wine|Bottiglia|Bottle|vino cantina cantinetta wine cellar',
+                'beer|Birra|Beer|boccale pub spillatore',
+                'martini|Cocktail|Cocktail|aperitivo bar drink martini',
+                'milk|Latte|Milk|colazione bottiglia breakfast',
+                'egg-fried|Uovo|Fried egg|colazione padella breakfast',
+                'croissant|Cornetto|Croissant|colazione brioche breakfast',
+                'pizza|Pizza|Pizza|forno pizzeria',
+                'cake-slice|Torta|Cake|dolce fetta dessert',
+                'cookie|Biscotto|Cookie|dolci merenda snack',
+                'ice-cream-cone|Gelato|Ice cream|cono estate gelateria',
+                'salad|Insalata|Salad|verdura dieta vegetables',
+                'apple|Mela|Apple|frutta fruit',
+                'citrus|Agrumi|Citrus|limone arancia frutta lemon orange',
+                'carrot|Carota|Carrot|verdura orto vegetables',
+                'beef|Carne|Meat|bistecca macelleria griglia steak',
+                'wheat|Grano|Wheat|pane forno farina panificatrice bread',
+                'popcorn|Popcorn|Popcorn|cinema serata film snack',
+                'shopping-basket|Cesto della spesa|Basket|spesa mercato groceries',
+                'shopping-cart|Carrello|Cart|spesa supermercato acquisti shopping',
+            ]],
+            ['multimedia', 'Multimedia', 'Media', 'tv', [
+                'tv|TV|TV|televisore televisione tv telecomando remote control infrarossi',
+                'tv-minimal|TV moderna|Flat TV|televisore schermo piatto smart tv screen',
+                'tv-minimal-play|Streaming|Streaming|netflix film serie tv streaming',
+                'monitor|Monitor|Monitor|schermo display computer screen',
+                'monitor-speaker|Impianto Hi-Fi|Hi-fi system|stereo casse monitor audio soundbar',
+                'projector|Proiettore|Projector|cinema home theater videoproiettore',
+                'clapperboard|Ciak|Clapperboard|cinema film regia movie',
+                'theater|Home theater|Home theater|teatro cinema home cinema proiezione',
+                'speaker|Cassa|Speaker|altoparlante casse sonos audio diffusore soundbar',
+                'music|Musica|Music|nota canzone brano song',
+                'radio|Trasmissione|Broadcast|radio onde segnale trasmettitore telecomando remote infrarossi ir blaster',
+                'radio-receiver|Radio|Radio|radiolina apparecchio radio fm dab',
+                'headphones|Cuffie|Headphones|ascolto audio musica',
+                'mic|Microfono|Microphone|voce registra parla voice',
+                'mic-vocal|Karaoke|Karaoke|canto microfono cantare sing',
+                'megaphone|Annunci|Megaphone|megafono annuncio vocale avviso altoparlante announce announcements',
+                'volume-2|Volume|Volume|audio alto suono sound',
+                'volume-x|Muto|Mute|silenzio audio spento silence',
+                'audio-lines|Audio|Audio|onde sonore equalizzatore sound waves',
+                'disc-3|Disco|Disc|cd dvd blu-ray vinile',
+                'turntable|Giradischi|Turntable|vinile dischi record player',
+                'boom-box|Stereo portatile|Boombox|stereo radio registratore',
+                'guitar|Chitarra|Guitar|musica strumento instrument',
+                'piano|Pianoforte|Piano|tastiera musica strumento keyboard',
+                'gamepad-2|Console|Game console|videogiochi playstation xbox gioco gaming',
+                'gamepad|Controller|Controller|joypad videogiochi gioco',
+                'cast|Trasmetti|Cast|chromecast proietta schermo screen',
+                'airplay|AirPlay|AirPlay|apple tv trasmetti schermo',
+                'satellite-dish|Parabola|Satellite dish|satellite sky antenna tv',
+                'antenna|Antenna|Antenna|tv digitale terrestre segnale',
+                'image|Immagine|Picture|foto cornice digitale photo frame',
+                'images|Galleria|Gallery|foto album immagini photos',
+                'book-open|Libro|Book|lettura libri leggere reading',
+                'puzzle|Puzzle|Puzzle|giochi rompicapo game',
+                'toy-brick|Mattoncino|Toy brick|lego giochi bambini giocattoli toys',
+            ]],
+            ['stanze', 'Stanze e arredo', 'Rooms and furniture', 'sofa', [
+                'home|Casa|Home|abitazione house appartamento villa',
+                'house-heart|Casa dolce casa|Sweet home|casa amore famiglia family',
+                'house-wifi|Casa connessa|Smart home|domotica smart home casa intelligente',
+                'building|Palazzo|Building|condominio appartamento edificio apartment',
+                'building-2|Ufficio|Office|edificio lavoro azienda office building',
+                'hotel|Hotel|Hotel|albergo b&b ospiti guest',
+                'store|Negozio|Shop|bottega attivita commerciale store',
+                'layout-grid|Stanza|Room|griglia zona area ambiente grid',
+                'layers|Piani|Floors|livelli piano zona layers levels terra primo seminterrato mansarda sottotetto attic loft floor',
+                'sofa|Divano|Sofa|soggiorno salotto living room couch sala salone lounge taverna',
+                'armchair|Poltrona|Armchair|salotto lettura relax sala soggiorno living',
+                'rocking-chair|Sedia a dondolo|Rocking chair|relax veranda poltrona portico porch',
+                'bed|Letto|Bed|camera da letto dormire bedroom',
+                'bed-double|Letto matrimoniale|Double bed|camera matrimoniale bedroom',
+                'bed-single|Letto singolo|Single bed|cameretta camera ospiti guest room',
+                'baby|Cameretta|Nursery|bambino neonato bimbo baby room',
+                'briefcase|Studio|Study|lavoro ufficio valigetta smart working office',
+                'graduation-cap|Compiti|Homework|studio scuola universita student',
+                'library|Libreria|Bookcase|libri biblioteca lettura library',
+                'shelving-unit|Scaffale|Shelving|mensole ripostiglio dispensa shelves',
+                'archive|Ripostiglio|Storage room|archivio sgabuzzino deposito storage disimpegno',
+                'boxes|Cantina|Cellar|scatole deposito magazzino soffitta basement attic mansarda sottotetto taverna loft',
+                'box|Scatola|Box|pacco deposito contenitore',
+                'package|Pacco|Parcel|consegne corriere spedizione delivery',
+                'dumbbell|Palestra|Gym|pesi fitness allenamento workout',
+                'frame|Cornice|Frame|quadro foto parete picture',
+                'paint-roller|Imbiancatura|Paint roller|rullo pittura vernice parete painting',
+                'tent|Campeggio|Tent|tenda da campeggio camping',
+            ]],
+            ['bagno', 'Bagno', 'Bathroom', 'bath', [
+                'bath|Vasca|Bathtub|bagno vasca da bagno bath bathroom',
+                'shower-head|Doccia|Shower|bagno soffione acqua calda irrigatore',
+                'toilet|WC|Toilet|bagno gabinetto water sanitari',
+                'towel-rack|Scaldasalviette|Towel rack|termoarredo asciugamani bagno towel warmer',
+                'soap-dispenser-droplet|Sapone|Soap|dispenser lavandino lavabo mani',
+                'mirror-round|Specchio|Mirror|bagno trucco specchio tondo',
+                'mirror-rectangular|Specchio rettangolare|Wall mirror|bagno specchiera',
+                'weight|Bilancia|Scale|pesapersone peso bagno weight',
+                'pill|Medicine|Pills|farmaci pastiglie salute medicine',
+                'pill-bottle|Farmaci|Medication|medicine flacone armadietto medication',
+                'bandage|Cerotto|Bandage|pronto soccorso ferita first aid',
+            ]],
+            ['esterno', 'Giardino, piscina ed esterno', 'Garden, pool and outdoor', 'tree-pine', [
+                'tree-pine|Abete|Pine tree|albero giardino pino natale christmas tree',
+                'tree-deciduous|Albero|Tree|giardino parco tree cortile courtyard yard',
+                'trees|Bosco|Woods|alberi parco giardino forest cortile courtyard yard',
+                'tree-palm|Palma|Palm tree|giardino tropicale palm',
+                'flower|Fiore|Flower|giardino fiori aiuola',
+                'flower-2|Girasole|Sunflower|fiore giardino terrazzo terrazza terrace',
+                'rose|Rosa|Rose|fiore roseto giardino',
+                'sprout|Germoglio|Sprout|piante orto semina vaso plant irrigazione sprinkler irrigatore annaffiare watering',
+                'leafy-green|Orto|Vegetable garden|verdura insalata orto vegetables',
+                'shrub|Siepe|Hedge|cespuglio giardino bush',
+                'clover|Prato|Lawn|trifoglio erba tosaerba grass irrigazione sprinkler irrigatore',
+                'shovel|Pala|Shovel|giardinaggio attrezzi zappa garden tools',
+                'tractor|Trattore|Tractor|tosaerba campagna agricoltura mower',
+                'waves|Piscina|Pool|onde acqua mare idromassaggio waves water allagamento',
+                'waves-ladder|Scaletta piscina|Pool ladder|piscina scaletta nuoto swimming pool',
+                'life-buoy|Salvagente|Lifebuoy|piscina soccorso mare lifesaver',
+                'parasol|Ombrellone|Parasol|tenda da sole ombrellone gazebo pergola sunshade balcone balcony terrazzo terrazza terrace veranda',
+                'sailboat|Barca a vela|Sailboat|barca lago mare boat',
+                'birdhouse|Casetta uccelli|Birdhouse|uccelli nido mangiatoia',
+                'utility-pole|Palo della luce|Utility pole|lampione illuminazione esterna rete elettrica street light streetlight lampioni stradale',
+                'road|Vialetto|Driveway|strada viale accesso road cortile courtyard vialetto',
+                'map-pin|Posizione|Location|luogo mappa segnaposto place',
+                'map-pin-house|Casa sulla mappa|Home location|posizione casa indirizzo address',
+                'mountain|Montagna|Mountain|baita monti hiking',
+                'bug|Insetti|Bugs|zanzare antizanzare zanzariera mosquito insects',
+                'volleyball|Sport|Sport|pallavolo pallone gioco ball',
+            ]],
+            ['energia', 'Energia e acqua', 'Energy and water', 'zap', [
+                'zap|Elettricità|Electricity|fulmine energia corrente consumo potenza power energy',
+                'zap-off|Blackout|Power outage|senza corrente interruzione mancanza corrente outage',
+                'battery|Batteria|Battery|accumulo pila',
+                'battery-charging|In carica|Charging|batteria ricarica accumulo charge',
+                'battery-full|Batteria carica|Full battery|batteria piena accumulo',
+                'battery-low|Batteria scarica|Low battery|batteria bassa scarica',
+                'battery-warning|Batteria in allarme|Battery warning|batteria guasto avviso alert',
+                'solar-panel|Fotovoltaico|Solar panel|pannello solare inverter energia solare solar',
+                'ev-charger|Wallbox|EV charger|colonnina ricarica carica auto elettrica electric car charging charger',
+                'fuel|Carburante|Fuel|benzina gasolio gas distributore petrol',
+                'gauge|Contatore|Meter|misuratore consumo pressione manometro gauge valvola valve',
+                'activity|Attività|Activity|consumo grafico andamento battito monitor',
+                'chart-line|Grafico|Line chart|andamento statistiche storico chart graph',
+                'chart-column|Grafico a barre|Bar chart|statistiche consumi istogramma chart',
+                'trending-up|In aumento|Trending up|crescita salita aumenta increase',
+                'trending-down|In calo|Trending down|calo discesa diminuisce decrease',
+                'cylinder|Serbatoio|Tank|cisterna boiler accumulo bombola tank scaldabagno water heater acqua calda',
+                'dam|Diga|Dam|acqua bacino idroelettrico water reservoir',
+                'droplet|Acqua|Water|goccia acquedotto consumo acqua water drop irrigazione rubinetto valvola valve faucet tap',
+                'recycle|Riciclo|Recycle|raccolta differenziata rifiuti recycling',
+                'trash-2|Rifiuti|Bin|cestino spazzatura pattumiera immondizia trash garbage',
+                'banknote|Bolletta|Bill|soldi costo spesa denaro money cost',
+                'euro|Euro|Euro|costo prezzo tariffa price',
+                'piggy-bank|Risparmio|Savings|salvadanaio risparmi savings',
+            ]],
+            ['sensori', 'Sensori e misure', 'Sensors and measures', 'gauge', [
+                'circle-gauge|Indicatore|Dial|misura livello lancetta indicator level',
+                'move|Movimento|Motion|sensore di movimento pir rilevatore motion sensor',
+                'person-standing|Presenza|Presence|persona sensore presenza occupancy',
+                'footprints|Passi|Footprints|movimento presenza camminare steps',
+                'magnet|Contatto magnetico|Magnet|sensore apertura porta finestra contact sensor',
+                'waves-arrow-up|Allagamento|Water leak|perdita perdite acqua allagamento sensore leak water leak flood livello acqua water level',
+                'ruler|Metro|Ruler|misura righello lunghezza distanza measure',
+                'audio-waveform|Rumore|Noise|suono decibel onda sound level',
+                'ear|Ascolto|Ear|orecchio suono rumore sentire listen',
+                'vibrate|Vibrazione|Vibration|vibra scossa sensore vibration',
+                'signal|Segnale|Signal|ricezione intensita copertura strength',
+                'flask-conical|Qualità dell\'aria|Air quality|co2 fumi chimica laboratorio voc',
+                'hourglass|Clessidra|Hourglass|tempo attesa durata waiting',
+                'target|Bersaglio|Target|obiettivo centro mira goal',
+                'chart-spline|Andamento|Trend|curva grafico storico curve',
+                'percent|Percentuale|Percent|livello percentuale apertura percentage',
+                'circle-dot|Stato|Status|punto indicatore led dot',
+                'info|Informazioni|Info|info dettagli details',
+                'circle-alert|Avviso|Alert|attenzione errore guasto error fault',
+            ]],
+            ['rete', 'Rete e dispositivi', 'Network and devices', 'router', [
+                'router|Router|Router|modem rete internet wifi fibra',
+                'wifi|Wi-Fi|Wi-Fi|wireless rete internet connessione',
+                'wifi-off|Wi-Fi spento|Wi-Fi off|senza rete disconnesso offline',
+                'network|Rete|Network|lan switch collegamento cablata',
+                'server|Server|Server|nas rack raspberry server',
+                'hard-drive|Disco rigido|Hard drive|nas archivio backup hdd ssd disk hard disk',
+                'database|Database|Database|archivio dati memoria data',
+                'cpu|Processore|CPU|chip centralina domotica controller',
+                'microchip|Microchip|Microchip|chip elettronica centralina',
+                'circuit-board|Scheda elettronica|Circuit board|raspberry arduino elettronica pcb',
+                'smartphone|Smartphone|Smartphone|telefono cellulare iphone android phone',
+                'smartphone-charging|Telefono in carica|Phone charging|ricarica cellulare caricatore charger',
+                'tablet|Tablet|Tablet|ipad pannello touch',
+                'tablet-smartphone|Dispositivi|Devices|telefono tablet mobili mobile',
+                'laptop|Portatile|Laptop|notebook computer pc macbook',
+                'computer|Computer|Computer|pc desktop fisso',
+                'keyboard|Tastiera|Keyboard|computer digita typing',
+                'watch|Smartwatch|Smartwatch|orologio da polso apple watch wrist',
+                'bluetooth|Bluetooth|Bluetooth|senza fili wireless',
+                'nfc|NFC|NFC|tag contactless tocca',
+                'globe|Internet|Internet|mondo web globo online world',
+                'radio-tower|Ripetitore|Radio tower|antenna segnale trasmettitore tower',
+                'ethernet-port|Presa di rete|Ethernet port|lan cavo di rete rj45 ethernet',
+                'phone|Telefono|Phone|fisso cornetta citofono landline intercom',
+                'phone-call|Chiamata|Call|citofono videocitofono telefonata ring intercom',
+                'mail|Posta|Mail|email messaggio lettera e-mail',
+                'message-circle|Messaggio|Message|chat notifica sms',
+                'send|Invia|Send|telegram notifica messaggio',
+                'qr-code|Codice QR|QR code|qr codice scansiona scan',
+                'blocks|Integrazioni|Integrations|moduli blocchi plugin componenti modules',
+                'settings|Impostazioni|Settings|ingranaggio configurazione setup gear',
+            ]],
+            ['persone', 'Persone e animali', 'People and pets', 'users', [
+                'user|Persona|Person|utente uomo donna user',
+                'users|Famiglia|Family|persone utenti gruppo people group',
+                'user-check|Ospite autorizzato|Authorized|utente verificato accesso consentito allowed',
+                'handshake|Ospiti|Guests|benvenuto accoglienza visita welcome',
+                'accessibility|Accessibilità|Accessibility|disabili assistenza aiuto',
+                'smile|Sorriso|Smile|felice contento umore happy mood',
+                'heart|Cuore|Heart|amore preferito love favorite',
+                'heart-pulse|Salute|Health|battito cardiaco cuore benessere heartbeat',
+                'party-popper|Festa|Party|festeggiare evento celebrazione celebration',
+                'cake|Compleanno|Birthday|torta festa candeline birthday cake',
+                'gift|Regalo|Gift|pacco regalo natale sorpresa present',
+                'dog|Cane|Dog|animali cucciolo pets puppy',
+                'cat|Gatto|Cat|animali micio pets kitten',
+                'paw-print|Animali|Pets|zampa animali domestici cuccia pet',
+                'bone|Osso|Bone|cane cuccia crocchette dog',
+                'bird|Uccello|Bird|canarino pappagallo gabbia',
+                'fish|Pesce|Fish|acquario pesci rosso aquarium',
+                'rabbit|Coniglio|Rabbit|animali coniglietto bunny',
+                'turtle|Tartaruga|Turtle|animali terrario',
+            ]],
+            ['veicoli', 'Veicoli', 'Vehicles', 'car', [
+                'car|Auto|Car|macchina automobile garage vehicle',
+                'car-front|Auto (frontale)|Car front|macchina automobile parcheggio vehicle',
+                'bike|Bicicletta|Bike|bici ciclismo bicycle',
+                'motorbike|Moto|Motorbike|motocicletta scooter motorcycle',
+                'scooter|Monopattino|Scooter|monopattino elettrico kick scooter',
+                'bus|Autobus|Bus|scuolabus pullman trasporto',
+                'truck|Camion|Truck|furgone consegne trasporto lorry',
+                'van|Furgone|Van|furgoncino camper trasporto',
+                'caravan|Roulotte|Caravan|camper vacanza campeggio',
+                'train-front|Treno|Train|ferrovia stazione railway',
+                'plane|Aereo|Plane|viaggio volo vacanza flight airplane',
+                'circle-parking|Parcheggio|Parking|posto auto box parking',
+                'map|Mappa|Map|cartina navigazione',
+                'navigation|Navigatore|Navigation|gps direzione direction',
+                'rocket|Razzo|Rocket|lancio spazio veloce launch',
+            ]],
+            ['varie', 'Varie', 'Miscellaneous', 'star', [
+                'calendar|Calendario|Calendar|data giorno appuntamento date',
+                'calendar-days|Agenda|Agenda|calendario mese programma schedule',
+                'calendar-clock|Programma|Schedule|programmazione orario calendario programmi timer',
+                'clock|Orologio|Clock|ora orario tempo time',
+                'alarm-clock|Sveglia|Alarm clock|sveglia mattina risveglio wake up',
+                'sticky-note|Promemoria|Note|post-it appunti nota reminder',
+                'clipboard-list|Cose da fare|To-do list|lista elenco spesa compiti todo',
+                'notebook-pen|Quaderno|Notebook|appunti note scrivere notes',
+                'star|Stella|Star|preferito favorito importante favorite',
+                'flag|Bandiera|Flag|segnala obiettivo traguardo',
+                'tag|Etichetta|Tag|cartellino prezzo label',
+                'trophy|Trofeo|Trophy|coppa vittoria premio award',
+                'medal|Medaglia|Medal|premio vincitore award',
+                'gem|Gioiello|Gem|diamante gioielli prezioso jewel',
+                'wrench|Chiave inglese|Wrench|manutenzione attrezzi riparazione repair tools',
+                'hammer|Martello|Hammer|attrezzi fai da te bricolage diy tools',
+                'drill|Trapano|Drill|attrezzi fai da te bricolage diy',
+                'toolbox|Cassetta attrezzi|Toolbox|attrezzi manutenzione officina tools',
+                'paintbrush|Pennello|Paintbrush|pittura arte disegno painting',
+                'wallet|Portafoglio|Wallet|soldi carte money',
+                'credit-card|Carta di credito|Credit card|bancomat pagamento payment',
+                'shopping-bag|Shopping|Shopping bag|borsa acquisti negozio bag',
+                'luggage|Valigia|Luggage|viaggio vacanza bagaglio travel',
+                'backpack|Zaino|Backpack|scuola viaggio escursione school',
+                'circle-check|Fatto|Done|ok spunta completato confermato check',
+                'circle-x|Errore|Error|annulla chiudi no cancel',
+                'ban|Divieto|Forbidden|vietato bloccato no blocked',
+                'thumbs-up|Mi piace|Like|ok approvato bene good',
+                'circle-help|Aiuto|Help|domanda assistenza supporto question support',
+                'circle|Cerchio|Circle|forma tondo punto shape',
+                'square|Quadrato|Square|forma riquadro shape',
+            ]],
+        ];
+        const ICP_RECENTI = 'wh_icone_recenti', ICP_RECENTI_MAX = 12;
+        const ICP_BLOCCO_MS = 12;                     // disegno a blocchi: al massimo ~12 ms per fotogramma
+        const icpStato = { tutte: false, query: '', giro: 0, aperta: '' };
+        let icpDati = null;
+
+        function icpEn() { return !!(window.WH_LINGUA && window.WH_LINGUA !== 'it'); }
+        function icpT(t) { return window.WH_T ? window.WH_T(t) : t; }       // il selettore e' data-no-tr: si traduce qui
+        function icpEsc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
+        function icpNorm(s) { return ' ' + libNorm(s).replace(/['’\-_/.,:;()+]+/g, ' ').replace(/\s+/g, ' ').trim() + ' '; }
+        function icpNumero(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, icpEn() ? ',' : '.'); }   // 1.806 / 1,806 (it-IT non separa le migliaia sotto 10.000)
+        // 'WashingMachine' -> 'washing-machine', 'Grid2x2' -> 'grid-2x2', 'Clock10' -> 'clock-10' (libNomeIcona fa il contrario)
+        function icpKebab(k) {
+            return k.replace(/([a-z0-9])([A-Z])/g, '$1-$2').replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+                    .replace(/([a-zA-Z])(\d)/g, '$1-$2').replace(/(\d)x-(\d)/g, '$1x$2').toLowerCase();
+        }
+        // Il disegno di un nome. Gli alias (home e house) sono lo stesso oggetto; clock e clock-4 sono due icone ma
+        // disegnate uguali: si riportano tutti a un solo oggetto, cosi' un disegno ha un riquadro solo.
+        let icpCanone = null;
+        function icpCanonico(n) {
+            if (!icpCanone) {
+                icpCanone = new Map();
+                const perTesto = new Map();
+                Object.keys(lucide.icons || {}).forEach(k => {
+                    const x = lucide.icons[k];
+                    if (icpCanone.has(x)) return;
+                    const j = JSON.stringify(x);
+                    if (!perTesto.has(j)) perTesto.set(j, x);
+                    icpCanone.set(x, perTesto.get(j));
+                });
+            }
+            return icpCanone.get(n) || n;
+        }
+        const icpNodi = new Map();
+        function icpNodo(nome) {
+            if (!nome || !window.lucide || !lucide.icons) return null;
+            if (!icpNodi.has(nome)) { const n = lucide.icons[libNomeIcona(nome)]; icpNodi.set(nome, Array.isArray(n) && n.length ? icpCanonico(n) : null); }
+            return icpNodi.get(nome);
+        }
+        function icpInteri(nomi) { return '|' + nomi.map(n => icpNorm(n).trim().replace(/ /g, '-')).join('|') + '|'; }
+
+        function icpIndice() {
+            if (icpDati) return icpDati;
+            const en = icpEn(), perNodo = new Map(), voci = [];
+            const categorie = ICP_CATALOGO.map(([id, it, eng, chip, elenco]) => {
+                const icone = [], gruppo = icpNorm(it + ' ' + eng);
+                elenco.forEach(riga => {
+                    const [nome, etIt, etEn, parole] = riga.split('|');
+                    const nodo = icpNodo(nome);
+                    if (!nodo || perNodo.has(nodo)) return;          // un'icona vuota o doppia non si mostra mai
+                    const cerca = icpNorm([etIt, etEn, parole, nome].join(' '));
+                    // il nome della categoria conta solo se la parola non trova niente da sola («esterno», «multimedia»):
+                    // altrimenti «piscina» porterebbe dietro tutto il giardino
+                    const v = { nome, nodo, et: en ? etEn : etIt, scelta: true, interi: icpInteri([nome, etIt, etEn]),
+                                forte: icpNorm(etIt + ' ' + etEn + ' ' + nome), cerca, cercaG: cerca + gruppo, gruppo };
+                    perNodo.set(nodo, v); voci.push(v); icone.push(v);
+                });
+                return { id, titolo: en ? eng : it, chip, icone };
+            });
+            icpDati = { categorie, voci, perNodo, tutte: null };
+            return icpDati;
+        }
+        // Tutto il pacchetto: un riquadro per disegno (gli alias si cercano ma non si ripetono), in ordine alfabetico
+        // per quello che si legge sotto il riquadro. Le icone fuori dall'elenco scelto non hanno una traduzione: sotto
+        // c'e' il loro nome lucide (quello che si salva), uguale in italiano e in inglese.
+        // Si prepara solo la prima volta che serve (ricerca o «Mostra tutte»); i disegni si fanno solo quando si vedono.
+        function icpTutte() {
+            const d = icpIndice();
+            if (d.tutte) return d.tutte;
+            const gruppi = new Map();
+            Object.keys(lucide.icons || {}).forEach(k => {
+                if (!Array.isArray(lucide.icons[k]) || !lucide.icons[k].length) return;
+                const n = icpCanonico(lucide.icons[k]);
+                if (!gruppi.has(n)) gruppi.set(n, []);
+                gruppi.get(n).push(icpKebab(k));
+            });
+            const tutte = [];
+            gruppi.forEach((nomi, nodo) => {
+                let v = d.perNodo.get(nodo);
+                if (v) { const altri = icpNorm(nomi.join(' ')); v.forte += altri; v.cerca += altri; v.cercaG += altri; v.interi += icpInteri(nomi).slice(1); }
+                else {
+                    // il nome piu' lungo e' quello nuovo di lucide (house, circle-alert), il corto l'alias di prima
+                    const nome = nomi.slice().sort((a, b) => b.length - a.length || (a < b ? 1 : -1))[0];
+                    v = { nome, nodo, et: nome, tecnico: true, scelta: false, interi: icpInteri(nomi), forte: icpNorm(nomi.join(' ')), cerca: icpNorm(nomi.join(' ')) };
+                }
+                tutte.push(v);
+            });
+            // ordine: senza maiuscole, accenti e trattini, coi numeri in ordine (clock-2 prima di clock-10); una chiave per
+            // voce e un confronto semplice (Intl.Collator su 1.800 voci costava una ventina di ms alla prima ricerca)
+            const chiave = new Map(tutte.map(v => [v, icpOrdine(v.et) + '\u0001' + v.nome]));     // \u0001: «clipboard» prima di «clipboard type»
+            tutte.sort((a, b) => { const x = chiave.get(a), y = chiave.get(b); return x < y ? -1 : x > y ? 1 : 0; });
+            d.tutte = tutte;
+            return tutte;
+        }
+        function icpOrdine(t) { return libNorm(t).replace(/[^a-z0-9]+/g, ' ').trim().replace(/\d+/g, n => n.padStart(5, '0')); }
+        // quanti disegni ha il pacchetto (per «Mostra tutte le icone (1.806)»), senza preparare ancora l'elenco intero
+        function icpQuanti() {
+            const d = icpIndice();
+            if (!d.quanti) { icpCanonico(null); d.quanti = new Set([...icpCanone.values()].filter(n => Array.isArray(n) && n.length)).size; }
+            return d.quanti;
+        }
+        // Plurali e singolari: «lampade» trova la lampada, «luci» la luce, «lampadari» il lampadario, «docce» la doccia,
+        // «lights» la light. Si prova la parola scritta e queste forme; vale la piu' vicina.
+        function icpVarianti(w) {
+            const v = [w], piu = x => { if (x.length >= 3 && !v.includes(x)) v.push(x); };
+            if (w.length < 4) return v;
+            const r = w.slice(0, -1), u = w.slice(-1);
+            if (u === 'i') { piu(r + 'e'); piu(r + 'o'); piu(r + 'a'); piu(w + 'o'); if (/[cg]hi$/.test(w)) piu(w.slice(0, -2) + 'o'); }
+            else if (u === 'e') { piu(r + 'a'); if (/[cg]he$/.test(w)) piu(w.slice(0, -2) + 'a'); if (/[cg]e$/.test(w)) piu(r + 'ia'); }
+            else if (u === 's') { piu(r); if (/(ch|sh|x|ss)es$/.test(w)) piu(w.slice(0, -2)); if (/ies$/.test(w)) piu(w.slice(0, -3) + 'y'); }
+            return v;
+        }
+        // Quanto vale una parola per una voce: intera nell'etichetta o nel nome 8, intera fra le parole chiave 6, inizio
+        // di parola nell'etichetta 4, fra le parole chiave 2; in fondo a una parola composta 1 («polvere» in aspirapolvere,
+        // «light» in flashlight), ma solo da 4 lettere in su. In mezzo a una parola (dentro) vale 1 solo se la parola non
+        // inizia da nessuna parte: cosi' «polv», scritta a meta', trova ancora l'aspirapolvere, mentre «porta» non porta
+        // piu' la Stella (importante), «aria» la Variabile, «caffe» lo Scaffale.
+        function icpPunti(v, x, testo, dentro) {
+            if (v.forte.includes(' ' + x + ' ')) return 8;
+            if (testo.includes(' ' + x + ' ')) return 6;
+            if (v.forte.includes(' ' + x)) return 4;
+            if (testo.includes(' ' + x)) return 2;
+            return x.length >= 4 && (icpInFondo(testo, x) || (dentro && testo.includes(x))) ? 1 : 0;
+        }
+        // x in fondo a una parola composta: davanti almeno 3 lettere della stessa parola (aspira-polvere, flash-light,
+        // lava-stoviglie), non 1 o 2 («heat» non trova w-heat, «pool» non trova s-pool, «heater» non trova t-heater)
+        function icpInFondo(testo, x) {
+            for (let i = testo.indexOf(x + ' '); i >= 0; i = testo.indexOf(x + ' ', i + 1))
+                if (i >= 3 && !testo.slice(i - 3, i).includes(' ')) return true;
+            return false;
+        }
+        // Ricerca: ogni parola deve esserci. Prima il nome o l'etichetta interi («house» -> la casa, non house-plug),
+        // poi i punti delle parole; a parita' viene la voce della categoria che si chiama cosi' («cucina»: le Posate
+        // della Cucina prima del Frullatore, «robot da cucina» negli Elettrodomestici), poi l'ordine dell'elenco.
+        // base: dove guardare se una parola inizia da qualche parte (tutto il pacchetto, uguale per le due sezioni)
+        function icpCerca(voci, parole, conGruppo, base) {
+            const fuori = [], intero = '|' + parole.join('-') + '|', forme = parole.map(icpVarianti);
+            const dentro = forme.map(fs => !(base || voci).some(v => fs.some(x => v.cerca.includes(' ' + x))));
+            voci.forEach((v, i) => {
+                const testo = conGruppo && v.cercaG ? v.cercaG : v.cerca;
+                let p = v.interi && v.interi.includes(intero) ? 10 : 0;
+                for (let k = 0; k < forme.length; k++) {
+                    const fs = forme[k];
+                    let m = 0;
+                    for (const x of fs) { const q = icpPunti(v, x, testo, dentro[k]); if (q > m) m = q; if (m === 8) break; }
+                    if (!m) return;
+                    p += m;
+                    if (v.gruppo && fs.some(x => v.gruppo.includes(' ' + x))) p += 0.01;      // solo per decidere a parita'
+                }
+                fuori.push([p, i, v]);
+            });
+            return fuori.sort((a, b) => b[0] - a[0] || a[1] - b[1]).map(x => x[2]);
         }
 
-        function selectIcon(iconName) { selectedIcon = iconName; renderIconGridOptions(); }
+        const icpSvgFatti = new Map();
+        function icpSvg(nodo) {                       // stesso disegno di lucide.createIcons, scritto come testo: veloce
+            if (!nodo) return '';
+            let s = icpSvgFatti.get(nodo);
+            if (s) return s;
+            const pezzo = ([tag, attr, figli]) => '<' + tag + Object.keys(attr || {}).filter(a => a !== 'key')
+                .map(a => ' ' + a + '="' + icpEsc(attr[a]) + '"').join('') + (figli && figli.length ? '>' + figli.map(pezzo).join('') + '</' + tag + '>' : '/>');
+            s = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+                'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + nodo.map(pezzo).join('') + '</svg>';
+            icpSvgFatti.set(nodo, s);
+            return s;
+        }
+        function icpTessera(v, attuale) {
+            const et = icpEsc(v.et);
+            return '<button type="button" class="icp-tessera' + (attuale ? ' icp-attuale' : '') + (v.tecnico ? ' icp-tecnico' : '') + '" data-icona="' + icpEsc(v.nome) +
+                   '" tabindex="-1" aria-pressed="' + attuale + '" aria-label="' + et + '" title="' + (v.tecnico ? et : et + ' · ' + icpEsc(v.nome)) + '">' + icpSvg(v.nodo) +
+                   '<span>' + et + '</span></button>';
+        }
+
+        function icpRecenti() {
+            try { const r = JSON.parse(localStorage.getItem(ICP_RECENTI) || '[]'); return Array.isArray(r) ? r.filter(n => typeof n === 'string') : []; }
+            catch (e) { return []; }
+        }
+        function icpRicorda(nome) {                   // dopo un salvataggio riuscito con un'icona cambiata: in cima a «Ultime usate»
+            const nodo = icpNodo(nome);
+            if (!nodo) return;
+            try {
+                const r = [nome].concat(icpRecenti().filter(n => icpNodo(n) !== nodo)).slice(0, ICP_RECENTI_MAX);
+                localStorage.setItem(ICP_RECENTI, JSON.stringify(r));
+            } catch (e) {}
+        }
+        function icpVoce(nome) {
+            const nodo = icpNodo(nome);
+            if (!nodo) return null;
+            return icpIndice().perNodo.get(nodo) || { nome, nodo, et: nome, tecnico: true, scelta: false };
+        }
+
+        function renderIconGridOptions() {            // (stesso nome di prima: la chiama openEditModal a ogni apertura)
+            const box = document.getElementById('icon-grid-container');
+            if (!box || !window.lucide || !lucide.icons) return;
+            if (!box.dataset.pronto) icpAggancia(box);
+            const campo = document.getElementById('icp-cerca'), svuota = document.getElementById('icp-svuota');
+            icpStato.tutte = false; icpStato.query = '';
+            icpStato.aperta = selectedIcon;           // «Ultime usate» solo se al salvataggio l'icona e' cambiata
+            delete document.getElementById('icp-chips').dataset.chiave;     // la fila si rifa' e riparte dall'inizio
+            if (campo) campo.value = '';
+            if (svuota) svuota.hidden = true;
+            icpDisegna();
+            icpAnteprima();
+            box.scrollTop = 0;
+        }
+
+        function icpDisegna(dopo) {                  // dopo: da chiamare quando tutti i riquadri sono disegnati
+            const box = document.getElementById('icon-grid-container');
+            const chips = document.getElementById('icp-chips');
+            const d = icpIndice();
+            const giro = ++icpStato.giro;
+            const nodoAttuale = icpNodo(selectedIcon);
+            const parole = icpNorm(icpStato.query).trim().split(' ').filter(Boolean);
+            const sezioni = [], rec = icpStato.tutte ? [] : icpRecenti().map(icpVoce).filter(Boolean);
+            let piede = '';
+            if (parole.length) {
+                // prima di cercare: icpTutte aggiunge alle voci scelte i loro alias (house, tv-2, fork-knife...). Senza, la
+                // prima ricerca dopo il caricamento (testo incollato o dettato tutto insieme) non li troverebbe
+                const pacchetto = icpTutte();
+                let scelte = icpCerca(d.voci, parole, false, pacchetto);
+                if (!scelte.length) scelte = icpCerca(d.voci, parole, true, pacchetto);       // solo il nome di una categoria: tutta la categoria
+                const altre = icpCerca(pacchetto.filter(v => !v.scelta), parole, false, pacchetto);
+                if (scelte.length) sezioni.push({ id: 'risultati', titolo: icpT('Risultati'), voci: scelte });
+                if (altre.length) sezioni.push({ id: 'altre', titolo: icpT('Altre icone del pacchetto'), voci: altre });
+            } else if (icpStato.tutte) {
+                const tutte = icpTutte();
+                sezioni.push({ id: 'tutte', titolo: icpT('Tutte le icone'), voci: tutte });
+                piede = icpTastoTutte('scelte');
+            } else {
+                if (rec.length) sezioni.push({ id: 'recenti', titolo: icpT('Ultime usate'), chip: 'history', voci: rec });
+                d.categorie.forEach(c => sezioni.push({ id: c.id, titolo: c.titolo, chip: c.chip, voci: c.icone }));
+                piede = icpTastoTutte('tutte');
+            }
+            // fila in alto: le categorie (toccandone una si scorre fino a li'; durante la ricerca la svuota e va li'); con tutte
+            // le icone il ritorno all'elenco scelto, sempre a vista (prima c'era solo in fondo, sotto 1.800 icone). La fila
+            // resta sempre al suo posto: scrivendo nel campo la finestra non cambia altezza. Si rifa' solo se cambia.
+            const chiave = icpStato.tutte ? 'tutte' : 'scelte' + (rec.length ? '+recenti' : '');
+            if (chips.dataset.chiave !== chiave) {
+                const navi = (rec.length ? [{ id: 'recenti', titolo: icpT('Ultime usate'), chip: 'history' }] : []).concat(d.categorie);
+                chips.innerHTML = icpStato.tutte ? icpTastoTutte('scelte', 'icp-chip icp-indietro') : navi.map((s, i) => '<button type="button" class="icp-chip" data-sez="' + s.id +
+                    '" tabindex="' + (i ? -1 : 0) + '">' + icpSvg(icpNodo(s.chip)) + '<span>' + icpEsc(s.titolo) + '</span></button>').join('');
+                chips.dataset.chiave = chiave;
+                chips.scrollLeft = 0;
+            }
+            if (parole.length) chips.querySelectorAll('.icp-chip.attiva').forEach(c => c.classList.remove('attiva'));
+            let html = sezioni.map(s => '<section class="icp-sezione" data-sez="' + s.id + '" aria-labelledby="icp-t-' + s.id + '"><h4 class="icp-titolo" id="icp-t-' + s.id + '">' +
+                icpEsc(s.titolo) + '<small>' + icpNumero(s.voci.length) + '</small></h4><div class="icp-griglia" role="group" aria-labelledby="icp-t-' + s.id + '"></div></section>').join('');
+            if (!sezioni.length) html = '<div class="icp-vuoto">' + icpSvg(icpNodo('search-x')) + '<div>' + icpEsc(icpT('Nessuna icona trovata')) + '</div></div>';
+            if (piede) html += '<div class="icp-piede">' + piede + '</div>';
+            box.innerHTML = html;
+            const n = sezioni.reduce((t, s) => t + s.voci.length, 0);
+            const stato = document.getElementById('icp-stato');
+            if (stato) stato.textContent = parole.length ? icpT('Icone trovate') + ': ' + n : '';
+            // a blocchi: le prime righe subito, il resto nei fotogrammi seguenti (con tutto il pacchetto non si blocca niente)
+            const griglie = box.querySelectorAll('.icp-griglia'), lavori = [];
+            sezioni.forEach((s, i) => { for (let a = 0; a < s.voci.length; a += 120) lavori.push([griglie[i], s.voci.slice(a, a + 120)]); });
+            const passo = () => {
+                if (giro !== icpStato.giro) return;              // nel frattempo e' cambiata la ricerca: questo disegno non serve piu'
+                const t0 = performance.now();
+                do {
+                    const [g, voci] = lavori.shift();
+                    g.insertAdjacentHTML('beforeend', voci.map(v => icpTessera(v, !!nodoAttuale && v.nodo === nodoAttuale)).join(''));
+                } while (lavori.length && performance.now() - t0 < ICP_BLOCCO_MS);
+                icpPuntoTab(box);
+                if (lavori.length) requestAnimationFrame(passo);
+                else if (dopo) dopo();
+            };
+            if (lavori.length) passo();
+            else if (dopo) dopo();
+            icpSpia();
+            icpFrecce();
+        }
+        // «Mostra tutte le icone (1.806)» / «Torna alle icone scelte»
+        function icpTastoTutte(azione, classe) {
+            const tutte = azione === 'tutte';
+            return '<button type="button" class="' + (classe || 'icp-tutte') + '" data-azione="' + azione + '">' + icpSvg(icpNodo(tutte ? 'layout-grid' : 'arrow-left')) + '<span>' +
+                   icpEsc(icpT(tutte ? 'Mostra tutte le icone' : 'Torna alle icone scelte')) + (tutte ? ' (' + icpNumero(icpQuanti()) + ')' : '') + '</span></button>';
+        }
+        // passa da elenco scelto a tutte le icone (e ritorno); da tastiera si resta nel selettore
+        function icpMostraTutte(si, daTastiera) {
+            const box = document.getElementById('icon-grid-container');
+            icpStato.tutte = si;
+            icpDisegna(); box.scrollTop = 0;
+            if (daTastiera) icpFuoco(box.querySelector('.icp-tessera'));
+        }
+        // un solo riquadro raggiungibile col Tab (l'attuale, se c'e', se no il primo): poi si va con le frecce. Con tutte le
+        // icone l'attuale puo' arrivare in un blocco disegnato dopo: il posto passa a lei, se il focus non e' gia' nella griglia
+        function icpPuntoTab(box) {
+            const ora = box.querySelector('.icp-tessera[tabindex="0"]'), att = box.querySelector('.icp-tessera.icp-attuale');
+            if (ora && (!att || ora === att || box.contains(document.activeElement))) return;
+            const t = att || box.querySelector('.icp-tessera');
+            if (!t) return;
+            if (ora) ora.tabIndex = -1;
+            t.tabIndex = 0;
+        }
+        function icpFuoco(t) {
+            const box = document.getElementById('icon-grid-container');
+            if (!t || !box) return;
+            box.querySelectorAll('.icp-tessera[tabindex="0"]').forEach(x => { if (x !== t) x.tabIndex = -1; });
+            t.tabIndex = 0;
+            const alto = 34;                                  // il titolo della sezione resta fermo in cima: non ci finisce sotto
+            if (t.offsetTop - alto < box.scrollTop) box.scrollTop = Math.max(0, t.offsetTop - alto - 4);
+            else if (t.offsetTop + t.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = t.offsetTop + t.offsetHeight - box.clientHeight + 6;
+            t.focus({ preventScroll: true });
+        }
+
+        function selectIcon(iconName) {
+            selectedIcon = iconName;
+            const nodo = icpNodo(iconName);
+            document.querySelectorAll('#icon-grid-container .icp-tessera').forEach(t => {
+                const si = !!nodo && icpNodo(t.dataset.icona) === nodo;
+                if (t.classList.contains('icp-attuale') !== si) { t.classList.toggle('icp-attuale', si); t.setAttribute('aria-pressed', si); }
+            });
+            icpAnteprima();
+        }
+        // in alto a destra: l'icona che verra' salvata (per un dispositivo senza icona scelta, quella della sua card)
+        function icpAnteprima() {
+            const el = document.getElementById('icp-anteprima');
+            if (!el) return;
+            const v = icpVoce(selectedIcon);
+            let ico = v ? icpSvg(v.nodo) : '', nome = v ? v.et : icpT('Predefinita');
+            if (!v && editingType === 'entity') {
+                const card = document.querySelector('.hk-card-source[data-id="' + CSS.escape(String(editingId)) + '"] .hk-icon svg');
+                if (card) ico = card.outerHTML;
+            }
+            el.innerHTML = '<span class="icp-ico">' + ico + '</span><span class="icp-ant-testo"><small>' + icpEsc(icpT('Icona attuale')) + '</small><b>' + icpEsc(nome) + '</b></span>';
+        }
+
+        // capitolo attivo mentre si scorre (e la sua etichetta resta visibile nella fila delle categorie)
+        function icpSpia() {
+            const box = document.getElementById('icon-grid-container'), chips = document.getElementById('icp-chips');
+            if (!box || !chips || icpStato.tutte || icpNorm(icpStato.query).trim()) return;     // con la ricerca nessuna categoria e' attiva
+            const sez = box.querySelectorAll('.icp-sezione');
+            let id = sez.length ? sez[0].dataset.sez : '';
+            const fondo = box.scrollTop + box.clientHeight >= box.scrollHeight - 4;
+            sez.forEach(s => { if (s.offsetTop <= box.scrollTop + 40) id = s.dataset.sez; });
+            if (fondo && sez.length) id = sez[sez.length - 1].dataset.sez;
+            chips.querySelectorAll('.icp-chip').forEach(c => {
+                const si = c.dataset.sez === id;
+                if (c.classList.contains('attiva') === si) return;
+                c.classList.toggle('attiva', si);
+                if (!chips.contains(document.activeElement)) c.tabIndex = si ? 0 : -1;    // col Tab si entra dalla categoria attiva
+                if (!si) return;
+                const margine = 44;                               // la freccia sul bordo non ci finisce sopra
+                if (c.offsetLeft - margine < chips.scrollLeft) chips.scrollLeft = c.offsetLeft - margine;
+                else if (c.offsetLeft + c.offsetWidth + margine > chips.scrollLeft + chips.clientWidth) chips.scrollLeft = c.offsetLeft + c.offsetWidth - chips.clientWidth + margine;
+            });
+        }
+        // la fila delle categorie e' piu' larga della finestra: sfumatura e freccia sul lato dove continua
+        function icpFrecce() {
+            const chips = document.getElementById('icp-chips'), fila = document.getElementById('icp-fila');
+            if (!chips || !fila) return;
+            const max = chips.scrollWidth - chips.clientWidth;
+            fila.classList.toggle('a-sx', chips.scrollLeft > 2);
+            fila.classList.toggle('a-dx', chips.scrollLeft < max - 2);
+        }
+        // riga sopra/sotto con le frecce: il riquadro piu' vicino in orizzontale (le sezioni hanno righe incomplete)
+        function icpRiga(tutte, i, verso) {
+            const r0 = tutte[i].getBoundingClientRect(), x0 = r0.left + r0.width / 2;
+            let j = i + verso, top = null, meglio = -1, dist = Infinity;
+            for (; j >= 0 && j < tutte.length; j += verso) {
+                const r = tutte[j].getBoundingClientRect();
+                if (Math.abs(r.top - r0.top) < 4) continue;          // stessa riga
+                if (top === null) top = r.top;
+                else if (Math.abs(r.top - top) >= 4) break;          // passata anche la riga cercata
+                const dx = Math.abs(r.left + r.width / 2 - x0);
+                if (dx < dist) { dist = dx; meglio = j; }
+            }
+            return meglio;
+        }
+
+        function icpAggancia(box) {                   // una volta sola: ascoltatori del campo, delle categorie e della griglia
+            box.dataset.pronto = '1';
+            const campo = document.getElementById('icp-cerca'), svuota = document.getElementById('icp-svuota');
+            const chips = document.getElementById('icp-chips'), fila = document.getElementById('icp-fila');
+            chips.setAttribute('aria-label', icpT('Categorie di icone'));
+            box.setAttribute('aria-label', icpT('Icone'));
+            fila.querySelectorAll('.icp-freccia').forEach(f => { f.innerHTML = '<span>' + icpSvg(icpNodo(f.dataset.verso > 0 ? 'chevron-right' : 'chevron-left')) + '</span>'; });
+            let attesa = 0;
+            const cerca = () => {
+                svuota.hidden = !campo.value;
+                cancelAnimationFrame(attesa);
+                attesa = requestAnimationFrame(() => { icpStato.query = campo.value; icpDisegna(); box.scrollTop = 0; });
+            };
+            // Esc: prima svuota il campo, poi da tutte le icone torna all'elenco scelto, poi chiude la finestra
+            const esc = e => {
+                e.preventDefault(); e.stopPropagation();
+                if (campo.value) { campo.value = ''; cerca(); campo.focus(); }
+                else if (icpStato.tutte) { icpMostraTutte(false); campo.focus(); }
+                else closeEditModal();
+            };
+            campo.addEventListener('input', cerca);
+            svuota.addEventListener('click', () => { campo.value = ''; cerca(); campo.focus(); });
+            campo.addEventListener('keydown', e => {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();                      // con una ricerca: il primo trovato (quello che Invio sceglie)
+                    if (icpStato.query !== campo.value) { cancelAnimationFrame(attesa); icpStato.query = campo.value; icpDisegna(); }
+                    icpFuoco((!campo.value.trim() && box.querySelector('.icp-tessera[tabindex="0"]')) || box.querySelector('.icp-tessera'));
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();                      // Invio sceglie la prima icona trovata
+                    if (icpStato.query !== campo.value) { cancelAnimationFrame(attesa); icpStato.query = campo.value; icpDisegna(); }
+                    const t = campo.value.trim() && box.querySelector('.icp-tessera');
+                    if (t) { selectIcon(t.dataset.icona); icpFuoco(t); }
+                } else if (e.key === 'Escape') esc(e);
+            });
+            // categorie: un solo posto nel giro del Tab, poi frecce a destra e sinistra; freccia giu' va alle icone
+            chips.addEventListener('keydown', e => {
+                const c = e.target.closest('.icp-chip');
+                if (!c) return;
+                const tutte = [...chips.querySelectorAll('.icp-chip')], i = tutte.indexOf(c);
+                let d = null;
+                if (e.key === 'ArrowRight') d = tutte[i + 1];
+                else if (e.key === 'ArrowLeft') d = tutte[i - 1];
+                else if (e.key === 'Home') d = tutte[0];
+                else if (e.key === 'End') d = tutte[tutte.length - 1];
+                else if (e.key === 'ArrowDown') { e.preventDefault(); icpFuoco(box.querySelector('.icp-tessera[tabindex="0"]') || box.querySelector('.icp-tessera')); return; }
+                else if (e.key === 'Escape') { esc(e); return; }
+                if (!d) return;
+                e.preventDefault();
+                tutte.forEach(x => { x.tabIndex = x === d ? 0 : -1; });
+                d.focus();
+            });
+            chips.addEventListener('click', e => {
+                const a = e.target.closest('[data-azione]');
+                if (a) {                                       // «Torna alle icone scelte» in cima
+                    icpMostraTutte(a.dataset.azione === 'tutte');
+                    if (e.detail === 0) { const c = chips.querySelector('.icp-chip'); if (c) c.focus(); }
+                    return;
+                }
+                const c = e.target.closest('.icp-chip');
+                if (!c) return;
+                const sez = () => box.querySelector('.icp-sezione[data-sez="' + c.dataset.sez + '"]');
+                if (!campo.value && !icpStato.query) { const s = sez(); if (s) box.scrollTo({ top: s.offsetTop, behavior: 'smooth' }); return; }
+                // durante la ricerca: si svuota il campo e, disegnato l'elenco, si va alla categoria
+                campo.value = ''; svuota.hidden = true; cancelAnimationFrame(attesa); icpStato.query = '';
+                icpDisegna(() => { const s = sez(); box.scrollTop = s ? s.offsetTop : 0; icpSpia(); });
+            });
+            // rotella del mouse: la fila scorre di lato (prima si muoveva solo col trackpad, col dito o con la tastiera)
+            chips.addEventListener('wheel', e => {
+                if (e.ctrlKey || Math.abs(e.deltaX) >= Math.abs(e.deltaY) || chips.scrollWidth <= chips.clientWidth) return;
+                const prima = chips.scrollLeft;
+                chips.scrollLeft += e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? chips.clientWidth : 1);
+                if (chips.scrollLeft !== prima) e.preventDefault();      // arrivata in fondo: la rotella torna alla pagina
+            }, { passive: false });
+            let frecce = 0;
+            const aggiornaFrecce = () => { if (!frecce) frecce = requestAnimationFrame(() => { frecce = 0; icpFrecce(); }); };
+            chips.addEventListener('scroll', aggiornaFrecce, { passive: true });
+            window.addEventListener('resize', aggiornaFrecce);
+            if (window.ResizeObserver) new ResizeObserver(aggiornaFrecce).observe(chips);
+            fila.addEventListener('click', e => {
+                const f = e.target.closest('.icp-freccia');
+                if (f) chips.scrollBy({ left: Math.sign(f.dataset.verso) * Math.max(120, chips.clientWidth * 0.7), behavior: 'smooth' });
+            });
+            box.addEventListener('click', e => {
+                const t = e.target.closest('.icp-tessera');
+                if (t) { selectIcon(t.dataset.icona); icpFuoco(t); return; }
+                const a = e.target.closest('[data-azione]');
+                if (a) icpMostraTutte(a.dataset.azione === 'tutte', e.detail === 0);   // da tastiera: il tasto premuto non c'e' piu', si resta nella griglia
+            });
+            box.addEventListener('keydown', e => {
+                const t = e.target.closest && e.target.closest('.icp-tessera');
+                if (!t) { if (e.key === 'Escape') esc(e); return; }
+                const tutte = [...box.querySelectorAll('.icp-tessera')];
+                const i = tutte.indexOf(t);
+                let j = -2;
+                if (e.key === 'ArrowRight') j = i + 1;
+                else if (e.key === 'ArrowLeft') j = i - 1;
+                else if (e.key === 'ArrowDown') j = icpRiga(tutte, i, 1);
+                else if (e.key === 'ArrowUp') { j = icpRiga(tutte, i, -1); if (j < 0) { e.preventDefault(); campo.focus(); return; } }
+                else if (e.key === 'Home') j = 0;
+                else if (e.key === 'End') j = tutte.length - 1;
+                else if (e.key === 'Escape') { esc(e); return; }
+                else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectIcon(t.dataset.icona); return; }   // un solo clic, anche se il tasto si ripete
+                if (j === -2) return;
+                e.preventDefault();
+                if (j >= 0 && j < tutte.length) icpFuoco(tutte[j]);
+            });
+            let spia = 0;
+            box.addEventListener('scroll', () => { if (!spia) spia = requestAnimationFrame(() => { spia = 0; icpSpia(); }); }, { passive: true });
+        }
 
 function createRoomFromInput() {
     const val = document.getElementById('room-input').value.trim(); 
@@ -7077,7 +8088,9 @@ function createSubRoomFromInput() {
                 deleteBtn.style.display = 'none'; 
             }
             
-            if(iconSection.style.display === 'block') renderIconGridOptions(); 
+            const conIcone = iconSection.style.display === 'block';
+            document.querySelector('#edit-modal .icon-modal-content').classList.toggle('icp-largo', conIcone);   // piu' larga solo col selettore
+            if (conIcone) renderIconGridOptions();
             libIcone(document);        // solo le icone ancora da disegnare (prima: tutte le ~1000 della pagina a ogni apertura)
         }
         
@@ -7209,6 +8222,7 @@ if (editingType === 'room') {
                 });
             }
 
+            if (selectedIcon && selectedIcon !== icpStato.aperta && (editingType === 'room' || editingType === 'entity')) icpRicorda(selectedIcon);   // «Ultime usate»: solo un'icona cambiata
             libAggiornaSezioni();        // nomi e posti nella barra (rinomina di stanza, zona o dispositivo)
             closeEditModal(); showToast('Impostazioni aggiornate', 'success');
         }
@@ -15107,10 +16121,10 @@ openIntegrationDetail = (function (originale) {
 {%- if homekit_modulo %}
 // --- [HOMEKIT] voce dello Store (categoria nuova 'Ecosistemi'), card del ponte, scelta delle entita', rimozione ---
 // Tutto qui dentro: le API vivono in homekit.py; senza il modulo questo blocco non c'e' e la pagina resta identica.
-INTEGRATIONS_CATALOG.push({ key: 'homekit', name: 'Apple Casa (HomeKit)', icon: 'house-wifi', color: '#FF9500', logo: null, category: 'Ecosistemi', desc: "Comanda dall'app Casa e con Siri le entità delle stanze che scegli tu. Serrature, cancelli, garage e allarme restano fuori.", installed: {{ 'true' if homekit_attivo else 'false' }}, removable: true });
-DETAIL_TITLES.homekit = ["Apple Casa (HomeKit)", "Ponte HomeKit: le entità delle stanze nell'app Casa."];
+INTEGRATIONS_CATALOG.push({ key: 'homekit', name: 'Apple Casa (HomeKit)', icon: 'house-wifi', color: '#FF9500', logo: null, category: 'Ecosistemi', desc: "Comanda dall'app Casa e con Siri le entità che scegli tu. Serrature, cancelli, garage e allarme solo se li includi tu.", installed: {{ 'true' if homekit_attivo else 'false' }}, removable: true });
+DETAIL_TITLES.homekit = ["Apple Casa (HomeKit)", "Ponte HomeKit: le entità che scegli tu nell'app Casa."];
 STORE_CAT_ICONE['Ecosistemi'] = 'house-wifi';
-GUIDE_INTEGRAZIONI.homekit = { titolo: 'Come collegare Apple Casa', corpo: `<p>Wach0ss Home fa da ponte HomeKit: nell'app Casa compaiono solo le entità delle stanze che scegli qui.</p>
+GUIDE_INTEGRAZIONI.homekit = { titolo: 'Come collegare Apple Casa', corpo: `<p>Wach0ss Home fa da ponte HomeKit: nell'app Casa compaiono solo le entità che scegli tu, fra tutte quelle dell'app.</p>
         <ol>
             <li>Attiva il ponte con l'interruttore.</li>
             <li>Premi Scegli le entità e spunta quelle da comandare da Apple Casa.</li>
@@ -15119,6 +16133,7 @@ GUIDE_INTEGRAZIONI.homekit = { titolo: 'Come collegare Apple Casa', corpo: `<p>W
             <li>Nell'app Casa assegna le stanze alle entità nuove.</li>
         </ol>
         <div class="nota">Il codice vale 30 minuti: se scade, premi Mostra codice. Dal telefono lo trovi in Impostazioni, alla riga Apple Casa.</div>
+        <div class="nota">Serrature, garage, cancelli, allarme, valvole e sirene si collegano solo con «Includi dispositivi di sicurezza» accesa nella card. L'allarme da Casa si inserisce (Fuori, e Notte se la modalità Notte ha i suoi sensori) e se ne vede lo stato; il disinserimento da Casa viene rifiutato: serve il PIN nell'app Wach0ss.</div>
         <div class="nota">Il server e l'iPhone devono stare nella stessa rete. Se il server ha un firewall, apri la porta del ponte (TCP) e la 5353 (UDP).</div>
         <div class="nota">Se usi anche il ponte HomeKit di Home Assistant, non collegare le stesse entità da tutti e due: in Casa comparirebbero due volte.</div>
         <div class="nota">Se cambi il server, il ponte va abbinato di nuovo e le stanze in Casa vanno rimesse: il backup non porta con sé l'abbinamento.</div>` };
@@ -15127,20 +16142,68 @@ const HKB_TIPI = { luce: 'Luce', interruttore: 'Interruttore', presa: 'Presa', v
     tapparella: 'Tapparella', termostato: 'Termostato', temperatura: 'Sensore di temperatura', umidita: 'Sensore di umidità',
     luminosita: 'Sensore di luminosità', contatto: 'Sensore porta o finestra', movimento: 'Sensore di movimento',
     presenza: 'Sensore di presenza', perdita: 'Sensore di allagamento', fumo: 'Sensore di fumo', monossido: 'Sensore di monossido',
-    gruppo: 'Gruppo', gruppo_luce: 'Gruppo di luci' };
+    co2: 'Sensore di CO2', co_livello: 'Sensore di monossido', aria: "Sensore della qualità dell'aria",
+    gruppo: 'Gruppo', gruppo_luce: 'Gruppo di luci', pulsante: 'Pulsante', serratura: 'Serratura', garage: 'Garage o cancello',
+    allarme: 'Allarme', valvola: 'Valvola', sirena: 'Sirena' };
+// motivi (codice del server) e varianti ('motivo:variante'); {d} = il nome o il tipo che il server manda in 'dettaglio'
 const HKB_MOTIVI = { sicurezza: 'Dispositivo di sicurezza: non si collega', sconosciuto: 'Dispositivo non riconosciuto: non si collega',
-    stanza: 'Non è in una stanza', compatibile: 'Apple Casa non sa comandarlo', raggiungibile: 'Non raggiungibile: riprova quando risponde',
+    'sicurezza:remota': 'Tapparella di un altro server Wach0ss: da qui non si sa se è un garage o un cancello, non si collega',
+    compatibile: 'Apple Casa non sa comandarlo', raggiungibile: 'Non raggiungibile: riprova quando risponde',
+    'compatibile:telecamera': "Telecamera: arriverà con un aggiornamento",
+    'compatibile:tv': "TV: arriverà con un aggiornamento",
+    'compatibile:lettore': "Cassa o lettore multimediale: arriverà con un aggiornamento",
+    'compatibile:robot': 'Robot: Apple Casa non lo comanda da questo ponte',
+    'compatibile:script': 'Script di Home Assistant: non si sa cosa comanda, non si collega',
+    'compatibile:umidificatore': 'Umidificatore: Apple Casa non lo comanda da questo ponte',
+    'compatibile:scaldabagno': 'Scaldabagno: Apple Casa non lo comanda da questo ponte',
+    'compatibile:telecomando': 'Telecomando: Apple Casa non lo comanda da questo ponte',
+    'compatibile:aria': "Sensore della qualità dell'aria di un tipo che Apple Casa non riceve da questo ponte",
+    'compatibile:clima': 'Clima con modi che Apple Casa non conosce (solo deumidifica o ventilazione): non si collega',
+    'compatibile:energia': 'Sensore di potenza o di consumo: Apple Casa non mostra i consumi',
+    'compatibile:batteria': 'Livello della batteria: Apple Casa non lo mostra da solo',
+    'compatibile:sensore': 'Sensore «{d}»: Apple Casa non lo mostra',
+    'compatibile:sensore_senza_tipo': 'Sensore senza tipo (né temperatura, né umidità, né luce): Apple Casa non sa come mostrarlo',
+    'compatibile:ingresso': 'Ingresso senza tipo (porta, movimento, allagamento...): Apple Casa non sa come mostrarlo',
+    'compatibile:dominio': 'Tipo «{d}»: Apple Casa non sa comandarlo',
+    'compatibile:gruppo_vuoto': 'Gruppo vuoto: aggiungi dei dispositivi per collegarlo',
+    'compatibile:scena_persa': 'Scena non più salvata: non si collega',
     gruppo: 'Gruppo di Home Assistant o con dispositivi non ammessi: non si collega',
+    'gruppo:app': 'Gruppo con dentro dispositivi di sicurezza o non ammessi: non si collega',
+    'gruppo:ha': 'Gruppo con dentro dispositivi che non si collegano: non si collega',
+    'gruppo:ha_group': 'Gruppo di Home Assistant: Apple Casa riceve solo i gruppi di Wach0ss',
+    'gruppo:remoto': 'Gruppo di un altro server Wach0ss: non si collega',
     scena: 'Scena di Home Assistant o con dispositivi non ammessi: non si collega',
+    'scena:app': 'Scena con dentro dispositivi di sicurezza o non ammessi: non si collega',
+    'scena:ha': 'Scena di Home Assistant: non si sa cosa comanda, non si collega',
+    'scena:remota': 'Scena di un altro server Wach0ss: non si sa cosa comanda, non si collega',
+    'scena:hue': 'Scena di Hue: non si sa cosa comanda, non si collega',
+    'scena:myhome': 'Scena di MyHome: non si sa cosa comanda, non si collega',
+    'gruppo:implicito': 'Gruppo di Home Assistant con dentro «{d}»: comandalo membro per membro',
+    'scena:implicito': 'Scena di Home Assistant con dentro «{d}»: non si collega, comanda i dispositivi uno per uno',
+    'gruppo:implicito_dentro': 'Contiene «{d}», gruppo o scena di Home Assistant con dentro dispositivi di sicurezza: non si collega',
+    'scena:implicito_dentro': 'Contiene «{d}», gruppo o scena di Home Assistant con dentro dispositivi di sicurezza: non si collega',
+    'gruppo:implicito_ignoto': 'Gruppo di Home Assistant di cui non si vedono i membri: non si collega',
     automazione: "Avvia un'automazione che comanda dispositivi di sicurezza: non si collega",
-    id: 'Identificativo non valido', limite: 'Oltre il limite di 149 entità', attesa: 'In attesa dei dati del dispositivo' };
+    'automazione:nome': "Fa partire l'automazione «{d}», che comanda dispositivi di sicurezza o l'allarme: non si collega",
+    id: 'Identificativo non valido', limite: 'Oltre il limite di 149 entità', attesa: 'In attesa dei dati del dispositivo',
+    'attesa:dati': 'In attesa dei dati dei dispositivi che comanda',
+    'attesa:shelly': 'Shelly non ancora letto (a batteria si sveglia da solo): attendi',
+    assente: 'Non risponde in questo momento',
+    'assente:shelly_cambiato': 'Lo Shelly ora è «{d}»: collega quello' };
 const HKB_CHIP = [['tutti', 'Tutti'], ['luci', 'Luci'], ['prese', 'Prese e interruttori'], ['tapparelle', 'Tapparelle'],
-    ['clima', 'Clima'], ['sensori', 'Sensori'], ['altro', 'Altro']];
+    ['clima', 'Clima'], ['sensori', 'Sensori'], ['sicurezza', 'Sicurezza'], ['altro', 'Altro']];
+// il perche' della conferma al salvataggio (campo 'avviso' del server): la riga lo dice in breve, la conferma per esteso
+const HKB_AVVISI = { sicurezza: 'Dispositivo di sicurezza', indiretta: 'Comanda dispositivi di sicurezza',
+    pulsante: 'Ogni tocco in Casa lo preme', allarme: "Usata dall'allarme", allarme_dentro: "Contiene un dispositivo usato dall'allarme",
+    nome: 'Controlla: porte, allarme o gas' };
 // Stato della pagina: l'ultimo /stato disegnato, il polling, le scelte all'apertura del modale (il salvataggio manda
 // solo le DIFFERENZE: aggiungi/togli) e i nomi per i messaggi (anche delle scelte non disponibili).
 let hkbStato = null;
 let hkbPoll = null;
 let hkbSeguiFino = 0;       // dopo un'azione il polling continua comunque per 20 s: la risposta puo' arrivare prima che il governatore la prenda
+let hkbConfermaN = 0;       // scelte da riconfermare contate dal server all'accensione di "Includi dispositivi di sicurezza" (da_confermare)
+let hkbPrecTimer = null;    // precarica della lettura con la card aperta (hkbPrecarica)
+let hkbPrecFino = 0;
 let hkbChip = 'tutti';
 let hkbIniziali = new Set();
 let hkbNomi = {};
@@ -15178,16 +16241,55 @@ function hkbStatoVisto(d) {
     if (!d.attivo || !d.libreria) return 'fermo';
     return (!d.stato || d.stato === 'fermo') ? 'avvio' : d.stato;
 }
+// (correzione 2, H) con la card aperta il server tiene pronta una lettura giovane (GET ...?precarica=1 ogni 3,5 s,
+// risponde subito): "Scegli le entità" la riusa invece di aspettarne una nuova (~2 s con uno Shelly che dorme). Si
+// ferma da sola un minuto dopo l'ultimo gesto sulla card (tocco, tasto, fuoco, passaggio su "Scegli le entità"), a
+// card chiusa o pagina nascosta, e col modale aperto. (correzione 3: era ogni 1,5 s, la allungava ogni movimento del
+// mouse sulla card e ogni richiesta poteva far partire una lettura: il server leggeva di continuo. Ora la richiesta
+// rinnova solo l'"affitto" e il server legge quando serve, vedi _api_precarica.) 'subito' (card aperta, passaggio su
+// "Scegli le entità", modale chiuso: col modale aperto non si chiede) chiede subito.
+function hkbPrecarica(subito) {
+    hkbPrecFino = Date.now() + 60000;
+    if (!hkbPrecTimer) hkbPrecTimer = setInterval(hkbPrecaricaGiro, 3500);
+    if (subito) hkbPrecaricaGiro();
+}
+function hkbPrecaricaGiro() {
+    if (Date.now() > hkbPrecFino || document.hidden || !hkbVisibile()) { clearInterval(hkbPrecTimer); hkbPrecTimer = null; return; }
+    const m = document.getElementById('hkb-modale');
+    if (m && m.classList.contains('active')) return;
+    fetch('/api/homekit/entita?precarica=1', { credentials: 'same-origin', cache: 'no-store' }).catch(() => {});
+}
 async function hkbCarica() {
-    if (!document.querySelector('.integration-card[data-key="homekit"]')) return;
+    const card = document.querySelector('.integration-card[data-key="homekit"]');
+    if (!card) return;
+    if (!card.dataset.precarica) {
+        card.dataset.precarica = '1';
+        ['pointerdown', 'focusin', 'keydown'].forEach((t) => card.addEventListener(t, () => hkbPrecarica(false), { passive: true }));
+        // il passaggio su "Scegli le entità" (un attimo prima del clic) la fa partire subito
+        const sc = document.getElementById('hkb-scegli');
+        if (sc) sc.addEventListener('pointerenter', () => hkbPrecarica(true), { passive: true });
+    }
+    hkbPrecarica(true);
     try {
         const d = await hkbFetch('/api/homekit/stato');
         hkbMsg('');
         hkbDisegna(d);
         hkbPolling(d);
+        if (d.sicurezza && hkbStatoVisto(d) !== 'attivo') hkbContaConferme();
     } catch (e) {
         hkbMsg(hkbT('Impossibile leggere lo stato del ponte HomeKit.'), true);
     }
+}
+// (correzione 3) a ponte fermo il piano non c'e': il numero delle scelte da riconfermare lo conta il server, dopo
+// lo stato (la lettura e' quella della precarica: la card non aspetta). Prima arrivava solo dalla risposta
+// dell'accensione e ricaricando la pagina la riga "Da riconfermare" spariva.
+async function hkbContaConferme() {
+    try {
+        const r = await hkbFetch('/api/homekit/entita?da_confermare=1');
+        if (r.da_confermare === null || r.da_confermare === undefined || !hkbStato || !hkbStato.sicurezza) return;
+        hkbConfermaN = Number(r.da_confermare) || 0;
+        hkbDisegna(hkbStato);
+    } catch (e) {}
 }
 function hkbPolling(d) {
     const st = hkbStatoVisto(d);
@@ -15268,20 +16370,35 @@ function hkbDisegna(d) {
     }
     el('hkb-ripristina').disabled = !lib;
     el('hkb-mostra').disabled = !lib;
+    // "Includi dispositivi di sicurezza": spenta su ogni impianto, si accende con una conferma (hkbSicurezza)
+    el('hkb-sicurezza').checked = !!d.sicurezza;
+    el('hkb-sic-spenta').hidden = !!d.sicurezza;
+    el('hkb-sic-accesa').hidden = !d.sicurezza;
     // entita': col ponte in funzione le ESPOSTE (riepilogo per stanza, scelte fuori dal ponte, accessori senza risposta);
     // da fermo (spento, scaduto, errore, in avvio) le SCELTE, che entrano in Casa quando il ponte gira
     const vivo = st === 'attivo', esposte = Number(d.esposte) || 0, scelte = Number(d.scelte) || 0;
     el('hkb-conta-card').textContent = (vivo ? esposte : scelte) + '/' + (Number(d.max) || HKB_MAX);
-    el('hkb-riepilogo').innerHTML = vivo ? (d.stanze || []).map((s) => '<span>' + hkbEsc(s.nome) + ' <b>' + (Number(s.n) || 0) + '</b></span>').join('') : '';
+    el('hkb-riepilogo').innerHTML = vivo ? (d.stanze || []).map((s) => '<span>' + hkbEsc(s.nome || hkbT('Senza stanza')) + ' <b>' + (Number(s.n) || 0) + '</b></span>').join('') : '';
     el('hkb-nessuna').hidden = vivo ? !!esposte : !!scelte;
     el('hkb-scelte-ferme').hidden = vivo || !scelte;
     el('hkb-scelte-n').textContent = String(scelte);
-    [['fuori', d.fuori], ['attesa', d.attesa]].forEach(([k, l]) => {
+    // scelte fuori dal ponte: quelle da riconfermare (ora sono dispositivi di sicurezza o li comandano) a parte; i
+    // dispositivi di sicurezza con l'impostazione spenta arrivano senza nome ('nascosta'): solo il numero
+    const fuori = Array.isArray(d.fuori) ? d.fuori : [];
+    [['fuori', fuori.filter((x) => x.motivo !== 'conferma')], ['attesa', d.attesa], ['conferma', fuori.filter((x) => x.motivo === 'conferma')]].forEach(([k, l]) => {
         const lista = Array.isArray(l) ? l : [];
+        const nomi = lista.filter((x) => !x.nascosta).map((x) => x.nome || x.id), nascoste = lista.length - nomi.length;
         el('hkb-' + k).hidden = !lista.length;
         el('hkb-' + k + '-n').textContent = String(lista.length);
-        el('hkb-' + k + '-n').title = lista.map((x) => x.nome || x.id).join(', ');
+        el('hkb-' + k + '-n').title = nomi.concat(nascoste ? [nascoste + ' ' + hkbT('dispositivi di sicurezza')] : []).join(', ');
     });
+    // a ponte fermo il piano non c'e': il numero contato dal server all'accensione o dopo lo stato (hkbContaConferme)
+    if (!d.sicurezza) hkbConfermaN = 0;
+    if (!vivo && hkbConfermaN) {
+        el('hkb-conferma').hidden = false;
+        el('hkb-conferma-n').textContent = String(hkbConfermaN);
+        el('hkb-conferma-n').title = '';
+    }
     if (window.lucide) lucide.createIcons({ root: card });
 }
 async function hkbAttiva(cb) {
@@ -15301,6 +16418,30 @@ async function hkbAttiva(cb) {
         showToast(hkbEsc(e.message || 'Errore'), 'error');
     } finally {
         cb.disabled = !!hkbStato && !hkbStato.libreria && !hkbStato.attivo;
+    }
+}
+async function hkbSicurezza(cb) {
+    const on = cb.checked;
+    if (on && !await chiedi(hkbT("Includere serrature, garage e cancelli, allarme, valvole, sirene e pulsanti di porte, cancelli e allarme? Li scegli poi uno per uno, con una conferma: quelli già confermati in passato rientrano subito. Apple chiede Face ID o il codice per serrature, garage e allarme, anche da Siri, ma le automazioni di Casa e chi ha accesso alla tua casa in Apple Casa possono comandarli. L'allarme da Casa si inserisce e se ne vede lo stato, ma non si disinserisce: serve il PIN nell'app Wach0ss."),
+        { titolo: 'Includi dispositivi di sicurezza', si: 'Includi', pericolo: true, icona: 'alert-triangle' })) {
+        cb.checked = false;
+        return;
+    }
+    cb.disabled = true;
+    try {
+        const d = await hkbFetch('/api/homekit/config', hkbJson(on ? { sicurezza: true, conferma: true } : { sicurezza: false }));
+        // scelte di prima che ora sono (o comandano) dispositivi di sicurezza: fuori dal ponte finche' non si riconfermano
+        hkbConfermaN = on ? (Number(d.da_confermare) || 0) : 0;
+        hkbSegui();
+        hkbDisegna(d);
+        hkbPolling(d);
+        if (hkbConfermaN) showToast('<span>' + hkbEsc(hkbT('Dispositivi di sicurezza inclusi')) + '</span>. <span>' + hkbEsc(hkbT('Scelte da riconfermare in «Scegli le entità»:')) + '</span> <b>' + hkbConfermaN + '</b>', 'success');
+        else showToast(on ? 'Dispositivi di sicurezza inclusi' : 'Dispositivi di sicurezza esclusi', 'success');
+    } catch (e) {
+        cb.checked = !on;
+        showToast(hkbEsc(e.message || 'Errore'), 'error');
+    } finally {
+        cb.disabled = false;
     }
 }
 async function hkbMostraCodice(btn) {
@@ -15332,82 +16473,196 @@ async function hkbRipristina(btn) {
     }
 }
 // --- scelta delle entita' (modello: il foglio dei gruppi, funzioni gs*) ---
+// TUTTE le entita' dell'app: prima le stanze (con le zone), poi le altre, senza stanza, per integrazione, poi in fondo le
+// non collegabili col motivo (chiuse); in testa le scelte salvate che ora non si possono elencare. Le spunte vivono in
+// hkbSel, non nelle caselle: ricerca, filtri per tipo, "Solo selezionate", "seleziona il gruppo" e il contatore valgono
+// anche per i gruppi chiusi, che si disegnano solo quando servono (Home Assistant grandi: 1.000-2.000 entita').
+let HKB_SOGLIA = 200;       // oltre queste voci i gruppi senza stanza (e quelli delle non collegabili) partono chiusi
+let HKB_APRI_MAX = 300;     // la ricerca apre da sola un gruppo chiuso se ci trova al massimo tante voci
+let hkbSel = new Set();
+let hkbDaConfermare = new Set();   // scelte salvate da riconfermare (da_confermare): al salvataggio tornano in 'aggiungi'
+let hkbSicScelte = 0;       // dispositivi di sicurezza scelti, nascosti con l'impostazione spenta (solo il numero)
+let hkbGruppi = [];         // [{k: 's' stanza | 'a' senza stanza | 'c' non collegabili, voci, aperto, mano, disegnato, el, corpo, qui}]
+let hkbNc = { aperta: false, mano: false };
+let hkbRitardo = null;
+const HKB_ICONE_DOM = { sensor: 'gauge', binary_sensor: 'radio', script: 'scroll-text', scene: 'clapperboard', fan: 'fan',
+    humidifier: 'droplets', water_heater: 'heater', remote: 'tv-minimal', lawn_mower: 'bot', input_boolean: 'power', air_quality: 'wind',
+    lock: 'lock', valve: 'cylinder', siren: 'siren', alarm_control_panel: 'shield', allarme: 'shield' };
 async function hkbApriScelta() {
     const btn = document.getElementById('hkb-scegli');
     if (btn) btn.disabled = true;
+    // il modale si apre SUBITO e dice che sta caricando: l'elenco puo' metterci qualche secondo (app.py aspetta uno
+    // Shelly a batteria che dorme, o Home Assistant lento)
+    const modale = document.getElementById('hkb-modale');
+    const n = ++hkbAperture;
+    hkbErrore('');
+    document.getElementById('hkb-cerca').value = '';
+    document.getElementById('hkb-solo-sel').checked = false;
+    document.getElementById('hkb-lista').innerHTML = '<div class="hkb-carica" id="hkb-carica"><span>Carico le entità…</span></div>';
+    document.getElementById('hkb-chips').innerHTML = '';
+    document.getElementById('hkb-vuoto').hidden = true;
+    document.getElementById('hkb-salva').disabled = true;
+    hkbGruppi = [];
+    modale.classList.add('active');
+    if (window.lucide) lucide.createIcons({ root: modale });
     try {
         const d = await hkbFetch('/api/homekit/entita');
-        hkbErrore('');
-        document.getElementById('hkb-cerca').value = '';
-        document.getElementById('hkb-solo-sel').checked = false;
+        if (n !== hkbAperture || !modale.classList.contains('active')) return;    // chiuso (o riaperto) nel frattempo
         hkbChip = 'tutti';
         hkbCostruisci(d);
-        const modale = document.getElementById('hkb-modale');
-        modale.classList.add('active');
         if (window.lucide) lucide.createIcons({ root: modale });
         hkbFuoco();
     } catch (e) {
+        if (n === hkbAperture) hkbChiudiScelta();
         showToast(hkbEsc(e.message || 'Errore'), 'error');
     } finally {
         if (btn) btn.disabled = false;
     }
 }
+let hkbAperture = 0;
 function hkbChiudiScelta(e) {
     if (e) e.preventDefault();
     document.getElementById('hkb-modale').classList.remove('active');
+    if (hkbVisibile()) hkbPrecarica(true);      // (correzione 3) col modale aperto la precarica era ferma
+}
+// testo del motivo: prima la variante (HKB_MOTIVI['compatibile:tv']), poi il motivo; {d} = nome o tipo fra «»
+function hkbMotivo(m, v, d) {
+    const t = HKB_MOTIVI[m + ':' + (v || '')] || HKB_MOTIVI[m] || m || '';
+    return t.replace('{d}', d || '');
+}
+function hkbEtichetta(e) {
+    const id = String(e.id || '');
+    return HKB_TIPI[e.tipo === 'luce' && id.indexOf('group.') === 0 ? 'gruppo_luce' : e.tipo] || e.tipo || '';
+}
+// titolo di un gruppo: etichetta da tradurre (Scene, Hub...) e nome proprio (KNX, il nome dell'hub) che resta com'e'
+function hkbTitolo(g) {
+    return (g.etichetta ? '<span>' + gsEsc(g.etichetta) + '</span>' : '') + (g.etichetta && g.nome ? ' ' : '')
+        + (g.nome ? '<span data-no-tr>' + gsEsc(g.nome) + '</span>' : '');
+}
+function hkbVoce(e, luogo, nc) {
+    const id = String(e.id || ''), nome = e.nome || id, dom = id.split('.')[0];
+    const etichetta = nc ? '' : hkbEtichetta(e);
+    const motivo = nc ? hkbMotivo(e.motivo, e.variante, e.dettaglio) : (e.bloccata ? hkbMotivo(e.bloccata, e.variante, e.dettaglio) : '');
+    const chip = HKB_CHIP.some(([k]) => k === e.chip) ? e.chip : 'altro';
+    hkbNomi[id] = nome;
+    if (!nc && e.da_confermare) hkbDaConfermare.add(id);
+    return { id, nome, dom, chip, e, etichetta, motivo, sel: !nc && !e.bloccata, ok: true, riga: null,
+        cerca: libNorm([nome, id, luogo, e.stanza || '', e.zona || '', etichetta, etichetta ? hkbT(etichetta) : '', GS_PAROLE[dom] || '',
+            e.fonte || ''].join(' ')) };   // (non il motivo: "luce" non deve trovare un sensore "ne' luce")
+}
+function hkbGruppo(k, dati, voci, aperto) {
+    const g = { k, chiave: dati.chiave || '', etichetta: dati.etichetta || '', nome: dati.nome || '', voci, aperto,
+        mano: false, disegnato: false, el: null, corpo: null, qui: voci.length };
+    hkbGruppi.push(g);
+    return g;
+}
+function hkbTesta(g, i) {
+    if (g.k === 's') {
+        return '<label class="hkb-stanza-testa" title="Seleziona tutta la stanza"><input type="checkbox" class="hkb-tutta">'
+            + '<span data-no-tr>' + gsEsc(g.nome) + '</span><span class="hkb-stanza-n" data-no-tr>0/' + g.voci.length + '</span></label>';
+    }
+    const apri = '<button type="button" class="hkb-apri" aria-expanded="' + (g.aperto ? 'true' : 'false') + '" onclick="hkbApriGruppo(' + i + ')">'
+        + gsSvg('chevron-down') + hkbTitolo(g) + '</button>';
+    if (g.k === 'a') {
+        return '<div class="hkb-stanza-testa hkb-testa-gruppo"><input type="checkbox" class="hkb-tutta" title="Seleziona tutto il gruppo" aria-label="Seleziona tutto il gruppo">'
+            + apri + '<span class="hkb-stanza-n" data-no-tr>0/' + g.voci.length + '</span></div>';
+    }
+    return '<div class="hkb-stanza-testa hkb-testa-gruppo">' + apri + '<span class="hkb-stanza-n" data-no-tr>' + g.voci.length + '</span></div>';
 }
 function hkbCostruisci(d) {
     const nd = Array.isArray(d.non_disponibili) ? d.non_disponibili : [];
     const stanze = Array.isArray(d.stanze) ? d.stanze : [];
+    const altre = Array.isArray(d.altre) ? d.altre : [];
+    const fuori = Array.isArray(d.non_collegabili) ? d.non_collegabili : [];
+    const nascoste = d.nascoste || {};
+    const inclusa = !!d.sicurezza_inclusa;
+    document.getElementById('hkb-nota-spenta').hidden = inclusa;
+    document.getElementById('hkb-nota-accesa').hidden = !inclusa;
     hkbIniziali = new Set(Array.isArray(d.scelte) ? d.scelte : []);
+    hkbSel = new Set(hkbIniziali);
+    hkbDaConfermare = new Set();
+    hkbSicScelte = Number(nascoste.scelte_sicurezza) || 0;
     hkbNomi = {};
+    hkbGruppi = [];
+    hkbNc = { aperta: false, mano: false };
     const conta = {};
     HKB_CHIP.forEach(([k]) => { conta[k] = 0; });
     const sep = '<span> · </span>';
+    const lista = (x) => (Array.isArray(x.entita) ? x.entita : []);
+    let totAltre = 0, totNc = 0;
+    altre.forEach((a) => { totAltre += lista(a).length; });
+    fuori.forEach((a) => { totNc += lista(a).length; });
+    stanze.forEach((s) => {
+        const voci = lista(s).map((e) => hkbVoce(e, s.nome, false));
+        if (voci.length) hkbGruppo('s', { nome: s.nome }, voci, true);
+    });
+    altre.forEach((a) => {
+        const luogo = [a.etichetta || '', a.etichetta ? hkbT(a.etichetta) : '', a.nome || ''].join(' ');
+        const voci = lista(a).map((e) => hkbVoce(e, luogo, false));
+        if (voci.length) hkbGruppo('a', a, voci, totAltre <= HKB_SOGLIA);
+    });
+    fuori.forEach((a) => {
+        const luogo = [a.etichetta || '', a.etichetta ? hkbT(a.etichetta) : '', a.nome || ''].join(' ');
+        const voci = lista(a).map((e) => hkbVoce(e, luogo, true));
+        if (voci.length) hkbGruppo('c', a, voci, totNc <= HKB_SOGLIA);
+    });
     let html = '';
+    // dispositivi di sicurezza scelti (quando l'impostazione era accesa, o diventati tali dopo la scelta): con
+    // l'impostazione spenta si vede solo il loro numero (ne' id ne' nome), e si possono togliere tutti insieme
+    if (hkbSicScelte) {
+        html += '<div class="hkb-scelte-sic" id="hkb-scelte-sic"><span><span>Dispositivi di sicurezza scelti, non collegati finché «Includi dispositivi di sicurezza» è spenta:</span> <b data-no-tr>' + hkbSicScelte + '</b></span>'
+            + '<button type="button" class="btn-sm" id="hkb-togli-sic" onclick="hkbTogliSicurezza()"><span>Togli dalle scelte</span></button></div>';
+    }
     // scelte salvate che ora non si possono elencare: in testa, spuntate, si possono solo togliere (C4)
     if (nd.length) {
         html += '<div class="hkb-stanza hkb-nd" data-stanza="">'
             + '<div class="hkb-stanza-testa"><span>Scelte non disponibili ora</span><span class="hkb-stanza-n" data-no-tr>' + nd.length + '</span></div>'
             + nd.map((e) => {
-                const id = String(e.id || ''), nome = e.nome || id, motivo = hkbT(HKB_MOTIVI[e.motivo] || e.motivo || '');
+                const id = String(e.id || ''), nome = e.nome || id, motivo = hkbT(hkbMotivo(e.motivo, e.variante, e.dettaglio));
                 hkbNomi[id] = nome;
-                const cerca = libNorm([nome, id, e.stanza || '', motivo].join(' '));
-                return '<label class="gs-voce gs-assente" data-chip="tutti" data-cerca="' + gsEsc(cerca) + '" title="' + gsEsc(id) + '">'
-                    + '<input type="checkbox" value="' + gsEsc(id) + '"' + (hkbIniziali.has(id) ? ' checked' : '') + '>'
+                return '<label class="gs-voce gs-assente" data-chip="tutti" data-id="' + gsEsc(id) + '" title="' + gsEsc(hkbTitoloRiga(nome, id)) + '">'
+                    + '<input type="checkbox" value="' + gsEsc(id) + '"' + (hkbSel.has(id) ? ' checked' : '') + '>'
                     + '<span class="gs-ico">' + gsSvg('circle-alert') + '</span>'
                     + '<span class="gs-nome" data-no-tr>' + gsEsc(nome) + '</span>'
                     + '<span class="gs-sub">' + (e.stanza ? '<span data-no-tr>' + gsEsc(e.stanza) + ' · </span>' : '')
                     + '<span>' + gsEsc(motivo) + '</span>' + sep + '<span>Togli la spunta per scollegarla</span></span></label>';
             }).join('') + '</div>';
     }
-    stanze.forEach((s) => {
-        const voci = Array.isArray(s.entita) ? s.entita : [];
-        if (!voci.length) return;
-        html += '<div class="hkb-stanza" data-stanza="' + gsEsc(s.nome) + '">'
-            + '<label class="hkb-stanza-testa" title="Seleziona tutta la stanza"><input type="checkbox" class="hkb-tutta">'
-            + '<span data-no-tr>' + gsEsc(s.nome) + '</span><span class="hkb-stanza-n" data-no-tr>0/' + voci.length + '</span></label>'
-            + voci.map((e) => {
-                const id = String(e.id || ''), nome = e.nome || id, dom = id.split('.')[0];
-                const etichetta = HKB_TIPI[e.tipo === 'luce' && id.indexOf('group.') === 0 ? 'gruppo_luce' : e.tipo] || e.tipo || '';
-                const chip = HKB_CHIP.some(([k]) => k === e.chip) ? e.chip : 'altro';
-                hkbNomi[id] = nome;
-                conta.tutti++;
-                if (chip !== 'tutti') conta[chip]++;
-                const cerca = libNorm([nome, id, s.nome, e.zona || '', etichetta, hkbT(etichetta), GS_PAROLE[dom] || ''].join(' '));
-                const ferma = !!e.bloccata;         // in attesa dei dati del dispositivo: si vede, non si spunta
-                return '<label class="gs-voce' + (ferma ? ' hkb-bloccata' : '') + (e.sospetto ? ' hkb-sospetto' : '') + (e.offline ? ' gs-assente' : '') + '" data-chip="' + gsEsc(chip) + '" data-cerca="' + gsEsc(cerca) + '" title="' + gsEsc(id) + '">'
-                    + '<input type="checkbox" value="' + gsEsc(id) + '"' + (hkbIniziali.has(id) ? ' checked' : '') + (ferma ? ' disabled' : '') + '>'
-                    + '<span class="gs-ico">' + gsSvg(e.icona || LIB_ICONE[dom] || 'cpu') + '</span>'
-                    + '<span class="gs-nome" data-no-tr>' + gsEsc(nome) + '</span>'
-                    + '<span class="gs-sub">' + (e.zona ? '<span data-no-tr>' + gsEsc(e.zona) + ' · </span>' : '')
-                    + '<span>' + gsEsc(etichetta) + '</span>'
-                    + (ferma ? sep + '<span>' + gsEsc(HKB_MOTIVI.attesa) + '</span>' : '')
-                    + (e.offline ? sep + '<span>Non raggiungibile</span>' : '')
-                    + (e.sospetto ? sep + '<span>Controlla: porte, allarme o gas</span>' : '') + '</span></label>';
-            }).join('') + '</div>';
+    let primaAltra = true, primaNc = true;
+    hkbGruppi.forEach((g, i) => {
+        if (g.k !== 'c') g.voci.forEach((v) => { conta.tutti++; if (v.chip !== 'tutti') conta[v.chip]++; });
+        if (g.k === 'a' && primaAltra) {
+            primaAltra = false;
+            html += '<div class="hkb-sezione" id="hkb-altre-titolo"><span>Altre entità, senza stanza</span></div>';
+        }
+        if (g.k === 'c' && primaNc) {
+            primaNc = false;
+            html += '<div class="hkb-nc hkb-chiuso" id="hkb-nc"><button type="button" class="hkb-nc-testa" aria-expanded="false" onclick="hkbApriNc()">'
+                + gsSvg('chevron-down') + '<span>Non collegabili</span> <span class="hkb-nc-n" data-no-tr>(' + totNc + ')</span></button><div class="hkb-nc-corpo">';
+        }
+        html += '<div class="hkb-stanza' + (g.k === 'a' ? ' hkb-altre' : g.k === 'c' ? ' hkb-ncg' : '') + (g.aperto ? '' : ' hkb-chiuso') + '" data-g="' + i + '"'
+            + (g.k === 's' ? ' data-stanza="' + gsEsc(g.nome) + '"' : ' data-gruppo="' + gsEsc(g.chiave) + '"') + '>'
+            + hkbTesta(g, i) + '<div class="hkb-corpo"></div></div>';
     });
-    document.getElementById('hkb-lista').innerHTML = html;
+    if (!primaNc) html += '</div></div>';
+    // dispositivi di sicurezza veri ed entita' di sistema di Home Assistant: solo il numero
+    const ns = Number(nascoste.sicurezza) || 0, nx = Number(nascoste.sistema) || 0;
+    if (ns || nx) {
+        html += '<div class="hkb-nascoste" id="hkb-nascoste">'
+            + (ns ? '<div><span>' + (inclusa ? 'Dispositivi di sicurezza non riconosciuti, non elencati:'
+                : 'Serrature, cancelli, garage, allarme e sirene, valvole e pulsanti di porte, cancelli e allarme non sono elencati (si collegano con «Includi dispositivi di sicurezza» accesa nella card):')
+                + '</span> <b data-no-tr>' + ns + '</b></div>' : '')
+            + (nx ? '<div><span>Entità di sistema di Home Assistant (persone, zone, aggiornamenti, automazioni, impostazioni), che non sono dispositivi e non sono elencate:</span> <b data-no-tr>' + nx + '</b></div>' : '')
+            + '</div>';
+    }
+    const elLista = document.getElementById('hkb-lista');
+    elLista.innerHTML = html;
+    const contenitori = elLista.querySelectorAll('.hkb-stanza[data-g]');
+    hkbGruppi.forEach((g, i) => {
+        g.el = contenitori[i];
+        g.corpo = g.el.querySelector('.hkb-corpo');
+        if (g.k !== 'c' && g.aperto) hkbDisegnaGruppo(g);
+    });
     // chip per tipo col numero di voci (quelli a zero non si vedono, 'Tutti' resta)
     document.getElementById('hkb-chips').innerHTML = HKB_CHIP.map(([k, t]) => {
         const n = conta[k] || 0;
@@ -15417,37 +16672,116 @@ function hkbCostruisci(d) {
     hkbFiltra();
     hkbAggiornaConta();
 }
+// il title di una riga: il nome intero e l'id (i nomi lunghi vanno a capo, ma l'id si vede solo qui); data-id: l'id
+function hkbTitoloRiga(nome, id) {
+    return nome && nome !== id ? nome + ' (' + id + ')' : String(id || '');
+}
+// riga spuntabile (o ferma: in attesa dei dati, non risponde) e riga grigia delle non collegabili
+function hkbRiga(v) {
+    const e = v.e, ferma = !v.sel, sep = '<span> · </span>';
+    return '<label class="gs-voce' + (ferma ? ' hkb-bloccata' : '') + (e.sospetto ? ' hkb-sospetto' : '') + (e.offline ? ' gs-assente' : '') + '" data-chip="' + gsEsc(v.chip) + '" data-id="' + gsEsc(v.id) + '" title="' + gsEsc(hkbTitoloRiga(v.nome, v.id)) + '">'
+        + '<input type="checkbox" value="' + gsEsc(v.id) + '"' + (hkbSel.has(v.id) ? ' checked' : '') + (ferma ? ' disabled' : '') + '>'
+        + '<span class="gs-ico">' + gsSvg(e.icona || LIB_ICONE[v.dom] || HKB_ICONE_DOM[v.dom] || 'cpu') + '</span>'
+        + '<span class="gs-nome" data-no-tr>' + gsEsc(v.nome) + '</span>'
+        + '<span class="gs-sub">' + (e.zona ? '<span data-no-tr>' + gsEsc(e.zona) + ' · </span>' : '')
+        + (v.etichetta ? '<span>' + gsEsc(v.etichetta) + '</span>' : '')
+        + (ferma ? (v.etichetta ? sep : '') + '<span>' + gsEsc(v.motivo) + '</span>' : '')
+        + (e.offline && !ferma ? sep + '<span>Non raggiungibile</span>' : '')
+        + (e.sospetto ? sep + '<span>' + gsEsc(HKB_AVVISI[e.avviso] || HKB_AVVISI.nome) + '</span>'
+            + (e.avviso_d ? ' <span data-no-tr>(' + gsEsc(e.avviso_d) + ')</span>' : '') : '')
+        + (e.da_confermare ? sep + '<span>Da confermare: fuori da Apple Casa finché non salvi</span>' : '') + '</span></label>';
+}
+function hkbRigaNc(v) {
+    const e = v.e;
+    return '<div class="gs-voce hkb-nc-voce" data-chip="' + gsEsc(v.chip) + '" data-id="' + gsEsc(v.id) + '" title="' + gsEsc(hkbTitoloRiga(v.nome, v.id)) + '">'
+        + '<span class="gs-ico">' + gsSvg(LIB_ICONE[v.dom] || HKB_ICONE_DOM[v.dom] || 'cpu') + '</span>'
+        + '<span class="gs-nome" data-no-tr>' + gsEsc(v.nome) + '</span>'
+        + '<span class="gs-sub">' + (e.stanza ? '<span data-no-tr>' + gsEsc(e.stanza) + (e.zona ? ' · ' + gsEsc(e.zona) : '') + ' · </span>' : '')
+        + '<span>' + gsEsc(v.motivo) + '</span></span></div>';
+}
+function hkbDisegnaGruppo(g) {
+    g.corpo.innerHTML = g.voci.map((v) => (g.k === 'c' ? hkbRigaNc(v) : hkbRiga(v))).join('');
+    const righe = g.corpo.children;
+    g.voci.forEach((v, i) => { v.riga = righe[i] || null; });
+    g.disegnato = true;
+}
+function hkbApriGruppo(i) {
+    const g = hkbGruppi[i];
+    if (!g) return;
+    g.aperto = g.el.classList.contains('hkb-chiuso');      // chiuso -> si apre, aperto -> si chiude (anche se l'ha aperto la ricerca)
+    g.mano = true;
+    hkbFiltra();
+}
+function hkbApriNc() {
+    const nc = document.getElementById('hkb-nc');
+    hkbNc.aperta = !!nc && nc.classList.contains('hkb-chiuso');
+    hkbNc.mano = true;
+    hkbFiltra();
+}
 function hkbScegliChip(k) {
     hkbChip = k;
     document.querySelectorAll('#hkb-chips .gs-chip').forEach((c) => c.classList.toggle('active', c.dataset.chip === k));
     hkbFiltra();
 }
-// le voci filtrate si NASCONDONO (gs-nascosta) e restano spuntate; le scelte non disponibili restano sempre visibili
+function hkbCerca() {
+    // con tante voci (Home Assistant grandi) si aspetta che si smetta di scrivere
+    clearTimeout(hkbRitardo);
+    let n = 0;
+    hkbGruppi.forEach((g) => { n += g.voci.length; });
+    if (n <= 600) { hkbFiltra(); return; }
+    document.getElementById('hkb-cerca-x').hidden = !document.getElementById('hkb-cerca').value;
+    hkbRitardo = setTimeout(hkbFiltra, 150);
+}
+// le voci filtrate si NASCONDONO e restano spuntate (le spunte sono in hkbSel); le scelte non disponibili restano
+// sempre visibili. La ricerca (e "Solo selezionate") apre da soli i gruppi chiusi in cui trova qualcosa, le non
+// collegabili solo la ricerca; un gruppo aperto o chiuso a mano resta come l'ha lasciato l'utente.
 function hkbFiltra() {
+    clearTimeout(hkbRitardo);
     const campo = document.getElementById('hkb-cerca');
     const testo = campo ? campo.value : '';
     const parole = libNorm(testo).split(/\s+/).filter(Boolean);
     const solo = document.getElementById('hkb-solo-sel').checked;
-    let mostrate = 0, totali = 0;
-    document.querySelectorAll('#hkb-lista .hkb-stanza:not(.hkb-nd)').forEach((s) => {
+    const forza = parole.length > 0 || solo;
+    let mostrate = 0, totali = 0, nc = 0, ncTot = 0, altreQui = 0;
+    hkbGruppi.forEach((g) => {
         let qui = 0;
-        s.querySelectorAll('.gs-voce').forEach((v) => {
-            totali++;
-            const ok = (hkbChip === 'tutti' || v.dataset.chip === hkbChip) && (!solo || v.querySelector('input').checked)
-                && parole.every((p) => v.dataset.cerca.indexOf(p) >= 0);
-            v.classList.toggle('gs-nascosta', !ok);
-            if (ok) qui++;
+        g.voci.forEach((v) => {
+            v.ok = (hkbChip === 'tutti' || v.chip === hkbChip) && (!solo || hkbSel.has(v.id)) && parole.every((p) => v.cerca.indexOf(p) >= 0);
+            if (v.ok) qui++;
         });
-        s.classList.toggle('gs-nascosta', !qui);
-        mostrate += qui;
+        g.qui = qui;
+        if (g.k === 'c') { nc += qui; ncTot += g.voci.length; } else { mostrate += qui; totali += g.voci.length; }
+        if (g.k === 'a') altreQui += qui;
     });
+    const ncVista = hkbNc.aperta || (!hkbNc.mano && parole.length > 0 && nc > 0 && nc <= HKB_APRI_MAX);
+    hkbGruppi.forEach((g) => {
+        const auto = forza && !g.mano && g.qui > 0 && g.qui <= HKB_APRI_MAX;
+        const aperto = g.aperto || auto;
+        if (aperto && !g.disegnato && (g.k !== 'c' || ncVista)) hkbDisegnaGruppo(g);
+        g.el.classList.toggle('gs-nascosta', !g.qui);
+        g.el.classList.toggle('hkb-chiuso', !aperto);
+        const b = g.el.querySelector('.hkb-apri');
+        if (b) b.setAttribute('aria-expanded', aperto ? 'true' : 'false');
+        if (g.disegnato) g.voci.forEach((v) => { if (v.riga) v.riga.classList.toggle('gs-nascosta', !v.ok); });
+        if (g.k === 'c') g.el.querySelector('.hkb-stanza-n').textContent = String(g.qui);
+    });
+    const elNc = document.getElementById('hkb-nc');
+    if (elNc) {
+        elNc.hidden = !nc;
+        elNc.classList.toggle('hkb-chiuso', !ncVista);
+        elNc.querySelector('.hkb-nc-testa').setAttribute('aria-expanded', ncVista ? 'true' : 'false');
+        elNc.querySelector('.hkb-nc-n').textContent = '(' + nc + ')';
+    }
+    const titolo = document.getElementById('hkb-altre-titolo');
+    if (titolo) titolo.hidden = !altreQui;
     const nd = !!document.querySelector('#hkb-lista .hkb-nd');
+    const tutte = totali + ncTot, viste = mostrate + nc;
     document.getElementById('hkb-cerca-x').hidden = !testo;
-    document.getElementById('hkb-vuoto').hidden = mostrate > 0 || !totali;
+    document.getElementById('hkb-vuoto').hidden = viste > 0 || !tutte;
     document.getElementById('hkb-vuoto-q').textContent = testo.trim();
     document.getElementById('hkb-vuoto-a').hidden = !testo.trim();
     document.getElementById('hkb-vuoto-b').hidden = !!testo.trim();
-    document.getElementById('hkb-lista').classList.toggle('gs-tutte-nascoste', mostrate === 0 && totali > 0 && !nd);
+    document.getElementById('hkb-lista').classList.toggle('gs-tutte-nascoste', viste === 0 && tutte > 0 && !nd);
 }
 function hkbSvuota() {
     const c = document.getElementById('hkb-cerca');
@@ -15459,44 +16793,91 @@ function hkbTasto(e) {
     if (e.key === 'Enter') { e.preventDefault(); return; }                        // Invio non invia niente
     if (e.key === 'Escape' && e.target.value) { e.preventDefault(); e.stopPropagation(); hkbSvuota(); }
 }
+function hkbSincronizza(g) {
+    if (!g.disegnato) return;
+    g.voci.forEach((v) => {
+        const i = v.riga ? v.riga.querySelector('input') : null;
+        if (i) i.checked = hkbSel.has(v.id);
+    });
+}
 function hkbCambio(e) {
     const t = e && e.target;
     hkbErrore('');
-    if (t && t.classList && t.classList.contains('hkb-tutta')) {
-        // casella della stanza: spunta o toglie le voci VISIBILI della stanza, senza superare il limite
-        const voci = Array.from(t.closest('.hkb-stanza').querySelectorAll('.gs-voce:not(.gs-nascosta) input:not(:disabled)'));
-        if (t.checked) {
-            let n = hkbSpunte().size, oltre = false;
-            voci.forEach((i) => {
-                if (i.checked) return;
-                if (n >= HKB_MAX) { oltre = true; return; }
-                i.checked = true;
-                n++;
-            });
-            if (oltre) hkbErrore(hkbT('Al massimo 149 entità: togline qualcuna.'));
-        } else {
-            voci.forEach((i) => { i.checked = false; });
+    if (!t || t.type !== 'checkbox') return;
+    if (t.classList.contains('hkb-tutta')) {
+        // casella del gruppo (stanza o integrazione): spunta o toglie le voci VISIBILI (anche di un gruppo chiuso,
+        // dai dati), senza superare il limite; quelle in attesa non contano
+        const box = t.closest('.hkb-stanza');
+        const g = box ? hkbGruppi[Number(box.dataset.g)] : null;
+        if (g) {
+            const voci = g.voci.filter((v) => v.sel && v.ok);
+            if (t.checked) {
+                let n = hkbContate(), oltre = false;
+                voci.forEach((v) => {
+                    if (hkbSel.has(v.id)) return;
+                    if (n >= HKB_MAX) { oltre = true; return; }
+                    hkbSel.add(v.id);
+                    n++;
+                });
+                if (oltre) hkbErrore(hkbT('Al massimo 149 entità: togline qualcuna.'));
+            } else {
+                voci.forEach((v) => { hkbSel.delete(v.id); });
+            }
+            hkbSincronizza(g);
         }
+    } else if (t.value) {
+        if (t.checked) hkbSel.add(t.value);
+        else hkbSel.delete(t.value);
     }
     hkbAggiornaConta();
 }
 function hkbSpunte() {
-    return new Set(Array.from(document.querySelectorAll('#hkb-lista input[type="checkbox"]:checked:not(.hkb-tutta)')).map((i) => i.value));
+    return new Set(hkbSel);
+}
+// le scelte che contano per il limite: le spunte e i dispositivi di sicurezza scelti nascosti
+function hkbContate() {
+    return hkbSel.size + hkbSicScelte;
+}
+// "Togli dalle scelte" dei dispositivi di sicurezza scelti (impostazione spenta: nascosti, solo il numero): con una
+// conferma, subito (le altre spunte del modale restano com'erano, da salvare con Salva)
+async function hkbTogliSicurezza() {
+    if (!hkbSicScelte) return;
+    if (!await chiedi(hkbT("Togliere dalle scelte i dispositivi di sicurezza scelti? Contano anche le entità diventate dispositivi di sicurezza dopo la scelta, per esempio un pulsante rinominato «Apri cancello». Per collegarli di nuovo andranno scelti uno per uno, con «Includi dispositivi di sicurezza» accesa."),
+        { titolo: 'Togli dalle scelte', si: 'Togli', pericolo: true, icona: 'shield-off' })) return;
+    const b = document.getElementById('hkb-togli-sic');
+    if (b) b.disabled = true;
+    hkbErrore('');
+    try {
+        await hkbFetch('/api/homekit/entita', hkbJson({ togli_sicurezza: true }));
+        hkbSicScelte = 0;
+        const r = document.getElementById('hkb-scelte-sic');
+        if (r) r.remove();
+        hkbAggiornaConta();
+        showToast('Dispositivi di sicurezza tolti dalle scelte', 'success');
+        hkbSegui();
+        hkbCarica();
+    } catch (e) {
+        if (b) b.disabled = false;
+        hkbErrore(e.message || hkbT('Errore'));
+    }
 }
 function hkbAggiornaConta() {
-    const ora = hkbSpunte();
-    const n = ora.size;
+    const n = hkbContate();
     document.getElementById('hkb-conta-n').textContent = n + '/' + HKB_MAX;
     document.getElementById('hkb-conta').classList.toggle('hkb-oltre', n > HKB_MAX);
-    const uguale = n === hkbIniziali.size && Array.from(ora).every((x) => hkbIniziali.has(x));
+    // da salvare anche senza differenze nelle spunte: scelte da riconfermare ancora spuntate
+    const riconferma = Array.from(hkbDaConfermare).some((x) => hkbSel.has(x));
+    const uguale = !riconferma && hkbSel.size === hkbIniziali.size && Array.from(hkbSel).every((x) => hkbIniziali.has(x));
     document.getElementById('hkb-salva').disabled = n > HKB_MAX || uguale;
-    document.querySelectorAll('#hkb-lista .hkb-stanza:not(.hkb-nd)').forEach((s) => {
-        const tutte = Array.from(s.querySelectorAll('.gs-voce input:not(:disabled)'));   // le voci in attesa non contano
-        const sp = tutte.filter((i) => i.checked).length;
-        s.querySelector('.hkb-stanza-n').textContent = sp + '/' + tutte.length;
-        const t = s.querySelector('.hkb-tutta');
-        t.checked = tutte.length > 0 && sp === tutte.length;
-        t.indeterminate = sp > 0 && sp < tutte.length;
+    hkbGruppi.forEach((g) => {
+        if (g.k === 'c') return;
+        let tot = 0, sp = 0;
+        g.voci.forEach((v) => { if (!v.sel) return; tot++; if (hkbSel.has(v.id)) sp++; });   // le voci in attesa non contano
+        g.el.querySelector('.hkb-stanza-n').textContent = sp + '/' + tot;
+        const t = g.el.querySelector('.hkb-tutta');
+        t.checked = tot > 0 && sp === tot;
+        t.indeterminate = sp > 0 && sp < tot;
+        t.disabled = !tot;
     });
     if (document.getElementById('hkb-solo-sel').checked) hkbFiltra();
 }
@@ -15512,14 +16893,16 @@ function hkbFuoco() {
 async function hkbSalva(conferma) {
     const btn = document.getElementById('hkb-salva');
     const ora = hkbSpunte();
-    if (ora.size > HKB_MAX) { hkbErrore(hkbT('Al massimo 149 entità: togline qualcuna.')); return; }
-    const aggiungi = Array.from(ora).filter((x) => !hkbIniziali.has(x));
+    if (hkbContate() > HKB_MAX) { hkbErrore(hkbT('Al massimo 149 entità: togline qualcuna.')); return; }
+    // le scelte da riconfermare ancora spuntate tornano in 'aggiungi': il server chiede la conferma
+    const aggiungi = Array.from(ora).filter((x) => !hkbIniziali.has(x) || hkbDaConfermare.has(x));
     const togli = Array.from(hkbIniziali).filter((x) => !ora.has(x));
     hkbErrore('');
     btn.disabled = true;
     let ancora = false;
     try {
         await hkbFetch('/api/homekit/entita', hkbJson({ aggiungi, togli, conferma_sospetti: !!conferma }));
+        hkbConfermaN = 0;                   // (riconfermate o tolte: la card lo rilegge dal piano)
         showToast('Entità salvate', 'success');
         hkbChiudiScelta();
         hkbSegui();                         // il ponte si riavvia 5 s dopo l'ultima modifica: la card lo segue
@@ -15527,12 +16910,15 @@ async function hkbSalva(conferma) {
     } catch (e) {
         const d = e.dati || {};
         if (d.codice === 'sospetti') {
-            // chiedi() scrive con textContent: niente hkbEsc
-            const nomi = (Array.isArray(d.sospetti) ? d.sospetti : []).map((s) => s.nome || hkbNomi[s.id] || s.id);
-            ancora = await chiedi(hkbT('Alcune entità sembrano comandare porte, cancelli, allarme o gas: Apple Casa le comanderebbe senza chiedere conferma. Collegarle lo stesso?') + ' ' + nomi.join(', '),
+            // chiedi() scrive con textContent: niente hkbEsc. Ogni voce col suo perche' (campo 'avviso')
+            const sospetti = Array.isArray(d.sospetti) ? d.sospetti : [];
+            const voci = sospetti.map((s) => (s.nome || hkbNomi[s.id] || s.id) + ' (' + hkbT(HKB_AVVISI[s.avviso] || HKB_AVVISI.nome) + (s.avviso_d ? ': ' + s.avviso_d : '') + ')');
+            const sic = sospetti.some((s) => s.avviso === 'sicurezza' || s.avviso === 'indiretta');
+            ancora = await chiedi(hkbT('Queste entità vanno confermate: Apple Casa le comanderà come le altre, senza chiedere altro. Collegarle lo stesso?') + ' ' + voci.join('; ')
+                + (sic ? ' ' + hkbT('Apple chiede Face ID o il codice per serrature, garage e allarme, ma le automazioni di Casa possono comandarli.') : ''),
                 { titolo: 'Controlla prima di collegare', si: 'Collega', pericolo: true, icona: 'alert-triangle' });
         } else if (d.codice === 'rifiutate') {
-            const elenco = (Array.isArray(d.rifiutate) ? d.rifiutate : []).map((r) => (hkbNomi[r.id] || r.id) + ': ' + hkbT(HKB_MOTIVI[r.motivo] || r.motivo || '')).join('; ');
+            const elenco = (Array.isArray(d.rifiutate) ? d.rifiutate : []).map((r) => (hkbNomi[r.id] || r.id) + ': ' + hkbT(hkbMotivo(r.motivo, r.variante, r.dettaglio))).join('; ');
             hkbErrore(hkbT('Alcune entità non si possono collegare ad Apple Casa.') + ' ' + elenco);
         } else {
             hkbErrore(e.message || hkbT('Errore'));
