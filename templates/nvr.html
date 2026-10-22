@@ -1574,7 +1574,7 @@ function caricaStato() {
     notaServer(d.versione, d.oggi, typeof d.archivio_ok === 'boolean' ? d.archivio_ok : undefined);
     renderStato(); renderTrasporto(true); aggiornaTiles(true); renderScheda();
     if (S.foglio) renderArchivio();
-    if (pr !== prudente() && S.pronta) cambioLimite();       // la classe del server e' arrivata (o cambiata)
+    if (pr !== prudente() && S.pronta) { cambioLimite(); liveAggiorna(); }   // la classe del server e' arrivata (o cambiata)
     PER.stato.prossima = Date.now() + PER.stato.ogni;
     return true;
   })();
@@ -1776,7 +1776,10 @@ function attPer(ids) {
    RIQUADRI: uno per telecamera, creato una volta e poi solo SPOSTATO (griglia, striscia, teatro)
    ===================================================================================================== */
 const TILES = {};
-const SCHELETRO = '<div class="t-media">' + ic('cctv', 't-vuoto') + '<img class="t-img" alt="" draggable="false" decoding="async"></div><div class="ombra"></div><div class="velo"></div>' +
+// niente decoding="async" sull'immagine (sfarfallio sul computer, 22/10): con i fotogrammi grandi del live (960 px) Chrome
+// disegnava il riquadro vuoto, cioe' nero, finche' il JPEG nuovo non era decodificato: un lampo a ogni fotogramma, 10 al
+// secondo. Senza l'attributo resta l'immagine vecchia fino alla nuova (misurato: 58 lampi in 6 s -> 0). WebKit (iPhone) uguale
+const SCHELETRO = '<div class="t-media">' + ic('cctv', 't-vuoto') + '<img class="t-img" alt="" draggable="false"></div><div class="ombra"></div><div class="velo"></div>' +
   '<div class="t-top"><div class="t-nome"><i class="st"></i><b data-no-tr></b> <span class="t-rim" hidden>(rimossa)</span></div><div class="t-badges">' +
   '<span class="bd bd-rec" data-no-tr><i class="dot-rec"></i>REC</span><span class="bd bd-live" data-no-tr>LIVE</span>' +
   '<span class="bd bd-img" title="Circa un\'immagine al secondo (dipende dalla telecamera)">' + ic('image') + '<span>immagini</span></span>' +
@@ -2545,6 +2548,14 @@ function camVeloce() {
   if (S.teatro != null) return S.teatro;
   if (S.esp != null) return S.esp;
   if (telefono() || layoutEff() === '1') return S.sel;
+  // computer con server «normale» (mini PC, correzione sfarfallio 22/10): veloce anche il riquadro a schermo intero e la
+  // grande di 1+5, che prima ricevevano un'immagine al secondo allargata su tutto lo schermo («va a scatti»). Una sola
+  // veloce per pagina come in «Singola»; il server tiene i suoi posti (LIVE_MAX_VELOCI). Sul Raspberry (prudente) come prima
+  if (!prudente()) {
+    const f = fsRiquadro(), fid = f && f.dataset ? intero(f.dataset.cam) : null;
+    if (fid != null && D.cam[fid] && D.cam[fid].presente) return fid;
+    if (layoutEff() === '1p5') { const v = camsVisibili(); if (v.length) return v[0]; }
+  }
   return null;
 }
 function liveAggiorna() {
@@ -3883,6 +3894,7 @@ function schermoPagina() {
 function fsCambiato() {
   const box = $('.toasts'), dove = fsRiquadro() || document.body;
   if (box && box.parentNode !== dove) dove.appendChild(box);
+  liveAggiorna();                // il riquadro a schermo intero puo' diventare veloce (camVeloce)
 }
 document.addEventListener('fullscreenchange', fsCambiato);
 document.addEventListener('webkitfullscreenchange', fsCambiato);
