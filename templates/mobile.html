@@ -806,6 +806,19 @@
 #alarm-modal .modal-title { font-size: 1.02rem; font-weight: 650; letter-spacing: -0.01em; color: var(--all-testo-2); text-shadow: none; }
 
 .all-corpo { width: 100%; max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; padding-bottom: 4px; }
+/* telefono e tablet in verticale (sotto 1024 px): il contenuto scorre fino in fondo allo schermo (21/10/2026).
+   Prima i 24 px + l'area sicura in basso erano padding della finestra, FUORI dall'area che scorre: dove il
+   contenuto non sta tutto (iPhone in web app, telefoni piccoli) la riga "Configura l'allarme" si tagliava di netto
+   a quell'altezza e sotto restava una fascia vuota (la "barra in basso"). Ora quello spazio sta DENTRO l'area che
+   scorre: in fondo l'ultima riga resta sopra l'indicatore Home come prima, ma scorrendo il contenuto arriva fino
+   al bordo, come nel pannello di un gruppo. Da 1024 px (finestra al centro) non cambia nulla.
+   Lo spazio e' un elemento vuoto in fondo (::after) e non padding: Safari non conta il padding sotto di un
+   contenitore flex o grid che scorre (provato nel simulatore: col padding l'ultima riga restava sotto l'indicatore
+   Home senza poterla far salire). grid-column: col telefono in orizzontale .all-corpo e' una griglia a due colonne. */
+@media (max-width: 1023.98px) {
+    #alarm-modal { padding-bottom: 0; }
+    #alarm-modal .all-corpo::after { content: ""; flex: none; align-self: stretch; grid-column: 1 / -1; height: calc(24px + var(--safe-bottom)); }
+}
 
 /* ---- stato ---- */
 .all-stato { width: 100%; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 6px 0 2px; }
@@ -1945,6 +1958,16 @@
         /* La barra tempo sfuma dentro/fuori senza spostare il layout */
         #media-modal .media-progress { transition: opacity 0.45s ease; }
         #media-modal .media-progress.off { opacity: 0; pointer-events: none; }
+        /* contenuto della finestra (21/10/2026): 20 px sotto (prima nello style della riga). Sul telefono (sotto 1024 px)
+           anche i 24 px + l'area sicura in basso stanno DENTRO l'area che scorre e non piu' nel padding della finestra:
+           i preferiti scorrono fino in fondo allo schermo invece di tagliarsi di netto sopra una fascia vuota (la
+           "barra in basso"); in fondo l'ultima riga resta sopra l'indicatore Home come prima. Nella card allargata
+           (.incorporato) e da 1024 px non cambia nulla. */
+        #media-modal > .modal-scroll-area { padding-bottom: 20px; }
+        @media (max-width: 1023.98px) {
+            #media-modal:not(.incorporato) { padding-bottom: 0; }
+            #media-modal:not(.incorporato) > .modal-scroll-area { padding-bottom: calc(20px + 24px + var(--safe-bottom)); }
+        }
         /* Preferiti e casse entrano a cascata */
         #favorites-list .fav-tile { animation: media-slide-in 0.45s cubic-bezier(0.32, 0.72, 0, 1) both; }
         #favorites-list .fav-tile:nth-child(2) { animation-delay: 0.04s; }
@@ -7233,7 +7256,7 @@ html.wh-scala .imp-pagina {
         <button class="close-modal-btn" onclick="closeAllModals()"><i data-lucide="x"></i></button>
         <div class="modal-header"><div class="modal-title" id="modal-media-speaker">Riproduzione</div></div>
         
-        <div class="modal-scroll-area" style="padding-bottom: 20px;">
+        <div class="modal-scroll-area">
             <div class="media-art-wrap" id="modal-media-artwrap" style="display:none;">
                 <img id="modal-media-art" alt="Copertina" onclick="toggleModalMedia()">
             </div>

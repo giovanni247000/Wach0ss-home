@@ -5227,7 +5227,105 @@
   "Dispositivi di sicurezza scelti, non collegati finché «Includi dispositivi di sicurezza» è spenta:": "Security devices chosen, not connected while «Include security devices» is off:",
   "Togli dalle scelte": "Remove from the choices",
   "Dispositivi di sicurezza tolti dalle scelte": "Security devices removed from the choices",
-  "Togliere dalle scelte i dispositivi di sicurezza scelti? Contano anche le entità diventate dispositivi di sicurezza dopo la scelta, per esempio un pulsante rinominato «Apri cancello». Per collegarli di nuovo andranno scelti uno per uno, con «Includi dispositivi di sicurezza» accesa.": "Remove the chosen security devices from the choices? This also includes entities that became security devices after being chosen, for example a button renamed «Open gate». To connect them again you will have to choose them one by one, with «Include security devices» on."
+  "Togliere dalle scelte i dispositivi di sicurezza scelti? Contano anche le entità diventate dispositivi di sicurezza dopo la scelta, per esempio un pulsante rinominato «Apri cancello». Per collegarli di nuovo andranno scelti uno per uno, con «Includi dispositivi di sicurezza» accesa.": "Remove the chosen security devices from the choices? This also includes entities that became security devices after being chosen, for example a button renamed «Open gate». To connect them again you will have to choose them one by one, with «Include security devices» on.",
+  "Wach0ss Home | Registrazioni": "Wach0ss Home | Recordings",
+  "In diretta": "Live now",
+  "Disposizione: una telecamera": "Layout: one camera",
+  "Disposizione: griglia 2 per 2": "Layout: 2 by 2 grid",
+  "Disposizione: una grande e cinque piccole": "Layout: one large and five small",
+  "Disposizione: tutte le telecamere": "Layout: all cameras",
+  "Scorciatoie da tastiera": "Keyboard shortcuts",
+  "Pannello laterale": "Side panel",
+  "Linea del tempo": "Timeline",
+  "Scegli il giorno": "Choose the day",
+  "giorni fa": "days ago",
+  "in registrazione": "recording",
+  "Telecamere con problemi": "Cameras with problems",
+  "Stato delle telecamere": "Camera status",
+  "Scarica lo spezzone": "Download the clip",
+  "Torna alla griglia": "Back to the grid",
+  "Sposta prima": "Move earlier",
+  "Sposta dopo": "Move later",
+  "Nessuna registrazione alle": "No recording at",
+  "Registra solo quando c'è un evento": "Records only when an event happens",
+  "Fuori dalla fascia oraria": "Outside the schedule",
+  "Buco nella registrazione": "Gap in the recording",
+  "Prossima alle": "Next at",
+  "Ultima alle": "Last at",
+  "Registrazione in corso": "Recording in progress",
+  "Lo spezzone arriva tra pochi minuti": "The clip arrives in a few minutes",
+  "Nessun segnale dalle": "No signal since",
+  "Non è ancora successo": "Not happened yet",
+  "Sei oltre l'ora attuale": "You are past the current time",
+  "Live non disponibile": "Live view not available",
+  "Live non disponibile mentre registra": "Live view not available while recording",
+  "La registrazione ha la precedenza": "Recording has priority",
+  "Ultima immagine alle": "Last image at",
+  "Trascina qui una telecamera": "Drag a camera here",
+  "Tocca per riprodurre": "Tap to play",
+  "Guarda in diretta": "Watch live",
+  "In pausa a questa velocità": "Paused at this speed",
+  "trascina per riordinare, doppio clic per ingrandire": "drag to reorder, double-click to enlarge",
+  "clic su una miniatura per cambiare telecamera allo stesso istante": "click a thumbnail to switch camera at the same moment",
+  "Sincronizzate ±1-2 s": "Synced ±1-2 s",
+  "Gli spezzoni di ogni telecamera iniziano in momenti diversi: ogni riquadro si riallinea sull'orologio comune": "Each camera's clips start at different moments: every tile realigns to the common clock",
+  "Circa un'immagine al secondo (dipende dalla telecamera)": "About one image per second (depends on the camera)",
+  "Evento precedente": "Previous event",
+  "Evento successivo": "Next event",
+  "Indietro di 10 secondi": "Back 10 seconds",
+  "Avanti di 10 secondi": "Forward 10 seconds",
+  "prossimo spezzone tra": "next clip in",
+  "nuovo spezzone tra": "new clip in",
+  "Senza segnale": "No signal",
+  "tutte le scorciatoie": "all shortcuts",
+  "Clic: primo evento dell'ora": "Click: first event of the hour",
+  "Guarda da 3 s prima": "Watch from 3 s before",
+  "Apri archivio": "Open storage",
+  "Motore NVR attivo": "NVR engine running",
+  "NVR spento": "NVR off",
+  "Offline dalle": "Offline since",
+  "In attesa di un evento": "Waiting for an event",
+  "Fuori fascia oraria": "Outside the schedule",
+  "Con lo spazio libero potresti conservare circa": "With the free space you could keep about",
+  "Lo spazio basta per circa": "The space is enough for about",
+  "giorni: le registrazioni più vecchie verranno cancellate prima del limite di conservazione.": "days: the oldest recordings will be deleted before the retention limit.",
+  "Giorni conservati": "Days kept",
+  "Altri giorni nell'archivio": "More days in the storage",
+  "Le registrazioni più vecchie di": "Recordings older than",
+  "giorni vengono cancellate da sole; se lo spazio libero scende sotto": "days are deleted automatically; if free space drops below",
+  "si cancellano prima le più vecchie.": "the oldest are deleted first.",
+  "Rimuove dall'elenco le voci il cui file non c'è più (non cancella nulla dal disco).": "Removes from the list the entries whose file is gone (nothing is deleted from the disk).",
+  "Pulire l'elenco?": "Clean up the list?",
+  "Nessuno spezzone successivo": "No next clip",
+  "Nessun altro evento": "No more events",
+  "Disposizione salvata": "Layout saved",
+  "Spezzone eliminato": "Clip deleted",
+  "Connessione persa: riprovo": "Connection lost: retrying",
+  "Troppi collegamenti aperti verso il server (altre schede?)": "Too many connections open to the server (other tabs?)",
+  "Play / pausa": "Play / pause",
+  "Indietro / avanti 10 s": "Back / forward 10 s",
+  "Spezzone precedente / successivo": "Previous / next clip",
+  "Evento successivo (Maiusc: precedente)": "Next event (Shift: previous)",
+  "Scegli la telecamera": "Choose the camera",
+  "Ingrandisci la telecamera scelta": "Enlarge the chosen camera",
+  "Cambia disposizione": "Change layout",
+  "Live / registrazioni": "Live / recordings",
+  "Giorno successivo / precedente": "Next / previous day",
+  "Zoom della linea del tempo": "Timeline zoom",
+  "Chiudi / torna alla griglia": "Close / back to the grid",
+  "Registra da": "Recording since",
+  "Non raggiungibile dalle": "Not reachable since",
+  "Ultimo errore:": "Last error:",
+  "Telecamere e archivio": "Cameras and storage",
+  "Giorno e momenti": "Day and moments",
+  "Unità di archivio non collegata: le registrazioni restano visibili, ma non si registra e non si può cancellare.": "Archive drive not connected: recordings stay visible, but nothing is recorded and nothing can be deleted.",
+  "Dalla decima telecamera in poi si sceglie con un clic.": "From the tenth camera on, you choose with a click.",
+  "Clic: seleziona · trascina su un riquadro per sostituirlo": "Click: select · drag onto a tile to replace it",
+  "Posizione nella griglia": "Position in the grid",
+  "Sposta la telecamera scelta prima / dopo": "Move the chosen camera earlier / later",
+  "Il server non risponde: riprovo": "The server is not responding: retrying",
+  "Server con poche risorse: al massimo 2 video insieme, le altre telecamere a miniature": "Server with limited resources: at most 2 videos at once, the other cameras as thumbnails",
+  "Spezzone non leggibile: riproduzione in pausa": "Clip cannot be played: playback paused"
  },
  "sempre": {
   " non ": " not ",
@@ -7287,6 +7385,83 @@
    "{a} e altri {n}": "{a} and {n} others",
    "{a} e {b}": "{a} and {b}",
    "{f} su {g} giorni": "{f} of {g} days"
+  },
+  "/nvr": {
+   "Continua": "Continuous",
+   "Fascia oraria": "Schedule",
+   "In corso": "In progress",
+   "A evento": "On event",
+   "Live": "Live",
+   "in diretta": "live",
+   "Singola": "Single",
+   "Griglia": "Grid",
+   "Ingrandisci": "Enlarge",
+   "Riduci": "Reduce",
+   "immagini": "images",
+   "a immagini": "as images",
+   "immagine delle": "image from",
+   "anteprima": "preview",
+   "anteprime": "previews",
+   "video attivo": "active video",
+   "video attivi": "active videos",
+   "da remoto": "remote",
+   "spezzone": "clip",
+   "telecamera": "camera",
+   "telecamere": "cameras",
+   "liberi": "free",
+   "su": "of",
+   "nessuna": "none",
+   "Oggi,": "Today,",
+   "Spazio": "Space",
+   "Maiusc": "Shift",
+   "play": "play",
+   "Scorciatoie": "Shortcuts",
+   "Copertura": "Coverage",
+   "Registrato": "Recorded",
+   "registrato": "recorded",
+   "In parte": "Partly",
+   "Buco": "Gap",
+   "ore registrate": "hours recorded",
+   "registrate": "recorded",
+   "spazio": "space",
+   "Momenti": "Moments",
+   "Tutto": "All",
+   "Spezzoni": "Clips",
+   "a riposo": "idle",
+   "(ora solare)": "(standard time)",
+   "Conservazione": "Retention",
+   "conservazione": "retention",
+   "al giorno": "per day",
+   "Struttura:": "Structure:",
+   "In avvio…": "Starting…",
+   "Registrazione non trovata": "Recording not found",
+   "Telecamera non valida": "Invalid camera",
+   "Giorno non valido": "Invalid day",
+   "Parametro non valido": "Invalid parameter",
+   "Anteprima non disponibile": "Preview not available",
+   "Unità di archivio non collegata": "Archive drive not connected",
+   "ffmpeg non installato": "ffmpeg not installed",
+   "Diretta veloce occupata: un'immagine al secondo": "Fast live view busy: one image per second",
+   "La telecamera non accetta un altro collegamento: riprova più tardi": "The camera does not accept another connection: try again later",
+   "Nessun segnale dalla telecamera": "No signal from the camera",
+   "Troppe telecamere in diretta insieme": "Too many cameras live at once",
+   "la telecamera non ha un flusso secondario": "the camera has no secondary stream",
+   "Disposizione": "Layout",
+   "Video": "Video",
+   "Play": "Play",
+   "liberi di": "free of",
+   "g": "d",
+   "rete": "network",
+   "La registrazione ha la precedenza": "Recording has priority",
+   "Nessuna cartella di archivio scelta": "No archive folder chosen",
+   "Unita' non trovata (staccata?)": "Drive not found (unplugged?)",
+   "Dispositivo non valido": "Invalid device",
+   "Servono indirizzo del server e nome della cartella condivisa": "The server address and the shared folder name are required",
+   "Indirizzo del server non valido": "Invalid server address",
+   "Manca il supporto NFS: sul server esegui  sudo apt-get install -y nfs-common": "NFS support is missing: on the server run  sudo apt-get install -y nfs-common",
+   "Manca il supporto SMB: sul server esegui  sudo apt-get install -y cifs-utils": "SMB support is missing: on the server run  sudo apt-get install -y cifs-utils",
+   "mkdir non riuscito": "mkdir failed",
+   "il flusso secondario non risponde": "the secondary stream is not responding"
   }
  },
  "modelli": [
@@ -10549,6 +10724,90 @@
   [
    "^Aggiungi: (.+)$",
    "Add: $*1"
+  ],
+  [
+   "^Cartella non scrivibile dall'utente (\\S+) con cui gira il server$",
+   "Folder not writable by user $1, which the server runs as"
+  ],
+  [
+   "^Unita' USB non collegata: (.+)$",
+   "USB drive not connected: $*1"
+  ],
+  [
+   "^Cartella di rete non raggiungibile: (.+)$",
+   "Network folder unreachable: $*1"
+  ],
+  [
+   "^Spazio esaurito sull'archivio \\(([0-9.]+) GB liberi\\)$",
+   "Archive out of space ($1 GB free)"
+  ],
+  [
+   "^La cartella (.+) non sta sull'unita' esterna: unita' non montata$",
+   "The folder $1 is not on the external drive: drive not mounted"
+  ],
+  [
+   "^Cartella non creabile: (.+)$",
+   "Cannot create the folder: $*1"
+  ],
+  [
+   "^Non riesco a creare (.+?): (.+)$",
+   "Cannot create $1: $*2"
+  ],
+  [
+   "^gia' montata da un altro programma in (.+) ma li' il server non puo' scrivere: espelli la chiavetta dal desktop e premi di nuovo \\\"Usa questa unita'\\\"$",
+   "already mounted by another program at $1 but the server cannot write there: eject the drive from the desktop and press \"Use this drive\" again"
+  ],
+  [
+   "^Unita' montata in sola lettura: se e\\' una chiavetta NTFS non e\\' stata espulsa bene da Windows \\(collegala a Windows, \"Rimuovi in sicurezza\"\\), oppure formattala in exFAT o ext4$",
+   "Drive mounted read-only: if it is an NTFS drive it was not ejected properly from Windows (connect it to Windows, \"Safely Remove Hardware\"), or format it as exFAT or ext4"
+  ],
+  [
+   "^Cartella di rete montata in sola lettura: se e\\' una chiavetta NTFS non e\\' stata espulsa bene da Windows \\(collegala a Windows, \"Rimuovi in sicurezza\"\\), oppure formattala in exFAT o ext4$",
+   "Network folder mounted read-only: if it is an NTFS drive it was not ejected properly from Windows (connect it to Windows, \"Safely Remove Hardware\"), or format it as exFAT or ext4"
+  ],
+  [
+   "^Unita' montata ma non scrivibile dall'utente (\\S+) con cui gira il server: controlla i permessi \\(sul NAS: utente con diritto di scrittura; NFS: no_root_squash\\)$",
+   "Drive mounted but not writable by user $1, which the server runs as: check the permissions (on the NAS: a user with write access; NFS: no_root_squash)"
+  ],
+  [
+   "^Cartella di rete montata ma non scrivibile dall'utente (\\S+) con cui gira il server: controlla i permessi \\(sul NAS: utente con diritto di scrittura; NFS: no_root_squash\\)$",
+   "Network folder mounted but not writable by user $1, which the server runs as: check the permissions (on the NAS: a user with write access; NFS: no_root_squash)"
+  ],
+  [
+   "^il server gira come utente (\\S+) \\(non root\\) e sudo chiede la password: avvialo con  sudo  oppure dal servizio wach_os \\(systemctl start wach_os\\)$",
+   "the server runs as user $1 (not root) and sudo asks for the password: start it with  sudo  or from the wach_os service (systemctl start wach_os)"
+  ],
+  [
+   "^il server gira come utente (\\S+) \\(non root\\) e sudo non c'e': avvialo come root$",
+   "the server runs as user $1 (not root) and sudo is missing: start it as root"
+  ],
+  [
+   "^mount: ([\\s\\S]*?)  \\(utente o password della cartella condivisa non accettati\\)$",
+   "mount: $1  (username or password of the shared folder not accepted)"
+  ],
+  [
+   "^mount: ([\\s\\S]*?)  \\(cartella condivisa non trovata sul server: controlla il nome\\)$",
+   "mount: $1  (shared folder not found on the server: check the name)"
+  ],
+  [
+   "^mount: ([\\s\\S]*?)  \\(server non raggiungibile: controlla indirizzo e rete\\)$",
+   "mount: $1  (server unreachable: check the address and the network)"
+  ],
+  [
+   "^mount: ([\\s\\S]*?)  \\(il server non ha i permessi per montare: deve girare come root, o in sudo senza password\\)$",
+   "mount: $1  (the server is not allowed to mount: it must run as root, or with sudo without a password)"
+  ],
+  [
+   "^mount: ([\\s\\S]*?)  \\(il sistema non sa leggere questo filesystem: formatta la chiavetta in exFAT o ext4\\)$",
+   "mount: $1  (the system cannot read this filesystem: format the drive as exFAT or ext4)"
+  ],
+  [
+   "^mount: ([\\s\\S]*?)  \\(manca il supporto (exfat|ntfs) sul server: esegui  (sudo apt-get install -y [^)]+?)  e riprova\\)$",
+   "mount: $1  ($2 support is missing on the server: run  $3  and try again)"
+  ],
+  [
+   "^mount: ([\\s\\S]*?)  \\(la chiavetta e' formattata dal Mac in (\\S+): Linux non la legge\\. Formattala in exFAT: sul Mac Utility Disco > Inizializza > formato exFAT, schema Master Boot Record; poi ricollegala e premi di nuovo \\\"Usa questa unita'\\\"\\)$",
+   "mount: $1  (the drive was formatted by the Mac as $2: Linux cannot read it. Format it as exFAT: on the Mac Disk Utility > Erase > exFAT format, Master Boot Record scheme; then plug it back in and press \"Use this drive\" again)"
   ]
  ],
  "contesti": [
