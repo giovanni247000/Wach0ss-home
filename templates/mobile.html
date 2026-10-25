@@ -246,11 +246,21 @@
         non viene ne' scaricata ne' eseguita. Con almeno un 3D tutto resta identico a prima. -#}
     {%- set wh3d = namespace(serve=false) -%}
     {%- for wh_stanza in layout.values() -%}
-        {%- if wh_stanza.has_3d and wh_stanza.model_url %}{% set wh3d.serve = true %}{% endif -%}
+        {%- if wh_stanza.has_3d and wh_stanza.model_url and not wh_stanza.web %}{% set wh3d.serve = true %}{% endif -%}
         {%- for wh_sotto in wh_stanza.sub_rooms.values() -%}
-            {%- if wh_sotto.has_3d and wh_sotto.model_url %}{% set wh3d.serve = true %}{% endif -%}
+            {%- if wh_sotto.has_3d and wh_sotto.model_url and not wh_sotto.web %}{% set wh3d.serve = true %}{% endif -%}
         {%- endfor -%}
     {%- endfor -%}
+    {#- [PAGINAWEB] il codice della pagina web (stile e script) entra solo se almeno una stanza o zona la usa,
+        oppure nell'anteprima della dashboard (?pw_bozza=, solo col modulo presente). Senza: pagina identica a prima. -#}
+    {%- set whweb = namespace(serve=false) -%}
+    {%- for wh_stanza in layout.values() -%}
+        {%- if wh_stanza.web %}{% set whweb.serve = true %}{% endif -%}
+        {%- for wh_sotto in wh_stanza.sub_rooms.values() -%}
+            {%- if wh_sotto.web %}{% set whweb.serve = true %}{% endif -%}
+        {%- endfor -%}
+    {%- endfor -%}
+    {%- if paginaweb_attivo and request.args.get('pw_bozza') %}{% set whweb.serve = true %}{% endif -%}
     {%- if wh3d.serve %}
     <script src="/static/vendor/three-r128.min.js"></script>
     <script>window.THREE||document.write('<scr'+'ipt src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/scr'+'ipt>');</script>
@@ -3818,6 +3828,188 @@ body.wh-personalizza .cr-cam .cr-cam-riga:first-child { padding-right: 62px; }
 </style>
 <!-- Modalita' leggera: la classe va messa subito, prima che la pagina si disegni -->
 <script>try{if(localStorage.getItem('wh_modalita_leggera')==='true')document.documentElement.classList.add('wh-leggera');}catch(e){}</script>
+{%- if whweb.serve %}
+<style id="pw-stile">
+/* =========================================================================
+   [PAGINAWEB] pagina web al posto della griglia in una stanza o zona (paginaweb.py).
+   Questo foglio entra SOLO se almeno una stanza o zona ha una pagina web: senza, la pagina e' identica a prima.
+   Tutte le regole stanno sotto .wh-web: le stanze e le card esistenti non cambiano.
+   Niente fondo pieno: vetro come le card (.hk-card), dietro si vede sempre lo sfondo dell'app.
+   ========================================================================= */
+.wh-web { display: flex; flex-direction: column; gap: 14px; margin: 0 0 20px 0; min-width: 0; }
+.wh-web:empty { display: none; }
+.wh-web .pw-vetro {
+    background: rgba(var(--card-color), var(--card-opacity));
+    backdrop-filter: blur(35px) saturate(200%); -webkit-backdrop-filter: blur(35px) saturate(200%);
+    border: 1px solid rgba(255,255,255,0.1); border-top: 1px solid rgba(255,255,255,0.25); border-left: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.3), inset 0 1px 1px rgba(255,255,255,0.1);
+    transform: translateZ(0); color: #FFF;
+}
+.wh-web svg { flex-shrink: 0; }
+
+/* barra: icona, nome del posto, sito e quando, Ricarica, Apri nel browser */
+.wh-web .pw-barra { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; border-radius: 24px; }
+.wh-web .pw-ico { width: 38px; height: 38px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); box-shadow: inset 0 2px 5px rgba(255,255,255,0.15); }
+.wh-web .pw-ico svg { width: 19px; height: 19px; color: rgba(255,255,255,0.92); }
+.wh-web .pw-testo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wh-web .pw-testo b { font-size: 0.88rem; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+.wh-web .pw-testo small { font-size: 0.68rem; font-weight: 600; color: rgba(255,255,255,0.55); display: flex; flex-wrap: wrap; align-items: baseline; min-width: 0; overflow: hidden; }
+.wh-web .pw-testo small > span { white-space: nowrap; }
+.wh-web .pw-testo small > span:first-child { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.wh-web .pw-testo small .pw-sep { padding: 0 4px; }
+.wh-web .pw-btn { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #FFF; padding: 0;
+    transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1), background 0.2s; }
+.wh-web .pw-btn svg { width: 18px; height: 18px; }
+.wh-web .pw-btn:hover { background: rgba(255,255,255,0.14); }
+.wh-web .pw-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.16); }
+.wh-web .pw-btn.gira svg { animation: pw-gira 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
+@keyframes pw-gira { to { transform: rotate(360deg); } }
+
+/* etichette sopra la cornice: rete di casa, tema scuro, zoom */
+.wh-web .pw-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: -4px; }
+.wh-web .pw-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 20px;
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.02em; color: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); }
+.wh-web .pw-chip svg { width: 12px; height: 12px; }
+.wh-web .pw-chip.blu { color: #64D2FF; border-color: rgba(100,210,255,0.3); background: rgba(10,132,255,0.12); }
+
+/* FINESTRA: il sito vero in una cornice di vetro. L'altezza la mette lo script (--pw-h), questa e' di riserva */
+.wh-web .pw-cornice { border-radius: 28px; padding: 7px; }
+.wh-web .pw-vista { position: relative; overflow: hidden; border-radius: 22px; min-height: 320px;
+    height: var(--pw-h, max(320px, calc(100vh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 300px)));
+    background: rgba(0,0,0,0.18); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); }
+.wh-web .pw-vista iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; display: block;
+    background: transparent; opacity: 0; transition: opacity 0.45s ease; transform-origin: 0 0; }
+.wh-web .pw-vista iframe.pronto { opacity: 1; }
+.wh-web .pw-vista iframe.zoom { width: calc(100% / var(--z)); height: calc(100% / var(--z)); transform: scale(var(--z)); }
+.wh-web .pw-vista iframe.scuro.pronto { filter: invert(0.9) hue-rotate(180deg) contrast(0.92); opacity: 0.86; }
+.wh-web .pw-vista.scuro { background: rgba(4,8,22,0.55); }
+.wh-web .pw-carica { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+    color: rgba(255,255,255,0.6); font-size: 0.78rem; font-weight: 600; transition: opacity 0.3s; overflow: hidden; }
+.wh-web .pw-carica::before, .wh-web .pw-attesa::after { content: ''; position: absolute; top: 0; left: -60%; width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent); transform: skewX(-20deg); animation: pw-riflesso 1.6s infinite cubic-bezier(0.25, 1, 0.5, 1); }
+@keyframes pw-riflesso { to { left: 130%; } }
+.wh-web .pw-carica svg { width: 26px; height: 26px; opacity: 0.7; }
+.wh-web .pw-carica.via { opacity: 0; pointer-events: none; }
+
+/* attesa (Integrata e Sezione) */
+.wh-web .pw-attesa { border-radius: 28px; padding: 18px; display: flex; flex-direction: column; gap: 10px; position: relative; overflow: hidden; }
+.wh-web .pw-attesa i { display: block; height: 12px; border-radius: 6px; background: rgba(255,255,255,0.08); }
+.wh-web .pw-attesa i:nth-child(1) { width: 55%; height: 18px; }
+.wh-web .pw-attesa i:nth-child(3) { width: 92%; } .wh-web .pw-attesa i:nth-child(4) { width: 80%; }
+.wh-web .pw-attesa span { font-size: 0.74rem; font-weight: 600; color: rgba(255,255,255,0.5); margin-top: 4px; }
+
+/* INTEGRATA: la pagina ridisegnata a card */
+.wh-web .pw-sito { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.wh-web .pw-carte { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.wh-web .pw-titolo { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1.12; color: #FFF; text-shadow: 0 4px 20px rgba(0,0,0,0.45); padding: 4px 4px 0 4px; margin: 0; overflow-wrap: anywhere; }
+.wh-web .pw-hero { border-radius: 26px; overflow: hidden; padding: 6px; margin: 0; }
+.wh-web .pw-hero img { display: block; width: 100%; height: 200px; object-fit: cover; border-radius: 21px; background: rgba(255,255,255,0.04); }
+.wh-web .pw-hero figcaption { padding: 8px 10px 4px 10px; font-size: 0.7rem; color: rgba(255,255,255,0.55); font-weight: 500; line-height: 1.4; }
+.wh-web .pw-card { border-radius: 28px; padding: 18px 18px 6px 18px; -webkit-user-select: text; user-select: text; min-width: 0; overflow-wrap: anywhere; }
+.wh-web .pw-h { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: #64D2FF; text-shadow: 0 2px 10px rgba(10,132,255,0.3); }
+.wh-web .pw-h::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(100,210,255,0.35), transparent); }
+.wh-web .pw-h3 { font-size: 0.95rem; font-weight: 700; letter-spacing: -0.01em; color: #FFF; margin: 4px 0 8px 0; }
+.wh-web .pw-p { font-size: 0.92rem; line-height: 1.6; color: rgba(255,255,255,0.86); margin: 0 0 12px 0; font-weight: 400; white-space: pre-line; }
+.wh-web .pw-p a, .wh-web .pw-ul a, .wh-web .pw-val a, .wh-web .pw-cit a { color: #8FDCFF; text-decoration: none; border-bottom: 1px solid rgba(100,210,255,0.35); font-weight: 500; }
+.wh-web .pw-ul { list-style: none; margin: 0 0 12px 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.wh-web .pw-ul li { position: relative; padding-left: 18px; font-size: 0.9rem; line-height: 1.5; color: rgba(255,255,255,0.84); }
+.wh-web .pw-ul li::before { content: ''; position: absolute; left: 3px; top: 0.6em; width: 6px; height: 6px; border-radius: 50%; background: #64D2FF; box-shadow: 0 0 8px rgba(100,210,255,0.6); }
+.wh-web .pw-ul.num { counter-reset: pwn; }
+.wh-web .pw-ul.num li::before { counter-increment: pwn; content: counter(pwn); width: auto; height: auto; background: none; box-shadow: none; top: 0; left: 0; font-size: 0.75rem; font-weight: 800; color: #64D2FF; }
+.wh-web .pw-fig { margin: 2px 0 14px 0; }
+.wh-web .pw-fig img { display: block; width: 100%; max-height: 240px; object-fit: cover; border-radius: 18px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
+.wh-web .pw-fig figcaption { margin-top: 7px; font-size: 0.72rem; line-height: 1.4; color: rgba(255,255,255,0.55); }
+.wh-web .pw-cit { margin: 0 0 12px 0; padding: 4px 0 4px 14px; border-left: 3px solid rgba(100,210,255,0.6); font-style: italic; color: rgba(255,255,255,0.8); font-size: 0.9rem; line-height: 1.55; }
+.wh-web .pw-altro { align-self: center; display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 22px; cursor: pointer;
+    font-family: inherit; font-size: 0.85rem; font-weight: 700; }
+.wh-web .pw-altro svg { width: 16px; height: 16px; }
+.wh-web .pw-altro:active { transform: scale(0.95); }
+.wh-web .pw-piede { text-align: center; font-size: 0.68rem; line-height: 1.5; color: rgba(255,255,255,0.45); padding: 2px 16px 8px 16px; }
+.wh-web .pw-piede a { color: rgba(255,255,255,0.7); cursor: pointer; }
+.wh-web .pw-avviso { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 20px; font-size: 0.78rem; line-height: 1.45; color: rgba(255,255,255,0.88);
+    background: rgba(255,159,10,0.12); border: 1px solid rgba(255,159,10,0.35); border-top-color: rgba(255,159,10,0.55);
+    backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%); }
+.wh-web .pw-avviso svg { width: 18px; height: 18px; color: #FF9F0A; margin-top: 1px; }
+
+/* SEZIONE: un pezzo del sito come card dell'app */
+.wh-web .pw-sez-griglia { display: flex; flex-direction: column; gap: 14px; }
+.wh-web .pw-sez { border-radius: 28px; padding: 16px 16px 8px 16px; min-width: 0; overflow-wrap: anywhere; }
+.wh-web .pw-sez-testa { margin-bottom: 12px; }
+.wh-web .pw-sez-testa b { display: block; font-size: 1.05rem; font-weight: 800; letter-spacing: -0.02em; }
+.wh-web .pw-sez-testa small { display: block; font-size: 0.68rem; font-weight: 600; color: rgba(255,255,255,0.55); margin-top: 2px; }
+.wh-web .pw-sez .pw-fig img { height: 190px; max-height: none; border-radius: 20px; }
+.wh-web .pw-gruppo { margin: 6px 0 12px 0; }
+.wh-web .pw-riga { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 10px 2px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.wh-web .pw-riga:last-child { border-bottom: none; }
+.wh-web .pw-lbl { font-size: 0.74rem; font-weight: 600; color: rgba(255,255,255,0.55); flex-shrink: 0; max-width: 42%; }
+.wh-web .pw-val { font-size: 0.84rem; font-weight: 600; color: #FFF; text-align: right; line-height: 1.4; }
+
+/* BLOCCATO / ERRORE: card con "Apri nel browser" */
+.wh-web .pw-x { border-radius: 30px; padding: 30px 22px 22px 22px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.wh-web .pw-x-ico { width: 72px; height: 72px; border-radius: 26px; display: flex; align-items: center; justify-content: center; margin-bottom: 4px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.14), rgba(255,255,255,0.03));
+    border: 1px solid rgba(255,255,255,0.14); border-top-color: rgba(255,255,255,0.3);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35), inset 0 2px 6px rgba(255,255,255,0.15); }
+.wh-web .pw-x-ico svg { width: 32px; height: 32px; color: #FFF; }
+.wh-web .pw-x h3 { font-size: 1.12rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.3; margin: 0; }
+.wh-web .pw-x p { font-size: 0.84rem; line-height: 1.55; color: rgba(255,255,255,0.68); margin: 0; }
+.wh-web .pw-x-host { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 0.74rem; font-weight: 700; color: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wh-web .pw-x-host svg { width: 13px; height: 13px; }
+.wh-web .pw-apri { margin-top: 6px; width: 100%; max-width: 360px; height: 50px; border-radius: 25px; border: none; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.95rem; font-weight: 700;
+    background: #FFF; color: #000; box-shadow: 0 6px 20px rgba(255,255,255,0.25); transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1); }
+.wh-web .pw-apri svg { width: 18px; height: 18px; }
+.wh-web .pw-apri:active { transform: scale(0.96); }
+.wh-web .pw-perche { background: none; border: none; color: rgba(255,255,255,0.6); font-family: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; padding: 10px; display: inline-flex; align-items: center; gap: 4px; }
+.wh-web .pw-perche svg { width: 14px; height: 14px; transition: transform 0.25s; }
+.wh-web .pw-perche.aperto svg { transform: rotate(180deg); }
+.wh-web .pw-dettaglio { display: none; text-align: left; font-size: 0.76rem; line-height: 1.55; color: rgba(255,255,255,0.62); padding: 12px 14px; border-radius: 18px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.08); max-width: 520px; }
+.wh-web .pw-dettaglio.aperto { display: block; }
+.wh-web .pw-dettaglio span { display: block; }
+
+/* anteprima della dashboard: la pagina web prende il posto di quello che c'era */
+.pw-sostituita > :not(.wh-web) { display: none !important; }
+
+/* MODALITA' LEGGERA: niente sfocatura (gia' tolta per tutti), vetro piu' scuro per restare leggibile, niente animazioni */
+.wh-leggera .wh-web .pw-vetro { background: rgba(14,16,30,0.78); box-shadow: 0 4px 14px rgba(0,0,0,0.32), inset 0 1px 1px rgba(255,255,255,0.06); }
+.wh-leggera .wh-web .pw-avviso { background: rgba(48,32,10,0.9); }
+.wh-leggera .wh-web .pw-carica::before, .wh-leggera .wh-web .pw-attesa::after { display: none; }
+.wh-leggera .wh-web .pw-btn.gira svg { animation: none; }
+.wh-leggera .wh-web .pw-vista iframe { transition: none; }
+
+/* iPad in verticale (768-1023): colonna di lettura */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .wh-web .pw-sito, .wh-web .pw-sez-griglia, .wh-web .pw-avviso, .wh-web .pw-x { width: 100%; max-width: 680px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
+}
+/* SCHERMI GRANDI (da 1024 px: barra laterale, viste Card/Plancia/Cruscotto) */
+@media (min-width: 1024px) {
+    .wh-web { width: 100%; margin: 0 0 30px 0; }
+    /* Integrata: colonna di lettura centrata */
+    .wh-web.pw-m-integrata > *, .wh-web.pw-m-vuota > *, .wh-web.pw-m-errore > *, .wh-web.pw-m-bloccato > *, .wh-web.pw-m-nessuna > *, .wh-web.pw-m-attesa > * {
+        width: 100%; max-width: 820px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
+    .wh-web .pw-hero img { height: 300px; }
+    .wh-web > .pw-altro { width: auto !important; }
+    /* Sezione: la card del pezzo sta nella griglia come una card grande */
+    .wh-web .pw-sez-griglia { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; align-items: start; }
+    .wh-web .pw-sez-griglia .pw-sez { grid-column: span 2; }
+    .wh-web .pw-sez-griglia .pw-piede { grid-column: 1 / -1; }
+    /* Finestra: tutta la zona dei contenuti */
+    .wh-web .pw-cornice { padding: 8px; }
+    .wh-web .pw-vista { min-height: 420px; }
+}
+/* molto larghi: Integrata su due colonne */
+@media (min-width: 1600px) {
+    .wh-web.pw-m-integrata > * { max-width: 1280px; }
+    .wh-web.pw-m-integrata .pw-titolo, .wh-web.pw-m-integrata .pw-hero { max-width: 820px; }
+    .wh-web .pw-carte { display: block; column-count: 2; column-gap: 18px; }
+    .wh-web .pw-carte > * { break-inside: avoid; -webkit-column-break-inside: avoid; margin-bottom: 18px; }
+}
+</style>
+{%- endif %}
 <style>
 /* =========================================================================
    MODALITA' LEGGERA  (Impostazioni > Dashboard & Sfondo > PRESTAZIONI)
@@ -3988,6 +4180,11 @@ html.wh-dietro .cr-eq span, html.wh-dietro .cr-eyebrow .pip, html.wh-dietro .cr-
     background: rgba(13,14,20,0.74); border-bottom-color: rgba(255,255,255,0.1);
     backdrop-filter: blur(22px) saturate(170%); -webkit-backdrop-filter: blur(22px) saturate(170%);
 }
+/* Grandezza pagina diversa dal 100% (25/10/2026): su iPhone (web app e app) riaprendo le Impostazioni sotto la
+   testata restava scoperta una fila di 1 pixel, da circa 362 punti al bordo destro, e si vedeva la schermata
+   principale che sta sotto (una riga sottile grigia o colorata). Con la testata su uno strato suo la fila
+   non resta piu' scoperta (provato nel simulatore come web app). Al 100% non cambia niente. */
+html.wh-scala .imp-testa { transform: translateZ(0); }
 .imp-titolino {
     margin: 0; grid-column: 2; font-size: 1.02rem; font-weight: 650; letter-spacing: -0.015em; color: var(--imp-testo);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 62vw; text-align: center;
@@ -5440,11 +5637,11 @@ html.wh-scala .imp-pagina {
                 {% if room_data.sub_rooms %}
                 <div class="sub-room-nav">
                     <button class="sub-room-tab active" onclick="switchSubRoom(this, 'content-{{ room_idx }}-main')">
-                        <i data-lucide="layout-grid" style="width: 14px; height: 14px;"></i> Principale
+                        <i data-lucide="{{ 'globe' if room_data.web else 'layout-grid' }}" style="width: 14px; height: 14px;"></i> Principale
                     </button>
-                    {% for sub_name in room_data.sub_rooms.keys() %}
+                    {% for sub_name, sub_data in room_data.sub_rooms.items() %}
                     <button class="sub-room-tab" onclick="switchSubRoom(this, 'content-{{ room_idx }}-sub-{{ loop.index0 }}')">
-                        <i data-lucide="layers" style="width: 14px; height: 14px;"></i> <span data-no-tr>{{ sub_name }}</span>
+                        <i data-lucide="{{ 'globe' if sub_data.web else 'layers' }}" style="width: 14px; height: 14px;"></i> <span data-no-tr>{{ sub_name }}</span>
                     </button>
                     {% endfor %}
                 </div>
@@ -5452,7 +5649,9 @@ html.wh-scala .imp-pagina {
 
                 <div>
                     <div id="content-{{ room_idx }}-main" class="sub-room-content active">
-                        {% if room_data.has_3d and room_data.model_url %}
+                        {% if room_data.web %}
+                            <div class="wh-web" data-stanza="{{ room_name }}" data-zona="" data-modo="{{ room_data.web.modo }}"></div>
+                        {% elif room_data.has_3d and room_data.model_url %}
                             <div class="room-3d-container" data-model="{{ room_data.model_url }}" data-mapping='{{ room_data.mesh_mapping | tojson | forceescape }}'></div>
                         {% else %}
                             {{ render_devices(room_data.devices, custom_icons, room_name) }}
@@ -5462,7 +5661,9 @@ html.wh-scala .imp-pagina {
                     {% if room_data.sub_rooms %}
                         {% for sub_name, sub_data in room_data.sub_rooms.items() %}
                             <div id="content-{{ room_idx }}-sub-{{ loop.index0 }}" class="sub-room-content">
-                                {% if sub_data.has_3d and sub_data.model_url %}
+                                {% if sub_data.web %}
+                                    <div class="wh-web" data-stanza="{{ room_name }}" data-zona="{{ sub_name }}" data-modo="{{ sub_data.web.modo }}"></div>
+                                {% elif sub_data.has_3d and sub_data.model_url %}
                                     <div class="room-3d-container" data-model="{{ sub_data.model_url }}" data-mapping='{{ sub_data.mesh_mapping | tojson | forceescape }}'></div>
                                 {% else %}
                                     {{ render_devices(sub_data.devices, custom_icons, room_name ~ '/' ~ sub_name) }}
@@ -19726,5 +19927,523 @@ function hkOsserva(card) {
     };
 })();
 </script>
+{%- if whweb.serve %}
+<script>
+/* [PAGINAWEB] pagina web al posto della griglia in una stanza o zona (server: paginaweb.py).
+   Entra SOLO se almeno una stanza o zona ha una pagina web (o nell'anteprima della dashboard).
+   - Il contenitore .wh-web nasce vuoto: si chiede la pagina SOLO quando il posto e' aperto e l'app e' visibile.
+     Apertura e chiusura seguono l'evento resize che switchRoom e switchSubRoom mandano gia' (come la 3D).
+   - Al server si chiede "la pagina della stanza X / zona Y", mai un indirizzo. Il modo e il ripiego li sceglie lui.
+   - I dati del sito si scrivono SOLO con textContent; l'iframe ha sempre il sandbox e mai allow-top-navigation. */
+(function () {
+    'use strict';
+    var Q = new URLSearchParams(location.search);
+    var BOZZA = Q.get('pw_bozza') || '';
+    var aperto = null;          // il .wh-web aperto adesso
+    var giro = 0;               // risposte di un giro vecchio si buttano
+    var timer = null, timerVecchia = null, timerCarica = null;
+    var MOSTRA = 3;
+    // le frasi stanno scritte qui per intero: cosi' il blocco LINGUE le trova e le traduce
+    var PW_MOTIVI = {
+        xfo: 'Il sito chiede ai browser di non mostrarlo dentro altre pagine.',
+        csp: 'Il sito si lascia mostrare solo dentro le sue pagine.',
+        misto: "Da fuori casa l'app usa https: una pagina in http non si può mostrare in finestra.",
+        schema: 'Solo indirizzi http o https.',
+        credenziali: "Niente nome utente o password dentro l'indirizzo.",
+        senza_host: 'Indirizzo senza nome del sito.',
+        dns: 'Il nome del sito non esiste.',
+        casa: 'Indirizzo della rete di casa: serve la spunta «Dispositivo nella rete di casa».',
+        occupato: "Il Wach0ss sta già leggendo un'altra pagina: riprova tra poco.",
+        lento: 'Il sito ci mette troppo a rispondere (oltre 8 secondi).',
+        non_risponde: 'Il sito non risponde.',
+        grande: 'Pagina troppo grande (oltre 2 MB).',
+        rimandi: "Troppi rimandi da un indirizzo all'altro.",
+        tipo: 'Non è una pagina web.',
+        vuota: 'La pagina non ha testo da leggere: probabilmente è fatta con il JavaScript. Usa la modalità Finestra.',
+        selettore_vuoto: 'Il selettore non trova niente nella pagina: forse il sito è cambiato o quel pezzo lo disegna il JavaScript.',
+        selettore: 'Selettore non valido: si possono usare tag, .classe, #id e lo spazio.',
+        illeggibile: 'La pagina non si lascia leggere.',
+        rete: 'Il Wach0ss non risponde.',
+        permesso: 'Non hai il permesso di vedere questa stanza.',
+        stanza: 'La stanza o la zona non esiste più: ricarica la pagina.',
+        zona: 'La stanza o la zona non esiste più: ricarica la pagina.'
+    };
+    function motivo(d) {
+        if (d && d.motivo === 'http' && /^\d+$/.test(String(d.dettaglio || ''))) return "Il sito risponde con l'errore " + d.dettaglio + '.';
+        return (d && PW_MOTIVI[d.motivo]) || 'Riprova tra poco.';
+    }
+
+    // ---------------------------------------------------------------- attrezzi
+    function el(tag, cls, testo) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (testo != null && testo !== '') e.textContent = String(testo);
+        return e;
+    }
+    function ico(nome) { var i = document.createElement('i'); i.setAttribute('data-lucide', nome); return i; }
+    function icone(root) { try { if (window.lucide) lucide.createIcons({ root: root }); } catch (e) {} }
+    function sicuroHttp(u) { return (typeof u === 'string' && /^https?:\/\//i.test(u)) ? u : ''; }
+    function nomePosto(p) { return p.dataset.zona || p.dataset.stanza || ''; }
+    function grande() { return window.innerWidth >= 1024; }
+    function frase(dove, testo) { var s = el('span', '', testo); dove.appendChild(s); return s; }
+    function noTr(e) { e.setAttribute('data-no-tr', ''); return e; }
+
+    function copia(testo) {
+        try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(testo).catch(function () {}); return; } } catch (e) {}
+        try {
+            var t = document.createElement('textarea');
+            t.value = testo; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+            document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
+        } catch (e) {}
+    }
+    // nel browser apre una scheda nuova; nell'app iOS la finestra nuova puo' essere ignorata: in piu' copia l'indirizzo
+    function apriFuori(u) {
+        u = sicuroHttp(u);
+        if (!u) return;
+        try { window.open(u, '_blank', 'noopener,noreferrer'); } catch (e) {}
+        if (typeof isNativeApp === 'function' && isNativeApp()) {
+            copia(u);
+            if (typeof hkToast === 'function') hkToast('Indirizzo copiato: incollalo in Safari.');
+        }
+    }
+
+    // ---------------------------------------------------------------- quale posto e' aperto
+    function postoAperto() {
+        var s = document.querySelector('.room-section.active');
+        if (!s) return null;
+        var c = s.querySelector('.sub-room-content.active');
+        return c ? c.querySelector(':scope > .wh-web') : null;
+    }
+    function controlla() {
+        var p = document.hidden ? null : postoAperto();
+        if (p === aperto) { if (aperto) misuraFinestra(); return; }
+        if (aperto) chiudi(aperto);
+        aperto = p;
+        if (p) carica(p, false, false);
+    }
+    function fermaTimer() {
+        clearInterval(timer); clearTimeout(timerVecchia); clearTimeout(timerCarica);
+        timer = timerVecchia = timerCarica = null;
+    }
+    function chiudi(p) {
+        fermaTimer();
+        giro++;
+        var f = p.querySelector('iframe');
+        if (f) { try { f.src = 'about:blank'; } catch (e) {} f.remove(); }   // libera la memoria (iOS)
+        p.textContent = '';
+        modoClasse(p, '');
+    }
+    function modoClasse(p, modo) {
+        ['finestra', 'integrata', 'sezione', 'bloccato', 'vuota', 'errore', 'nessuna', 'attesa'].forEach(function (m) { p.classList.remove('pw-m-' + m); });
+        if (modo) p.classList.add('pw-m-' + modo);
+    }
+
+    // ---------------------------------------------------------------- richiesta al Wach0ss
+    function carica(p, ricarica, silenzioso) {
+        clearTimeout(timerVecchia); timerVecchia = null;
+        var mio = ++giro;
+        if (!silenzioso) {
+            p.textContent = '';
+            modoClasse(p, 'attesa');
+            var att = el('div', 'pw-attesa pw-vetro');
+            for (var i = 0; i < 4; i++) att.appendChild(el('i'));
+            frase(att, 'Carico la pagina…');
+            p.appendChild(att);
+        }
+        var url = '/api/pagina_web?stanza=' + encodeURIComponent(p.dataset.stanza || '') + '&zona=' + encodeURIComponent(p.dataset.zona || '') +
+            (location.protocol === 'https:' ? '&https=1' : '') + (ricarica ? '&ricarica=1' : '') + (BOZZA ? '&bozza=' + encodeURIComponent(BOZZA) : '');
+        fetch(url, { cache: 'no-store', credentials: 'same-origin' })
+            .then(function (r) { return r.json().catch(function () { return { modo: 'errore', motivo: 'rete' }; }); })
+            .then(function (d) {
+                if (aperto !== p || mio !== giro) return;        // nel frattempo sei uscito dal posto
+                disegna(p, (d && d.modo) ? d : { modo: 'errore', motivo: 'rete' });
+            })
+            .catch(function () {
+                if (aperto !== p || mio !== giro) return;
+                disegna(p, { modo: 'errore', motivo: 'rete' });
+            });
+    }
+
+    function disegna(p, d) {
+        fermaTimer();
+        var vecchio = p.querySelector('iframe');
+        if (vecchio) { try { vecchio.src = 'about:blank'; } catch (e) {} vecchio.remove(); }
+        p.textContent = '';
+        modoClasse(p, d.modo);
+        if (d.modo === 'finestra') disegnaFinestra(p, d);
+        else if (d.modo === 'integrata') disegnaIntegrata(p, d);
+        else if (d.modo === 'sezione') disegnaSezione(p, d);
+        else if (d.modo === 'bloccato') disegnaBloccato(p, d);
+        else if (d.modo === 'nessuna') disegnaNessuna(p);
+        else disegnaErrore(p, d);
+        icone(p);
+        // aggiornamento automatico SOLO mentre il posto e' aperto e l'app visibile
+        var min = parseInt(d.aggiorna, 10) || 0;
+        if (min > 0 && d.modo !== 'nessuna') {
+            timer = setInterval(function () {
+                if (document.hidden || aperto !== p) return;
+                if (d.modo === 'finestra') ricaricaFinestra(p, d);
+                else carica(p, false, true);                       // risponde la cache finche' non scade
+            }, min * 60000);
+        }
+        // copia scaduta: il server la aggiorna dietro, una sola richiesta in piu' dopo 12 secondi
+        if (d.vecchia) timerVecchia = setTimeout(function () { if (!document.hidden && aperto === p) carica(p, false, true); }, 12000);
+        if (d.modo === 'finestra') { misuraFinestra(); portaSu(p); }
+    }
+
+    // ---------------------------------------------------------------- barra in alto
+    function barra(p, d, icona, ricarica, quando) {
+        var b = el('div', 'pw-barra pw-vetro');
+        var w = el('div', 'pw-ico'); w.appendChild(ico(icona)); b.appendChild(w);
+        var t = el('div', 'pw-testo');
+        t.appendChild(noTr(el('b', '', nomePosto(p))));
+        var s = el('small');
+        if (d.host) s.appendChild(noTr(el('span', '', d.host)));
+        // ogni pezzo (puntino + frase) resta unito: se non ci sta va a capo intero (in inglese 'read 1 min ago')
+        function pezzo(testo) { var g = el('span'); g.appendChild(el('span', 'pw-sep', '·')); frase(g, testo); s.appendChild(g); }
+        if (d.locale) pezzo('in casa');
+        if (quando) pezzo(quando);
+        if (d.vecchia) pezzo('aggiorno…');
+        t.appendChild(s);
+        b.appendChild(t);
+        if (ricarica) {
+            var r = el('button', 'pw-btn'); r.type = 'button';
+            r.setAttribute('aria-label', 'Ricarica'); r.setAttribute('title', 'Ricarica');
+            r.appendChild(ico('refresh-cw'));
+            r.addEventListener('click', function () { r.classList.remove('gira'); void r.offsetWidth; r.classList.add('gira'); ricarica(); });
+            b.appendChild(r);
+        }
+        if (sicuroHttp(d.url)) {
+            var a = el('button', 'pw-btn'); a.type = 'button';
+            a.setAttribute('aria-label', 'Apri nel browser'); a.setAttribute('title', 'Apri nel browser');
+            a.appendChild(ico('external-link'));
+            a.addEventListener('click', function () { apriFuori(d.url); });
+            b.appendChild(a);
+        }
+        return b;
+    }
+    function quando(eta) {
+        if (eta == null || isNaN(eta)) return '';
+        var m = Math.floor(Number(eta) / 60);
+        return m < 1 ? 'letta adesso' : 'letta ' + m + ' min fa';
+    }
+
+    // ---------------------------------------------------------------- FINESTRA
+    function ricaricaFinestra(p, d) {
+        var f = p.querySelector('iframe'), car = p.querySelector('.pw-carica');
+        if (!f) return;
+        f.classList.remove('pronto'); if (car) car.classList.remove('via');
+        attendiFrame(f, car);
+        f.src = d.url;
+    }
+    function attendiFrame(f, car) {
+        clearTimeout(timerCarica);
+        // se il sito non manda mai "load", dopo 15 s si toglie comunque il caricamento
+        timerCarica = setTimeout(function () { f.classList.add('pronto'); if (car) car.classList.add('via'); }, 15000);
+    }
+    function disegnaFinestra(p, d) {
+        var url = sicuroHttp(d.url);
+        if (!url) { disegnaErrore(p, { modo: 'errore', motivo: 'schema' }); return; }
+        p.appendChild(barra(p, d, d.locale ? 'router' : 'globe', function () { ricaricaFinestra(p, d); }, ''));
+        var zoom = parseInt(d.zoom, 10) || 100;
+        var chips = el('div', 'pw-chips');
+        function chip(icona, testo, cls) { var c = el('span', 'pw-chip ' + (cls || '')); c.appendChild(ico(icona)); frase(c, testo); chips.appendChild(c); }
+        if (d.locale) chip('wifi', 'Rete di casa', 'blu');
+        if (d.scuro) chip('moon', 'Tema scuro', '');
+        if (zoom !== 100) chip('zoom-in', 'Zoom ' + zoom + '%', '');
+        if (chips.firstChild) p.appendChild(chips);
+        var cornice = el('div', 'pw-cornice pw-vetro');
+        var vista = el('div', 'pw-vista' + (d.scuro ? ' scuro' : ''));
+        var car = el('div', 'pw-carica'); car.appendChild(ico(d.locale ? 'router' : 'globe')); frase(car, 'Carico la pagina…');
+        var f = document.createElement('iframe');
+        f.setAttribute('title', nomePosto(p));
+        // sandbox SEMPRE e MAI allow-top-navigation: il sito non puo' portare via l'app.
+        // allow-same-origin solo per siti di ALTRA origine (una pagina del Wach0ss con scripts+same-origin si toglierebbe il sandbox)
+        var stessa = true;
+        try { stessa = new URL(url, location.href).origin === location.origin; } catch (e) {}
+        f.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox' + (stessa ? '' : ' allow-same-origin'));
+        f.setAttribute('allow', 'fullscreen');
+        if (d.scuro) f.classList.add('scuro');
+        if (zoom !== 100) { f.classList.add('zoom'); f.style.setProperty('--z', String(zoom / 100)); }
+        f.addEventListener('load', function () {
+            if (!f.src || f.src === 'about:blank') return;
+            clearTimeout(timerCarica);
+            f.classList.add('pronto'); car.classList.add('via');
+        });
+        vista.appendChild(f);
+        vista.appendChild(car);
+        cornice.appendChild(vista);
+        p.appendChild(cornice);
+        attendiFrame(f, car);
+        f.src = url;
+    }
+
+    // altezza della cornice: dal suo posto (con la barra del posto subito sotto l'area sicura) fino alla barra in basso
+    var sonda = null;
+    function safeTop() {
+        if (!sonda) { sonda = el('div'); sonda.style.cssText = 'position:fixed;top:0;left:-9px;width:1px;visibility:hidden;pointer-events:none;height:var(--safe-top,0px)'; document.body.appendChild(sonda); }
+        return sonda.offsetHeight || 0;
+    }
+    function misuraFinestra() {
+        var p = aperto;
+        var v = p && p.querySelector('.pw-vista');
+        if (!v) return;
+        var h;
+        var vr = v.getBoundingClientRect();
+        if (!grande()) {
+            var nav = document.querySelector('.floating-nav-wrapper .floating-nav');
+            var fondo = nav ? nav.getBoundingClientRect().top - 12 : window.innerHeight - 100;
+            var b = p.querySelector('.pw-barra');
+            var sopra = b ? vr.top - b.getBoundingClientRect().top : 0;
+            h = fondo - (safeTop() + 8) - sopra - 7;
+            h = Math.max(320, h);
+        } else {
+            // schermi grandi: con la barra del posto in cima allo schermo la cornice arriva fino in fondo
+            var bg = p.querySelector('.pw-barra');
+            var sopraG = bg ? vr.top - bg.getBoundingClientRect().top : 0;
+            h = Math.max(420, window.innerHeight - 24 - 24 - sopraG - 8);
+        }
+        v.style.setProperty('--pw-h', Math.round(h) + 'px');
+    }
+    // sul telefono la Finestra prende lo schermo: la barra del posto va subito sotto l'area sicura
+    function portaSu(p) {
+        if (grande()) return;
+        var b = p.querySelector('.pw-barra');
+        if (!b) return;
+        requestAnimationFrame(function () {
+            if (aperto !== p) return;
+            // offsetTop e non getBoundingClientRect: non risente dell'animazione d'ingresso della stanza
+            var w = document.getElementById('app-wrapper');
+            var dentro = w && w.scrollHeight > w.clientHeight + 1;
+            var y = 0, e = b;
+            while (e && e !== w) { y += e.offsetTop; e = e.offsetParent; }
+            y = Math.max(0, y - (safeTop() + 8));
+            if (dentro) w.scrollTo({ top: y, behavior: 'smooth' });
+            else window.scrollTo({ top: y, behavior: 'smooth' });
+        });
+    }
+
+    // ---------------------------------------------------------------- testo del sito (sempre textContent)
+    function righe(pezzi, dove) {
+        (pezzi || []).forEach(function (x) {
+            if (!x) return;
+            var h = sicuroHttp(x.h);
+            if (h) {
+                var a = el('a', '', x.x);
+                a.href = h; a.target = '_blank'; a.rel = 'noopener noreferrer';
+                a.addEventListener('click', function (e) { e.preventDefault(); apriFuori(h); });
+                dove.appendChild(a);
+            } else dove.appendChild(document.createTextNode(String(x.x == null ? '' : x.x)));
+        });
+        return dove;
+    }
+    function immagine(b, cls) {
+        var src = sicuroHttp(b && b.src);
+        if (!src) return null;
+        var fig = el('figure', cls || 'pw-fig');
+        var im = document.createElement('img');
+        im.alt = b.alt || ''; im.loading = 'lazy'; im.decoding = 'async';
+        im.referrerPolicy = 'no-referrer'; im.setAttribute('referrerpolicy', 'no-referrer');
+        im.addEventListener('error', function () { fig.remove(); });
+        im.src = src;
+        fig.appendChild(im);
+        if (b.didascalia) fig.appendChild(el('figcaption', '', b.didascalia));
+        return fig;
+    }
+    function tabella(b) {
+        var g = el('div', 'pw-gruppo');
+        (b.righe || []).forEach(function (r) {
+            if (!r || !r.length) return;
+            var riga = el('div', 'pw-riga');
+            if (r.length >= 2) {
+                riga.appendChild(el('span', 'pw-lbl', r[0]));
+                riga.appendChild(el('span', 'pw-val', r.slice(1).join(' · ')));
+            } else riga.appendChild(el('span', 'pw-val', r[0]));
+            g.appendChild(riga);
+        });
+        return g;
+    }
+    function blocco(b, k) {
+        if (!b) return;
+        if (b.t === 'par') k.appendChild(righe(b.pezzi, el('p', 'pw-p')));
+        else if (b.t === 'titolo') k.appendChild(el('div', 'pw-h3', b.testo));
+        else if (b.t === 'img') { var f = immagine(b); if (f) k.appendChild(f); }
+        else if (b.t === 'citazione') k.appendChild(righe(b.pezzi, el('blockquote', 'pw-cit')));
+        else if (b.t === 'elenco') {
+            var ul = el(b.num ? 'ol' : 'ul', 'pw-ul' + (b.num ? ' num' : ''));
+            (b.voci || []).slice(0, 30).forEach(function (v) { ul.appendChild(righe(v, el('li'))); });
+            k.appendChild(ul);
+        } else if (b.t === 'tabella') k.appendChild(tabella(b));
+    }
+    function piede(p, d) {
+        var pd = el('div', 'pw-piede');
+        if (d.host) { pd.appendChild(noTr(el('span', '', d.host))); pd.appendChild(document.createTextNode(' · ')); }
+        if (sicuroHttp(d.url)) {
+            var a = el('a', '', "Apri l'originale");
+            a.href = d.url; a.rel = 'noopener noreferrer'; a.target = '_blank';
+            a.addEventListener('click', function (e) { e.preventDefault(); apriFuori(d.url); });
+            pd.appendChild(a);
+        }
+        return pd;
+    }
+
+    // ---------------------------------------------------------------- INTEGRATA
+    function disegnaIntegrata(p, d) {
+        p.appendChild(barra(p, d, d.ripiego ? 'life-buoy' : 'book-open', function () { carica(p, true, true); }, quando(d.eta)));
+        if (d.ripiego) {
+            var av = el('div', 'pw-avviso'); av.appendChild(ico('life-buoy'));
+            frase(av, 'Il sito non si lascia mostrare in finestra: ecco la versione da leggere.');
+            p.appendChild(av);
+        }
+        var sito = noTr(el('div', 'pw-sito'));       // il testo del sito non si traduce
+        var blocchi = (d.blocchi || []).slice();
+        var titolo = d.titolo || d.host || '';
+        if (blocchi[0] && blocchi[0].t === 'titolo' && blocchi[0].liv === 1) titolo = blocchi.shift().testo;
+        if (titolo) sito.appendChild(el('h2', 'pw-titolo', titolo));
+        var hero = null, iPrima = -1;
+        for (var i = 0; i < blocchi.length && i < 4; i++) { if (blocchi[i].t === 'img') { iPrima = i; break; } }
+        if (iPrima > -1) { hero = blocchi[iPrima]; blocchi.splice(iPrima, 1); }
+        else if (d.immagine) hero = { src: d.immagine, alt: '' };
+        var fh = hero ? immagine(hero, 'pw-hero pw-vetro') : null;
+        if (fh) sito.appendChild(fh);
+        // una card per ogni titolo grande
+        var carte = [], cur = null;
+        blocchi.forEach(function (b) {
+            if (b && b.t === 'titolo' && b.liv <= 2) { cur = { titolo: b.testo, blocchi: [] }; carte.push(cur); return; }
+            if (!cur) { cur = { titolo: '', blocchi: [] }; carte.push(cur); }
+            cur.blocchi.push(b);
+        });
+        carte = carte.filter(function (c) { return c.blocchi.length; });
+        function cartaDom(c) {
+            var k = el('div', 'pw-card pw-vetro');
+            if (c.titolo) k.appendChild(el('div', 'pw-h', c.titolo));
+            c.blocchi.forEach(function (b) { blocco(b, k); });
+            return k;
+        }
+        var box = el('div', 'pw-carte');
+        carte.slice(0, MOSTRA).forEach(function (c) { box.appendChild(cartaDom(c)); });
+        sito.appendChild(box);
+        p.appendChild(sito);
+        if (carte.length > MOSTRA) {
+            var piu = el('button', 'pw-altro pw-vetro'); piu.type = 'button';
+            frase(piu, 'Mostra tutto'); piu.appendChild(ico('chevron-down'));
+            piu.addEventListener('click', function () {
+                carte.slice(MOSTRA).forEach(function (c) { box.appendChild(cartaDom(c)); });
+                piu.remove();
+            });
+            p.appendChild(piu);
+        }
+        p.appendChild(piede(p, d));
+    }
+
+    // ---------------------------------------------------------------- SEZIONE
+    function disegnaSezione(p, d) {
+        p.appendChild(barra(p, d, 'crop', function () { carica(p, true, true); }, quando(d.eta)));
+        var griglia = el('div', 'pw-sez-griglia');
+        var k = noTr(el('div', 'pw-sez pw-vetro'));
+        var blocchi = (d.blocchi || []).slice();
+        var testa = el('div', 'pw-sez-testa');
+        var primo = (blocchi[0] && blocchi[0].t === 'titolo') ? blocchi.shift().testo : '';
+        testa.appendChild(el('b', '', primo || d.titolo || nomePosto(p)));
+        if (primo && d.titolo) testa.appendChild(el('small', '', d.titolo));
+        k.appendChild(testa);
+        var imgFatte = 0;
+        blocchi.forEach(function (b) {
+            if (b && b.t === 'img') { if (imgFatte++ < 1) { var f = immagine(b); if (f) k.appendChild(f); } }
+            else if (b && b.t === 'titolo') k.appendChild(el('div', 'pw-h', b.testo));
+            else blocco(b, k);
+        });
+        griglia.appendChild(k);
+        griglia.appendChild(piede(p, d));
+        p.appendChild(griglia);
+    }
+
+    // ---------------------------------------------------------------- BLOCCATO / ERRORE / NESSUNA
+    function cartaAvviso(p, d, icona, titolo, testo, perche) {
+        var k = el('div', 'pw-x pw-vetro');
+        var i = el('div', 'pw-x-ico'); i.appendChild(ico(icona)); k.appendChild(i);
+        k.appendChild(el('h3', '', titolo));
+        if (d.host) { var h = el('span', 'pw-x-host'); h.appendChild(ico(d.locale ? 'router' : 'globe')); h.appendChild(noTr(el('span', '', d.host))); k.appendChild(h); }
+        if (testo) k.appendChild(el('p', '', testo));
+        if (sicuroHttp(d.url)) {
+            var b = el('button', 'pw-apri'); b.type = 'button';
+            b.appendChild(ico('external-link')); frase(b, 'Apri nel browser');
+            b.addEventListener('click', function () { apriFuori(d.url); });
+            k.appendChild(b);
+        }
+        if (perche && perche.length) {
+            var pb = el('button', 'pw-perche'); pb.type = 'button';
+            frase(pb, 'Perché succede'); pb.appendChild(ico('chevron-down'));
+            var det = el('div', 'pw-dettaglio');
+            perche.forEach(function (x) { frase(det, x); });
+            pb.addEventListener('click', function () { pb.classList.toggle('aperto'); det.classList.toggle('aperto'); });
+            k.appendChild(pb); k.appendChild(det);
+        }
+        p.appendChild(k);
+    }
+    function disegnaBloccato(p, d) {
+        p.appendChild(barra(p, d, 'ban', function () { carica(p, true, false); }, ''));
+        cartaAvviso(p, d, 'ban', "Questo sito non si lascia mostrare dentro l'app",
+            "Il sito lo vieta, e non ha testo da ridisegnare con lo stile dell'app. Puoi aprirlo nel browser del telefono.",
+            [motivo(d), 'Il telefono rispetta sempre questa scelta del sito: non si può aggirare.']);
+    }
+    function disegnaErrore(p, d) {
+        var conBarra = d.motivo !== 'permesso' && d.motivo !== 'accesso' && d.motivo !== 'stanza' && d.motivo !== 'zona';
+        if (conBarra) p.appendChild(barra(p, d, 'triangle-alert', function () { carica(p, true, false); }, ''));
+        cartaAvviso(p, conBarra ? d : {}, 'triangle-alert', d.modo === 'vuota' ? 'Niente da mostrare' : 'Pagina non disponibile', motivo(d), null);
+    }
+    function disegnaNessuna(p) {
+        cartaAvviso(p, {}, 'globe', 'Niente da mostrare',
+            BOZZA ? 'Nessuna pagina web: qui il telefono mostra la griglia dei dispositivi.' : "Questa pagina web è stata tolta: ricarica l'app.", null);
+    }
+
+    // ---------------------------------------------------------------- anteprima della dashboard (?pw_bozza=)
+    function avvisaGenitore(m) { try { if (window.parent !== window) window.parent.postMessage(m, location.origin); } catch (e) {} }
+    function preparaAnteprima() {
+        var st = Q.get('pw_stanza') || '', zn = Q.get('pw_zona') || '';
+        var tit = [].find.call(document.querySelectorAll('.room-section .section-title'), function (x) { return x.textContent.trim() === st; });
+        if (!tit) { avvisaGenitore({ pw: 'manca' }); return; }
+        var sez = tit.closest('.room-section');
+        if (!sez.classList.contains('active')) {
+            var voce = [].find.call(document.querySelectorAll('.dock-room-btn'), function (b) { return (b.getAttribute('onclick') || '').indexOf("'" + sez.id + "'") >= 0; });
+            if (voce && typeof switchRoom === 'function') switchRoom(sez.id, voce);
+        }
+        var cont = null;
+        var tabs = sez.querySelectorAll('.sub-room-tab');
+        if (zn) {
+            var tab = [].find.call(tabs, function (t) { var s = t.querySelector('span[data-no-tr]'); return s && s.textContent.trim() === zn; });
+            if (!tab) { avvisaGenitore({ pw: 'manca' }); return; }
+            tab.click();
+            cont = sez.querySelector('.sub-room-content.active');
+        } else {
+            if (tabs[0]) tabs[0].click();
+            cont = sez.querySelector('.sub-room-content[id$="-main"]');
+        }
+        if (cont && !cont.querySelector(':scope > .wh-web')) {
+            var w = el('div', 'wh-web'); w.dataset.stanza = st; w.dataset.zona = zn;
+            cont.insertBefore(w, cont.firstChild);
+            cont.classList.add('pw-sostituita');
+        }
+    }
+    if (BOZZA) {
+        try { preparaAnteprima(); } catch (e) {}
+        window.addEventListener('message', function (e) {
+            if (e.source !== window.parent || e.origin !== location.origin) return;
+            var m = e.data || {};
+            if (m.pw !== 'ricarica') return;
+            if (typeof m.bozza === 'string' && m.bozza) BOZZA = m.bozza;
+            if (aperto) { var p = aperto; chiudi(p); aperto = null; }
+            controlla();
+        });
+    }
+
+    // ---------------------------------------------------------------- avvio
+    window.addEventListener('resize', function () { requestAnimationFrame(controlla); });
+    document.addEventListener('visibilitychange', controlla);       // app in secondo piano: si chiude; al ritorno si riapre
+    window.whWeb = { controlla: controlla };
+    controlla();                                                     // la prima stanza e' gia' attiva
+})();
+</script>
+{%- endif %}
 </body>
 </html>

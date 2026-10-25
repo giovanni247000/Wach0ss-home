@@ -2107,6 +2107,11 @@
                     <button class="btn-launch btn-3d-feature" onclick="ambMenu3D(this)" id="btn-toggle-3d" title="Planimetria 3D della stanza selezionata">
                         <i data-lucide="box" style="width: 16px; height:16px;"></i> <span id="text-toggle-3d" style="margin-left: 6px;">Planimetria 3D</span> <i data-lucide="chevron-down" class="btn-3d-chev"></i>
                     </button>
+                    {% if paginaweb_attivo %}
+                    <button class="btn-launch btn-3d-feature" onclick="pwMenu(this)" id="btn-pagina-web" title="Pagina web della stanza selezionata">
+                        <i data-lucide="globe" style="width: 16px; height:16px;"></i> <span style="margin-left: 6px;">Pagina web</span> <i data-lucide="chevron-down" class="btn-3d-chev"></i>
+                    </button>
+                    {% endif %}
                 </div>
             </div>
             
@@ -2147,6 +2152,7 @@
     </div>
 </div>
 
+                {% if paginaweb_attivo %}<div id="pw-pannello" style="display: none;"></div>{% endif %}
                 <div id="dashboard-3d-container"></div>
                 <div id="mesh-links-bar"></div>
 
@@ -8409,6 +8415,7 @@ async function saveConfig(syncFromDom = true) {
             if (libTrascinamento) { libGrigliaInAttesa = true; return; }   // una card e' in volo: si ridisegna appena la si lascia
             const contextData = libContestoAttivo();
             if (!contextData) return;
+            const pwQui = !!(window.pwMostra && pwMostra(contextData));   // [PAGINAWEB] mostra/nasconde il pannello; true = qui la pagina web
             const btnToggle3D = document.getElementById('btn-toggle-3d');
             const uploadZone = document.getElementById('upload-3d-zone');
             const container3D = document.getElementById('dashboard-3d-container');
@@ -8417,7 +8424,7 @@ async function saveConfig(syncFromDom = true) {
             // il contenuto del tasto 3D si riscrive solo quando cambia (prima a ogni clic, con le sue icone)
             const stato3D = libVista3D(contextData) ? 'attiva' : 'spenta', riscrivi3D = btnToggle3D._ambStato !== stato3D;
             btnToggle3D._ambStato = stato3D;
-            if(libVista3D(contextData)) {
+            if(libVista3D(contextData) && !pwQui) {
                 btnToggle3D.className = "btn-launch btn-3d-feature btn-3d-active";
                 if (riscrivi3D) btnToggle3D.innerHTML = '<i data-lucide="box" style="width:16px;height:16px;"></i> <span id="text-toggle-3d" style="margin-left: 6px;">3D attiva</span> <i data-lucide="chevron-down" class="btn-3d-chev"></i>';
 
@@ -8429,9 +8436,10 @@ async function saveConfig(syncFromDom = true) {
                 if (riscrivi3D) btnToggle3D.innerHTML = '<i data-lucide="box" style="width:16px;height:16px;"></i> <span id="text-toggle-3d" style="margin-left: 6px;">Planimetria 3D</span> <i data-lucide="chevron-down" class="btn-3d-chev"></i>';
 
                 if (window.renderer3D) libChiudi3D();             // lasciando una vista 3D (anche eliminata) il visore si ferma davvero
-                uploadZone.style.display = 'none'; container3D.style.display = 'none'; gridContainer.style.display = 'block';
+                uploadZone.style.display = 'none'; container3D.style.display = 'none'; gridContainer.style.display = pwQui ? 'none' : 'block';
                 // le card si costruiscono dalla configurazione e dal registro, NON clonando la barra a sinistra
-                libCostruisciGriglia(contextData);
+                if (pwQui) { targetGrid.innerHTML = ''; libSegnaGriglia(null); }   // [PAGINAWEB] come la 3D: la griglia nascosta non tiene card
+                else libCostruisciGriglia(contextData);
             }
             renderMeshLinks();
             libIcone(btnToggle3D);
@@ -17444,6 +17452,508 @@ async function removeCloudflareTunnel() {
 }
 
     </script>
+{% if paginaweb_attivo %}
+<style id="pw-stile">
+    /* [PAGINAWEB] pannello "Pagina web" della stanza/zona selezionata (prende il posto della griglia) */
+    body.amb-non-letta #btn-pagina-web, body.amb-non-letta #pw-pannello { display: none !important; }
+    #btn-toggle-3d:disabled { opacity: 0.45; cursor: not-allowed; }
+    #btn-toggle-3d:disabled:hover { border-color: #D1D1D6; color: var(--text-main); background: #FFFFFF; }
+    #pw-pannello { padding: 6px 0 18px 0; }
+    .pw { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 22px; align-items: start; }
+    .pw-intesta { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .pw-intesta .pw-ico { width: 38px; height: 38px; border-radius: 10px; background: #E5F1FF; color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .pw-intesta .pw-ico svg { width: 19px; height: 19px; }
+    .pw-intesta h4 { margin: 0; font-size: 1.02rem; font-weight: 700; color: var(--text-main); }
+    .pw-intesta p { margin: 2px 0 0 0; font-size: 0.8rem; color: var(--text-muted); }
+    .pw-avviso { display: flex; gap: 8px; align-items: flex-start; background: #FFF8EC; border: 1px solid #F5DDB0; color: #8A4E00; border-radius: var(--radius-sm); padding: 9px 12px; font-size: 0.78rem; line-height: 1.4; margin-bottom: 14px; }
+    .pw-avviso svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; }
+    #pw-pannello .setup-section { margin-bottom: 14px; }
+    #pw-pannello .setup-section h3 { font-size: 0.82rem; display: flex; align-items: center; gap: 8px; }
+    #pw-pannello .setup-section h3 svg { width: 15px; height: 15px; color: var(--accent); }
+    #pw-pannello .setup-section input[type=text], #pw-pannello .setup-section input[type=url], #pw-pannello .setup-section select { margin-bottom: 0; height: 36px; }
+    #pw-pannello .setup-section label.checkbox-container { display: flex; margin: 0; font-size: inherit; font-weight: inherit; color: inherit; }
+    #pw-pannello .checkbox-container input { width: auto; margin: 0 12px 0 0; height: auto; }
+    #pw-pannello .checkbox-container span { font-size: 0.86rem; }
+    #pw-pannello .checkbox-container small { display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: 400; margin-top: 2px; }
+    #pw-pannello .setup-section label.pw-etich { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .pw-riga { display: flex; gap: 8px; }
+    .pw-riga input { flex: 1; min-width: 0; }
+    .pw-riga .btn-launch { height: 36px; flex-shrink: 0; }
+    #pw-pannello .btn-launch { gap: 6px; }
+    #pw-pannello .btn-launch svg { width: 16px; height: 16px; flex-shrink: 0; }
+    @media (max-width: 1200px) { #btn-pagina-web > span { display: none; } }   /* schermi stretti: solo l'icona, le schede delle stanze restano leggibili */
+    .pw-riga .btn-launch:disabled { opacity: 0.55; cursor: progress; transform: none; }
+    #pw-pannello .pw-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; }
+    .pw-verdetto { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 12px 0; min-height: 26px; }
+    .pw-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 3px 10px; border-radius: 13px; font-size: 0.74rem; font-weight: 600; border: 1px solid transparent; line-height: 1.3; }
+    .pw-chip svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .pw-chip.si { background: #E4F8EA; color: #1E7B34; border-color: #BFE8CB; }
+    .pw-chip.no { background: #FFF0F0; color: #C42B39; border-color: #F6C9CD; }
+    .pw-chip.forse { background: #FFF4E0; color: #A85F00; border-color: #F5DDB0; }
+    .pw-chip.info, .pw-chip.attesa { background: #F2F2F7; color: var(--text-muted); border-color: #E5E5EA; }
+    .pw-modi { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .pw-modo { position: relative; text-align: left; background: #FFFFFF; border: 1px solid #E5E5EA; border-radius: 10px; padding: 12px; cursor: pointer; font-family: inherit; color: var(--text-main); transition: var(--transition-smooth); display: flex; flex-direction: column; gap: 6px; }
+    .pw-modo:hover { border-color: #C7C7CC; }
+    .pw-modo.attivo { border-color: var(--accent); background: #F0F8FF; box-shadow: inset 0 0 0 1px var(--accent); }
+    .pw-modo-testa { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.86rem; }
+    .pw-modo-testa svg { width: 16px; height: 16px; color: var(--accent); }
+    .pw-modo p { margin: 0; font-size: 0.74rem; line-height: 1.4; color: var(--text-muted); }
+    .pw-modo .pw-peso { font-size: 0.68rem; font-weight: 600; color: #1E7B34; display: flex; align-items: flex-start; gap: 4px; }
+    .pw-modo .pw-peso.medio { color: #A85F00; }
+    .pw-modo .pw-peso svg { width: 12px; height: 12px; flex-shrink: 0; margin-top: 1px; }
+    .pw-consigliata { position: absolute; top: -8px; right: 10px; background: var(--accent); color: #FFFFFF; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; box-shadow: 0 2px 6px rgba(0,102,204,0.3); }
+    .pw-modo:not(.consigliata) .pw-consigliata { display: none; }
+    .pw-opzioni { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .pw-opzioni .pw-intera { grid-column: 1 / -1; }
+    .pw-zoom { background: #FFFFFF; border: 1px solid #E5E5EA; border-radius: var(--radius-sm); padding: 9px 14px; display: flex; align-items: center; gap: 12px; }
+    .pw-zoom span { font-size: 0.86rem; font-weight: 500; }
+    #pw-pannello .pw-zoom input { flex: 1; min-width: 0; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; accent-color: var(--accent); }
+    .pw-zoom b { font-size: 0.82rem; min-width: 40px; text-align: right; color: var(--accent); }
+    .pw-nota { font-size: 0.74rem; color: var(--text-muted); line-height: 1.45; margin-top: 10px; display: flex; gap: 6px; }
+    .pw-nota svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 1px; color: #A1A1A6; }
+    .pw-sel-esito { font-size: 0.76rem; font-weight: 600; margin-top: 8px; display: flex; align-items: center; gap: 6px; min-height: 18px; }
+    .pw-sel-esito.si { color: #1E7B34; } .pw-sel-esito.no { color: #C42B39; } .pw-sel-esito.attesa { color: var(--text-muted); }
+    .pw-sel-esito svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .pw-piede { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+    .pw-piede .pw-spazio { flex: 1; }
+    .pw-rimuovi { background: none; border: none; color: var(--danger); font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 8px 4px; }
+    .pw-rimuovi svg { width: 15px; height: 15px; }
+    .pw-piede .btn-launch { padding: 9px 18px; font-weight: 600; }
+    .pw-piede .btn-launch:disabled { opacity: 0.55; cursor: progress; transform: none; }
+    .pw-ante { position: sticky; top: 0; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .pw-ante-testa { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-main); }
+    .pw-live { display: none; align-items: center; gap: 6px; font-size: 0.68rem; font-weight: 700; color: #1E7B34; background: #E4F8EA; padding: 3px 8px; border-radius: 10px; letter-spacing: 0.04em; }
+    .pw-live i { width: 7px; height: 7px; border-radius: 50%; background: #34C759; box-shadow: 0 0 0 3px rgba(52,199,89,0.25); }
+    .pw-ante.aperta .pw-live { display: inline-flex; }
+    .pw-telefono { --s: 0.6; width: calc(390px * var(--s) + 14px); height: calc(844px * var(--s) + 14px); padding: 7px; border-radius: 38px; background: #1C1C1E; box-shadow: 0 0 0 1px #3A3A40, 0 18px 40px rgba(0,0,0,0.22); position: relative; flex-shrink: 0; }
+    .pw-schermo { width: calc(390px * var(--s)); height: calc(844px * var(--s)); border-radius: 31px; overflow: hidden; background: #0B0D12; position: relative; }
+    .pw-schermo iframe { width: 390px; height: 844px; border: 0; transform: scale(var(--s)); transform-origin: 0 0; display: block; }
+    .pw-vuota { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 22px; text-align: center; color: rgba(255,255,255,0.78); font-size: 0.78rem; line-height: 1.45; background: radial-gradient(ellipse at 50% 20%, #26324A 0%, #0B0D12 70%); }
+    .pw-vuota svg { width: 30px; height: 30px; opacity: 0.7; }
+    .pw-vuota [data-msg] { display: none; }
+    .pw-vuota[data-msg="chiusa"] [data-msg="chiusa"], .pw-vuota[data-msg="url"] [data-msg="url"], .pw-vuota[data-msg="manca"] [data-msg="manca"], .pw-vuota[data-msg="errore"] [data-msg="errore"] { display: block; }
+    .pw-ante.aperta .pw-vuota:not([data-msg="url"]):not([data-msg="manca"]):not([data-msg="errore"]) { display: none; }
+    .pw-ante [data-ante="aperta"], .pw-ante.aperta [data-ante="chiusa"] { display: none; }
+    .pw-ante.aperta [data-ante="aperta"] { display: inline; }
+    .pw-ante small { font-size: 0.72rem; color: var(--text-muted); text-align: center; line-height: 1.4; max-width: 270px; }
+    @media (max-width: 1180px) {
+        .pw { grid-template-columns: minmax(0, 1fr); }
+        .pw-ante { position: static; border-top: 1px solid #F2F2F7; padding-top: 16px; }
+        .pw-ante-testa { max-width: 420px; }
+    }
+    @media (max-width: 760px) { .pw-modi, .pw-opzioni { grid-template-columns: minmax(0, 1fr); } }
+</style>
+<template id="pw-modello">
+    <div class="pw">
+        <div>
+            <div class="pw-intesta">
+                <div class="pw-ico"><i data-lucide="globe"></i></div>
+                <div><h4 id="pw-titolo">Pagina web</h4><p>Al posto della griglia dei dispositivi, sul telefono qui si vede una pagina web con lo sfondo dell'app.</p></div>
+            </div>
+            <div class="pw-avviso" id="pw-nota-disp" style="display: none;"><i data-lucide="alert-triangle"></i><span>Sul telefono la pagina web prende il posto dei dispositivi di questo posto. Per tenerli in vista spostali in un'altra zona.</span></div>
+
+            <div class="setup-section">
+                <h3><i data-lucide="globe"></i> Indirizzo</h3>
+                <div class="pw-riga">
+                    <input type="url" id="pw-url" spellcheck="false" autocomplete="off" placeholder="https://..." data-no-tr>
+                    <button type="button" class="btn-launch btn-outline" id="pw-prova"><i data-lucide="search"></i> <span>Prova</span></button>
+                </div>
+                <div class="pw-verdetto" id="pw-verdetto" aria-live="polite"></div>
+                <label class="checkbox-container"><input type="checkbox" id="pw-locale"><div><span>Dispositivo nella rete di casa</span><small>Permette indirizzi come 192.168.1.1 (router, Shelly, Node-RED). Si vede solo quando il telefono è in casa.</small></div></label>
+            </div>
+
+            <div class="setup-section">
+                <h3><i data-lucide="app-window"></i> Modalità</h3>
+                <div class="pw-modi">
+                    <button type="button" class="pw-modo" data-modo="integrata"><span class="pw-consigliata">Consigliata</span>
+                        <span class="pw-modo-testa"><i data-lucide="book-open"></i> <span>Integrata</span></span>
+                        <p>Il Wach0ss legge il sito e lo ridisegna: testo e immagini con lo stile e lo sfondo dell'app.</p>
+                        <span class="pw-peso medio"><i data-lucide="gauge"></i> <span>Una lettura ogni 10 minuti, solo quando è aperta</span></span></button>
+                    <button type="button" class="pw-modo" data-modo="finestra"><span class="pw-consigliata">Consigliata</span>
+                        <span class="pw-modo-testa"><i data-lucide="app-window"></i> <span>Finestra</span></span>
+                        <p>Il sito vero, funzionante, in una cornice di vetro. Per mappe, video, pagine di dispositivi.</p>
+                        <span class="pw-peso"><i data-lucide="gauge"></i> <span>Zero lavoro per il server</span></span></button>
+                    <button type="button" class="pw-modo" data-modo="sezione"><span class="pw-consigliata">Consigliata</span>
+                        <span class="pw-modo-testa"><i data-lucide="crop"></i> <span>Sezione</span></span>
+                        <p>Solo un pezzo del sito, scelto con un selettore CSS, come card dell'app.</p>
+                        <span class="pw-peso medio"><i data-lucide="gauge"></i> <span>Come Integrata</span></span></button>
+                </div>
+                <div class="pw-opzioni">
+                    <div class="pw-intera" data-per="sezione">
+                        <label class="pw-etich" for="pw-sel">Selettore CSS del pezzo da mostrare</label>
+                        <div class="pw-riga"><input type="text" id="pw-sel" class="pw-mono" spellcheck="false" autocomplete="off" placeholder="es. table.sinottico oppure #meteo .giorni"><button type="button" class="btn-launch btn-outline" id="pw-trova"><i data-lucide="search"></i> <span>Trova</span></button></div>
+                        <div class="pw-sel-esito" id="pw-sel-esito" aria-live="polite"></div>
+                    </div>
+                    <label class="checkbox-container" data-per="finestra"><input type="checkbox" id="pw-scuro"><div><span>Tema scuro forzato</span><small>Inverte i colori del sito (anche le foto)</small></div></label>
+                    <div class="pw-zoom" data-per="finestra"><span>Zoom</span><input type="range" id="pw-zoom" min="40" max="100" step="5" value="100" aria-label="Zoom"><b id="pw-zoom-v" data-no-tr>100%</b></div>
+                </div>
+                <div class="pw-nota" data-nota="integrata"><i data-lucide="info"></i><span>Al telefono arrivano solo testo e immagini, mai il codice del sito. Va bene per articoli e notizie, non per le pagine fatte con il JavaScript.</span></div>
+                <div class="pw-nota" data-nota="finestra"><i data-lucide="info"></i><span>Il sito resta com'è dentro la cornice: i suoi colori non si possono cambiare. Il tema scuro forzato e lo zoom sono trucchi grafici sopra la finestra.</span></div>
+                <div class="pw-nota" data-nota="sezione"><i data-lucide="info"></i><span>Se il sito cambia grafica il pezzo può sparire: in quel caso l'app propone di aprirlo nel browser.</span></div>
+            </div>
+
+            <div class="setup-section">
+                <h3><i data-lucide="clock"></i> Aggiornamento automatico</h3>
+                <select id="pw-agg" aria-label="Aggiornamento automatico">
+                    <option value="0">Solo all'apertura</option>
+                    <option value="10">Ogni 10 minuti, mentre è aperta</option>
+                    <option value="30">Ogni 30 minuti, mentre è aperta</option>
+                    <option value="60">Ogni ora, mentre è aperta</option>
+                </select>
+                <div class="pw-nota" data-agg="finestra"><i data-lucide="info"></i><span>In Finestra la pagina la carica il telefono: il server non fa nessun lavoro.</span></div>
+                <div class="pw-nota" data-agg="lettura"><i data-lucide="info"></i><span>Il Wach0ss legge il sito solo quando qualcuno apre la stanza o la zona, e una lettura serve a tutti i telefoni. Massimo 2 MB e 8 secondi.</span></div>
+            </div>
+
+            <div class="pw-piede">
+                <button type="button" class="pw-rimuovi" id="pw-rimuovi"><i data-lucide="trash-2"></i> <span>Rimuovi pagina web</span></button>
+                <span class="pw-spazio"></span>
+                <button type="button" class="btn-launch btn-outline" id="pw-annulla"><span>Annulla</span></button>
+                <button type="button" class="btn-launch btn-primary" id="pw-salva"><i data-lucide="check"></i> <span>Salva</span></button>
+            </div>
+        </div>
+
+        <div class="pw-ante" id="pw-ante">
+            <div class="pw-ante-testa"><span>Anteprima sul telefono</span><span class="pw-live"><i></i> LIVE</span></div>
+            <div class="pw-telefono"><div class="pw-schermo">
+                <iframe id="pw-anteprima" title="Anteprima sul telefono"></iframe>
+                <div class="pw-vuota" id="pw-vuota" data-msg="chiusa"><i data-lucide="smartphone"></i>
+                    <span data-msg="chiusa">L'anteprima è la vera app: mentre è aperta lavora come un telefono in più.</span>
+                    <span data-msg="url">Scrivi l'indirizzo della pagina.</span>
+                    <span data-msg="manca">L'anteprima compare dopo il primo Salva.</span>
+                    <span data-msg="errore" id="pw-vuota-errore"></span>
+                </div>
+            </div></div>
+            <button type="button" class="btn-launch btn-outline" id="pw-ante-btn"><i data-lucide="smartphone"></i> <span data-ante="chiusa">Mostra anteprima</span><span data-ante="aperta">Chiudi anteprima</span></button>
+            <small>Il telefono vede le modifiche solo dopo Salva.</small>
+        </div>
+    </div>
+</template>
+<script>
+/* [PAGINAWEB] pagina web al posto della griglia: pannello della stanza/zona selezionata.
+   Le API (paginaweb.py) mandano codici, le frasi stanno qui (cosi' le traduzioni le trovano).
+   Usa dallo script grande: config, activeRoom, activeSubRoom, libCodaSalva, libInviaConfig, libConfigLetta,
+   libContestoAttivo, libVista3D, libIcone, updateWorkspaceView, showToast, amb* (menu e conferma). */
+(function () {
+    'use strict';
+    const PW_MOTIVI = {
+        schema: "Solo indirizzi http o https.",
+        credenziali: "Niente nome utente o password dentro l'indirizzo.",
+        senza_host: "Indirizzo senza nome del sito.",
+        dns: "Il nome del sito non esiste.",
+        casa: "Indirizzo della rete di casa: serve la spunta «Dispositivo nella rete di casa».",
+        occupato: "Il Wach0ss sta già leggendo un'altra pagina: riprova tra poco.",
+        lento: "Il sito ci mette troppo a rispondere (oltre 8 secondi).",
+        non_risponde: "Il sito non risponde.",
+        grande: "Pagina troppo grande (oltre 2 MB).",
+        rimandi: "Troppi rimandi da un indirizzo all'altro.",
+        tipo: "Non è una pagina web.",
+        xfo: "Il sito chiede ai browser di non mostrarlo dentro altre pagine.",
+        csp: "Il sito si lascia mostrare solo dentro le sue pagine.",
+        misto: "Da fuori casa l'app usa https: una pagina in http non si può mostrare in finestra.",
+        vuota: "La pagina non ha testo da leggere: probabilmente è fatta con il JavaScript. Usa la modalità Finestra.",
+        selettore_vuoto: "Il selettore non trova niente nella pagina: forse il sito è cambiato o quel pezzo lo disegna il JavaScript.",
+        selettore: "Selettore non valido: si possono usare tag, .classe, #id e lo spazio.",
+        illeggibile: "La pagina non si lascia leggere.",
+        rete: "Il Wach0ss non risponde.",
+        json: "Riprova tra poco.",
+        accesso: "Riprova tra poco.",
+        permesso: "Non hai il permesso di vedere questa stanza.",
+        stanza: "La stanza o la zona non esiste più: ricarica la pagina.",
+        zona: "La stanza o la zona non esiste più: ricarica la pagina."
+    };
+    const AGGIORNA = [0, 10, 30, 60];
+    const pw = { posto: null, nuova: null, vers: 0, ante: false, caricata: false, timer: null, ultimaBozza: '' };
+    const $ = (id) => document.getElementById(id);
+    const chiavePosto = () => activeRoom + '\n' + (activeSubRoom || '');
+    const postoDi = (stanza, zona) => { const r = config[stanza]; return !r ? null : (zona ? ((r.sub_rooms || {})[zona] || null) : r); };
+
+    function frase(r) {
+        if (r && r.motivo === 'http') return "Il sito risponde con l'errore " + (parseInt(r.dettaglio, 10) || 0) + ".";
+        return PW_MOTIVI[r && r.motivo] || "La pagina non si lascia leggere.";
+    }
+    async function pwPost(url, dati) {
+        try {
+            const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dati) });
+            const d = await r.json().catch(() => null);
+            return (d && typeof d === 'object') ? d : { ok: false, motivo: 'rete' };
+        } catch (e) { return { ok: false, motivo: 'rete' }; }
+    }
+    function chip(cls, icona, testo, opz) {
+        const s = document.createElement('span');
+        s.className = 'pw-chip ' + cls;
+        const i = document.createElement('i'); i.setAttribute('data-lucide', icona); s.appendChild(i);
+        const t = document.createElement('span'); t.textContent = testo; s.appendChild(t);
+        if (opz && opz.notr) t.setAttribute('data-no-tr', '');
+        if (opz && opz.title) s.title = opz.title;
+        return s;
+    }
+    function verdetto(chips) { const v = $('pw-verdetto'); v.replaceChildren.apply(v, chips); libIcone(v); }
+    function esitoSel(stato, testo) {
+        const e = $('pw-sel-esito');
+        e.className = 'pw-sel-esito' + (stato ? ' ' + stato : '');
+        e.replaceChildren();
+        if (!stato) return;
+        const i = document.createElement('i'); i.setAttribute('data-lucide', stato === 'si' ? 'check' : stato === 'no' ? 'x' : 'clock');
+        const t = document.createElement('span'); t.textContent = testo;
+        e.append(i, t); libIcone(e);
+    }
+    function modoAttivo() { const b = document.querySelector('#pw-pannello .pw-modo.attivo'); return b ? b.dataset.modo : 'integrata'; }
+    function leggi() {
+        return { url: $('pw-url').value.trim(), modo: modoAttivo(), selettore: $('pw-sel').value.trim(),
+                 scuro: $('pw-scuro').checked, zoom: parseInt($('pw-zoom').value, 10) || 100,
+                 aggiorna: parseInt($('pw-agg').value, 10) || 0, locale: $('pw-locale').checked };
+    }
+    function scegliModo(m, silenzio) {
+        const p = $('pw-pannello');
+        p.querySelectorAll('.pw-modo').forEach(b => { const s = b.dataset.modo === m; b.classList.toggle('attivo', s); b.setAttribute('aria-pressed', s ? 'true' : 'false'); });
+        p.querySelectorAll('[data-per]').forEach(e => { e.style.display = e.dataset.per === m ? '' : 'none'; });
+        p.querySelectorAll('[data-nota]').forEach(e => { e.style.display = e.dataset.nota === m ? '' : 'none'; });
+        p.querySelectorAll('[data-agg]').forEach(e => { e.style.display = (e.dataset.agg === 'finestra') === (m === 'finestra') ? '' : 'none'; });
+        if (!silenzio) anteDopo();
+    }
+    function riempi(w) {
+        w = w || {};
+        $('pw-url').value = w.url || '';
+        $('pw-sel').value = w.selettore || '';
+        $('pw-scuro').checked = !!w.scuro;
+        $('pw-zoom').value = w.zoom || 100;
+        $('pw-zoom-v').textContent = $('pw-zoom').value + '%';
+        $('pw-agg').value = String(AGGIORNA.indexOf(w.aggiorna) >= 0 ? w.aggiorna : 0);
+        $('pw-locale').checked = !!w.locale;
+        scegliModo(w.modo || 'integrata', true);
+        pw.vers++;
+        verdetto([]); esitoSel(null);
+        $('pw-pannello').querySelectorAll('.pw-modo').forEach(b => b.classList.remove('consigliata'));
+    }
+
+    // ---- Prova / Trova: UNA lettura sul server, mai a ogni tasto premuto ----
+    async function prova(daTrova) {
+        const w = leggi();
+        if (!w.url) { verdetto([chip('no', 'x', "Scrivi l'indirizzo della pagina.")]); $('pw-url').focus(); return; }
+        const sel = w.modo === 'sezione' ? w.selettore : '';
+        if (daTrova && !sel) { esitoSel('no', "Selettore non valido: si possono usare tag, .classe, #id e lo spazio."); $('pw-sel').focus(); return; }
+        const giro = ++pw.vers;
+        $('pw-prova').disabled = true; $('pw-trova').disabled = true;
+        verdetto([chip('attesa', 'clock', 'Prova in corso…')]);
+        if (sel) esitoSel('attesa', 'Prova in corso…');
+        const r = await pwPost('/api/pagina_web/prova', { url: w.url, locale: w.locale, selettore: sel });
+        $('pw-prova').disabled = false; $('pw-trova').disabled = false;
+        if (giro !== pw.vers) return;                       // intanto si e' cambiato posto o rifatto la prova
+        const p = $('pw-pannello');
+        p.querySelectorAll('.pw-modo').forEach(b => b.classList.remove('consigliata'));
+        if (!r.ok) {
+            verdetto([chip('no', 'x', frase(r))]);
+            if (sel) esitoSel(r.motivo === 'selettore' ? 'no' : null, frase(r));
+            return;
+        }
+        const c = [];
+        c.push(r.incorporabile ? chip('si', 'check', 'Si lascia mostrare in finestra')
+                               : chip('no', 'x', 'Non si lascia mostrare in finestra', { title: frase({ motivo: r.motivo_finestra }) }));
+        if (r.leggibile) c.push(chip('si', 'check', r.paragrafi === 1 ? 'Leggibile: 1 paragrafo' : 'Leggibile: ' + (r.paragrafi || 0) + ' paragrafi'));
+        else c.push(chip('forse', 'alert-triangle', r.incorporabile ? 'Poco testo da leggere: meglio Finestra' : 'Poco testo da leggere'));
+        c.push(chip('info', 'gauge', (r.kb || 0) + ' KB · ' + (r.ms_totale || 0) + ' ms', { notr: true }));
+        verdetto(c);
+        if (r.consigliata && (r.consigliata !== 'finestra' || r.incorporabile)) {
+            const b = p.querySelector('.pw-modo[data-modo="' + r.consigliata + '"]');
+            if (b) b.classList.add('consigliata');
+        }
+        if (r.sezione) {
+            if (r.sezione.errore) esitoSel('no', frase({ motivo: r.sezione.errore, dettaglio: r.sezione.dettaglio }));
+            else if (!r.sezione.trovati) esitoSel('no', 'Nessun pezzo trovato con questo selettore');
+            else esitoSel('si', r.sezione.trovati === 1 ? '1 pezzo trovato' : r.sezione.trovati + ' pezzi trovati: mostro il primo');
+        } else if (!sel) esitoSel(null);
+        anteDopo();
+    }
+
+    // ---- Salva / Rimuovi: solo la riga di questa stanza (POST /api/pagina_web/salva), poi anche in config ----
+    async function scrivi(stanza, zona, web) {
+        await libCodaSalva;                                  // un POST /api/config gia' in coda finisce prima
+        let r = await pwPost('/api/pagina_web/salva', { stanza: stanza, zona: zona, web: web });
+        // stanza o zona appena create e non ancora sul server: prima la configurazione, poi si riprova una volta
+        if (!r.ok && (r.motivo === 'stanza' || r.motivo === 'zona') && postoDi(stanza, zona) && await libInviaConfig())
+            r = await pwPost('/api/pagina_web/salva', { stanza: stanza, zona: zona, web: web });
+        return r;
+    }
+    async function salva() {
+        const w = leggi();
+        if (!w.url) { verdetto([chip('no', 'x', "Scrivi l'indirizzo della pagina.")]); $('pw-url').focus(); return; }
+        if (!libConfigLetta) { showToast('Stanze non caricate: ricarica la pagina prima di modificarle', 'error'); return; }
+        const stanza = activeRoom, zona = activeSubRoom || '', b = $('pw-salva');
+        b.disabled = true;
+        try {
+            const r = await scrivi(stanza, zona, w);
+            if (!r.ok) {
+                if (chiavePosto() === stanza + '\n' + zona) verdetto([chip('no', 'x', frase(r))]);
+                showToast('Modifica non salvata: riprova.', 'error');
+                return;
+            }
+            const posto = postoDi(stanza, zona);
+            if (posto) posto.web = r.web;                     // cosi' anche i prossimi POST /api/config la portano
+            if (chiavePosto() === stanza + '\n' + zona) {
+                pw.nuova = null;
+                $('pw-url').value = r.web.url; $('pw-sel').value = r.web.selettore || '';
+            }
+            showToast('Salvato: il telefono mostra la nuova pagina', 'success');
+            updateWorkspaceView();
+            anteDopo();
+        } finally { b.disabled = false; }
+    }
+    function chiediRimozione() {
+        const ctx = libContestoAttivo() || {};
+        if (!(ctx.web && ctx.web.url)) { annulla(); return; }
+        const dove = activeSubRoom ? 'dalla zona «' + ambEsc(activeSubRoom) + '»' : 'dalla stanza «' + ambEsc(activeRoom) + '»';
+        ambApriConferma({ titolo: 'Rimuovere la pagina web ' + dove + '?',
+                          testo: 'La stanza o la zona torna a mostrare la griglia dei dispositivi.',
+                          etichetta: 'Rimuovi', icona: 'globe', azione: rimuovi });
+    }
+    async function rimuovi() {
+        if (!libConfigLetta) { showToast('Stanze non caricate: ricarica la pagina prima di modificarle', 'error'); return; }
+        const stanza = activeRoom, zona = activeSubRoom || '';
+        const r = await scrivi(stanza, zona, null);
+        if (!r.ok && r.motivo !== 'stanza' && r.motivo !== 'zona') { showToast('Modifica non salvata: riprova.', 'error'); return; }
+        const posto = postoDi(stanza, zona);
+        if (posto) delete posto.web;
+        if (pw.nuova === stanza + '\n' + zona) pw.nuova = null;
+        showToast('Pagina web tolta: qui torna la griglia', 'success');
+        updateWorkspaceView();
+    }
+    function annulla() {
+        const ctx = libContestoAttivo() || {};
+        if (ctx.web && ctx.web.url) { riempi(ctx.web); anteDopo(); }
+        else { pw.nuova = null; updateWorkspaceView(); }
+    }
+
+    // ---- anteprima: la vera pagina /mobile con una bozza temporanea; parte SOLO col tasto ----
+    function msgAnte(m, testo) {
+        const v = $('pw-vuota');
+        if (m === 'errore') $('pw-vuota-errore').textContent = testo || '';
+        v.setAttribute('data-msg', m || 'chiusa');
+    }
+    function anteChiudi() {
+        clearTimeout(pw.timer);
+        const f = $('pw-anteprima');
+        if (f && pw.caricata) f.src = 'about:blank';
+        pw.ante = false; pw.caricata = false; pw.ultimaBozza = '';
+        const a = $('pw-ante'); if (a) a.classList.remove('aperta');
+        if ($('pw-vuota')) msgAnte('chiusa');
+    }
+    function anteDopo() {
+        if (!pw.ante) return;
+        clearTimeout(pw.timer);
+        pw.timer = setTimeout(anteBozza, 400);
+    }
+    async function anteBozza() {
+        const w = leggi(), stanza = activeRoom, zona = activeSubRoom || '';
+        if (!w.url) { msgAnte('url'); return; }
+        const chiave = JSON.stringify([stanza, zona, w]);
+        if (pw.caricata && chiave === pw.ultimaBozza) return;
+        const giro = pw.vers;
+        const r = await pwPost('/api/pagina_web/bozza', { stanza: stanza, zona: zona, web: w });
+        if (!pw.ante || giro !== pw.vers || chiavePosto() !== stanza + '\n' + zona) return;
+        if (!r.ok || !r.bozza) { msgAnte('errore', frase(r)); return; }
+        pw.ultimaBozza = chiave;
+        const f = $('pw-anteprima');
+        msgAnte('chiusa');
+        if (pw.caricata && f.contentWindow) f.contentWindow.postMessage({ pw: 'ricarica', bozza: r.bozza }, location.origin);
+        else {
+            pw.caricata = true;
+            f.src = '/mobile?pw_bozza=' + encodeURIComponent(r.bozza) + '&pw_stanza=' + encodeURIComponent(stanza) + '&pw_zona=' + encodeURIComponent(zona);
+        }
+    }
+    function anteTasto() {
+        if (pw.ante) { anteChiudi(); return; }
+        pw.ante = true;
+        $('pw-ante').classList.add('aperta');
+        anteBozza();
+    }
+    window.addEventListener('message', (e) => {
+        const f = $('pw-anteprima');
+        if (!f || e.source !== f.contentWindow || e.origin !== location.origin || !pw.ante) return;
+        if (e.data && e.data.pw === 'manca') msgAnte('manca');
+    });
+
+    function collega(p) {
+        p.querySelectorAll('.pw-modo').forEach(b => b.addEventListener('click', () => scegliModo(b.dataset.modo)));
+        $('pw-prova').addEventListener('click', () => prova(false));
+        $('pw-trova').addEventListener('click', () => prova(true));
+        $('pw-url').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); prova(false); } });
+        $('pw-sel').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); prova(true); } });
+        $('pw-url').addEventListener('input', () => { pw.vers++; verdetto([]); p.querySelectorAll('.pw-modo').forEach(b => b.classList.remove('consigliata')); });
+        $('pw-url').addEventListener('change', anteDopo);
+        ['pw-locale', 'pw-scuro', 'pw-agg'].forEach(id => $(id).addEventListener('change', anteDopo));
+        $('pw-zoom').addEventListener('input', () => { $('pw-zoom-v').textContent = $('pw-zoom').value + '%'; });
+        $('pw-zoom').addEventListener('change', anteDopo);
+        $('pw-salva').addEventListener('click', salva);
+        $('pw-annulla').addEventListener('click', annulla);
+        $('pw-rimuovi').addEventListener('click', chiediRimozione);
+        $('pw-ante-btn').addEventListener('click', anteTasto);
+    }
+
+    // chiamata da updateWorkspaceView(): mostra o nasconde il pannello; true = in questo posto c'e' la pagina web
+    window.pwMostra = function (ctx) {
+        const key = chiavePosto(), ha = !!(ctx && ctx.web && ctx.web.url);
+        if (pw.nuova && pw.nuova !== key) pw.nuova = null;
+        const qui = ha || pw.nuova === key;
+        const btn = $('btn-pagina-web');
+        if (btn) btn.classList.toggle('btn-3d-active', ha);
+        const b3 = $('btn-toggle-3d');
+        if (b3 && b3.disabled !== qui) { b3.disabled = qui; b3.title = qui ? 'Togli prima la pagina web' : 'Planimetria 3D della stanza selezionata'; }
+        const p = $('pw-pannello');
+        if (!p) return false;
+        if (!qui) {
+            if (p.style.display !== 'none') { p.style.display = 'none'; anteChiudi(); }
+            pw.posto = null;
+            return false;
+        }
+        if (!p.firstElementChild) { p.appendChild($('pw-modello').content.cloneNode(true)); collega(p); libIcone(p); }
+        if (key !== pw.posto) { pw.posto = key; anteChiudi(); riempi(ha ? ctx.web : null); }
+        const titolo = (activeSubRoom ? 'Pagina web della zona «' : 'Pagina web della stanza «') + (activeSubRoom || activeRoom) + '»';
+        if ($('pw-titolo').textContent !== titolo) $('pw-titolo').textContent = titolo;
+        $('pw-rimuovi').style.display = ha ? '' : 'none';
+        $('pw-nota-disp').style.display = (ctx.device_ids || []).length ? '' : 'none';
+        p.style.display = '';
+        return true;
+    };
+
+    // menu del tasto "Pagina web" (stessi menu e conferma della planimetria 3D)
+    window.pwMenu = function (btn) {
+        if (ambMenuEl && ambMenuAncora === btn) { ambChiudiMenu(); return; }
+        ambChiudiMenu();
+        const ctx = libContestoAttivo() || {};
+        const ha = !!(ctx.web && ctx.web.url), tre = libVista3D(ctx);
+        let host = '';
+        if (ha) { try { host = new URL(ctx.web.url).host; } catch (e) { host = ''; } }
+        const m = document.createElement('div');
+        m.className = 'amb-menu amb-menu-3d';
+        m.setAttribute('role', 'menu');
+        m.innerHTML =
+            '<div class="amb-menu-testa"><i data-lucide="globe"></i><div><b>Pagina web</b>' +
+            (ha ? '<small data-no-tr>' + ambEsc(host) + '</small>' : '<small>Nessuna pagina web qui</small>') + '</div></div>' +
+            (ha
+                ? '<button type="button" class="amb-menu-voce" data-pw="apri"><i data-lucide="external-link"></i><div><span>' + "Apri l'indirizzo in una nuova scheda" + '</span></div></button>' +
+                  '<div class="amb-menu-sep"></div>' +
+                  '<button type="button" class="amb-menu-voce amb-menu-danger" data-pw="rimuovi"><i data-lucide="trash-2"></i><div><span>Rimuovi pagina web</span><small>Torna alla griglia dei dispositivi</small></div></button>'
+                : '<button type="button" class="amb-menu-voce" data-pw="aggiungi"' + (tre ? ' disabled' : '') + '><i data-lucide="plus"></i><div><span>Aggiungi pagina web</span>' +
+                  (tre ? '<small>Togli prima la planimetria 3D</small>' : '') + '</div></button>');
+        m.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-pw]');
+            if (!b || b.disabled) return;
+            ambChiudiMenu();
+            const a = b.dataset.pw;
+            if (a === 'aggiungi') {
+                pw.nuova = chiavePosto(); updateWorkspaceView();
+                const u = $('pw-url'); if (u) u.focus();
+            } else if (a === 'apri') {
+                if (/^https?:\/\//i.test(ctx.web.url)) window.open(ctx.web.url, '_blank', 'noopener');
+            } else chiediRimozione();
+        });
+        ambMostraMenu(m, btn, btn, true);
+    };
+    // se la configurazione e' gia' stata disegnata prima di questo script, si ridisegna una volta
+    if (typeof libContestoAttivo === 'function' && libContestoAttivo()) updateWorkspaceView();
+})();
+</script>
+{% endif %}
 
 <script>
 async function loadRemoteHubs() {
