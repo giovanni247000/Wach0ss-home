@@ -74,8 +74,8 @@ echo "--- Moduli che verranno caricati ---"
 CONTROLLO_ASSENTE=0
 # integrazioni del 02/10/2026: FACOLTATIVE (il rollback di una sola si fa togliendo il suo .py e il suo .so):
 # se mancano non e' un errore
-MODULI_FACOLTATIVI=" annunci tuya myhome inverter hue tplink sonoff calendari homekit "
-for MODULO in app controllo_impianto knx_monitor smart_tv nvr rete annunci tuya myhome inverter hue tplink sonoff calendari homekit; do
+MODULI_FACOLTATIVI=" annunci tuya myhome inverter hue tplink sonoff calendari homekit paginaweb "
+for MODULO in app controllo_impianto knx_monitor smart_tv nvr rete annunci tuya myhome inverter hue tplink sonoff calendari homekit paginaweb; do
     SO=$(ls "$INSTALL_DIR/$MODULO".*.so "$INSTALL_DIR/$MODULO.so" 2>/dev/null | head -1)
     PY="$INSTALL_DIR/$MODULO.py"
     if [ -n "$SO" ] && [ -f "$PY" ]; then
