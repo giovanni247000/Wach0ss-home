@@ -5713,6 +5713,134 @@ async function myhCopiaRegistro(btn) {
 </div>
 
 {# [HOMEKIT] fine della card: endif con '-' (senza il modulo la pagina resta identica byte per byte) #}{% endif -%}
+{% if musica_modulo %}<!-- MODULO: MUSICA (musica.py) - card con id= e API JSON proprie: non passa da /setup -->
+<style>
+        .bg-musica { color: #FF2D55; }
+        .integration-card[data-key="musica"] [hidden] { display: none !important; }
+        .mu-barra { height: 8px; background: #E5E5EA; border-radius: 6px; overflow: hidden; margin-top: 8px; }
+        .mu-barra div { height: 100%; width: 0; background: #FF2D55; transition: width .3s; }
+        .mu-fase { font-size: .8rem; color: var(--text-muted); margin-top: 6px; }
+        .mu-lista { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 10px; }
+        .mu-riga { display: flex; align-items: center; gap: 10px; background: #FFF; border: 1px solid #E5E5EA; border-radius: 12px; padding: 9px 12px; }
+        .mu-riga > div { flex: 1; min-width: 0; }
+        .mu-riga b { font-size: .86rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mu-riga small { color: var(--text-muted); font-size: .74rem; display: block; margin-top: 2px; overflow-wrap: anywhere; }
+        .mu-riga .btn-sm { flex-shrink: 0; }
+        .mu-ok { color: var(--success); font-weight: 700; } .mu-ko { color: var(--danger); font-weight: 700; } .mu-at { color: #A05A00; font-weight: 700; }
+        .mu-vuoto { font-size: .82rem; color: var(--text-muted); margin: 6px 0 10px; }
+        .mu-spunta { display: flex; align-items: center; gap: 10px; font-size: .84rem; padding: 6px 0; cursor: pointer; }
+        .mu-spunta input { width: 18px; height: 18px; margin: 0; accent-color: #FF2D55; flex-shrink: 0; }
+        .mu-spunta small { color: var(--text-muted); font-size: .74rem; }
+        .mu-aggiungi { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .mu-aggiungi .premium-input { flex: 1; min-width: 180px; }
+        .mu-libreria { font-size: .82rem; color: var(--text-main); margin: 4px 0 2px; }
+        .mu-libreria small { color: var(--text-muted); }
+        .mu-avanzate { margin-top: 6px; } .mu-avanzate summary { cursor: pointer; font-weight: 700; font-size: .86rem; padding: 8px 0; color: var(--text-muted); }
+        .mu-log { max-height: 240px; overflow: auto; margin: 6px 0 0; font: .72rem/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; background: #F7F7F9; border-radius: 10px; padding: 10px; white-space: pre-wrap; word-break: break-all; color: var(--text-main); }
+        .mu-info { font-size: .78rem; color: var(--text-muted); line-height: 1.5; }
+</style>
+<div class="integration-card" data-key="musica">
+        <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); muCarica();">
+            <div class="integration-title"><i data-lucide="music"></i> Musica</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="setup-badge bg-musica">AUDIO</div>
+                <i data-lucide="chevron-down" class="accordion-chevron" style="width:20px; height:20px;"></i>
+            </div>
+        </div>
+        <div class="integration-content">
+            <div class="nvr-stato" id="mu-stato">
+                <div style="min-width:0;">
+                    <div class="nvr-stato-t" id="mu-stato-t">Musica spenta</div>
+                    <div class="nvr-stato-s" id="mu-stato-s">Attiva Musica per ascoltare la chiavetta USB e le radio.</div>
+                </div>
+                <label class="nvr-switch" title="Attiva Musica"><input type="checkbox" id="mu-attivo" onchange="muAttiva(this)"><span></span></label>
+            </div>
+            <div class="nvr-box" id="mu-box-installa" hidden>
+                <div class="nvr-box-h"><div><b id="mu-inst-t">Installazione del motore audio</b><small id="mu-inst-s">La prima volta il server scarica il motore audio (MPD): ci vogliono un paio di minuti e serve internet.</small></div></div>
+                <div class="mu-barra"><div id="mu-barra"></div></div>
+                <div class="mu-fase" id="mu-fase"></div>
+            </div>
+            <div class="cam-guide-warn" id="mu-avviso" hidden style="margin:0 0 12px;"></div>
+
+            <!-- CHIAVETTE -->
+            <div class="nvr-box" id="mu-box-chiavette">
+                <div class="nvr-box-h"><div><b>Chiavette</b><small>Infila nel server una chiavetta USB con la musica: si legge e basta, non si scrive niente.</small></div></div>
+                <div class="mu-lista" id="mu-chiavette"></div>
+                <div class="mu-libreria" id="mu-libreria"></div>
+                <div class="card-actions" style="justify-content:flex-start;"><button type="button" class="btn-sm" id="mu-aggiorna" onclick="muAggiornaLibreria(this)"><i data-lucide="refresh-cw"></i> Aggiorna libreria</button></div>
+            </div>
+
+            <!-- CARTELLE -->
+            <div class="nvr-box">
+                <div class="nvr-box-h"><div><b>Cartelle aggiuntive</b><small>Altre cartelle del server con la musica, lette come le chiavette.</small></div></div>
+                <div class="mu-lista" id="mu-cartelle"></div>
+                <div class="mu-aggiungi">
+                    <input type="text" id="mu-cartella" class="premium-input" placeholder="Percorso della cartella (es. /home/pi/Musica)" autocomplete="off" spellcheck="false">
+                    <button type="button" class="btn-sm primary" onclick="muCartella('aggiungi', document.getElementById('mu-cartella').value, this)"><i data-lucide="folder-plus"></i> Aggiungi cartella</button>
+                </div>
+            </div>
+
+            <!-- USCITE -->
+            <div class="nvr-box">
+                <div class="nvr-box-h"><div><b>Uscita AUX del server</b><small>La presa audio del server, da collegare all'amplificatore o alle casse con un cavo.</small></div></div>
+                <div class="input-group"><label class="input-label">Scheda audio</label><select id="mu-scheda" class="premium-input"></select></div>
+            </div>
+            <div class="nvr-box">
+                <div class="nvr-box-h"><div><b>Casse Sonos</b><small>Le casse che si possono scegliere nella pagina Musica. Suonano qualche secondo dopo l'uscita AUX.</small></div></div>
+                <div class="cam-guide-warn" id="mu-soco" hidden style="margin:0 0 10px;">Libreria Sonos (soco) non disponibile su questo server.</div>
+                <div id="mu-casse"></div>
+                <div class="nvr-riga">
+                    <div class="input-group"><label class="input-label">Porta del flusso per le Sonos</label><input type="number" id="mu-porta" class="premium-input" min="1024" max="65535" inputmode="numeric"></div>
+                    <div class="input-group"><label class="input-label">Qualità del flusso</label><select id="mu-bitrate" class="premium-input"><option value="128">128 kbit/s</option><option value="192">192 kbit/s</option><option value="256">256 kbit/s</option><option value="320">320 kbit/s</option></select></div>
+                </div>
+                <div class="input-group" style="margin-top:10px;"><label class="input-label">Indirizzo del flusso (facoltativo)</label><input type="text" id="mu-url" class="premium-input" autocomplete="off" spellcheck="false" data-no-tr></div>
+            </div>
+
+            <!-- AIRPLAY (tappa 2): il server fa da cassa AirPlay -->
+            <div class="nvr-box" id="mu-box-airplay">
+                <div class="nvr-box-h"><div><b>Ricevi dall'iPhone (AirPlay)</b><small>Il server diventa una cassa AirPlay: Spotify, Apple Music e le altre app suonano dall'iPhone sulle uscite scelte nella pagina Musica.</small></div><label class="nvr-switch" title="Ricevi dall'iPhone (AirPlay)"><input type="checkbox" id="mu-airplay" onchange="muAirplay(this)"><span></span></label></div>
+                <div class="mu-libreria" id="mu-airplay-stato"></div>
+                <div class="nvr-riga">
+                    <div class="input-group"><label class="input-label">Nome della cassa</label><input type="text" id="mu-airplay-nome" class="premium-input" maxlength="40" autocomplete="off" spellcheck="false" data-no-tr></div>
+                    <div class="input-group"><label class="input-label">Password (facoltativa)</label><input type="password" id="mu-airplay-pw" class="premium-input" maxlength="64" autocomplete="new-password" spellcheck="false"></div>
+                </div>
+                <div class="card-actions" id="mu-airplay-tasti" style="justify-content:flex-start;" hidden><button type="button" class="btn-sm" onclick="muAirplayTogliPw(this)"><i data-lucide="lock-open"></i> Togli la password</button></div>
+            </div>
+
+            <!-- ASPETTO -->
+            <div class="nvr-box">
+                <div class="nvr-box-h"><div><b>Aspetto predefinito dell'app</b><small>Ogni telefono può cambiarlo dalla pagina Musica.</small></div></div>
+                <div class="input-group"><select id="mu-aspetto" class="premium-input"><option value="moderna">Moderno</option><option value="retro">Retrò</option></select></div>
+            </div>
+
+            <!-- RADIO -->
+            <div class="nvr-box" id="mu-box-radio">
+                <div class="nvr-box-h"><div><b>Radio</b><small>Le preferite di casa. Le radio si cercano nell'elenco pubblico radio-browser.info; qui aggiungi quelle che non ci sono.</small></div></div>
+                <div class="mu-lista" id="mu-radio"></div>
+                <div class="mu-aggiungi">
+                    <input type="text" id="mu-radio-nome" class="premium-input" placeholder="Nome della radio" maxlength="120" autocomplete="off">
+                    <input type="text" id="mu-radio-url" class="premium-input" placeholder="Indirizzo della radio (http o https)" maxlength="500" autocomplete="off" spellcheck="false">
+                    <button type="button" class="btn-sm primary" onclick="muRadioManuale(this)"><i data-lucide="radio"></i> Aggiungi un indirizzo</button>
+                </div>
+            </div>
+
+            <!-- AVANZATE -->
+            <details class="mu-avanzate">
+                <summary>Avanzate</summary>
+                <div class="nvr-box">
+                    <div class="mu-info" id="mu-info"></div>
+                    <div class="nvr-box-h" style="margin-top:12px;"><div><b>Registro del motore audio</b></div></div>
+                    <pre class="mu-log" id="mu-log" data-no-tr></pre>
+                </div>
+            </details>
+            <div class="card-actions">
+                <button type="button" class="btn-sm primary" id="mu-salva" onclick="muSalva(this)"><i data-lucide="save"></i> Salva</button>
+            </div>
+            <div class="cam-msg" id="mu-msg"></div>
+        </div>
+</div>
+
+{# [MUSICA] fine della card: endif con '-' (senza il modulo la pagina resta identica byte per byte) #}{% endif -%}
 {% if calendari_modulo %}<!-- MODULO: CALENDARI (calendari.py) - card con id= e API JSON proprie: non passa da /setup -->
 <style>
         .bg-calendari { color: #FF375F; }
@@ -16959,6 +17087,415 @@ openIntegrationDetail = (function (originale) {
     };
 })(openIntegrationDetail);
 {%- endif %}
+{%- if musica_modulo %}
+// --- [MUSICA] voce dello Store (categoria Audio), card delle impostazioni, rimozione ---
+// Tutto qui dentro: le API vivono in musica.py; senza il modulo questo blocco non c'e' e la pagina resta identica.
+INTEGRATIONS_CATALOG.push({ key: 'musica', name: 'Musica', icon: 'music', color: '#FF2D55', logo: null, category: 'Audio',
+    desc: "Ascolta la musica della chiavetta USB e le radio sull'uscita audio del server e sulle casse Sonos, con una pagina tutta sua nell'app.",
+    installed: {{ 'true' if musica_attivo else 'false' }}, removable: true });
+DETAIL_TITLES.musica = ["Musica", "Chiavetta USB e radio sull'uscita AUX e sulle casse Sonos."];
+GUIDE_INTEGRAZIONI.musica = { titolo: 'Come ascoltare la musica', corpo: `<p>La musica della chiavetta USB e le radio suonano dall'uscita audio del server e dalle casse Sonos. Si comanda dalla pagina Musica dell'app.</p>
+        <ol>
+            <li>Attiva Musica con l'interruttore. La prima volta il server scarica il motore audio: ci vogliono un paio di minuti e serve internet.</li>
+            <li>Infila nel server una chiavetta USB con la musica (FAT32, exFAT, NTFS o ext4): si legge e basta, non si scrive niente.</li>
+            <li>Scegli dove suonare: l'uscita AUX del server (un cavo verso l'amplificatore) e le casse Sonos, anche più di una insieme.</li>
+            <li>Nell'app compare la voce Musica, per tutti gli utenti.</li>
+            <li>Se vuoi, accendi "Ricevi dall'iPhone": il server diventa una cassa AirPlay e Spotify, Apple Music e le altre app suonano dall'iPhone sulle stesse casse.</li>
+        </ol>
+        <div class="nota">Le casse Sonos suonano qualche secondo dopo l'uscita AUX.</div>
+        <div class="nota">Le radio vengono dall'elenco pubblico radio-browser.info: il server lo legge quando cerchi una radio.</div>` };
+const MU_FRASI = { spenta: 'La Musica è spenta.', nessuna_uscita: 'Scegli dove suonare.', coda_vuota: "Non c'è niente da suonare.",
+    non_disponibile: 'Non raggiungibile', offline: 'Non raggiungibile', occupata: "Usata da un'altra app",
+    motore: 'La musica non risponde: riprova fra poco.', troppe: 'Hai raggiunto il massimo.',
+    radio_browser: 'Elenco delle radio non raggiungibile: riprova più tardi.', radio_indirizzo: 'Questa radio non si può ascoltare.',
+    radio: 'Questa radio non si può ascoltare.', url: 'Indirizzo non valido: deve cominciare con http:// o https://', nome: 'Scrivi un nome.',
+    percorso_assoluto: 'Scrivi il percorso completo, che comincia con /', non_esiste: 'Questa cartella non esiste.',
+    non_cartella: 'Questo non è una cartella.', vietata: 'Questa cartella non si può usare.', gia_presente: 'Cartella già aggiunta.',
+    porta: 'Porta non valida (da 1024 a 65535, non 5001).', porta_occupata: 'Porta già usata da un altro programma.',
+    mpd_vecchio: 'Versione di MPD troppo vecchia: aggiorna il sistema.', mpd_muore: 'Il motore audio si ferma da solo: guarda il registro.',
+    manca_mpd: 'Motore audio non installato.', apt_mancante: 'Installazione automatica non disponibile su questo sistema.',
+    apt_occupato: 'Il sistema sta già installando altro: riprova fra qualche minuto.',
+    servono_permessi: 'Il server non ha i permessi per installare: avvialo come servizio.', installazione_fallita: 'Installazione non riuscita',
+    lsblk_mancante: 'Su questo sistema le chiavette non si leggono.', mount_fallito: 'Non si riesce a leggere la chiavetta',
+    non_supportata: 'Formato non supportato: usa FAT32, exFAT, NTFS o ext4', soco_mancante: 'Libreria Sonos (soco) non disponibile su questo server.',
+    sonos_errore: 'La cassa non ha risposto.', scheda: 'Scheda audio non trovata.', casse: 'Cassa Sonos non trovata.',
+    permessi: 'Il motore audio non può leggere questa cartella: rendila leggibile da tutti.',
+    manca_airplay: 'Ricevitore AirPlay non installato.', airplay_muore: 'Il ricevitore AirPlay si ferma da solo: guarda il registro.',
+    airplay_mdns: "Il servizio avahi-daemon non è attivo: senza, l'iPhone non vede la cassa.",
+    password: 'La password non può avere virgolette, barre, a capo o ${ (al massimo 64 caratteri).', airplay: 'Qualcosa non ha funzionato.' };
+const MU_FASI = { controllo: 'Controllo il sistema', installo: 'Scarico e installo MPD', aggiorno_elenco: "Aggiorno l'elenco dei pacchetti",
+    disattivo_servizio: 'Disattivo il servizio di sistema', fatto: 'Fatto', errore: 'Installazione non riuscita' };
+const MU_MOTORE = { pronto: 'Motore audio pronto', avvio: 'Avvio del motore audio…', fermo: 'Motore audio fermo',
+    installazione: 'Installazione del motore audio', manca_mpd: 'Motore audio non installato.' };
+const MU_AIRPLAY = { avvio: 'Avvio del ricevitore AirPlay…', installazione: 'Installazione del ricevitore AirPlay',
+    manca: 'Ricevitore AirPlay non installato.' };
+const MU_CHIAVETTA = { montata: 'Montata in sola lettura', da_montare: 'In attesa', non_supportata: 'Formato non supportato: usa FAT32, exFAT, NTFS o ext4',
+    errore: 'Non si riesce a leggere la chiavetta', espulsa: 'Espulsa: toglila dal server', troppe: 'Troppe chiavette: al massimo 4 insieme' };
+let muDati = null;
+let muPoll = null;
+let muSporco = false;       // l'amministratore sta cambiando i campi: il polling non li riscrive
+function muT(x) { return window.WH_T ? window.WH_T(x) : x; }
+function muEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function muFrase(codice) { return muT(MU_FRASI[codice] || 'Qualcosa non ha funzionato.'); }
+function muCard() { return document.querySelector('.integration-card[data-key="musica"]'); }
+function muVisibile() { const c = muCard(); return !!c && (c.classList.contains('detail-visible') || c.classList.contains('open')); }
+async function muFetch(url, metodo, corpo) {
+    const op = { method: metodo || 'GET', credentials: 'same-origin', headers: {} };
+    if (metodo && metodo !== 'GET') { op.headers['Content-Type'] = 'application/json'; op.body = JSON.stringify(corpo || {}); }
+    const r = await fetch(url, op);
+    let d = {};
+    try { d = await r.json(); } catch (e) {}
+    if (!r.ok || d.ok === false) { const err = new Error(muFrase(d.codice)); err.codice = d.codice || ''; throw err; }
+    return d;
+}
+function muMsg(testo, errore) {
+    const el = document.getElementById('mu-msg');
+    if (!el) return;
+    el.style.display = testo ? 'block' : 'none';
+    el.style.color = errore ? 'var(--danger)' : 'var(--success)';
+    el.textContent = testo || '';
+}
+async function muCarica() {
+    if (!muCard()) return;
+    try {
+        muDati = await muFetch('/api/musica/config');
+        muSporco = false;
+        muDisegna(true);
+        muRadio();
+    } catch (e) {
+        muMsg(e.message, true);
+        return;
+    }
+    if (!muPoll) muPoll = setInterval(muAggiorna, 3000);
+}
+async function muAggiorna() {
+    if (!muVisibile() || document.visibilityState === 'hidden') { clearInterval(muPoll); muPoll = null; return; }
+    try { muDati = await muFetch('/api/musica/config'); muDisegna(!muSporco); } catch (e) {}
+}
+function muDisegna(campi) {
+    const d = muDati || {};
+    const cfg = d.config || {};
+    const m = d.mpd || {};
+    const inst = d.installazione || {};
+    const el = (id) => document.getElementById(id);
+    el('mu-attivo').checked = !!cfg.attivo;
+    const item = INTEGRATIONS_CATALOG.find((i) => i.key === 'musica');
+    if (item) item.installed = !!cfg.attivo;
+    // stato e motore
+    let stato = m.stato || 'fermo';
+    const guasto = stato === 'guasto' || (inst.fase === 'errore' && !inst.in_corso);
+    el('mu-stato').classList.toggle('on', !!cfg.attivo && stato === 'pronto');
+    el('mu-stato').classList.toggle('problema', !!cfg.attivo && guasto);
+    el('mu-stato-t').textContent = muT(cfg.attivo ? 'Musica accesa' : 'Musica spenta');
+    const sotto = el('mu-stato-s');
+    if (!cfg.attivo) sotto.textContent = muT('Attiva Musica per ascoltare la chiavetta USB e le radio.');
+    else if (stato === 'guasto') sotto.textContent = muFrase(m.codice || 'motore');
+    else {
+        let t = muT(MU_MOTORE[stato] || 'Motore audio');
+        if (stato === 'pronto') {
+            const pezzi = [];
+            if (m.versione) pezzi.push('MPD ' + m.versione);
+            if (m.cpu != null) pezzi.push('CPU ' + String(m.cpu).replace('.', ',') + '%');
+            if (m.rss_mb != null) pezzi.push(Math.round(m.rss_mb) + ' MB');
+            sotto.innerHTML = muEsc(t) + (pezzi.length ? ' · <span data-no-tr>' + muEsc(pezzi.join(' · ')) + '</span>' : '');
+        } else sotto.textContent = t;
+    }
+    // installazione con avanzamento (MPD e/o il ricevitore AirPlay: stesso riquadro)
+    const mostraInst = inst.in_corso || inst.fase === 'errore';
+    const soloAir = (inst.pacchetti || []).length === 1 && inst.pacchetti[0] === 'shairport-sync';
+    el('mu-box-installa').hidden = !mostraInst;
+    if (mostraInst) {
+        el('mu-inst-t').textContent = muT(soloAir ? 'Installazione del ricevitore AirPlay' : 'Installazione del motore audio');
+        el('mu-inst-s').textContent = muT(soloAir ? 'La prima volta il server scarica il ricevitore AirPlay (shairport-sync): serve internet.'
+            : 'La prima volta il server scarica il motore audio (MPD): ci vogliono un paio di minuti e serve internet.');
+        el('mu-barra').style.width = (inst.perc || 0) + '%';
+        el('mu-fase').textContent = inst.fase === 'errore' ? muFrase(inst.codice || 'installazione_fallita') + (inst.dettaglio ? ' (' + inst.dettaglio + ')' : '')
+            : muT(inst.fase === 'installo' && soloAir ? 'Scarico e installo il ricevitore AirPlay' : (MU_FASI[inst.fase] || 'Installazione in corso')) + ' · ' + (inst.perc || 0) + '%';
+    }
+    const avvisi = [];
+    if (cfg.attivo && m.flusso_occupato) avvisi.push(muFrase('porta_occupata'));
+    if (cfg.attivo && d.chiavette_codice === 'lsblk_mancante') avvisi.push(muFrase('lsblk_mancante'));
+    el('mu-avviso').hidden = !avvisi.length;
+    el('mu-avviso').textContent = avvisi.join(' ');
+    // chiavette e libreria
+    const ch = d.chiavette || [];
+    el('mu-chiavette').innerHTML = ch.length ? ch.map((c) => {
+        const nome = c.cartella || c.etichetta || c.dev;
+        const classe = c.stato === 'montata' ? 'mu-ok' : (c.stato === 'errore' ? 'mu-ko' : 'mu-at');
+        const dim = c.dimensione_gb ? String(c.dimensione_gb).replace('.', ',') + ' GB' : '';
+        const tasto = (c.stato === 'montata' && c.nostra) ? `<button type="button" class="btn-sm" data-uuid="${muEsc(c.uuid || c.dev)}" onclick="muChiavetta('espelli', this.dataset.uuid, this)"><i data-lucide="log-out"></i> ${muEsc(muT('Espelli'))}</button>`
+            : ((c.stato === 'errore' || c.stato === 'espulsa') ? `<button type="button" class="btn-sm" data-uuid="${muEsc(c.uuid || c.dev)}" onclick="muChiavetta('riprova', this.dataset.uuid, this)"><i data-lucide="rotate-ccw"></i> ${muEsc(muT('Riprova'))}</button>` : '');
+        return `<div class="mu-riga"><i data-lucide="usb" style="width:18px;height:18px;flex-shrink:0;"></i><div><b data-no-tr>${muEsc(nome)}</b>`
+            + `<small><span data-no-tr>${muEsc([c.fs, dim, c.dev].filter(Boolean).join(' · '))}</span> · <span class="${classe}">${muEsc(muT(MU_CHIAVETTA[c.stato] || c.stato))}</span></small></div>${tasto}</div>`;
+    }).join('') : `<div class="mu-vuoto">${muEsc(muT(cfg.attivo ? 'Nessuna chiavetta trovata' : 'Attiva Musica per vedere le chiavette.'))}</div>`;
+    const lib = d.libreria || {};
+    let riga = '';
+    if (cfg.attivo && stato === 'pronto') {
+        riga = `<span data-no-tr>${lib.album || 0}</span> ${muEsc(muT('album'))} · <span data-no-tr>${lib.brani || 0}</span> ${muEsc(muT('brani'))}`;
+        if (lib.indicizzazione && lib.indicizzazione.in_corso) riga += ' · <span class="mu-at">' + muEsc(muT('Indicizzazione in corso')) + '</span>';
+        else if (lib.aggiornata) riga += ' · <small>' + muEsc(muT('aggiornata il')) + ' <span data-no-tr>' + muEsc(new Date(lib.aggiornata * 1000).toLocaleString()) + '</span></small>';
+    }
+    el('mu-libreria').innerHTML = riga;
+    el('mu-aggiorna').disabled = !(cfg.attivo && stato === 'pronto');
+    // cartelle aggiuntive
+    const cart = cfg.cartelle || [];
+    const avvC = d.cartelle_avvisi || {};
+    el('mu-cartelle').innerHTML = cart.length ? cart.map((p, i) => `<div class="mu-riga"><i data-lucide="folder" style="width:18px;height:18px;flex-shrink:0;"></i><div><b data-no-tr>${muEsc(p)}</b>`
+        + (avvC[p] ? `<small class="mu-at">${muEsc(muFrase(avvC[p]))}</small>` : '')
+        + `</div><button type="button" class="btn-sm danger" data-i="${i}" onclick="muCartella('togli', (muDati.config.cartelle || [])[this.dataset.i], this)"><i data-lucide="trash-2"></i> ${muEsc(muT('Togli'))}</button></div>`).join('')
+        : `<div class="mu-vuoto">${muEsc(muT('Nessuna cartella aggiuntiva'))}</div>`;
+    // Sonos
+    el('mu-soco').hidden = d.soco !== false;
+    const casse = d.sonos || [];
+    if (campi) {
+        el('mu-casse').innerHTML = casse.length ? casse.map((c) => `<label class="mu-spunta"><input type="checkbox" class="mu-cassa" value="${muEsc(c.entity_id)}" ${c.scelta ? 'checked' : ''} onchange="muSporco = true"><span data-no-tr>${muEsc(c.nome)}</span>${c.online ? '' : ' <small>' + muEsc(muT('Non raggiungibile')) + '</small>'}</label>`).join('')
+            : (d.soco === false ? '' : `<div class="mu-vuoto">${muEsc(muT("Nessuna cassa Sonos: collegale con l'integrazione Sonos."))}</div>`);
+        const sel = el('mu-scheda');
+        sel.innerHTML = (d.schede || []).map((s) => `<option value="${muEsc(s.id)}">${muEsc(s.id === 'default' ? muT('Predefinita del sistema') : (s.id === 'nessuna' ? muT('Nessuna (solo casse in rete)') : s.nome))}</option>`).join('');
+        if (cfg.scheda_aux && ![...sel.options].some((o) => o.value === cfg.scheda_aux)) sel.insertAdjacentHTML('beforeend', `<option value="${muEsc(cfg.scheda_aux)}">${muEsc(cfg.scheda_aux)}</option>`);
+        sel.value = cfg.scheda_aux || 'default';
+        el('mu-porta').value = cfg.porta_flusso || '';
+        el('mu-bitrate').value = String(cfg.bitrate || 192);
+        el('mu-url').value = cfg.url_flusso || '';
+        el('mu-url').placeholder = cfg.url_flusso_effettivo || '';
+        el('mu-aspetto').value = cfg.aspetto === 'retro' ? 'retro' : 'moderna';
+    }
+    // avanzate
+    const info = [];
+    if (m.versione) info.push('MPD ' + m.versione + (m.utente ? ' · ' + m.utente : '') + (m.pid ? ' · pid ' + m.pid : ''));
+    info.push('127.0.0.1:' + (m.porta || '') + ' · ' + (cfg.url_flusso_effettivo || ''));
+    if (m.dettaglio) info.push(m.dettaglio);
+    el('mu-info').innerHTML = '<span data-no-tr>' + info.map(muEsc).join('<br>') + '</span>';
+    el('mu-log').textContent = (d.log || []).concat(d.registro && d.registro.length ? ['', '— Wach0ss —'].concat(d.registro) : []).join('\n');
+    el('mu-box-radio').hidden = !cfg.attivo;
+    muDisegnaAirplay(d, campi);
+    const card = muCard();
+    if (card && window.lucide) lucide.createIcons({ root: card });
+}
+// [MUSICA] riquadro AirPlay: stato in parole, nome della cassa, password (vuota = non cambiarla; la password non torna mai)
+function muDisegnaAirplay(d, campi) {
+    const cfg = d.config || {};
+    const a = d.airplay || {};
+    const inst = d.installazione || {};
+    const instAir = (inst.pacchetti || []).includes('shairport-sync');
+    const el = (id) => document.getElementById(id);
+    el('mu-airplay').checked = !!a.acceso;
+    const box = el('mu-airplay-stato');
+    let riga = '';
+    if (!cfg.attivo) riga = muEsc(muT('Si accende insieme a Musica.'));
+    else if (!a.acceso) riga = muEsc(muT("Spento: l'iPhone non vede questa cassa."));
+    else if (a.stato === 'pronto' && a.sessione) {
+        const s = a.sessione;
+        const cosa = [s.titolo, s.artista].filter(Boolean).join(' · ');
+        riga = '<span class="mu-ok">' + muEsc(muT('In uso da')) + ' <span data-no-tr>' + muEsc(s.dispositivo || '') + '</span>'
+            + (s.dispositivo ? '' : muEsc(muT('un iPhone'))) + '</span>' + (cosa ? ' · <span data-no-tr>' + muEsc(cosa) + '</span>' : '');
+    } else if (a.stato === 'pronto') {
+        riga = '<span class="mu-ok">' + muEsc(muT("Pronto: sull'iPhone scegli")) + '</span> <b data-no-tr>«' + muEsc(a.nome_effettivo || '') + '»</b>';
+    } else if (a.stato === 'guasto') {
+        // porta occupata: dal server arriva solo il numero, la parola la traduce la pagina
+        const det = (a.codice === 'porta_occupata' && /^\d+$/.test(a.dettaglio || '')) ? muT('Porta') + ' ' + a.dettaglio : (a.dettaglio || '');
+        riga = '<span class="mu-ko">' + muEsc(muFrase(a.codice || 'airplay_muore')) + '</span>' + (det ? ' <small data-no-tr>' + muEsc(det) + '</small>' : '');
+    } else if (a.stato === 'installazione' && inst.in_corso && instAir) {
+        // l'avanzamento anche qui, vicino all'interruttore (il riquadro dell'installazione e' in alto nella card)
+        riga = '<span class="mu-at">' + muEsc(muT('Installazione del ricevitore AirPlay')) + '</span> · <span data-no-tr>' + (inst.perc || 0) + '%</span>';
+    } else if (a.stato === 'manca' && inst.fase === 'errore' && instAir) {
+        riga = '<span class="mu-ko">' + muEsc(muFrase('manca_airplay')) + ' ' + muEsc(muFrase(inst.codice || 'installazione_fallita')) + '</span>'
+            + (inst.dettaglio ? ' <small data-no-tr>(' + muEsc(inst.dettaglio) + ')</small>' : '');
+    } else riga = '<span class="mu-at">' + muEsc(muT(MU_AIRPLAY[a.stato] || MU_AIRPLAY.avvio)) + '</span>';
+    const pezzi = [];
+    if (cfg.attivo && a.acceso && a.pid) {
+        if (a.versione) pezzi.push('shairport-sync ' + a.versione);
+        pezzi.push(muT('Porta') + ' ' + a.porta);
+        if (a.utente) pezzi.push(a.utente);
+        if (a.cpu != null) pezzi.push('CPU ' + String(a.cpu).replace('.', ',') + '%');
+        if (a.rss_mb != null) pezzi.push(Math.round(a.rss_mb) + ' MB');
+    }
+    box.innerHTML = riga + (pezzi.length ? '<br><small data-no-tr>' + muEsc(pezzi.join(' · ')) + '</small>' : '');
+    el('mu-airplay-tasti').hidden = !a.password;
+    if (campi) {
+        el('mu-airplay-nome').value = a.nome || '';
+        el('mu-airplay-nome').placeholder = a.nome_predefinito || 'Wach0ss';
+        el('mu-airplay-pw').value = '';
+        el('mu-airplay-pw').placeholder = muT(a.password ? 'Impostata: scrivi per cambiarla' : 'Nessuna');
+    }
+}
+async function muAirplay(cb) {
+    const on = cb.checked;
+    cb.disabled = true;
+    try {
+        const d = await muFetch('/api/musica/config', 'POST', { airplay: on });
+        if ((d.avvisi || []).includes('installazione')) showToast(muT('Installazione del ricevitore AirPlay'), 'success');
+        else showToast(muT(on ? 'AirPlay acceso' : 'AirPlay spento'), 'success');
+        muDati = await muFetch('/api/musica/config');
+        muDisegna(!muSporco);
+        if (!muPoll) muPoll = setInterval(muAggiorna, 3000);
+    } catch (e) {
+        cb.checked = !on;
+        showToast(e.message, 'error');
+    } finally {
+        cb.disabled = false;
+    }
+}
+async function muAirplayTogliPw(btn) {
+    btn.disabled = true;
+    try {
+        await muFetch('/api/musica/config', 'POST', { airplay_password: '' });
+        showToast(muT('Password tolta.'), 'success');
+        muDati = await muFetch('/api/musica/config');
+        muDisegna(!muSporco);
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+['input', 'change'].forEach((tipo) => document.addEventListener(tipo, (e) => {
+    if (e.target && ['mu-scheda', 'mu-porta', 'mu-bitrate', 'mu-url', 'mu-aspetto', 'mu-airplay-nome', 'mu-airplay-pw'].includes(e.target.id)) muSporco = true;
+}));
+async function muAttiva(cb) {
+    const on = cb.checked;
+    cb.disabled = true;
+    try {
+        const d = await muFetch('/api/musica/config', 'POST', { attivo: on });
+        if ((d.avvisi || []).includes('installazione')) showToast(muT('Installazione del motore audio'), 'success');
+        else showToast(muT(on ? 'Musica accesa' : 'Musica spenta'), 'success');
+        integrationsDirty = true;
+        muDati = await muFetch('/api/musica/config');
+        muDisegna(true);
+        muRadio();
+        if (!muPoll) muPoll = setInterval(muAggiorna, 3000);
+    } catch (e) {
+        cb.checked = !on;
+        showToast(e.message, 'error');
+    } finally {
+        cb.disabled = false;
+    }
+}
+async function muSalva(btn) {
+    const corpo = {
+        scheda_aux: document.getElementById('mu-scheda').value,
+        bitrate: parseInt(document.getElementById('mu-bitrate').value, 10),
+        url_flusso: document.getElementById('mu-url').value.trim(),
+        aspetto: document.getElementById('mu-aspetto').value,
+        airplay_nome: document.getElementById('mu-airplay-nome').value.trim()
+    };
+    const pwAir = document.getElementById('mu-airplay-pw').value;
+    if (pwAir) corpo.airplay_password = pwAir;
+    const porta = parseInt(document.getElementById('mu-porta').value, 10);
+    if (porta) corpo.porta_flusso = porta;
+    if (muDati && muDati.soco !== false && (muDati.sonos || []).length) {
+        const tutte = [...document.querySelectorAll('.mu-cassa')];
+        const scelte = tutte.filter((x) => x.checked).map((x) => x.value);
+        corpo.casse = scelte.length === tutte.length ? '' : scelte;
+    }
+    btn.disabled = true;
+    try {
+        const d = await muFetch('/api/musica/config', 'POST', corpo);
+        muSporco = false;
+        if ((d.avvisi || []).includes('riavvio_motore')) showToast(muT('Il motore audio si riavvia: la musica si ferma un attimo.'), 'success');
+        else if ((d.avvisi || []).includes('riavvio_airplay')) showToast(muT("Il ricevitore AirPlay si riavvia: l'iPhone collegato si scollega."), 'success');
+        else showToast(muT('Impostazioni salvate.'), 'success');
+        muDati = await muFetch('/api/musica/config');
+        muDisegna(true);
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+async function muCartella(azione, percorso, btn) {
+    if (!percorso || !percorso.trim()) { showToast(muFrase('percorso_assoluto'), 'error'); return; }
+    btn.disabled = true;
+    try {
+        const d = await muFetch('/api/musica/cartelle', 'POST', { azione: azione, percorso: percorso.trim() });
+        if ((d.avvisi || []).includes('permessi')) showToast(muFrase('permessi'), 'error');
+        if (azione === 'aggiungi') document.getElementById('mu-cartella').value = '';
+        muDati = await muFetch('/api/musica/config');
+        muDisegna(false);
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+async function muChiavetta(azione, uuid, btn) {
+    btn.disabled = true;
+    try {
+        await muFetch('/api/musica/chiavetta', 'POST', { azione: azione, uuid: uuid });
+        muDati = await muFetch('/api/musica/config');
+        muDisegna(false);
+    } catch (e) {
+        showToast(e.message, 'error');
+        btn.disabled = false;
+    }
+}
+async function muAggiornaLibreria(btn) {
+    btn.disabled = true;
+    try {
+        await muFetch('/api/musica/aggiorna', 'POST', { completo: false });
+        showToast(muT('Indicizzazione in corso'), 'success');
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        setTimeout(() => { btn.disabled = false; }, 2000);
+    }
+}
+async function muRadio() {
+    const box = document.getElementById('mu-radio');
+    if (!box || !muDati || !muDati.config || !muDati.config.attivo) return;
+    try {
+        const d = await muFetch('/api/musica/radio/preferite');
+        const lista = d.radio || [];
+        box.innerHTML = lista.length ? lista.map((s) => `<div class="mu-riga"><i data-lucide="radio" style="width:18px;height:18px;flex-shrink:0;"></i><div><b data-no-tr>${muEsc(s.nome)}</b>`
+            + `<small data-no-tr>${muEsc(s.url || [s.paese, s.codec].filter(Boolean).join(' · '))}</small></div>`
+            + `<button type="button" class="btn-sm danger" data-uuid="${muEsc(s.uuid)}" onclick="muRadioTogli(this)"><i data-lucide="trash-2"></i> ${muEsc(muT('Togli'))}</button></div>`).join('')
+            : `<div class="mu-vuoto">${muEsc(muT('Nessuna radio preferita: cercane una.'))}</div>`;
+        if (window.lucide) lucide.createIcons({ root: box });
+    } catch (e) {
+        box.innerHTML = `<div class="mu-vuoto">${muEsc(e.message)}</div>`;
+    }
+}
+async function muRadioTogli(btn) {
+    btn.disabled = true;
+    try { await muFetch('/api/musica/radio/preferite', 'DELETE', { uuid: btn.dataset.uuid }); } catch (e) { showToast(e.message, 'error'); }
+    muRadio();
+}
+async function muRadioManuale(btn) {
+    const nome = document.getElementById('mu-radio-nome');
+    const url = document.getElementById('mu-radio-url');
+    btn.disabled = true;
+    try {
+        await muFetch('/api/musica/radio/manuale', 'POST', { nome: nome.value.trim(), url: url.value.trim() });
+        nome.value = ''; url.value = '';
+        muRadio();
+    } catch (e) {
+        showToast(e.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+// Rimozione dallo Store: popup proprio (impostazioni e radio preferite restano salvate), poi come le altre integrazioni.
+uninstallIntegration = (function (originale) {
+    return async function (key) {
+        if (key !== 'musica') return originale.apply(this, arguments);
+        if (!await chiedi("Rimuovere Musica? La musica si ferma e la voce sparisce dall'app. Le impostazioni e le radio preferite restano salvate.", { titolo: 'Rimuovi Musica', si: 'Rimuovi', pericolo: true })) return;
+        try {
+            await muFetch('/api/musica/config', 'DELETE', {});
+            showToast('Integrazione rimossa', 'success');
+            setTimeout(() => { window.location.href = window.location.pathname + '?setup=open'; }, 800);
+        } catch (e) {
+            showToast('Errore durante la rimozione', 'error');
+        }
+    };
+})(uninstallIntegration);
+openIntegrationDetail = (function (originale) {
+    return function (key) {
+        const r = originale.apply(this, arguments);
+        if (key === 'musica') muCarica();
+        return r;
+    };
+})(openIntegrationDetail);
+{%- endif %}
 {%- if hue_modulo %}
 STORE_CAT_ICONE['Illuminazione'] = 'lightbulb';
 {%- endif %}
@@ -17475,6 +18012,8 @@ async function removeCloudflareTunnel() {
     #pw-pannello .checkbox-container input { width: auto; margin: 0 12px 0 0; height: auto; }
     #pw-pannello .checkbox-container span { font-size: 0.86rem; }
     #pw-pannello .checkbox-container small { display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: 400; margin-top: 2px; }
+    #pw-pannello .checkbox-container:has(input:disabled) { cursor: default; }
+    #pw-pannello .checkbox-container input:disabled { cursor: default; opacity: 0.7; }
     #pw-pannello .setup-section label.pw-etich { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
     .pw-riga { display: flex; gap: 8px; }
     .pw-riga input { flex: 1; min-width: 0; }
@@ -17555,11 +18094,11 @@ async function removeCloudflareTunnel() {
             <div class="setup-section">
                 <h3><i data-lucide="globe"></i> Indirizzo</h3>
                 <div class="pw-riga">
-                    <input type="url" id="pw-url" spellcheck="false" autocomplete="off" placeholder="https://..." data-no-tr>
+                    <input type="url" id="pw-url" spellcheck="false" autocomplete="off" placeholder="https://...   192.168.1.50:8080" data-no-tr>
                     <button type="button" class="btn-launch btn-outline" id="pw-prova"><i data-lucide="search"></i> <span>Prova</span></button>
                 </div>
                 <div class="pw-verdetto" id="pw-verdetto" aria-live="polite"></div>
-                <label class="checkbox-container"><input type="checkbox" id="pw-locale"><div><span>Dispositivo nella rete di casa</span><small>Permette indirizzi come 192.168.1.1 (router, Shelly, Node-RED). Si vede solo quando il telefono è in casa.</small></div></label>
+                <label class="checkbox-container"><input type="checkbox" id="pw-locale" disabled><div><span>Dispositivo nella rete di casa</span><small>Si accende da sola per gli indirizzi di casa, porta compresa (192.168.1.50:8080, router.lan). La pagina passa dal Wach0ss: si vede anche da fuori casa.</small></div></label>
             </div>
 
             <div class="setup-section">
@@ -17572,7 +18111,8 @@ async function removeCloudflareTunnel() {
                     <button type="button" class="pw-modo" data-modo="finestra"><span class="pw-consigliata">Consigliata</span>
                         <span class="pw-modo-testa"><i data-lucide="app-window"></i> <span>Finestra</span></span>
                         <p>Il sito vero, funzionante, in una cornice di vetro. Per mappe, video, pagine di dispositivi.</p>
-                        <span class="pw-peso"><i data-lucide="gauge"></i> <span>Zero lavoro per il server</span></span></button>
+                        <span class="pw-peso" data-casa="no"><i data-lucide="gauge"></i> <span>Zero lavoro per il server</span></span>
+                        <span class="pw-peso medio" data-casa="si"><i data-lucide="gauge"></i> <span>Il Wach0ss passa la pagina, solo mentre è aperta</span></span></button>
                     <button type="button" class="pw-modo" data-modo="sezione"><span class="pw-consigliata">Consigliata</span>
                         <span class="pw-modo-testa"><i data-lucide="crop"></i> <span>Sezione</span></span>
                         <p>Solo un pezzo del sito, scelto con un selettore CSS, come card dell'app.</p>
@@ -17589,6 +18129,7 @@ async function removeCloudflareTunnel() {
                 </div>
                 <div class="pw-nota" data-nota="integrata"><i data-lucide="info"></i><span>Al telefono arrivano solo testo e immagini, mai il codice del sito. Va bene per articoli e notizie, non per le pagine fatte con il JavaScript.</span></div>
                 <div class="pw-nota" data-nota="finestra"><i data-lucide="info"></i><span>Il sito resta com'è dentro la cornice: i suoi colori non si possono cambiare. Il tema scuro forzato e lo zoom sono trucchi grafici sopra la finestra.</span></div>
+                <div class="pw-nota" data-nota="finestra" data-casa="si"><i data-lucide="router"></i><span>Dispositivo di casa: la pagina passa dal Wach0ss, porta compresa. Si vede anche da fuori casa, anche se il dispositivo vieta le finestre. È un dispositivo di fiducia: la sua pagina gira come l'app.</span></div>
                 <div class="pw-nota" data-nota="sezione"><i data-lucide="info"></i><span>Se il sito cambia grafica il pezzo può sparire: in quel caso l'app propone di aprirlo nel browser.</span></div>
             </div>
 
@@ -17600,7 +18141,8 @@ async function removeCloudflareTunnel() {
                     <option value="30">Ogni 30 minuti, mentre è aperta</option>
                     <option value="60">Ogni ora, mentre è aperta</option>
                 </select>
-                <div class="pw-nota" data-agg="finestra"><i data-lucide="info"></i><span>In Finestra la pagina la carica il telefono: il server non fa nessun lavoro.</span></div>
+                <div class="pw-nota" data-agg="finestra" data-casa="no"><i data-lucide="info"></i><span>In Finestra la pagina la carica il telefono: il server non fa nessun lavoro.</span></div>
+                <div class="pw-nota" data-agg="finestra" data-casa="si"><i data-lucide="info"></i><span>Per i dispositivi di casa il Wach0ss passa la pagina al telefono: lavora solo mentre è aperta.</span></div>
                 <div class="pw-nota" data-agg="lettura"><i data-lucide="info"></i><span>Il Wach0ss legge il sito solo quando qualcuno apre la stanza o la zona, e una lettura serve a tutti i telefoni. Massimo 2 MB e 8 secondi.</span></div>
             </div>
 
@@ -17640,7 +18182,7 @@ async function removeCloudflareTunnel() {
         credenziali: "Niente nome utente o password dentro l'indirizzo.",
         senza_host: "Indirizzo senza nome del sito.",
         dns: "Il nome del sito non esiste.",
-        casa: "Indirizzo della rete di casa: serve la spunta «Dispositivo nella rete di casa».",
+        casa: "Il sito porta a un indirizzo della rete di casa: per sicurezza non si apre.",
         occupato: "Il Wach0ss sta già leggendo un'altra pagina: riprova tra poco.",
         lento: "Il sito ci mette troppo a rispondere (oltre 8 secondi).",
         non_risponde: "Il sito non risponde.",
@@ -17662,7 +18204,8 @@ async function removeCloudflareTunnel() {
         zona: "La stanza o la zona non esiste più: ricarica la pagina."
     };
     const AGGIORNA = [0, 10, 30, 60];
-    const pw = { posto: null, nuova: null, vers: 0, ante: false, caricata: false, timer: null, ultimaBozza: '' };
+    const pw = { posto: null, nuova: null, vers: 0, ante: false, caricata: false, timer: null, ultimaBozza: '',
+                 casaServer: null, modoToccato: false };
     const $ = (id) => document.getElementById(id);
     const chiavePosto = () => activeRoom + '\n' + (activeSubRoom || '');
     const postoDi = (stanza, zona) => { const r = config[stanza]; return !r ? null : (zona ? ((r.sub_rooms || {})[zona] || null) : r); };
@@ -17697,6 +18240,43 @@ async function removeCloudflareTunnel() {
         const t = document.createElement('span'); t.textContent = testo;
         e.append(i, t); libIcone(e);
     }
+    // indirizzo di casa? Stessa regola del server (paginaweb._host_di_casa), senza DNS: il server decide comunque
+    // (e con la Prova sa anche dei nomi che il DNS porta in casa)
+    function casaDi(u) {
+        u = (u || '').trim();
+        if (!u) return false;
+        let h;
+        try { h = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(u) ? u : 'http://' + u).hostname.toLowerCase().replace(/\.$/, ''); } catch (e) { return false; }
+        if (!h) return false;
+        if (h === 'localhost' || /\.(local|lan|home|internal|localdomain|localhost|home\.arpa)$/.test(h)) return true;
+        if (h.charAt(0) === '[') return /^\[(::1\]|::ffff:(7f|a|c0a8)|f[cd]|fe[89ab])/i.test(h);
+        if (h.indexOf('.') < 0) return true;                 // una parola sola ("router")
+        const m = /^(\d+)\.(\d+)\.\d+\.\d+$/.exec(h);
+        if (!m) return false;
+        const a = +m[1], b = +m[2];
+        return a === 10 || a === 127 || a === 0 || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31) ||
+               (a === 169 && b === 254) || (a === 100 && b >= 64 && b <= 127);
+    }
+    // la spunta "Dispositivo nella rete di casa" e' solo informativa: si accende da sola per gli indirizzi di casa,
+    // non si tocca a mano (decide il server: una pagina pubblica che rimanda a casa resta bloccata)
+    function aggiornaCasa() {
+        const p = $('pw-pannello'), c = $('pw-locale');
+        if (!p || !c) return;
+        const casa = pw.casaServer === null ? casaDi($('pw-url').value) : pw.casaServer;   // dopo la Prova decide il server (anche col DNS)
+        c.checked = casa; c.disabled = true;
+        p.classList.toggle('pw-casa', casa);
+        mostraPer(modoAttivo());
+        // posto nuovo e modalita' non ancora scelta: per un dispositivo di casa si parte dalla Finestra
+        if (pw.nuova === chiavePosto() && !pw.modoToccato) scegliModo(casa ? 'finestra' : 'integrata', true);
+    }
+    function mostraPer(m) {
+        const p = $('pw-pannello'), casa = p.classList.contains('pw-casa');
+        const vaBene = (e) => !e.dataset.casa || (e.dataset.casa === 'si') === casa;
+        p.querySelectorAll('[data-per]').forEach(e => { e.style.display = e.dataset.per === m ? '' : 'none'; });
+        p.querySelectorAll('[data-nota]').forEach(e => { e.style.display = e.dataset.nota === m && vaBene(e) ? '' : 'none'; });
+        p.querySelectorAll('[data-agg]').forEach(e => { e.style.display = (e.dataset.agg === 'finestra') === (m === 'finestra') && vaBene(e) ? '' : 'none'; });
+        p.querySelectorAll('.pw-peso[data-casa]').forEach(e => { e.style.display = vaBene(e) ? '' : 'none'; });
+    }
     function modoAttivo() { const b = document.querySelector('#pw-pannello .pw-modo.attivo'); return b ? b.dataset.modo : 'integrata'; }
     function leggi() {
         return { url: $('pw-url').value.trim(), modo: modoAttivo(), selettore: $('pw-sel').value.trim(),
@@ -17706,9 +18286,7 @@ async function removeCloudflareTunnel() {
     function scegliModo(m, silenzio) {
         const p = $('pw-pannello');
         p.querySelectorAll('.pw-modo').forEach(b => { const s = b.dataset.modo === m; b.classList.toggle('attivo', s); b.setAttribute('aria-pressed', s ? 'true' : 'false'); });
-        p.querySelectorAll('[data-per]').forEach(e => { e.style.display = e.dataset.per === m ? '' : 'none'; });
-        p.querySelectorAll('[data-nota]').forEach(e => { e.style.display = e.dataset.nota === m ? '' : 'none'; });
-        p.querySelectorAll('[data-agg]').forEach(e => { e.style.display = (e.dataset.agg === 'finestra') === (m === 'finestra') ? '' : 'none'; });
+        mostraPer(m);
         if (!silenzio) anteDopo();
     }
     function riempi(w) {
@@ -17719,8 +18297,9 @@ async function removeCloudflareTunnel() {
         $('pw-zoom').value = w.zoom || 100;
         $('pw-zoom-v').textContent = $('pw-zoom').value + '%';
         $('pw-agg').value = String(AGGIORNA.indexOf(w.aggiorna) >= 0 ? w.aggiorna : 0);
-        $('pw-locale').checked = !!w.locale;
+        pw.casaServer = null; pw.modoToccato = !!w.modo;
         scegliModo(w.modo || 'integrata', true);
+        aggiornaCasa();
         pw.vers++;
         verdetto([]); esitoSel(null);
         $('pw-pannello').querySelectorAll('.pw-modo').forEach(b => b.classList.remove('consigliata'));
@@ -17747,10 +18326,19 @@ async function removeCloudflareTunnel() {
             return;
         }
         const c = [];
-        c.push(r.incorporabile ? chip('si', 'check', 'Si lascia mostrare in finestra')
-                               : chip('no', 'x', 'Non si lascia mostrare in finestra', { title: frase({ motivo: r.motivo_finestra }) }));
+        pw.casaServer = !!r.casa; aggiornaCasa();
+        if (r.url_consigliato) {
+            // il dispositivo rimanda a un'altra origine di casa (es. http -> https su un'altra porta): si usa quella
+            $('pw-url').value = r.url_consigliato;
+            c.push(chip('info', 'corner-down-right', 'Il dispositivo manda a un altro indirizzo: ho scritto quello'));
+        }
+        if (r.tramite) c.push(chip('si', 'check', 'Si vede in finestra passando dal Wach0ss'));
+        else c.push(r.incorporabile ? chip('si', 'check', 'Si lascia mostrare in finestra')
+                                    : chip('no', 'x', 'Non si lascia mostrare in finestra', { title: frase({ motivo: r.motivo_finestra }) }));
+        if (r.stato_http === 401 || r.stato_http === 403) c.push(chip('info', 'lock', 'Il dispositivo chiede una password: la scrivi dentro la finestra'));
         if (r.leggibile) c.push(chip('si', 'check', r.paragrafi === 1 ? 'Leggibile: 1 paragrafo' : 'Leggibile: ' + (r.paragrafi || 0) + ' paragrafi'));
-        else c.push(chip('forse', 'alert-triangle', r.incorporabile ? 'Poco testo da leggere: meglio Finestra' : 'Poco testo da leggere'));
+        else if (r.verdetto === 'non_mostrabile') c.push(chip('no', 'x', 'Non si lascia mostrare: resterà il pulsante Apri nel browser'));
+        else if (!r.tramite) c.push(chip('forse', 'alert-triangle', r.incorporabile ? 'Poco testo da leggere: meglio Finestra' : 'Poco testo da leggere'));
         c.push(chip('info', 'gauge', (r.kb || 0) + ' KB · ' + (r.ms_totale || 0) + ' ms', { notr: true }));
         verdetto(c);
         if (r.consigliata && (r.consigliata !== 'finestra' || r.incorporabile)) {
@@ -17873,14 +18461,14 @@ async function removeCloudflareTunnel() {
     });
 
     function collega(p) {
-        p.querySelectorAll('.pw-modo').forEach(b => b.addEventListener('click', () => scegliModo(b.dataset.modo)));
+        p.querySelectorAll('.pw-modo').forEach(b => b.addEventListener('click', () => { pw.modoToccato = true; scegliModo(b.dataset.modo); }));
         $('pw-prova').addEventListener('click', () => prova(false));
         $('pw-trova').addEventListener('click', () => prova(true));
         $('pw-url').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); prova(false); } });
         $('pw-sel').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); prova(true); } });
-        $('pw-url').addEventListener('input', () => { pw.vers++; verdetto([]); p.querySelectorAll('.pw-modo').forEach(b => b.classList.remove('consigliata')); });
+        $('pw-url').addEventListener('input', () => { pw.vers++; pw.casaServer = null; aggiornaCasa(); verdetto([]); p.querySelectorAll('.pw-modo').forEach(b => b.classList.remove('consigliata')); });
         $('pw-url').addEventListener('change', anteDopo);
-        ['pw-locale', 'pw-scuro', 'pw-agg'].forEach(id => $(id).addEventListener('change', anteDopo));
+        ['pw-scuro', 'pw-agg'].forEach(id => $(id).addEventListener('change', anteDopo));
         $('pw-zoom').addEventListener('input', () => { $('pw-zoom-v').textContent = $('pw-zoom').value + '%'; });
         $('pw-zoom').addEventListener('change', anteDopo);
         $('pw-salva').addEventListener('click', salva);

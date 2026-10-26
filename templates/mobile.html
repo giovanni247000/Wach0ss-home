@@ -6038,6 +6038,16 @@ html.wh-scala .imp-pagina {
             {% endfor %}
 {%- if calendari_attivo and not layout %}{# [CALENDARI] P4 #}<div class="nav-item dock-room-btn wh-nav-calendari" onclick="switchRoom('room-calendari', this)" title="{{ calendari_nome }}"><i data-lucide="calendar-days"></i><span class="desktop-only">{{ calendari_nome }}</span></div>{% endif %}
             </div>
+            {% if musica_attivo %}
+            <!-- [MUSICA] pagina a se' (/musica, musica.py), per tutti gli utenti collegati quando l'integrazione e' attiva -->
+            <div class="nav-item nav-musica mobile-only" id="musica-nav-item" style="display: flex; cursor: pointer;" onclick="window.location.href='/musica'" title="Musica">
+                <i data-lucide="music"></i>
+            </div>
+            <div class="nav-item nav-musica desktop-only" onclick="window.location.href='/musica'" title="Musica">
+                <i data-lucide="music"></i>
+                <span>Musica</span>
+            </div>
+            {% endif %}
             {% if nvr_attivo and session.role == 'admin' %}
             <div class="nav-item nav-nvr desktop-only" onclick="window.location.href='/nvr'" title="Registrazioni NVR">
                 <span class="nav-nvr-ico"><i data-lucide="video"></i></span>
@@ -19934,7 +19944,9 @@ function hkOsserva(card) {
    - Il contenitore .wh-web nasce vuoto: si chiede la pagina SOLO quando il posto e' aperto e l'app e' visibile.
      Apertura e chiusura seguono l'evento resize che switchRoom e switchSubRoom mandano gia' (come la 3D).
    - Al server si chiede "la pagina della stanza X / zona Y", mai un indirizzo. Il modo e il ripiego li sceglie lui.
-   - I dati del sito si scrivono SOLO con textContent; l'iframe ha sempre il sandbox e mai allow-top-navigation. */
+   - I dati del sito si scrivono SOLO con textContent; l'iframe ha sempre il sandbox e mai allow-top-navigation.
+   - Dispositivi di casa (router, app con IP e porta): la Finestra usa d.tramite (/pw/t/<chiave>/...), cioe' la
+     pagina passa dal Wach0ss: si vede anche da fuori casa e anche se il dispositivo vieta l'iframe. */
 (function () {
     'use strict';
     var Q = new URLSearchParams(location.search);
@@ -19952,7 +19964,7 @@ function hkOsserva(card) {
         credenziali: "Niente nome utente o password dentro l'indirizzo.",
         senza_host: 'Indirizzo senza nome del sito.',
         dns: 'Il nome del sito non esiste.',
-        casa: 'Indirizzo della rete di casa: serve la spunta «Dispositivo nella rete di casa».',
+        casa: 'Il sito porta a un indirizzo della rete di casa: per sicurezza non si apre.',
         occupato: "Il Wach0ss sta già leggendo un'altra pagina: riprova tra poco.",
         lento: 'Il sito ci mette troppo a rispondere (oltre 8 secondi).',
         non_risponde: 'Il sito non risponde.',
@@ -19983,6 +19995,16 @@ function hkOsserva(card) {
     function ico(nome) { var i = document.createElement('i'); i.setAttribute('data-lucide', nome); return i; }
     function icone(root) { try { if (window.lucide) lucide.createIcons({ root: root }); } catch (e) {} }
     function sicuroHttp(u) { return (typeof u === 'string' && /^https?:\/\//i.test(u)) ? u : ''; }
+    // il tramite: SOLO il percorso relativo /pw/t/<chiave>/... sulla stessa origine. Nel percorso mai "//", mai "\\",
+    // mai i segmenti "." e ".." (anche %2e): il browser li risolverebbe e l'iframe uscirebbe da /pw/t/<chiave>/
+    function sicuroTramite(u) {
+        if (typeof u !== 'string' || !/^\/pw\/t\/[A-Za-z0-9_-]{22}\//.test(u)) return '';
+        var pp = u.split(/[?#]/)[0];
+        if (pp.indexOf('//') >= 0 || pp.indexOf('\\') >= 0) return '';
+        return /(^|\/)(\.|%2e){1,2}(\/|$)/i.test(pp) ? '' : u;
+    }
+    // "Apri nel browser": per i dispositivi di casa la pagina del tramite (funziona anche da fuori casa)
+    function indirizzoFuori(d) { var t = sicuroTramite(d && d.tramite); return t ? location.origin + t : sicuroHttp(d && d.url); }
     function nomePosto(p) { return p.dataset.zona || p.dataset.stanza || ''; }
     function grande() { return window.innerWidth >= 1024; }
     function frase(dove, testo) { var s = el('span', '', testo); dove.appendChild(s); return s; }
@@ -20101,7 +20123,7 @@ function hkOsserva(card) {
         if (d.host) s.appendChild(noTr(el('span', '', d.host)));
         // ogni pezzo (puntino + frase) resta unito: se non ci sta va a capo intero (in inglese 'read 1 min ago')
         function pezzo(testo) { var g = el('span'); g.appendChild(el('span', 'pw-sep', '·')); frase(g, testo); s.appendChild(g); }
-        if (d.locale) pezzo('in casa');
+        if (d.locale) pezzo('dispositivo di casa');
         if (quando) pezzo(quando);
         if (d.vecchia) pezzo('aggiorno…');
         t.appendChild(s);
@@ -20113,11 +20135,11 @@ function hkOsserva(card) {
             r.addEventListener('click', function () { r.classList.remove('gira'); void r.offsetWidth; r.classList.add('gira'); ricarica(); });
             b.appendChild(r);
         }
-        if (sicuroHttp(d.url)) {
+        if (indirizzoFuori(d)) {
             var a = el('button', 'pw-btn'); a.type = 'button';
             a.setAttribute('aria-label', 'Apri nel browser'); a.setAttribute('title', 'Apri nel browser');
             a.appendChild(ico('external-link'));
-            a.addEventListener('click', function () { apriFuori(d.url); });
+            a.addEventListener('click', function () { apriFuori(indirizzoFuori(d)); });
             b.appendChild(a);
         }
         return b;
@@ -20134,7 +20156,7 @@ function hkOsserva(card) {
         if (!f) return;
         f.classList.remove('pronto'); if (car) car.classList.remove('via');
         attendiFrame(f, car);
-        f.src = d.url;
+        f.src = sicuroTramite(d.tramite) || sicuroHttp(d.url);
     }
     function attendiFrame(f, car) {
         clearTimeout(timerCarica);
@@ -20142,7 +20164,8 @@ function hkOsserva(card) {
         timerCarica = setTimeout(function () { f.classList.add('pronto'); if (car) car.classList.add('via'); }, 15000);
     }
     function disegnaFinestra(p, d) {
-        var url = sicuroHttp(d.url);
+        var tramite = sicuroTramite(d.tramite);
+        var url = tramite || sicuroHttp(d.url);
         if (!url) { disegnaErrore(p, { modo: 'errore', motivo: 'schema' }); return; }
         p.appendChild(barra(p, d, d.locale ? 'router' : 'globe', function () { ricaricaFinestra(p, d); }, ''));
         var zoom = parseInt(d.zoom, 10) || 100;
@@ -20161,7 +20184,12 @@ function hkOsserva(card) {
         // allow-same-origin solo per siti di ALTRA origine (una pagina del Wach0ss con scripts+same-origin si toglierebbe il sandbox)
         var stessa = true;
         try { stessa = new URL(url, location.href).origin === location.origin; } catch (e) {}
-        f.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox' + (stessa ? '' : ' allow-same-origin'));
+        if (tramite) {
+            // dispositivo di casa dal tramite: stessa origine dell'app CON allow-same-origin (cookie, localStorage e
+            // login del dispositivo). Il dispositivo e' fidato, scelto dall'amministratore: e' la scelta accettata
+            // dall'utente (25/10), la sua pagina gira come l'app. Mai allow-top-navigation.
+            f.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-modals allow-downloads');
+        } else f.setAttribute('sandbox', 'allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox' + (stessa ? '' : ' allow-same-origin'));
         f.setAttribute('allow', 'fullscreen');
         if (d.scuro) f.classList.add('scuro');
         if (zoom !== 100) { f.classList.add('zoom'); f.style.setProperty('--z', String(zoom / 100)); }
@@ -20278,10 +20306,10 @@ function hkOsserva(card) {
     function piede(p, d) {
         var pd = el('div', 'pw-piede');
         if (d.host) { pd.appendChild(noTr(el('span', '', d.host))); pd.appendChild(document.createTextNode(' · ')); }
-        if (sicuroHttp(d.url)) {
+        if (indirizzoFuori(d)) {
             var a = el('a', '', "Apri l'originale");
-            a.href = d.url; a.rel = 'noopener noreferrer'; a.target = '_blank';
-            a.addEventListener('click', function (e) { e.preventDefault(); apriFuori(d.url); });
+            a.href = indirizzoFuori(d); a.rel = 'noopener noreferrer'; a.target = '_blank';
+            a.addEventListener('click', function (e) { e.preventDefault(); apriFuori(indirizzoFuori(d)); });
             pd.appendChild(a);
         }
         return pd;
@@ -20365,10 +20393,10 @@ function hkOsserva(card) {
         k.appendChild(el('h3', '', titolo));
         if (d.host) { var h = el('span', 'pw-x-host'); h.appendChild(ico(d.locale ? 'router' : 'globe')); h.appendChild(noTr(el('span', '', d.host))); k.appendChild(h); }
         if (testo) k.appendChild(el('p', '', testo));
-        if (sicuroHttp(d.url)) {
+        if (indirizzoFuori(d)) {
             var b = el('button', 'pw-apri'); b.type = 'button';
             b.appendChild(ico('external-link')); frase(b, 'Apri nel browser');
-            b.addEventListener('click', function () { apriFuori(d.url); });
+            b.addEventListener('click', function () { apriFuori(indirizzoFuori(d)); });
             k.appendChild(b);
         }
         if (perche && perche.length) {
@@ -20445,5 +20473,37 @@ function hkOsserva(card) {
 })();
 </script>
 {%- endif %}
+{% if musica_attivo %}
+<script>
+/* [MUSICA] arrivo dalla pagina /musica: le voci della sua barra portano a /mobile#stanza=<nome> (apre quella stanza),
+   a /mobile#energia e /mobile#calendari (le voci Energia e Calendari) e a /mobile#impostazioni (apre le Impostazioni).
+   Dopo il caricamento e 300 ms (le stanze devono esserci);
+   poi l'indirizzo torna /mobile. Una stanza che qui non c'e' (permessi): nessuna azione. */
+(function () {
+    var h = location.hash || '';
+    if (h.indexOf('#stanza=') !== 0 && h !== '#impostazioni' && h !== '#energia' && h !== '#calendari') return;
+    function vai() {
+        try {
+            if (h === '#impostazioni') {
+                if (typeof window.openSettingsModal === 'function') window.openSettingsModal();
+            } else if (h === '#energia' || h === '#calendari') {
+                var v = document.querySelector(h === '#energia' ? '.wh-nav-energia' : '.wh-nav-calendari');
+                if (v) v.click();
+            } else {
+                var nome = '';
+                try { nome = decodeURIComponent(h.slice(8)); } catch (e) { nome = ''; }
+                var b = [].find.call(document.querySelectorAll('.dock-room-btn'), function (x) {
+                    var s = x.querySelector('span.desktop-only'); return !!s && s.textContent.trim() === nome;
+                });
+                if (nome && b) b.click();
+            }
+        } catch (e) {}
+        try { history.replaceState(null, '', '/mobile'); } catch (e) {}
+    }
+    function poi() { setTimeout(vai, 300); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', poi); else poi();
+})();
+</script>
+{% endif %}
 </body>
 </html>
