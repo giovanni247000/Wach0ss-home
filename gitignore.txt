@@ -16,3 +16,7 @@ annunci_piper.log
 # Identita' del ponte HomeKit di OGNI impianto (chiavi e abbinamenti con Apple Casa, homekit.py):
 # la crea il server quando si attiva il ponte. Mai su GitHub, mai copiata da un impianto all'altro.
 homekit_dati/
+
+# Dati dell'integrazione Musica (musica.py): database e stato di MPD, copertine in cache,
+# collegamenti alle chiavette (solo la cartella accanto ad app.py). Li ricrea il server: mai su GitHub.
+/musica/
