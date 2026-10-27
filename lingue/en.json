@@ -5586,6 +5586,7 @@
   "Tocca un album per ascoltarlo.": "Tap an album to play it.",
   "Wach0ss Home | Musica": "Wach0ss Home | Music",
   "Nessun disco": "No record",
+  "Le radio": "Radio stations",
   "La radio non risponde.": "The station isn't responding.",
   "Suona dall'iPhone": "Playing from the iPhone",
   "Interrompi l'AirPlay": "Stop AirPlay",
@@ -7781,7 +7782,10 @@
    "Ripeti": "Repeat",
    "Libreria": "Library",
    "AUX": "AUX",
-   "Integrazione": "Integration"
+   "Integrazione": "Integration",
+   "RADIO": "RADIO",
+   "PREFERITE": "FAVOURITES",
+   "1 PREFERITA": "1 FAVOURITE"
   }
  },
  "modelli": [

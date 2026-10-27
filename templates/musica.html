@@ -3,6 +3,145 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+{% raw %}
+<script>
+/* GRANDEZZA PAGINA dell'app (Impostazioni > Aspetto dell'app > Grandezza pagina: localStorage 'core_scala_pagina',
+   80-110, 100 = Standard), 27/10/2026. COPIA dello script "GRANDEZZA PAGINA" in cima a mobile.html (stessa logica e
+   stesse correzioni per WebKit, provate su Safari iOS e nella WKWebView), senza il velo della ricarica delle Impostazioni
+   (qui le Impostazioni non ci sono). Riscrive il meta viewport qui sopra prima del primo disegno: pagina e barra in basso
+   hanno la stessa grandezza che nell'app. Con html.wh-scala il CSS riporta le aree sicure in pixel della pagina
+   ("GRANDEZZA PAGINA" nel foglio di stile qui sotto). Al 100% (o senza scelta) il meta resta identico e non si tocca
+   nient'altro. Se cambia lo script di mobile.html va cambiato anche qui. */
+(function () {
+    var BASE = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+    var AMMESSE = [80, 85, 90, 95, 100, 105, 110];
+    var SOGLIA = 1024;      // da qui la pagina e' "tablet/computer": @media (min-width: 1024px) e innerWidth >= 1024
+    function lati() {       // lato corto e lato lungo dello schermo, in punti
+        var a = 375, b = 812;
+        try { a = screen.width || a; b = screen.height || b; } catch (e) {}
+        return [Math.min(a, b), Math.max(a, b)];
+    }
+    function orizzontale() { try { return window.matchMedia('(orientation: landscape)').matches; } catch (e) { return false; } }
+    function larghezza() { var l = lati(); return orizzontale() ? l[1] : l[0]; }
+    // perche' una grandezza non si puo' scegliere su questo schermo ('' = si puo')
+    function motivo(p) {
+        if (AMMESSE.indexOf(p) < 0) return 'no';
+        if (p === 100) return '';
+        var l = lati()[0], w = l * 100 / p;
+        if (w < 320) return 'stretto';                           // pagina piu' stretta di 320 px
+        if ((l >= SOGLIA) !== (w >= SOGLIA)) return 'soglia';    // passerebbe da tablet a telefono o viceversa
+        return '';
+    }
+    function possibile(p) { return motivo(p) === ''; }
+    // la scala davvero usata nel verso di adesso (1 = nessuna)
+    function efficace(p) {
+        if (p === 100) return 1;
+        var s = p / 100, L = larghezza();
+        if (L < SOGLIA && L / s >= SOGLIA) s = Math.ceil(L / (SOGLIA - 1) * 1000) / 1000;   // resta impaginata da telefono
+        else if (L >= SOGLIA && L / s < SOGLIA) s = Math.floor(L / SOGLIA * 1000) / 1000;   // resta impaginata da tablet
+        return Math.abs(s - 1) < 0.005 ? 1 : s;
+    }
+    // SCHERMO PIENO A OGNI GRANDEZZA (14/10/2026). WebKit impagina la pagina larga e alta un numero INTERO di
+    // px (arrotonda lato/scala) e la mostra a scala S (in float32): con S tonda (0,85, 0,95, 1,05...) larghezza
+    // x scala restava spesso un soffio sotto lo schermo (es. iPhone Air: 494 x 0,85 = 419,9 punti su 420;
+    // 400 x 1,05 = 419,99998) e sul bordo destro restava scoperta una colonna di 1 punto, a volte anche l'ultima
+    // riga in basso: li' si vedeva il fondo dell'app, e la barra in basso, sfocando quella striscia chiara,
+    // faceva il bagliore. Qui la scala si ritocca di pochissimo (al massimo l'1%, di solito meno dello 0,2%)
+    // perche' su ENTRAMBI i lati dello schermo il numero intero di px x scala sbordi di 0,25-0,45 punti, mai
+    // manchi (provato nel simulatore: con meno avanzo l'ultima fila di pixel resta ancora un po' trasparente).
+    // La stessa scala va bene in verticale e in orizzontale: girando lo schermo non cambia (cambiarla durante
+    // la rotazione lasciava a WebKit la scala vecchia, cioe' di nuovo una striscia scoperta).
+    // scarta (facoltativa, la usa passaggio()): condizione in piu' per scartare una scala; se nessuna va bene da' 0
+    function adatta(s, scarta) {
+        if (s === 1) return 1;
+        var l = lati(), L = larghezza(), f = Math.fround || function (x) { return x; };
+        function pieno(x, s32) {                      // x punti / scala -> px interi (arrotondati) x scala >= x + 0,25
+            var q = x / s32, n = Math.round(q);
+            return q - Math.floor(q) >= 0.55 && n * s32 >= x + 0.25;
+        }
+        for (var j = 0; j <= 1000; j++) {             // dalla scala chiesta verso l'esterno, a passi dello 0,001%
+            for (var v = 0; v < 2; v++) {
+                var sf = Math.round(s * (1 + (v ? -j : j) / 100000) * 1e6) / 1e6, s32 = f(sf);
+                if ((L < SOGLIA) !== (Math.round(L / s32) < SOGLIA)) continue;   // mai oltre la soglia telefono/tablet
+                if (scarta && scarta(s32)) continue;
+                if (pieno(l[0], s32) && pieno(l[1], s32)) return sf;
+            }
+        }
+        return scarta ? 0 : s;
+    }
+    function meta(s) {
+        if (s === 1) return BASE;
+        var w = s < 1 ? 'device-width' : Math.floor(lati()[0] / s);
+        return 'width=' + w + ', initial-scale=' + s + ', minimum-scale=' + s + ', maximum-scale=' + s + ', user-scalable=no, viewport-fit=cover';
+    }
+    function applica(p) {
+        if (!possibile(p)) p = 100;
+        var s = adatta(efficace(p)), c = meta(s);
+        var m = document.querySelector('meta[name="viewport"]'), h = document.documentElement;
+        if (m && m.getAttribute('content') !== c) m.setAttribute('content', c);
+        if (s === 1) { h.classList.remove('wh-scala'); h.style.removeProperty('--wh-scala'); }
+        else { h.classList.add('wh-scala'); h.style.setProperty('--wh-scala', String(s)); }
+        window.__whScala = s;
+        return p;
+    }
+    var p = 100;
+    try { p = parseInt(localStorage.getItem('core_scala_pagina'), 10) || 100; } catch (e) {}
+    if (!possibile(p)) p = 100;
+    window.__whScala = 1;
+    var W = window.whScala = { possibile: possibile, motivo: motivo, efficace: efficace, adatta: adatta, meta: meta, applica: applica, attuale: p === 100 ? 100 : applica(p) };
+    W.passaggio = function (s, da) { return passaggio(s, da); };   // per le prove (funzione dichiarata piu' sotto)
+    // girando lo schermo la scala efficace puo' cambiare (vedi sopra): si riapplica e lo si dice alla pagina
+    function giro() {
+        if (W.attuale === 100 || adatta(efficace(W.attuale)) === window.__whScala) return;
+        var prima = window.__whScala;
+        applica(W.attuale);
+        // WebKit cambia lo zoom solo se la scala nuova si scosta di almeno ~1% da quella che sta usando (provato nel
+        // simulatore: da fermo +0,95% no, +1,05% si'; girando +0,88% no, +1,3% si'): sotto, prende solo la nuova
+        // larghezza in px (scala piu' grande: striscia chiara e bagliore; piu' piccola: pagina tagliata di qualche
+        // punto a destra e in basso). Quindi ripeti() serve solo quando girando la scala cambia di meno dell'1,5%
+        // (es. iPhone 17 Pro all'85%: +0,88% da verticale a orizzontale, -0,88% tornando). Quando cambia di piu'
+        // WebKit la prende subito e il passaggio non serve
+        if (Math.abs(window.__whScala / prima - 1) < 0.015) { ribDa = prima; ribFino = Date.now() + 3000; ribadisci(); }
+        else { ribFino = 0; clearTimeout(ribT); }
+        try { window.dispatchEvent(new Event('wh-scala')); } catch (e) {}
+    }
+    // a rotazione finita (0,8 s senza piu' 'resize') la scala si ripete, e una seconda volta 2 s dopo per sicurezza,
+    // passando per 1/4 di secondo da una scala di passaggio (vedi passaggio())
+    var ribT = 0, ribFino = 0, ribMio = 0, ribDa = 0;
+    function ribadisci() {
+        clearTimeout(ribT);
+        ribT = setTimeout(function () { ripeti(); ribT = setTimeout(ripeti, 2000); }, 800);
+    }
+    // la scala di passaggio: almeno l'1,2% sopra sia la scala vera sia quella che WebKit puo' aver tenuto ('da', la
+    // scala di prima della rotazione), cosi' sia l'andata sia il ritorno superano l'1% e WebKit cambia davvero lo
+    // zoom insieme ai px (con il +0,2% fisso di prima lo zoom restava indietro: per 1/4 di secondo una riga chiara
+    // in basso e a destra, e dopo il ritorno la pagina restava tagliata di poco). Si cerca come in adatta(): copre
+    // tutto lo schermo su entrambi i lati come la scala vera e non porta la pagina oltre la soglia telefono/tablet,
+    // ne' con la larghezza arrotondata ne' senza. Se nessuna va bene si cambia solo il testo del meta (stessa scala).
+    function passaggio(s, da) {
+        var L = larghezza(), f = Math.fround || function (x) { return x; }, base = Math.max(s, da || 0);
+        var su = base * 1.013, min = f(base * 1.012);
+        var s2 = adatta(Math.round(su * 1e6) / 1e6, function (x32) {
+            return x32 < min || (L < SOGLIA) !== (L / x32 < SOGLIA);
+        });
+        return s2 && s2 !== 1 ? meta(s2) : meta(s) + ', shrink-to-fit=no';
+    }
+    function ripeti() {
+        var m = document.querySelector('meta[name="viewport"]'), s = window.__whScala;
+        if (!m || s === 1) return;
+        var c = m.getAttribute('content');
+        ribMio = Date.now() + 700;                    // i 'resize' fatti da qui non rimandano niente
+        m.setAttribute('content', passaggio(s, ribDa));
+        setTimeout(function () { if (m.getAttribute('content') !== c && window.__whScala === s) { ribMio = Date.now() + 700; m.setAttribute('content', c); } }, 250);
+    }
+    try { window.addEventListener('resize', function () { var t = Date.now(); if (t < ribFino && t > ribMio) ribadisci(); }); } catch (e) {}
+    try {
+        var mq = window.matchMedia('(orientation: landscape)');
+        if (mq.addEventListener) mq.addEventListener('change', giro); else if (mq.addListener) mq.addListener(giro);
+    } catch (e) {}
+})();
+</script>
+{% endraw %}
 <meta name="theme-color" content="#000000">
 <meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -26,14 +165,31 @@
 <script>
 /* forma della pagina PRIMA del primo disegno (come nvr.html): niente salto all'apertura.
    f-tel (< 1024 px, barra in basso) o f-grande (da 1024 px, barra laterale); a-moderna / a-retro (scelta del
-   telefono in localStorage, altrimenti quella dell'impianto); wh-leggera = modalita' leggera dell'app */
+   telefono in localStorage, altrimenti quella dell'impianto); wh-leggera = modalita' leggera dell'app.
+   Impostazioni > Aspetto dell'app, scelte su QUESTO dispositivo e lette come le legge mobile.html (27/10/2026):
+   stile del menu (core_nav_style: floating = pillola, flat, dock, minimal -> classe nav-*, come applyCardStyles)
+   e colore/trasparenza delle card (core_card_color, core_card_opacity -> --card-color/--card-opacity del vetro).
+   window.__whAspettoApp si richiama quando la pagina torna dalla cache del browser (pageshow). */
 (function () {
-  var r = document.documentElement, a = '';
-  try { a = localStorage.getItem('wh_musica_aspetto') || ''; } catch (e) {}
-  if (a !== 'moderna' && a !== 'retro') a = (window.MUSICA && window.MUSICA.aspetto === 'retro') ? 'retro' : 'moderna';
-  var c = (window.innerWidth >= 1024 ? 'f-grande' : 'f-tel') + ' a-' + a;
-  try { if (localStorage.getItem('wh_modalita_leggera') === 'true') c += ' wh-leggera'; } catch (e) {}
-  r.className = c;
+  var r = document.documentElement;
+  window.__whAspettoApp = function () {
+    var a = '', n = '';
+    try { a = localStorage.getItem('wh_musica_aspetto') || ''; } catch (e) {}
+    if (a !== 'moderna' && a !== 'retro') a = (window.MUSICA && window.MUSICA.aspetto === 'retro') ? 'retro' : 'moderna';
+    var c = (window.innerWidth >= 1024 ? 'f-grande' : 'f-tel') + ' a-' + a;
+    try { if (localStorage.getItem('wh_modalita_leggera') === 'true') c += ' wh-leggera'; } catch (e) {}
+    try { n = localStorage.getItem('core_nav_style') || ''; } catch (e) {}
+    if (n === 'flat' || n === 'dock' || n === 'minimal') c += ' nav-' + n;
+    // classi messe dagli script della pagina (barra stretta o che scorre, grandezza pagina): restano
+    ['wh-nav-stretta', 'wh-nav-scorre', 'wh-scala'].forEach(function (k) { if (r.classList.contains(k)) c += ' ' + k; });
+    r.className = c;
+    try {
+      var cc = localStorage.getItem('core_card_color'), op = parseFloat(localStorage.getItem('core_card_opacity'));
+      if (cc && /^\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*$/.test(cc)) r.style.setProperty('--card-color', cc); else r.style.removeProperty('--card-color');
+      if (!isNaN(op)) r.style.setProperty('--card-opacity', String(Math.max(0, Math.min(1, op / 100)))); else r.style.removeProperty('--card-opacity');
+    } catch (e) {}
+  };
+  window.__whAspettoApp();
 })();
 </script>
 <style>
@@ -44,6 +200,18 @@
   --molla: cubic-bezier(0.25, 1, 0.5, 1);
   --accent-cyan: #0A84FF;
   --bg-base: #000000;
+  /* vetro delle schede: colore e trasparenza delle card scelti nelle Impostazioni (senza scelta: la bozza, bianco al 5%) */
+  --card-color: 255, 255, 255;
+  --card-opacity: 0.05;
+}
+/* GRANDEZZA PAGINA (come mobile.html): con la pagina in scala (html.wh-scala, script in cima a <head>) il browser da'
+   le aree sicure in punti dello schermo: qui tornano in pixel della pagina (diviso la scala), cosi' testata, barra in
+   basso e sfondo restano fuori da tacca e indicatore Home. Al 100% la classe non c'e' e non cambia nulla. */
+html.wh-scala {
+  --safe-top: calc(env(safe-area-inset-top, 30px) / var(--wh-scala, 1));
+  --safe-bottom: calc(env(safe-area-inset-bottom, 16px) / var(--wh-scala, 1));
+  --wh-sa-t: calc(env(safe-area-inset-top, 0px) / var(--wh-scala, 1));
+  --wh-sa-b: calc(env(safe-area-inset-bottom, 0px) / var(--wh-scala, 1));
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; outline: none; }
 html { color-scheme: dark; background: #000; }
@@ -121,6 +289,12 @@ svg.ico { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: rou
 @media (max-width: 600px) and (orientation: portrait) {
     #app-background.bg-notte-citta { --nc-citta: url('/static/sfondi/notte_citta_citta_tel.svg'); --nc-citta-h: max(190px, 30vh); --nc-luna-x: 62vw; --nc-luna-y: calc(env(safe-area-inset-top, 0px) + 22px); --nc-luna-s: 400px; }
 }
+@media (max-width: 1023px) {
+    html.wh-scala #app-background.bg-notte-citta { --nc-citta-su: calc(66px + var(--wh-sa-b)); --nc-luna-y: calc(var(--wh-sa-t) + 46px); }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+    html.wh-scala #app-background.bg-notte-citta { --nc-luna-y: calc(var(--wh-sa-t) + 22px); }
+}
 .nc-brilli { display: none; position: absolute; inset: 0; pointer-events: none; }
 #app-background.bg-notte-citta .nc-brilli { display: block; }
 .nc-brilli i { position: absolute; left: calc(100% * var(--x)); width: 2px; height: 2px; margin: -1px 0 0 -1px; border-radius: 50%; background: #F2F6FF; box-shadow: 0 0 4px 1px rgba(221,230,255,0.5); opacity: 0.85; will-change: opacity; animation: nc-respiro 7s ease-in-out infinite; }
@@ -178,9 +352,11 @@ html.f-grande.a-moderna #v-g-mod, html.f-grande.a-retro #v-g-rt { display: flex;
 .mp-testa-dx { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .mp-sopra { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.45); }
 .mp-titolo { font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
-.vetro { background: rgba(255,255,255,.05); backdrop-filter: blur(35px) saturate(200%); -webkit-backdrop-filter: blur(35px) saturate(200%);
+.vetro { background: rgba(var(--card-color), var(--card-opacity)); backdrop-filter: blur(35px) saturate(200%); -webkit-backdrop-filter: blur(35px) saturate(200%);
          border: 1px solid rgba(255,255,255,.1); border-top-color: rgba(255,255,255,.25); border-left-color: rgba(255,255,255,.15);
          box-shadow: 0 12px 35px rgba(0,0,0,.3), inset 0 1px 1px rgba(255,255,255,.1); }
+/* modalita' leggera: senza sfocatura il vetro prende la sfumatura delle card spente dell'app (mobile.html, punto 7) */
+.wh-leggera .vetro { background: linear-gradient(160deg, rgba(var(--card-color), calc(var(--card-opacity) + 0.075)) 0%, rgba(var(--card-color), calc(var(--card-opacity) + 0.025)) 100%); }
 .tondo { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #fff; transition: transform .2s; }
 .tondo svg { width: 18px; height: 18px; }
 .tondo:active { transform: scale(.92); }
@@ -352,6 +528,54 @@ html.f-grande .rt-sfondo { background: radial-gradient(ellipse 50% 40% at 40% 30
 .rt-vuoto { display: flex; align-items: center; gap: 12px; height: 110px; padding: 0 18px; border-radius: 14px; font-size: 13px; color: rgba(243,230,208,.75); line-height: 1.35;
             background: linear-gradient(180deg, rgba(255,215,160,.06), rgba(255,215,160,.02)); border: 1px dashed rgba(233,196,143,.25); }
 .rt-vuoto svg { width: 22px; height: 22px; color: #e0a95a; flex: 0 0 auto; }
+/* ---------- retro': Dischi | Radio (27/10/2026). Stessi materiali della bozza: legno del plinto, metallo spazzolato
+   del ricevitore, quadrante color crema dei VU con la lancetta rossa, tasti come il 33/45, Space Mono e DM Serif ---------- */
+.rt-coll-testa { align-items: center; gap: 10px; }
+.rt-coll-tit { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rt-coll-tit b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
+.rt-linguette { display: flex; gap: 7px; flex: 0 0 auto; padding-bottom: 3px; }
+.rt-linguette button { height: 26px; padding: 0 11px; border-radius: 4px; font: 700 9px/26px 'Space Mono', 'Courier New', monospace; letter-spacing: .14em; color: #3a2414; white-space: nowrap;
+                       background: linear-gradient(#f0e6d6, #c9b89c); box-shadow: 0 3px 0 #6b4a2c, 0 4px 6px rgba(0,0,0,.4); transition: transform .15s, box-shadow .15s; }
+.rt-linguette button.on { transform: translateY(2px); box-shadow: 0 1px 0 #6b4a2c, 0 2px 3px rgba(0,0,0,.4); background: linear-gradient(#ffd79a, #e0a95a); }
+/* il sintonizzatore: mobile di legno, pannello di metallo, scala color crema illuminata quando suona una radio */
+.rt-sintonia { margin: 12px 0 8px; padding: 9px; border-radius: 16px;
+               background: repeating-linear-gradient(97deg, rgba(0,0,0,.10) 0 3px, transparent 3px 11px, rgba(255,255,255,.04) 11px 13px, transparent 13px 22px),
+                           linear-gradient(135deg, #7a4a2a 0%, #5a321b 45%, #3f2213 100%);
+               box-shadow: 0 2px 0 #8c5a36 inset, 0 -3px 0 rgba(0,0,0,.35) inset, 0 18px 30px -10px rgba(0,0,0,.75), 0 6px 0 #2a160b; }
+.rt-pannello { border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 12px; border: 1px solid #17191c;
+               background: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px), linear-gradient(180deg, #3b3f45, #23262b);
+               box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 -2px 6px rgba(0,0,0,.4); }
+.rt-scala { position: relative; height: 48px; border-radius: 6px; overflow: hidden; flex: 0 0 auto;
+            background: radial-gradient(ellipse at 50% 115%, #fff5dc, #f3d9a3 70%, #e7c27e);
+            box-shadow: inset 0 0 0 2px #1b1b1b, inset 0 6px 14px rgba(0,0,0,.35); filter: brightness(.78) saturate(.75); transition: filter .5s; }
+.accesa .rt-scala { filter: none; box-shadow: inset 0 0 0 2px #1b1b1b, inset 0 6px 14px rgba(0,0,0,.25), inset 0 0 22px rgba(255,190,90,.55); }
+.rt-scala::before { content: ''; position: absolute; left: 6%; right: 6%; top: 18px; height: 7px; opacity: .55;
+                    background: repeating-linear-gradient(90deg, #3a2a1a 0 1px, transparent 1px 7px); }
+.rt-scala::after { content: ''; position: absolute; left: 6%; right: 6%; top: 25px; height: 1.5px; background: #3a2a1a; opacity: .8; }
+.rt-scala-num { position: absolute; left: 6%; right: 6%; top: 4px; display: flex; justify-content: space-between; font: 700 8px/10px 'Space Mono', 'Courier New', monospace; color: #3a2a1a; }
+.rt-scala-num span { width: 0; display: flex; justify-content: center; }
+.rt-segni i { position: absolute; top: 31px; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: #8a5a22; box-shadow: inset 0 1px 1px rgba(0,0,0,.35); }
+.rt-segni i.on { background: #c0392b; }
+.rt-lancetta { position: absolute; top: 3px; bottom: 3px; left: 3%; width: 2px; margin-left: -1px; border-radius: 1px; background: #c0392b; box-shadow: 0 0 5px rgba(192,57,43,.55);
+               transition: left .9s cubic-bezier(.45,.05,.25,1); z-index: 2; pointer-events: none; }
+.rt-scala em { position: absolute; bottom: 3px; left: 7px; font: 700 7px 'Space Mono', 'Courier New', monospace; font-style: normal; letter-spacing: .1em; color: #6b4a2c; }
+.rt-scala em.dx { left: auto; right: 7px; }
+/* tasti di preselezione: le preferite (la stazione che suona ha il tasto giu' e la spia accesa) */
+.rt-preset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 8px; }
+.rt-tasto-p { position: relative; display: flex; align-items: center; gap: 7px; height: 40px; padding: 0 10px 0 9px; border-radius: 6px; min-width: 0; color: #3a2414; text-align: left;
+              background: linear-gradient(#f0e6d6, #c9b89c); box-shadow: 0 3px 0 #6b4a2c, 0 4px 6px rgba(0,0,0,.4); transition: transform .15s, box-shadow .15s; }
+.rt-tasto-p i { font: 700 9px 'Space Mono', 'Courier New', monospace; font-style: normal; color: #8a6a4a; flex: 0 0 auto; }
+.rt-tasto-p span { flex: 1; min-width: 0; font: 700 10px/1.2 'Space Mono', 'Courier New', monospace; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rt-tasto-p b { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: #5a2a10; transition: background .4s, box-shadow .4s; }
+.rt-tasto-p:active, .rt-tasto-p.on, .rt-tasto-p.attesa { transform: translateY(2px); box-shadow: 0 1px 0 #6b4a2c, 0 2px 3px rgba(0,0,0,.4); }
+.rt-tasto-p.on { background: linear-gradient(#ffd79a, #e0a95a); }
+.rt-tasto-p.on b { background: #ffb347; box-shadow: 0 0 8px 2px rgba(255,170,60,.7); }
+.rt-tasto-p.attesa b { background: #ffb347; animation: punto 1s infinite; }
+.rt-preset .rt-vuoto { grid-column: 1 / -1; height: auto; min-height: 60px; padding: 12px 16px; }
+.rt-cerca { display: flex; align-items: center; justify-content: center; gap: 8px; height: 38px; border-radius: 8px; font: 700 10px 'Space Mono', 'Courier New', monospace; letter-spacing: .12em;
+            text-transform: uppercase; color: #e9c48f; border: 1px solid rgba(233,196,143,.35); background: rgba(233,196,143,.08); }
+.rt-cerca svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.rt-cerca:active { transform: translateY(1px); }
 @media (max-width: 369px) { .rt-scena { transform: scale(.9); transform-origin: 50% 0; height: 268px; } }
 @media (prefers-reduced-motion: reduce) { .rt-ruota { animation: none !important; } .vu-ago { animation: none !important; } }
 
@@ -362,13 +586,46 @@ html.f-grande .rt-sfondo { background: radial-gradient(ellipse 50% 40% at 40% 30
                 border: 1px solid rgba(255,255,255,0.15); border-top: 1px solid rgba(255,255,255,0.25); border-radius: 100px; padding: 8px 12px; display: flex; justify-content: center; gap: 8px;
                 transform: translateZ(0); box-shadow: 0 15px 40px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.1); max-width: calc(100% - 16px); min-width: 0; }
 .nav-item { color: rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 12px 18px; border-radius: 50px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); flex-shrink: 1; min-width: 36px; }
-.nav-item svg { width: 22px; height: 22px; flex-shrink: 0; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+/* icone Lucide a 24 px senza ombra: come le disegna l'app (in mobile.html le <i> diventano <svg> da 24 px) */
+.nav-item svg { width: 24px; height: 24px; flex-shrink: 0; }
 .nav-item.active { color: #000; background: #FFF; box-shadow: 0 4px 15px rgba(255,255,255,0.3); }
-.nav-item.active svg { filter: none; }
 .nav-item.nvr svg { color: #FF6B60; }
-html.wh-nav-stretta .floating-nav { gap: 4px; padding-left: 8px; padding-right: 8px; }
-html.wh-nav-scorre .floating-nav { justify-content: flex-start; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-x; }
-html.a-retro .floating-nav { background: rgba(40,24,14,.55); }
+/* STILI DEL MENU scelti nelle Impostazioni dell'app (core_nav_style): regole di mobile.html ("STILI MENU MOBILE
+   PERSONALIZZABILI") con html.nav-* al posto di body.nav-* (stessa forza dei selettori, stesso risultato) */
+@media (max-width: 1023px) {
+    /* 1. PIATTO: barra aderente ai bordi */
+    html.nav-flat .floating-nav-wrapper { padding-bottom: 0; padding-top: 0; background: rgba(94, 94, 94, 0.15); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); }
+    html.nav-flat .floating-nav { width: 100%; border-radius: 0; border: none; border-top: 1px solid rgba(255,255,255,0.15); box-shadow: none; justify-content: space-around;
+                                  padding: 12px 10px calc(10px + var(--safe-bottom)); background: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    html.nav-flat .nav-item { padding: 10px 14px; border-radius: 14px; }
+    /* 2. DOCK (iPad/macOS) */
+    html.nav-dock .floating-nav { border-radius: 36px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25); border-bottom: 1px solid rgba(255,255,255,0.1);
+                                  padding: 10px; gap: 10px; box-shadow: 0 15px 40px rgba(0,0,0,0.6), inset 0 2px 5px rgba(255,255,255,0.2); }
+    html.nav-dock .nav-item { border-radius: 50%; padding: 0; width: 48px; height: 48px; }
+    /* 3. MINIMAL: solo icone galleggianti */
+    html.nav-minimal .floating-nav-wrapper { background: transparent; }
+    html.nav-minimal .floating-nav { background: transparent; border: none; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; justify-content: space-evenly; width: 100%; }
+    html.nav-minimal .nav-item { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); }
+    html.nav-minimal .nav-item.active { background: #FFF; border-color: transparent; }
+    /* barra con tante voci (classi di adattaBarra, come whAdattaBarra): prima piu' stretta, poi scorre */
+    html.wh-nav-stretta .floating-nav-wrapper .floating-nav { gap: 4px; padding-left: 8px; padding-right: 8px; }
+    html.wh-nav-scorre .floating-nav-wrapper .floating-nav { justify-content: flex-start; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-x; }
+    /* retro': lo stesso stile con il vetro color legno (la pillola della bozza) */
+    html.a-retro .floating-nav { background: rgba(40,24,14,.55); }
+    html.a-retro.nav-flat .floating-nav, html.a-retro.nav-minimal .floating-nav { background: transparent; }
+    html.a-retro.nav-flat .floating-nav-wrapper { background: rgba(40,24,14,.55); }
+    html.a-retro.nav-dock .floating-nav { background: rgba(233,196,143,.12); border-color: rgba(233,196,143,.3); border-bottom-color: rgba(233,196,143,.1); }
+}
+/* modalita' leggera (mobile.html, punto 7): la barra a tinta unita */
+.wh-leggera .floating-nav { background: #22222A; border-color: rgba(255, 255, 255, 0.13); }
+html.wh-leggera.nav-flat .floating-nav-wrapper { background: #22222A; }
+html.wh-leggera.nav-dock .floating-nav { background: #2E2E38; }
+@media (max-width: 1023px) {
+    html.wh-leggera.a-retro .floating-nav { background: #2A1C12; }
+    html.wh-leggera.a-retro.nav-flat .floating-nav, html.wh-leggera.a-retro.nav-minimal .floating-nav { background: transparent; }
+    html.wh-leggera.a-retro.nav-flat .floating-nav-wrapper { background: #2A1C12; }
+    html.wh-leggera.a-retro.nav-dock .floating-nav { background: #3A2A1D; }
+}
 html.f-grande .floating-nav-wrapper { display: none; }
 
 /* ===================== FOGLI (finestre dell'app, mobile.html) ===================== */
@@ -379,8 +636,14 @@ html.f-grande .floating-nav-wrapper { display: none; }
                 border-radius: 40px 40px 0 0; padding: 20px 24px calc(24px + var(--safe-bottom)); z-index: 2001; max-height: 85vh; display: flex; flex-direction: column;
                 transform: translateY(100%); transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity .3s, visibility 0s linear .5s; visibility: hidden; }
 .bottom-modal.active { transform: translateY(0); box-shadow: 0 -15px 50px rgba(0,0,0,0.6); visibility: visible; transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1), opacity .3s, visibility 0s; }
-.wh-leggera .bottom-modal { background: rgba(22,22,26,0.96); }
-.modal-handle { width: 40px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.25); margin: -8px auto 14px; flex: 0 0 auto; }
+/* modalita' leggera: velo, foglio e tempi come nell'app (mobile.html, punti 7 e 8) */
+.wh-leggera .modal-overlay { background: rgba(0, 0, 0, 0.82); transition: opacity 0.26s ease; }
+.wh-leggera .bottom-modal { background: linear-gradient(180deg, rgba(46, 46, 54, 0.985) 0%, rgba(24, 24, 29, 0.985) 55%, rgba(20, 20, 24, 0.985) 100%); border-top: 1px solid rgba(255, 255, 255, 0.22);
+                            transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1), opacity .3s, visibility 0s linear .34s; }
+.wh-leggera .bottom-modal.active { box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12); transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1), opacity .3s, visibility 0s; }
+/* maniglia come quella dell'app (con l'area invisibile grande che prende il dito); si trascina in giu' per chiudere */
+.modal-handle { width: 48px; height: 5px; border-radius: 10px; background: rgba(255,255,255,0.4); box-shadow: 0 1px 3px rgba(0,0,0,0.3); margin: -8px auto 14px; flex: 0 0 auto; position: relative; }
+.modal-handle::after { content: ''; position: absolute; top: -25px; bottom: -25px; left: -40px; right: -40px; z-index: 10; }
 .foglio-testa { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex: 0 0 auto; }
 .foglio-testa h2 { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
 .foglio-x { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15); display: grid; place-items: center; flex: 0 0 auto; }
@@ -513,7 +776,18 @@ html.f-grande .g-lato { display: flex; }
 .g-voci a.nvr svg { color: #FF6B60; }
 .g-imp { margin-top: auto; display: flex; align-items: center; gap: 12px; padding: 0 20px; font-size: 16px; color: rgba(255,255,255,.85); height: 44px; flex: 0 0 auto; }
 .g-imp svg { width: 22px; height: 22px; }
+/* voci + Impostazioni: un blocco solo (in modalita' leggera l'app lo mette a tinta unita, vedi sotto) */
+.g-menu { margin-top: 48px; display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.g-menu .g-voci { margin-top: 0; }
+/* modalita' leggera come la barra laterale dell'app (mobile.html, punto 7: le stesse regole valgono anche sugli
+   schermi grandi): il menu a tinta unita (#22222A, #2E2E38 col Dock); con lo stile Piatto tutta la barra */
+.wh-leggera .g-menu { background: #22222A; }
+html.wh-leggera.nav-dock .g-menu { background: #2E2E38; }
+html.wh-leggera.nav-flat .g-lato { background: #22222A; }
 html.a-retro .g-lato { background: rgba(28,17,10,.6); border-right-color: rgba(233,196,143,.1); }
+html.wh-leggera.a-retro .g-menu { background: #2A1C12; }
+html.wh-leggera.a-retro.nav-dock .g-menu { background: #3A2A1D; }
+html.wh-leggera.a-retro.nav-flat .g-lato { background: #2A1C12; }
 html.a-retro .g-data { color: #e0a95a; }
 html.a-retro .g-voci a.on { background: rgba(233,196,143,.14); }
 .g-main { position: fixed; left: 280px; right: 0; top: 0; bottom: 0; padding: 44px 52px 40px; flex-direction: column; z-index: 1; overflow: hidden; }
@@ -614,6 +888,43 @@ html.a-retro .g-voci a.on { background: rgba(233,196,143,.14); }
 .gr-scaffale .vuoto { position: absolute; left: 22px; right: 22px; bottom: 60px; font-size: 14px; color: rgba(243,230,208,.65); display: flex; gap: 12px; align-items: center; }
 .gr-scaffale .vuoto svg { width: 22px; height: 22px; color: #e0a95a; }
 #v-g-rt .avviso { margin: 0 0 10px; }
+/* retro' grande, Radio (27/10/2026): sintonizzatore sotto i VU (solo con Radio scelta o una radio che suona) */
+.gr-ricevitore { flex-direction: column; gap: 12px; }
+.gr-vu { display: flex; gap: 14px; justify-content: center; }
+.rt-scala.grande { height: 56px; }
+.rt-scala.grande::before { top: 8px; }
+.rt-scala.grande::after { top: 15px; }
+.rt-scala.grande .rt-segni i { top: 18px; width: 5px; height: 5px; margin-left: -2.5px; }
+.gr-nomi button { position: absolute; top: 26px; transform: translateX(-50%); height: 15px; padding: 0 4px; border-radius: 3px; text-align: center; color: #3a2a1a; cursor: pointer;
+                  font: 700 9px/15px 'Space Mono', 'Courier New', monospace; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gr-nomi button.giu { top: 38px; }
+.gr-nomi button:hover { background: rgba(58,42,26,.12); }
+.gr-nomi button.on { color: #a3241a; }
+.rt-scala.grande em { bottom: auto; top: 4px; }
+.gr-scaffale h3 b { font-weight: 400; }
+.gr-linguette { position: absolute; right: 0; top: 2px; }
+/* lo scaffale con le radio: le preferite in piedi (copertina disegnata + targhetta d'ottone), poi "Cerca una radio" */
+.gr-radio { position: absolute; left: 22px; right: 14px; bottom: 30px; height: 196px; display: flex; align-items: flex-end; gap: 18px; padding: 0 6px;
+            overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+.gr-stazione { flex: 0 0 132px; width: 132px; display: flex; flex-direction: column; align-items: center; gap: 9px; cursor: pointer; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+.gr-stazione .cv, .gr-stazione .gr-piu { width: 132px; height: 132px; border-radius: 3px; flex: 0 0 auto; box-shadow: 0 14px 24px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.08); }
+.gr-stazione .cv > .cvn { font-size: 10px; }
+.gr-stazione em { max-width: 132px; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 3px; font: 700 9px/12px 'Space Mono', 'Courier New', monospace; font-style: normal;
+                  letter-spacing: .08em; text-transform: uppercase; color: #2a1a0e; background: linear-gradient(#e9c48f, #b8894f); box-shadow: 0 2px 4px rgba(0,0,0,.5); }
+.gr-stazione em span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gr-stazione em b { width: 6px; height: 6px; border-radius: 50%; background: #5a2a10; flex: 0 0 auto; transition: background .4s, box-shadow .4s; }
+.gr-stazione:hover { transform: translateY(-6px); }
+.gr-stazione.on { transform: translateY(-12px); }
+.gr-stazione.on .cv { box-shadow: 0 0 0 2px #ffb347, 0 0 26px rgba(255,170,60,.45), 0 18px 28px rgba(0,0,0,.6); }
+.gr-stazione.on em b, .gr-stazione.attesa em b { background: #ffb347; box-shadow: 0 0 8px 2px rgba(255,170,60,.7); }
+.gr-stazione.attesa em b { animation: punto 1s infinite; }
+.gr-stazione .gr-piu { display: grid; place-items: center; background: rgba(233,196,143,.05); border: 1px dashed rgba(233,196,143,.4); box-shadow: none; color: #e0a95a; }
+.gr-stazione .gr-piu svg { width: 30px; height: 30px; }
+.gr-stazione.cerca em { background: none; box-shadow: none; color: #e9c48f; border: 1px solid rgba(233,196,143,.35); }
+.gr-radio .vuoto-r { flex: 0 1 300px; align-self: center; font-size: 14px; line-height: 1.4; color: rgba(243,230,208,.65); display: flex; gap: 12px; align-items: center; margin-bottom: 40px; }
+.gr-radio .vuoto-r svg { width: 22px; height: 22px; color: #e0a95a; flex: 0 0 auto; }
+/* la ricerca delle radio dal retro' grande: il foglio della libreria al centro, la ricerca su tutta la riga */
+.f-grande #foglio-lib .g-cerca { width: 100%; flex: 1 1 100%; margin-left: 0; }
 
 /* avviso a scomparsa (come showToast dell'app) */
 #toast { position: fixed; left: 50%; bottom: calc(110px + var(--safe-bottom)); transform: translate(-50%, 20px); z-index: 3000; max-width: calc(100% - 32px);
@@ -662,8 +973,10 @@ html.f-grande #toast { left: calc(50% + 140px); bottom: 32px; }
   <div class="g-ora" id="g-ora" data-no-tr></div>
   <div class="g-data" id="g-data" data-no-tr></div>
   <div class="g-meteo" id="g-meteo" data-no-tr></div>
-  <nav class="g-voci" id="g-voci"></nav>
-  <a class="g-imp" href="/mobile#impostazioni" id="g-imp"><span class="g-imp-ic"></span><span>Impostazioni</span></a>
+  <div class="g-menu">
+    <nav class="g-voci" id="g-voci"></nav>
+    <a class="g-imp" href="/mobile#impostazioni" id="g-imp"><span class="g-imp-ic"></span><span>Impostazioni</span></a>
+  </div>
 </aside>
 
 <div id="app-wrapper">
@@ -735,10 +1048,30 @@ html.f-grande #toast { left: calc(50% + 140px); bottom: 32px; }
         <button type="button" class="x-succ" data-az="succ" aria-label="Successivo"><svg><use href="#f-avanti"/></svg></button>
       </div>
     </div>
-    <div class="rt-coll-testa"><b>La collezione</b><span class="x-coll-n" data-no-tr></span></div>
+    <!-- testata della collezione: Dischi | Radio (tasti come il 33/45 del giradischi; la scelta e' la stessa dei chip della moderna) -->
+    <div class="rt-coll-testa">
+      <div class="rt-coll-tit"><b class="x-coll-t">La collezione</b><span class="x-coll-n" data-no-tr></span></div>
+      <div class="rt-linguette" role="group" aria-label="Sorgente">
+        <button type="button" class="x-ling on" data-az="fonte" data-id="chiavetta" aria-pressed="true">DISCHI</button>
+        <button type="button" class="x-ling" data-az="fonte" data-id="radio" aria-pressed="false">RADIO</button>
+      </div>
+    </div>
     <div class="rt-cassa x-cassa" tabindex="0" aria-label="La collezione">
       <div class="rt-fila x-buste" data-no-tr></div>
       <div class="rt-fronte"><span class="x-fronte" data-no-tr></span></div>
+    </div>
+    <!-- Radio: il sintonizzatore (scala con la lancetta, tasti di preselezione = le preferite, ricerca) -->
+    <div class="rt-sintonia x-sintonia" hidden>
+      <div class="rt-pannello">
+        <div class="rt-scala x-scala" aria-hidden="true">
+          <div class="rt-scala-num" data-no-tr><span>88</span><span>92</span><span>96</span><span>100</span><span>104</span><span>108</span></div>
+          <div class="rt-segni x-segni"></div>
+          <i class="rt-lancetta x-lancetta"></i>
+          <em data-no-tr>FM</em><em class="dx" data-no-tr>MHz</em>
+        </div>
+        <div class="rt-preset x-preset" data-no-tr></div>
+        <button type="button" class="rt-cerca" data-az="cerca-radio"><svg class="ico"><use href="#i-cerca"/></svg><span>Cerca una radio</span></button>
+      </div>
     </div>
   </section>
 
@@ -804,13 +1137,24 @@ html.f-grande #toast { left: calc(50% + 140px); bottom: 32px; }
         </div>
       </div>
       <div class="gr-destra">
-        <div class="gr-ricevitore" aria-hidden="true" data-no-tr>
-          <div class="vu"><svg viewBox="0 0 196 116"><path d="M 13 74 A 128 128 0 0 1 150 37" fill="none" stroke="#3a2a1a" stroke-width="2"/><path d="M 150 37 A 128 128 0 0 1 183 74" fill="none" stroke="#c0392b" stroke-width="5"/>
+        <div class="gr-ricevitore x-ricevitore" data-no-tr>
+          <div class="gr-vu">
+          <div class="vu" aria-hidden="true"><svg viewBox="0 0 196 116"><path d="M 13 74 A 128 128 0 0 1 150 37" fill="none" stroke="#3a2a1a" stroke-width="2"/><path d="M 150 37 A 128 128 0 0 1 183 74" fill="none" stroke="#c0392b" stroke-width="5"/>
 <g stroke="#3a2a1a" stroke-width="1.5"><line x1="20" y1="66" x2="25" y2="72"/><line x1="48" y1="45" x2="51" y2="52"/><line x1="78" y1="35" x2="79" y2="42"/><line x1="98" y1="33" x2="98" y2="40"/><line x1="118" y1="34" x2="117" y2="41"/></g>
 <g font-family="Space Mono, monospace" font-size="8" font-weight="700" fill="#3a2a1a"><text x="14" y="60">-20</text><text x="42" y="40">-10</text><text x="74" y="30">-5</text><text x="95" y="28">0</text><text x="150" y="30" fill="#c0392b">+3</text></g></svg><div class="vu-ago"></div><b>VU</b><small>LEFT</small></div>
-          <div class="vu d"><svg viewBox="0 0 196 116"><path d="M 13 74 A 128 128 0 0 1 150 37" fill="none" stroke="#3a2a1a" stroke-width="2"/><path d="M 150 37 A 128 128 0 0 1 183 74" fill="none" stroke="#c0392b" stroke-width="5"/>
+          <div class="vu d" aria-hidden="true"><svg viewBox="0 0 196 116"><path d="M 13 74 A 128 128 0 0 1 150 37" fill="none" stroke="#3a2a1a" stroke-width="2"/><path d="M 150 37 A 128 128 0 0 1 183 74" fill="none" stroke="#c0392b" stroke-width="5"/>
 <g stroke="#3a2a1a" stroke-width="1.5"><line x1="20" y1="66" x2="25" y2="72"/><line x1="48" y1="45" x2="51" y2="52"/><line x1="78" y1="35" x2="79" y2="42"/><line x1="98" y1="33" x2="98" y2="40"/><line x1="118" y1="34" x2="117" y2="41"/></g>
 <g font-family="Space Mono, monospace" font-size="8" font-weight="700" fill="#3a2a1a"><text x="14" y="60">-20</text><text x="42" y="40">-10</text><text x="74" y="30">-5</text><text x="95" y="28">0</text><text x="150" y="30" fill="#c0392b">+3</text></g></svg><div class="vu-ago"></div><b>VU</b><small>RIGHT</small></div>
+          </div>
+          <!-- sintonizzatore (Radio): i nomi delle preferite sulla scala, la lancetta su quella che suona -->
+          <div class="gr-sintonia x-gsint" hidden>
+            <div class="rt-scala grande x-scala">
+              <div class="rt-segni x-segni" aria-hidden="true"></div>
+              <div class="gr-nomi x-nomi"></div>
+              <i class="rt-lancetta x-lancetta" aria-hidden="true"></i>
+              <em aria-hidden="true">FM</em><em class="dx" aria-hidden="true">MHz</em>
+            </div>
+          </div>
         </div>
         <div class="gr-lato-a">
           <div class="rt-lato x-lato" data-no-tr></div>
@@ -828,9 +1172,14 @@ html.f-grande #toast { left: calc(50% + 140px); bottom: 32px; }
       </div>
     </div>
     <div class="gr-scaffale">
-      <h3>La collezione<span class="x-coll-n" data-no-tr></span></h3>
+      <h3><b class="x-coll-t">La collezione</b><span class="x-coll-n" data-no-tr></span></h3>
+      <div class="rt-linguette gr-linguette" role="group" aria-label="Sorgente">
+        <button type="button" class="x-ling on" data-az="fonte" data-id="chiavetta" aria-pressed="true">DISCHI</button>
+        <button type="button" class="x-ling" data-az="fonte" data-id="radio" aria-pressed="false">RADIO</button>
+      </div>
       <div class="gr-fondo"></div>
       <div class="gr-dorsi x-dorsi" data-no-tr></div>
+      <div class="gr-radio x-gradio" data-no-tr hidden></div>
       <div class="gr-asse"></div>
       <div class="gr-fuori x-fuori" data-no-tr><div class="vinile"></div><div class="cv x-fuori-cop"></div></div>
     </div>
@@ -845,7 +1194,7 @@ html.f-grande #toast { left: calc(50% + 140px); bottom: 32px; }
 <div class="bottom-modal" id="foglio-uscite" role="dialog" aria-modal="true" aria-labelledby="fu-t">
   <div class="modal-handle"></div>
   <div class="foglio-testa"><h2 id="fu-t">Dove suona</h2><button type="button" class="foglio-x" data-az="chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-chiudi"/></svg></button></div>
-  <div class="foglio-corpo"><div id="fu-righe" data-no-tr></div>
+  <div class="foglio-corpo" data-trascina><div id="fu-righe" data-no-tr></div>
     <p class="fu-ritardo" id="fu-ritardo" hidden><svg class="ico"><use href="#i-avviso"/></svg><span>Le casse Sonos suonano qualche secondo dopo l'uscita AUX.</span></p>
   </div>
   <button type="button" class="foglio-fine" data-az="chiudi">Fine</button>
@@ -854,7 +1203,7 @@ html.f-grande #toast { left: calc(50% + 140px); bottom: 32px; }
 <div class="bottom-modal" id="foglio-airplay" role="dialog" aria-modal="true" aria-labelledby="fa-t">
   <div class="modal-handle"></div>
   <div class="foglio-testa"><h2 id="fa-t">Dall'iPhone</h2><button type="button" class="foglio-x" data-az="chiudi" aria-label="Chiudi"><svg class="ico"><use href="#i-chiudi"/></svg></button></div>
-  <div class="foglio-corpo">
+  <div class="foglio-corpo" data-trascina>
     <div class="fu-riga on" id="fa-ora" hidden>
       <div class="fu-su"><div class="fu-ico"><svg class="ico"><use href="#i-trasmetti"/></svg></div>
         <div class="fu-testi"><b id="fa-chi" data-no-tr></b><small id="fa-cosa" data-no-tr></small></div>
@@ -1282,24 +1631,124 @@ function renderRetro(R, grande) {
     : (o.radio ? T('RADIO · IN DIRETTA') : (b ? (T(b.disco >= 2 ? 'LATO B' : 'LATO A') + ' · ' + (b.numero || ((r.coda && r.coda.posizione) + 1) || 1)) : ''));
   testo($('.x-brano', R), o.titolo);
   var acc = accese().map(nomeRetro).join(' + ');
+  // Dischi o Radio: la stessa scelta dei chip della moderna (S.fonte; senza scelta, Radio se suona una radio)
+  var radioV = fonteMostrata() === 'radio';
+  $$('.x-ling', R).forEach(function (x) { var on = x.getAttribute('data-id') === (radioV ? 'radio' : 'chiavetta'); classe(x, 'on', on); attr(x, 'aria-pressed', on ? 'true' : 'false'); });
+  $$('.x-coll-t', R).forEach(function (x) { testo(x, T(radioV ? 'Le radio' : 'La collezione')); });
   if (grande) {
-    var extra = o.radio ? '' : [o.album, b && b.anno].filter(function (x) { return x; }).join(' · ');
+    // con una radio: la stazione accanto a "RADIO · IN DIRETTA" (il titolo grande e' quello che va in onda)
+    var extra = o.radio ? (o.r.radio && o.r.radio.in_onda ? o.artista : '') : [o.album, b && b.anno].filter(function (x) { return x; }).join(' · ');
     testo($('.x-lato', R), (lato + (extra ? ' · ' + extra : '')).toUpperCase());
     testo($('.x-gusc', R), (acc || T('Scegli le casse')).toUpperCase());
+    renderSintoniaGrande(R, o, radioV || o.radio);
     renderTracce(R, o);
     renderManopola(R);
-    renderScaffale(R, o);
+    renderScaffale(R, o, radioV);
   } else {
     testo($('.x-lato', R), lato);
     // telefono: la prima uscita (nome intero se e' sola, corto con '+n' se sono di piu'), come il chip della moderna
     var al = accese(), corta = !al.length ? T('Scegli le casse') : (al.length === 1 ? nomeRetro(al[0]) : nomeUscita(al[0], true) + ' +' + (al.length - 1));
-    var chi = o.airplay ? (o.artista || T("Dall'iPhone")) : (o.radio ? T('In diretta') : (o.b ? o.artista : ''));
+    // radio: il nome della stazione (se il titolo grande e' gia' la stazione, "In diretta")
+    var chi = o.airplay ? (o.artista || T("Dall'iPhone")) : (o.radio ? (o.r.radio && o.r.radio.in_onda ? o.artista : T('In diretta')) : (o.b ? o.artista : ''));
     testo($('.x-art', R), chi + (chi ? ' · ' : '') + corta);
-    renderCassa(R, o);
+    nascondi($('.x-cassa', R), radioV); nascondi($('.x-sintonia', R), !radioV);
+    if (radioV) renderSintonia(R, o); else renderCassa(R, o);
   }
   renderTasti(R, o);
-  var l = (S.st && S.st.libreria) || {};
-  $$('.x-coll-n', R).forEach(function (x) { testo(x, (l.album === 1 ? T('1 DISCO') : (l.album || 0) + ' ' + T('DISCHI')) + ' · A–Z'); });
+  var l = (S.st && S.st.libreria) || {}, np = (S.preferite || []).length;
+  $$('.x-coll-n', R).forEach(function (x) {
+    testo(x, radioV ? (S.preferite ? (np === 1 ? T('1 PREFERITA') : np + ' ' + T('PREFERITE')) : '')
+      : (l.album === 1 ? T('1 DISCO') : (l.album || 0) + ' ' + T('DISCHI')) + ' · A–Z');
+  });
+}
+
+/* ---------- retro', Radio: sintonizzatore (27/10/2026) ----------
+   Le stazioni sono le preferite (stesso elenco e stesse API della moderna); se suona una radio che non e' fra le
+   preferite, si aggiunge in fondo. La lancetta va sulla stazione che suona; senza radio resta a sinistra. */
+function stazioni(o) {
+  var l = (S.preferite || []).slice(), ora = o.radio && o.r.radio;
+  if (ora && ora.uuid && !l.some(function (s) { return s.uuid === ora.uuid; })) l.push({ uuid: ora.uuid, nome: ora.nome || '', fuori: true });
+  return l;
+}
+function sintonizzata(o) { return (o.radio && o.r.radio && o.r.radio.uuid) || ''; }
+function posScala(i, n) { return 6 + (i + 0.5) * 88 / Math.max(1, n); }        // % della scala (fra 6% e 94%)
+function lancetta(box, lista, uuid) {
+  var i = -1; lista.forEach(function (s, j) { if (s.uuid === uuid) i = j; });
+  var x = i < 0 ? '3%' : posScala(i, lista.length).toFixed(2) + '%', l = $('.x-lancetta', box);
+  if (l && l._x !== x) { l._x = x; l.style.left = x; }
+  $$('.x-segni i', box).forEach(function (s) { classe(s, 'on', s._uuid === uuid); });
+}
+function segni(box, lista) {
+  var sg = $('.x-segni', box); if (!sg) return;
+  svuota(sg);
+  lista.forEach(function (s, i) { var m = el('i'); m.style.left = posScala(i, lista.length).toFixed(2) + '%'; m._uuid = s.uuid; sg.appendChild(m); });
+}
+function firmaStazioni(lista) { return JSON.stringify(lista.map(function (s) { return [s.uuid, s.nome, !!s.fuori]; })); }
+/* telefono: scala + tasti di preselezione + "Cerca una radio" */
+function renderSintonia(R, o) {
+  var box = $('.x-sintonia', R), tasti = $('.x-preset', R); if (!box || !tasti) return;
+  var lista = stazioni(o), uuid = sintonizzata(o), k = firmaStazioni(lista) + '|' + (S.preferite ? 1 : 0);
+  if (tasti._k !== k) {
+    tasti._k = k; svuota(tasti); segni(box, lista);
+    if (S.preferite && !lista.length) {
+      var v = el('div', 'rt-vuoto'); v.appendChild(sim('i-radio')); v.appendChild(el('span', null, T('Nessuna radio preferita: cercane una.'))); tasti.appendChild(v);
+    }
+    lista.forEach(function (s, i) {
+      var t = el('button', 'rt-tasto-p'); t.type = 'button'; t.setAttribute('data-az', 'preset'); t._d = s;
+      t.appendChild(el('i', null, s.fuori ? '·' : String(i + 1))); t.appendChild(el('span', null, s.nome)); t.appendChild(el('b'));
+      t.title = s.nome; tasti.appendChild(t);
+    });
+  }
+  classe(box, 'accesa', !!uuid && o.suona);
+  $$('.rt-tasto-p', tasti).forEach(function (t) {
+    var on = !!(t._d && t._d.uuid === uuid);
+    classe(t, 'on', on); attr(t, 'aria-pressed', on ? 'true' : 'false');
+    if (t._attesa && (on || Date.now() > t._attesa)) { t._attesa = 0; classe(t, 'attesa', false); }
+  });
+  lancetta(box, lista, uuid);
+}
+/* schermo grande: la scala sul ricevitore, con i nomi (su due file quando sono tanti) */
+function renderSintoniaGrande(R, o, si) {
+  var box = $('.x-gsint', R); if (!box) return;
+  if (box.hidden === !!si) { nascondi(box, !si); setTimeout(misura, 0); }
+  if (!si) return;
+  var lista = stazioni(o).slice(0, 14), uuid = sintonizzata(o), nomi = $('.x-nomi', box), k = firmaStazioni(lista);
+  if (nomi._k !== k) {
+    nomi._k = k; svuota(nomi); segni(box, lista);
+    var due = lista.length > 4, largo = (due ? 176 : 88) / Math.max(1, lista.length);
+    lista.forEach(function (s, i) {
+      var b = el('button', due && i % 2 ? 'giu' : '', s.nome); b.type = 'button'; b.setAttribute('data-az', 'preset'); b._d = s; b.title = s.nome;
+      b.style.left = posScala(i, lista.length).toFixed(2) + '%'; b.style.maxWidth = 'calc(' + largo.toFixed(2) + '% - 4px)';
+      nomi.appendChild(b);
+    });
+  }
+  classe(box, 'accesa', !!uuid && o.suona);
+  $$('button', nomi).forEach(function (b) { classe(b, 'on', !!(b._d && b._d.uuid === uuid)); });
+  lancetta(box, lista, uuid);
+}
+/* scaffale con le radio (schermo grande): una copertina disegnata per stazione, con la targhetta; poi la ricerca */
+function renderScaffaleRadio(R, o) {
+  var box = $('.x-gradio', R); if (!box) return;
+  var lista = stazioni(o), uuid = sintonizzata(o), k = firmaStazioni(lista) + '|' + (S.preferite ? 1 : 0);
+  if (box._k !== k) {
+    box._k = k; svuota(box);
+    if (S.preferite && !lista.length) { var v = el('div', 'vuoto-r'); v.appendChild(sim('i-radio')); v.appendChild(el('span', null, T('Nessuna radio preferita: cercane una.'))); box.appendChild(v); }
+    lista.forEach(function (s) {
+      var d = el('div', 'gr-stazione'); d.setAttribute('data-az', 'preset'); d.setAttribute('role', 'button'); d.tabIndex = 0; d._d = s; d.title = s.nome;
+      var c = el('div', 'cv'); copertina(c, 'r:' + s.uuid, '', null, true); d.appendChild(c);     // il nome sta sulla targhetta
+      var t = el('em'); t.appendChild(el('b')); t.appendChild(el('span', null, s.nome)); d.appendChild(t);
+      box.appendChild(d);
+    });
+    var cerca = el('div', 'gr-stazione cerca'); cerca.setAttribute('data-az', 'cerca-radio'); cerca.setAttribute('role', 'button'); cerca.tabIndex = 0;
+    var piu = el('div', 'gr-piu'); piu.appendChild(sim('i-cerca')); cerca.appendChild(piu);
+    var tc = el('em'); tc.appendChild(el('span', null, T('Cerca una radio'))); cerca.appendChild(tc);
+    box.appendChild(cerca);
+  }
+  $$('.gr-stazione', box).forEach(function (d) {
+    var on = !!(d._d && d._d.uuid === uuid);
+    classe(d, 'on', on); if (d._d) attr(d, 'aria-pressed', on ? 'true' : 'false');
+    if (d._attesa && (on || Date.now() > d._attesa)) { d._attesa = 0; classe(d, 'attesa', false); }
+  });
 }
 
 function renderTracce(R, o) {
@@ -1385,8 +1834,12 @@ function renderCassa(R, o) {
 /* scaffale (schermo grande): i dorsi di TUTTI gli album (quello che suona sta fuori) */
 var PALETTA = [['#7a2e2e','#f3d9a3'],['#c9a227','#1d1d1d'],['#1d3557','#f1faee'],['#e9c46a','#3a2a1a'],['#2a9d8f','#fff'],['#f4a261','#3a2a1a'],['#264653','#e9c46a'],
                ['#8d99ae','#1d1d1d'],['#e76f51','#fff'],['#3d405b','#f2cc8f'],['#f2cc8f','#3d405b'],['#81b29a','#1d1d1d'],['#111','#d4af37'],['#efe6d4','#c0392b'],['#5e2b97','#fff']];
-function renderScaffale(R, o) {
+function renderScaffale(R, o, radioV) {
   var dorsi = $('.x-dorsi', R), fuori = $('.x-fuori', R); if (!dorsi) return;
+  // Radio: lo scaffale mostra le stazioni (la busta "fuori" e i dorsi si nascondono; i dorsi si rifanno al ritorno)
+  var gr = $('.x-gradio', R), vu = $('.vuoto', R.querySelector('.gr-scaffale'));
+  nascondi(gr, !radioV); nascondi(dorsi, !!radioV); if (vu) nascondi(vu, !!radioV);
+  if (radioV) { nascondi(fuori, true); dorsi._k = null; renderScaffaleRadio(R, o); return; }
   var conFuori = !!(o.albumId || o.radio || o.airplay);
   nascondi(fuori, !conFuori); classe(dorsi, 'senza-fuori', !conFuori);
   if (conFuori) copertina($('.x-fuori-cop', R), o.copK, o.copNome, o.copUrl);
@@ -1469,6 +1922,60 @@ function chiudiFogli(subito) {
   $$('.bottom-modal.active').forEach(function (f) { f.classList.remove('active'); });
   $('#ov').classList.remove('active'); S.foglio = null;
 }
+/* FOGLI CHE SI CHIUDONO TRASCINANDOLI IN GIU' (27/10/2026): il motore initSwipeAndExplode di mobile.html, uguale.
+   Si trascinano dalla maniglia, dall'intestazione e dalle zone data-trascina (il contenuto corto di "Dove suona" e
+   "Dall'iPhone"); oltre 130 px il foglio si chiude, sotto torna su con transform 0.4s cubic-bezier(0.32, 0.72, 0, 1).
+   Solo sotto i 1024 px (sopra il foglio e' una finestra al centro). In un contenuto che scorre si trascina solo col
+   contenuto tutto in cima; i cursori del volume restano del dito. Il tocco sul velo chiude (#ov, data-az="chiudi"). */
+function trascinaFogli() {
+  $$('.bottom-modal').forEach(function (modal) {
+    var zone = [$('.foglio-testa', modal), $('.modal-handle', modal)].concat($$('[data-trascina]', modal));
+    var scroller = null, startY = 0, currentY = 0, isDragging = false, rafId = 0, rimbalzo = 0;
+    var inizio = function (e) {
+      if (window.innerWidth >= 1024 || !modal.classList.contains('active')) return;
+      if (e.target && e.target.closest && e.target.closest('.g-vol')) return;
+      scroller = e.currentTarget && e.currentTarget.closest ? e.currentTarget.closest('.foglio-corpo') : null;
+      if (scroller && scroller.scrollTop > 0) return;
+      startY = e.touches[0].clientY; isDragging = true; currentY = 0;
+      clearTimeout(rimbalzo);
+      modal.style.transition = 'none'; modal.style.willChange = 'transform';
+    };
+    var muovi = function (e) {
+      if (!isDragging) return;
+      currentY = e.touches[0].clientY - startY;
+      if (scroller && scroller.scrollTop > 0) { currentY = 0; return; }     // il dito sta facendo scorrere il contenuto
+      if (currentY > 0) {
+        e.preventDefault();
+        if (rafId) cancelAnimationFrame(rafId);
+        var y = currentY;
+        rafId = requestAnimationFrame(function () { rafId = 0; modal.style.transform = 'translateY(' + y + 'px)'; });
+      }
+    };
+    var fine = function () {
+      if (!isDragging) return;
+      isDragging = false; modal.style.willChange = '';
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      if (currentY > 130) {
+        // soglia superata: si chiude e scende con la sua transizione dal punto dove l'ha lasciato il dito
+        chiudiFogli();
+        modal.style.transition = ''; modal.style.transform = '';
+      } else {
+        // rimbalzo al posto di prima; poi tornano le transizioni del foglio (apertura, chiusura)
+        modal.style.transition = 'transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)';
+        modal.style.transform = '';
+        rimbalzo = setTimeout(function () { if (!isDragging) modal.style.transition = ''; }, 450);
+      }
+      currentY = 0;
+    };
+    zone.forEach(function (z) {
+      if (!z) return;
+      z.addEventListener('touchstart', inizio, { passive: true });
+      z.addEventListener('touchmove', muovi, { passive: false });
+      z.addEventListener('touchend', fine);
+      z.addEventListener('touchcancel', fine);
+    });
+  });
+}
 /* foglio AirPlay: i tre passi con il nome della cassa e, durante una sessione, chi suona e "Interrompi" */
 function renderFoglioAirplay() {
   var st = S.st || {}, ai = st.airplay_info || {}, s = ai.sessione;
@@ -1512,7 +2019,8 @@ function renderFoglioUscite() {
    LIBRERIA (foglio sul telefono, pannello sullo schermo grande)
    ===================================================================== */
 var L = { tab: 'album', q: '', pila: [], cache: {}, gen: 0, quanti: 120, percorso: '', radio: null, radioQ: null, cercaT: 0, target: null };
-function libTarget() { return forma() === 'grande' ? $('#v-g-mod .x-lib') : $('#foglio-lib .x-lib-tel'); }
+// schermo grande: il pannello della moderna; il foglio solo quando e' aperto (ricerca delle radio dal retro')
+function libTarget() { return (forma() === 'grande' && S.foglio !== '#foglio-lib') ? $('#v-g-mod .x-lib') : $('#foglio-lib .x-lib-tel'); }
 function costruisciLib(t) {
   if (t._fatta) return; t._fatta = true;
   var testa = el('div', 'g-lib-testa'), schede = el('div', 'schede');
@@ -1522,7 +2030,7 @@ function costruisciLib(t) {
   testa.appendChild(schede);
   var c = el('label', 'g-cerca'); c.appendChild(sim('i-cerca'));
   var inp = el('input'); inp.type = 'search'; inp.setAttribute('enterkeyhint', 'search'); inp.setAttribute('autocomplete', 'off'); inp.maxLength = 80;
-  inp.addEventListener('input', function () { clearTimeout(L.cercaT); L.cercaT = setTimeout(function () { L.q = inp.value.trim(); L.pila = []; renderLib(true); }, 350); });
+  inp.addEventListener('input', function () { clearTimeout(L.cercaT); L.cercaT = setTimeout(function () { L.cercaT = 0; L.q = inp.value.trim(); L.pila = []; renderLib(true); }, 350); });
   c.appendChild(inp); testa.appendChild(c);
   t.appendChild(testa);
   var corpo = el('div', 'lib-corpo'); corpo.setAttribute('data-no-tr', ''); t.appendChild(corpo);
@@ -1536,7 +2044,7 @@ function renderLibGrande() {
     if (fonteMostrata() === 'radio') L.tab = 'radio';
     costruisciLib(t); renderLib(true); return;
   }
-  if (L._libV !== S.libV && L.tab !== 'radio') renderLib(true);
+  if (L.sporca || (L._libV !== S.libV && L.tab !== 'radio')) { L.sporca = false; renderLib(true); }
 }
 function renderLib(daCapo) {
   var t = libTarget(); if (!t) return;
@@ -1545,7 +2053,8 @@ function renderLib(daCapo) {
   var gen = ++L.gen, corpo = $('.lib-corpo', t), inp = $('.g-cerca input', t);
   $$('.g-tab', t).forEach(function (b) { classe(b, 'on', b.getAttribute('data-id') === L.tab); });
   attr(inp, 'placeholder', T(L.tab === 'radio' ? 'Cerca una radio…' : 'Cerca nella chiavetta…'));
-  if (inp.value.trim() !== L.q) inp.value = L.q;
+  // 27/10: mentre si scrive (prima dei 350 ms) un ridisegno arrivato da altro (cuore, album ricaricati) non cancella il testo
+  if (!L.cercaT && inp.value.trim() !== L.q) inp.value = L.q;
   if (daCapo) { L.quanti = 120; corpo.scrollTop = 0; }
   var top = L.pila[L.pila.length - 1];
   var fai = function (p) { return Promise.resolve(p).then(function (nodi) { if (gen !== L.gen || !nodi) return; svuota(corpo); nodi.forEach(function (n) { if (n) corpo.appendChild(n); }); }); };
@@ -1800,7 +2309,18 @@ document.addEventListener('visibilitychange', function () {
   if (document.hidden) { clearTimeout(timer); timer = 0; }
   else { giro(); prossimoColore(); }
 });
-window.addEventListener('pageshow', function (e) { if (e.persisted) giro(); });
+window.addEventListener('pageshow', function (e) {
+  if (!e.persisted) return;
+  // tornati dalla cache del browser (indietro dall'app): stile del menu, card, leggera e sfondo possono essere cambiati.
+  // Grandezza pagina cambiata intanto: si ricarica, come fa l'app quando la si cambia (WebKit la prende bene solo al caricamento)
+  try {
+    var W = window.whScala, p = parseInt(leggi('core_scala_pagina', ''), 10) || 100;
+    if (W && (W.possibile(p) ? p : 100) !== W.attuale) { location.reload(); return; }
+  } catch (x) {}
+  try { if (window.__whAspettoApp) window.__whAspettoApp(); applyBackground(leggi('core_bg_theme', '') || M.sfondo || 'notte_citta'); } catch (x) {}
+  $$('[class*="x-"]').forEach(function (z) { z._k = null; });
+  misura(); adattaBarra(); giro();
+});
 
 /* comandi: la risposta porta gia' lo stato nuovo */
 function comando(url, corpo, poi) {
@@ -1876,7 +2396,7 @@ function mandaVolumeLocale(u, val) { var v = S.vol[u.id] || (S.vol[u.id] = {}); 
 function setAspetto(a) {
   scrivi('wh_musica_aspetto', a);
   H.classList.remove('a-moderna', 'a-retro'); H.classList.add('a-' + a);
-  chiudiFogli();
+  chiudiFogli(); L.sporca = true;
   $$('[data-az="aspetto"]').forEach(function (b) { var t = T(a === 'retro' ? 'Aspetto moderno' : 'Aspetto retrò'); attr(b, 'aria-label', t); attr(b, 'title', t); });
   // le firme delle viste ripartono da capo: si ridisegna tutto
   $$('[class*="x-"]').forEach(function (e) { e._k = null; });
@@ -1887,6 +2407,19 @@ function apriLibreria(tab) {
   if (tab) { L.tab = tab; L.pila = []; L.q = ''; }
   if (forma() === 'grande') { renderLib(true); return; }
   apriFoglio('#foglio-lib'); renderLib(true);
+}
+/* retro': "Cerca una radio" apre la ricerca che c'e' gia' (scheda Radio della libreria): sul telefono nel foglio,
+   sullo schermo grande nello stesso foglio al centro (il pannello della libreria c'e' solo nella moderna) */
+function apriRicercaRadio() {
+  S.fonte = 'radio'; L.tab = 'radio'; L.pila = []; L.q = ''; L.sporca = true;
+  apriFoglio('#foglio-lib'); renderLib(true);
+}
+/* tasto di preselezione / nome sulla scala / stazione dello scaffale: la stazione che suona gia' non riparte */
+function sintonizza(b, s) {
+  var o = info();
+  if (o.radio && o.suona && sintonizzata(o) === s.uuid) return;
+  b._attesa = Date.now() + 15000; classe(b, 'attesa', true);
+  comando('/api/musica/suona', { tipo: 'radio', uuid: s.uuid }, function () { b._attesa = Date.now() + 600; render(); });
 }
 document.addEventListener('click', function (e) {
   var b = e.target.closest ? e.target.closest('[data-az]') : null;
@@ -1905,8 +2438,13 @@ document.addEventListener('click', function (e) {
         S.fonte = id; L._fonteVista = null;
         if (id === 'radio') caricaPreferite().then(render);
         $$('.x-fila').forEach(function (x) { x._k = null; });
-        if (forma() === 'grande') { L.tab = id === 'radio' ? 'radio' : 'album'; L.pila = []; L.q = ''; L._fonteVista = id === 'radio' ? 'radio' : null; renderLib(true); }
+        if (forma() === 'grande') {
+          L.tab = id === 'radio' ? 'radio' : 'album'; L.pila = []; L.q = ''; L._fonteVista = id === 'radio' ? 'radio' : null;
+          if (aspetto() === 'moderna') renderLib(true); else L.sporca = true;        // retro': la libreria si rifa' quando si vede
+        }
         render(); break;
+      case 'preset': if (d) sintonizza(b, d); break;
+      case 'cerca-radio': apriRicercaRadio(); break;
       case 'libreria': apriLibreria(fonteMostrata() === 'radio' ? 'radio' : (L.tab === 'radio' ? 'album' : null)); break;
       case 'album': if (d) suonaAlbum(d, 0); break;
       case 'apri-album': if (d) { L.pila.push({ t: 'album', al: d }); renderLib(true); } break;
@@ -2022,7 +2560,7 @@ document.addEventListener('wheel', function (e) {
   var t = e.target;
   var man = t.closest && t.closest('.x-manopola');
   if (man) { e.preventDefault(); manopola(e.deltaY < 0 ? 1 : -1); return; }
-  var dorsi = t.closest && t.closest('.x-dorsi');
+  var dorsi = t.closest && t.closest('.x-dorsi, .x-gradio');
   if (dorsi && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); dorsi.scrollLeft += e.deltaY; }
 }, { passive: false });
 document.addEventListener('scroll', function (e) {
@@ -2180,6 +2718,10 @@ function misura() {
     var destra = W - 30 - 357 * sc, vuz = clamp((destra - 2) / 438, 0.6, 1);
     // la riga prende tutta l'altezza che c'e' (fino a quella della bozza): a destra VU, lato A e comandi ci stanno
     var rh = clamp(Hh - testa - 8 - avv - 270, 280 * sc, 470);
+    // con il sintonizzatore (Radio) il ricevitore e' piu' alto: se la colonna non ci sta, ricevitore un po' piu' piccolo
+    // (16 + 92 + 16 + 52 = gap, lato A minimo, gap, comandi; 150 = ricevitore coi soli VU, +68 = scala della radio)
+    var sint = $('.x-gsint', R), alto = 150 + (sint && !sint.hidden ? 68 : 0);
+    vuz = clamp(Math.min(vuz, (rh - 24 * sc / 1.68 - 176) / alto), 0.5, 1);
     R.style.setProperty('--sc', sc.toFixed(3)); R.style.setProperty('--vuz', vuz.toFixed(3)); R.style.setProperty('--rh', Math.round(rh) + 'px');
     arrotondaTracce();
   }
@@ -2192,6 +2734,7 @@ window.addEventListener('orientationchange', function () { setTimeout(function (
 function avvio() {
   try { applyBackground(leggi('core_bg_theme', '') || M.sfondo || 'notte_citta'); } catch (e) {}
   costruisciBarre();
+  trascinaFogli();
   var a = aspetto();
   $$('[data-az="aspetto"]').forEach(function (b) { var t = T(a === 'retro' ? 'Aspetto moderno' : 'Aspetto retrò'); attr(b, 'aria-label', t); attr(b, 'title', t); });
   misura(); adattaBarra();
