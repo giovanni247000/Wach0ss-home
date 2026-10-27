@@ -869,22 +869,71 @@ html.a-retro .g-voci a.on { background: rgba(233,196,143,.14); }
 .gr-scaffale h3 { position: absolute; left: 0; top: 0; font: 400 22px 'DM Serif Display', Georgia, serif; white-space: nowrap; }
 .gr-scaffale h3 span { font: 700 10px 'Space Mono', 'Courier New', monospace; letter-spacing: .15em; color: #c99b5e; margin-left: 10px; }
 .gr-fondo { position: absolute; left: 0; right: 0; top: 36px; bottom: 26px; border-radius: 6px; background: linear-gradient(180deg, #120a05, #1c110a); box-shadow: inset 0 10px 30px rgba(0,0,0,.7); }
-.gr-dorsi { position: absolute; left: 230px; right: 14px; bottom: 26px; height: 196px; display: flex; align-items: flex-end; gap: 1px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
+/* i dorsi (dischi e radio, 27/10/2026): il contenitore sale di 14 px sopra lo scaffale, cosi' il dorso sfilato dal mouse
+   e il pezzo di busta dietro non vengono tagliati; i clic fuori dai dorsi passano sotto (titolo, DISCHI | RADIO) */
+.gr-dorsi { position: absolute; left: 230px; right: 14px; bottom: 26px; height: 250px; display: flex; align-items: flex-end; gap: 1px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain;
+            pointer-events: none; z-index: 0; }
+.gr-dorsi > * { pointer-events: auto; }
 .gr-dorsi.senza-fuori { left: 22px; }
-.dorso { flex: 0 0 auto; border-radius: 2px 2px 0 0; position: relative; cursor: pointer; transition: transform .2s, background-color .6s; box-shadow: inset -2px 0 3px rgba(0,0,0,.35), inset 1px 0 0 rgba(255,255,255,.12); }
-.dorso:hover { transform: translateY(-6px); }
+.dorso { flex: 0 0 auto; border-radius: 2px 2px 0 0; position: relative; cursor: pointer; transition: transform .32s cubic-bezier(.2,.8,.2,1), background-color .6s; box-shadow: inset -2px 0 3px rgba(0,0,0,.35), inset 1px 0 0 rgba(255,255,255,.12); }
 .dorso.inclinato { transform: rotate(-6deg); transform-origin: 0 100%; margin-left: 6px; }
+.dorso.via { opacity: 0 !important; transition: none !important; }
 .dorso span { position: absolute; left: 50%; top: 10px; transform: translateX(-50%) rotate(180deg); writing-mode: vertical-rl; font: 700 8px 'Space Mono', 'Courier New', monospace; letter-spacing: .12em; white-space: nowrap; max-height: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; }
+/* le radio sullo scaffale: dorsi come i dischi, col colore della copertina disegnata e l'onda della radio in fondo */
+.dorso.radio span, .dorso.cerca span { max-height: calc(100% - 34px); }
+.dorso .dorso-ic { position: absolute; left: 50%; bottom: 8px; width: 11px; height: 11px; margin-left: -5.5px; stroke-width: 2.2; opacity: .9; }
+/* fondo pieno (il colore dello scaffale): la busta sfilata del dorso accanto ci passa dietro e non deve trasparire */
+.dorso.cerca { width: 24px; height: 172px; margin-left: 12px; color: #e9c48f; background: linear-gradient(rgba(233,196,143,.07), rgba(233,196,143,.07)), #1a100a; border: 1px dashed rgba(233,196,143,.5); box-shadow: none; }
+.dorso.cerca span { text-transform: uppercase; }
+.gr-radio .vuoto-r { flex: 0 1 300px; align-self: center; font-size: 14px; line-height: 1.4; color: rgba(243,230,208,.65); display: flex; gap: 12px; align-items: center; margin: 0 14px 40px 6px; }
+.gr-radio .vuoto-r svg { width: 22px; height: 22px; color: #e0a95a; flex: 0 0 auto; }
+/* col mouse (solo dove c'e'): il dorso si sfila in su; dietro, la parte alta della busta con la copertina e il nome */
+.dorso-pezzo { position: absolute; top: 0; width: 112px; height: 112px; z-index: -1; pointer-events: none; opacity: 0; transform: translateY(34px);
+               transition: transform .32s cubic-bezier(.2,.8,.2,1), opacity .18s; }
+.dorso-pezzo.on { opacity: 1; transform: none; transition-delay: .05s; }
+.dorso-pezzo > .cv { position: absolute; inset: 0; border-radius: 3px; box-shadow: 0 -4px 16px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.1); }
+.dorso-pezzo em { position: absolute; left: 50%; top: 3px; transform: translateX(-50%); max-width: 210px; display: flex; gap: 6px; align-items: baseline; padding: 3px 8px; border-radius: 3px;
+                  font: 700 9px/12px 'Space Mono', 'Courier New', monospace; font-style: normal; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; color: #2a1a0e;
+                  background: linear-gradient(#efd3a3, #c0935a); box-shadow: 0 2px 6px rgba(0,0,0,.55); }
+.dorso-pezzo em b, .dorso-pezzo em span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.dorso-pezzo em b { flex: 0 1 auto; }
+.dorso-pezzo em span { flex: 0 10 auto; font-weight: 400; opacity: .8; }
+@media (hover: hover) and (pointer: fine) {
+  .gr-dorsi .dorso:hover { transform: translateY(-30px); z-index: 1; }
+  .gr-dorsi .dorso.cerca:hover { transform: translateY(-10px); }
+  /* il dorso inclinato si sfila restando inclinato: raddrizzandosi scappava di lato da sotto il mouse (su e giu') */
+  .gr-dorsi .dorso.inclinato:hover { transform: translateY(-30px) rotate(-6deg); }
+  /* salendo, il bordo del dorso inclinato si sposta di lato di ~3 px: la zona del mouse e' un po' piu' larga */
+  .gr-dorsi .dorso.inclinato:hover::after { top: 0; height: calc(100% + 32px); left: -5px; right: -5px; }
+  /* il dorso sale ma il mouse resta "sopra": la parte lasciata libera in basso resta sua (niente su e giu') */
+  .gr-dorsi .dorso:hover::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 32px; }
+}
+/* con la tastiera (Tab): il dorso col fuoco si sfila come col mouse, con un bordo d'ottone */
+.gr-dorsi .dorso:focus { outline: none; }
+.gr-dorsi .dorso:focus-visible { transform: translateY(-30px); z-index: 1; outline: 2px solid #e9c48f; outline-offset: 1px; }
+.gr-dorsi .dorso.cerca:focus-visible { transform: translateY(-10px); }
+.gr-dorsi .dorso.inclinato:focus-visible { transform: translateY(-30px) rotate(-6deg); }
+/* mentre vola un disco i dorsi non si sfilano (scivolano al posto nuovo, vedi flipDorsi). Regole separate: un
+   browser che non conosce :focus-visible scarterebbe tutta la regola */
+.gr-scaffale.volo .gr-dorsi .dorso:hover { transform: none; }
+.gr-scaffale.volo .gr-dorsi .dorso:focus-visible { transform: none; }
+.gr-scaffale.volo .gr-dorsi .dorso.inclinato:hover { transform: rotate(-6deg); }
+.gr-scaffale.volo .gr-dorsi .dorso.inclinato:focus-visible { transform: rotate(-6deg); }
+@media (prefers-reduced-motion: reduce) { .dorso, .dorso-pezzo { transition: none !important; } }
 .gr-asse { position: absolute; left: -6px; right: -6px; bottom: 0; height: 28px; border-radius: 4px; pointer-events: none;
            background: repeating-linear-gradient(92deg, rgba(0,0,0,.12) 0 3px, transparent 3px 12px), linear-gradient(180deg, #8a5532, #5b3219);
            box-shadow: 0 -2px 0 #a8714a inset, 0 14px 24px rgba(0,0,0,.6); }
 .gr-fuori { position: absolute; left: 22px; bottom: 30px; width: 176px; height: 176px; transform: rotate(-5deg); }
 .gr-fuori .vinile { position: absolute; left: 70px; top: 8px; width: 160px; height: 160px; border-radius: 50%;
-                    background: radial-gradient(circle, #ffd27a 0 3%, #3282b8 3.5% 17%, transparent 17.5%), repeating-radial-gradient(circle, #111 0 1.5px, #1e1e1e 1.5px 3px);
-                    box-shadow: 0 10px 20px rgba(0,0,0,.6); transition: left .8s cubic-bezier(.2,.8,.2,1); }
-#v-g-rt:not(.suona) .gr-fuori .vinile { left: 40px; }
-.gr-fuori .cv { position: absolute; inset: 0; border-radius: 3px; box-shadow: 0 16px 30px rgba(0,0,0,.65); }
-.gr-fuori .cv > .cvn { font-size: 11px; }
+                    background: repeating-radial-gradient(circle, #111 0 1.5px, #1e1e1e 1.5px 3px);
+                    box-shadow: 0 10px 20px rgba(0,0,0,.6); transition: transform .8s cubic-bezier(.2,.8,.2,1); }
+#v-g-rt:not(.suona) .gr-fuori .vinile { transform: translateX(-30px); }
+/* l'etichetta del disco che esce dalla busta e' la stessa copertina del piatto (prima era sempre blu, come la bozza) */
+.gr-fuori .vinile .et { position: absolute; left: 33%; top: 33%; width: 34%; height: 34%; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,.4); }
+.gr-fuori .vinile .et::after { content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #8a8e94); }
+.gr-fuori > .cv { position: absolute; inset: 0; border-radius: 3px; box-shadow: 0 16px 30px rgba(0,0,0,.65); }
+.gr-fuori > .cv > .cvn { font-size: 11px; }
+.gr-scaffale.volo .gr-fuori { visibility: hidden; }
 .gr-scaffale .vuoto { position: absolute; left: 22px; right: 22px; bottom: 60px; font-size: 14px; color: rgba(243,230,208,.65); display: flex; gap: 12px; align-items: center; }
 .gr-scaffale .vuoto svg { width: 22px; height: 22px; color: #e0a95a; }
 #v-g-rt .avviso { margin: 0 0 10px; }
@@ -902,27 +951,27 @@ html.a-retro .g-voci a.on { background: rgba(233,196,143,.14); }
 .gr-nomi button.on { color: #a3241a; }
 .rt-scala.grande em { bottom: auto; top: 4px; }
 .gr-scaffale h3 b { font-weight: 400; }
-.gr-linguette { position: absolute; right: 0; top: 2px; }
-/* lo scaffale con le radio: le preferite in piedi (copertina disegnata + targhetta d'ottone), poi "Cerca una radio" */
-.gr-radio { position: absolute; left: 22px; right: 14px; bottom: 30px; height: 196px; display: flex; align-items: flex-end; gap: 18px; padding: 0 6px;
-            overflow-x: auto; overflow-y: hidden; scrollbar-width: none; overscroll-behavior-x: contain; }
-.gr-stazione { flex: 0 0 132px; width: 132px; display: flex; flex-direction: column; align-items: center; gap: 9px; cursor: pointer; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
-.gr-stazione .cv, .gr-stazione .gr-piu { width: 132px; height: 132px; border-radius: 3px; flex: 0 0 auto; box-shadow: 0 14px 24px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.08); }
-.gr-stazione .cv > .cvn { font-size: 10px; }
-.gr-stazione em { max-width: 132px; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 3px; font: 700 9px/12px 'Space Mono', 'Courier New', monospace; font-style: normal;
-                  letter-spacing: .08em; text-transform: uppercase; color: #2a1a0e; background: linear-gradient(#e9c48f, #b8894f); box-shadow: 0 2px 4px rgba(0,0,0,.5); }
-.gr-stazione em span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.gr-stazione em b { width: 6px; height: 6px; border-radius: 50%; background: #5a2a10; flex: 0 0 auto; transition: background .4s, box-shadow .4s; }
-.gr-stazione:hover { transform: translateY(-6px); }
-.gr-stazione.on { transform: translateY(-12px); }
-.gr-stazione.on .cv { box-shadow: 0 0 0 2px #ffb347, 0 0 26px rgba(255,170,60,.45), 0 18px 28px rgba(0,0,0,.6); }
-.gr-stazione.on em b, .gr-stazione.attesa em b { background: #ffb347; box-shadow: 0 0 8px 2px rgba(255,170,60,.7); }
-.gr-stazione.attesa em b { animation: punto 1s infinite; }
-.gr-stazione .gr-piu { display: grid; place-items: center; background: rgba(233,196,143,.05); border: 1px dashed rgba(233,196,143,.4); box-shadow: none; color: #e0a95a; }
-.gr-stazione .gr-piu svg { width: 30px; height: 30px; }
-.gr-stazione.cerca em { background: none; box-shadow: none; color: #e9c48f; border: 1px solid rgba(233,196,143,.35); }
-.gr-radio .vuoto-r { flex: 0 1 300px; align-self: center; font-size: 14px; line-height: 1.4; color: rgba(243,230,208,.65); display: flex; gap: 12px; align-items: center; margin-bottom: 40px; }
-.gr-radio .vuoto-r svg { width: 22px; height: 22px; color: #e0a95a; flex: 0 0 auto; }
+/* i tasti DISCHI | RADIO stanno davanti ai dorsi: un dorso sfilato (o la sua busta) ci passa dietro, non li copre */
+.gr-linguette { position: absolute; right: 0; top: 2px; z-index: 2; }
+/* lo scaffale con le radio (27/10/2026, sera): e' uno scaffale di dorsi come quello dei dischi (.gr-dorsi.gr-radio, regole
+   sopra): la radio che suona sta fuori, nella busta; "Cerca una radio" e' l'ultimo dorso, tratteggiato */
+
+/* ---------- DISCO SUL PIATTO (27/10/2026): busta e disco che volano dallo scaffale al giradischi ----------
+   Uno strato fisso sopra la pagina; ogni pezzo e' posato in (0,0) e si muove SOLO con transform/opacity (Web Animations,
+   posizioni lette una volta con getBoundingClientRect). Il disco vero del piatto e la busta "fuori" si nascondono
+   mentre volano le copie, e tornano quando le copie si posano. */
+.volo-strato { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 45; pointer-events: none; overflow: hidden; }
+.volo-strato > div { position: absolute; left: 0; top: 0; will-change: transform, opacity; }
+.vd { width: 160px; height: 160px; border-radius: 50%; box-shadow: 0 12px 24px rgba(0,0,0,.55);
+      background: radial-gradient(circle, transparent 33%, rgba(255,255,255,.05) 33.5% 34%, transparent 34.5%), repeating-radial-gradient(circle, #111 0 1.5px, #1c1c1c 1.5px 3px), #111; }
+.vd::after { content: ''; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+             background: conic-gradient(from 0deg, transparent 0 18%, rgba(255,255,255,.13) 24%, transparent 30% 66%, rgba(255,255,255,.09) 72%, transparent 78%); }
+.vd .vd-et { position: absolute; left: 33%; top: 33%; width: 34%; height: 34%; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,.4); }
+.vd > i { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #8a8e94); z-index: 2; }
+.vb { width: 176px; height: 176px; border-radius: 3px; box-shadow: 0 16px 30px rgba(0,0,0,.65); }
+.vb > .cvn { font-size: 11px; }
+.rt.volo .rt-disco { opacity: 0; }
+.rt-busta.via .vinile { opacity: 0 !important; transition: none !important; }
 /* la ricerca delle radio dal retro' grande: il foglio della libreria al centro, la ricerca su tutta la riga */
 .f-grande #foglio-lib .g-cerca { width: 100%; flex: 1 1 100%; margin-left: 0; }
 
@@ -1179,9 +1228,9 @@ html.f-grande #toast { left: calc(50% + 140px); bottom: 32px; }
       </div>
       <div class="gr-fondo"></div>
       <div class="gr-dorsi x-dorsi" data-no-tr></div>
-      <div class="gr-radio x-gradio" data-no-tr hidden></div>
+      <div class="gr-dorsi gr-radio x-gradio" data-no-tr hidden></div>
       <div class="gr-asse"></div>
-      <div class="gr-fuori x-fuori" data-no-tr><div class="vinile"></div><div class="cv x-fuori-cop"></div></div>
+      <div class="gr-fuori x-fuori" data-no-tr><div class="vinile"><div class="et x-fuori-et"></div></div><div class="cv x-fuori-cop"></div></div>
     </div>
   </section>
 </div>
@@ -1623,9 +1672,10 @@ function renderRetro(R, grande) {
   var suona = o.suona && Date.now() > S.cambioFino;          // il disco cambia: braccio su per 1,1 s
   classe(rt, 'suona', suona); classe(R, 'suona', suona);
   renderAvviso(R);
-  var et = $('.x-etichetta', R);
-  copertina(et, o.copK, '', o.copUrl, true);
-  testo($('.x-et', R), o.airplay ? o.artista : (o.radio ? o.copNome : (o.b ? (o.b.artista || '') : '')));
+  // durante il volo del disco (DISCO SUL PIATTO) l'etichetta del piatto e' gia' quella del disco che arriva
+  var cop = coperta(o), et = $('.x-etichetta', R);
+  copertina(et, cop.k, '', cop.url, true);
+  testo($('.x-et', R), cop.et);
   var r = o.r || {}, b = o.b;
   var lato = o.airplay ? 'AIRPLAY · ' + T("Dall'iPhone").toUpperCase()
     : (o.radio ? T('RADIO · IN DIRETTA') : (b ? (T(b.disco >= 2 ? 'LATO B' : 'LATO A') + ' · ' + (b.numero || ((r.coda && r.coda.posizione) + 1) || 1)) : ''));
@@ -1640,7 +1690,8 @@ function renderRetro(R, grande) {
     var extra = o.radio ? (o.r.radio && o.r.radio.in_onda ? o.artista : '') : [o.album, b && b.anno].filter(function (x) { return x; }).join(' · ');
     testo($('.x-lato', R), (lato + (extra ? ' · ' + extra : '')).toUpperCase());
     testo($('.x-gusc', R), (acc || T('Scegli le casse')).toUpperCase());
-    renderSintoniaGrande(R, o, radioV || o.radio);
+    // durante il volo il sintonizzatore resta com'era: se sparisse il giradischi cambierebbe misura (misura()) sotto il disco
+    renderSintoniaGrande(R, o, VOLO ? VOLO.sint : (radioV || o.radio));
     renderTracce(R, o);
     renderManopola(R);
     renderScaffale(R, o, radioV);
@@ -1726,29 +1777,66 @@ function renderSintoniaGrande(R, o, si) {
   $$('button', nomi).forEach(function (b) { classe(b, 'on', !!(b._d && b._d.uuid === uuid)); });
   lancetta(box, lista, uuid);
 }
-/* scaffale con le radio (schermo grande): una copertina disegnata per stazione, con la targhetta; poi la ricerca */
-function renderScaffaleRadio(R, o) {
-  var box = $('.x-gradio', R); if (!box) return;
-  var lista = stazioni(o), uuid = sintonizzata(o), k = firmaStazioni(lista) + '|' + (S.preferite ? 1 : 0);
-  if (box._k !== k) {
-    box._k = k; svuota(box);
-    if (S.preferite && !lista.length) { var v = el('div', 'vuoto-r'); v.appendChild(sim('i-radio')); v.appendChild(el('span', null, T('Nessuna radio preferita: cercane una.'))); box.appendChild(v); }
-    lista.forEach(function (s) {
-      var d = el('div', 'gr-stazione'); d.setAttribute('data-az', 'preset'); d.setAttribute('role', 'button'); d.tabIndex = 0; d._d = s; d.title = s.nome;
-      var c = el('div', 'cv'); copertina(c, 'r:' + s.uuid, '', null, true); d.appendChild(c);     // il nome sta sulla targhetta
-      var t = el('em'); t.appendChild(el('b')); t.appendChild(el('span', null, s.nome)); d.appendChild(t);
-      box.appendChild(d);
-    });
-    var cerca = el('div', 'gr-stazione cerca'); cerca.setAttribute('data-az', 'cerca-radio'); cerca.setAttribute('role', 'button'); cerca.tabIndex = 0;
-    var piu = el('div', 'gr-piu'); piu.appendChild(sim('i-cerca')); cerca.appendChild(piu);
-    var tc = el('em'); tc.appendChild(el('span', null, T('Cerca una radio'))); cerca.appendChild(tc);
-    box.appendChild(cerca);
-  }
-  $$('.gr-stazione', box).forEach(function (d) {
-    var on = !!(d._d && d._d.uuid === uuid);
-    classe(d, 'on', on); if (d._d) attr(d, 'aria-pressed', on ? 'true' : 'false');
-    if (d._attesa && (on || Date.now() > d._attesa)) { d._attesa = 0; classe(d, 'attesa', false); }
+/* scaffale con le radio (schermo grande, 27/10/2026 sera): una LIBRERIA come quella dei dischi. Ogni preferita e' un
+   dorso (stesso legno, stessa altezza, nome in verticale in Space Mono) col colore della sua copertina disegnata e
+   l'onda della radio in fondo; la radio che suona non e' sullo scaffale: sta fuori, nella busta (renderScaffale).
+   In fondo "Cerca una radio", un dorso tratteggiato. Tante preferite: lo scaffale scorre come quello dei dischi. */
+// colori delle 12 copertine disegnate (.cv1 ... .cv12): [dorso, scritta e onda]
+var RPALETTA = [['#2f6fa8', '#ffd27a'], ['#c0440b', '#f8cf6a'], ['#3d2a7a', '#ff9ad5'], ['#efe6d4', '#c0392b'], ['#264653', '#e9c46a'], ['#174a8b', '#f1faee'],
+                ['#151515', '#d4af37'], ['#f06a4f', '#fff3c4'], ['#3b2fc9', '#7fe3ff'], ['#2d6a4f', '#e8f5ee'], ['#14112b', '#4cc9f0'], ['#e5989b', '#3b1f2b']];
+function misureRadio(s) { var h = hash(s.uuid); return [18 + h % 8, 166 + (h >>> 5) % 24]; }
+/* ora = la radio che sta fuori (sul piatto). volo = rifatto da voloGrande al clic (i dorsi scivolano coi tempi del volo);
+   senza: se lo scaffale si vede, i dorsi che restano scivolano al posto nuovo (flipDorsi) invece di saltare */
+function renderScaffaleRadio(R, ora, volo) {
+  var box = $('.x-gradio', R); if (!box) return false;
+  var lista = (S.preferite || []).filter(function (s) { return s.uuid !== ora; });
+  var k = firmaStazioni(lista) + '|' + (S.preferite ? 1 : 0) + '|' + (S.preferite ? S.preferite.length : -1);
+  if (box._k === k) return false;
+  var prima = volo ? null : posDorsi(box);
+  box._k = k;
+  var sc = box.scrollLeft; togliPezzo(true); svuota(box);
+  if (S.preferite && !S.preferite.length) { var v = el('div', 'vuoto-r'); v.appendChild(sim('i-radio')); v.appendChild(el('span', null, T('Nessuna radio preferita: cercane una.'))); box.appendChild(v); }
+  lista.forEach(function (s) {
+    var m = misureRadio(s), c = RPALETTA[hash('r:' + s.uuid) % 12];          // lo stesso disegno di copertina('r:' + uuid)
+    var d = el('div', 'dorso radio');
+    d.style.width = m[0] + 'px'; d.style.height = m[1] + 'px'; d.style.backgroundColor = c[0]; d.style.color = c[1];
+    d.appendChild(el('span', null, String(s.nome || '').toUpperCase()));
+    d.appendChild(sim('i-radio', 'ico dorso-ic'));
+    d.setAttribute('data-az', 'radio-dorso'); d.setAttribute('role', 'button'); d.tabIndex = 0; d.setAttribute('aria-label', s.nome || ''); d._d = s; d._id = s.uuid;
+    box.appendChild(d);
   });
+  var cerca = el('div', 'dorso cerca'); cerca.setAttribute('data-az', 'cerca-radio'); cerca.setAttribute('role', 'button'); cerca.tabIndex = 0;
+  cerca.setAttribute('aria-label', T('Cerca una radio'));
+  cerca.appendChild(el('span', null, T('Cerca una radio'))); cerca.appendChild(sim('i-cerca', 'ico dorso-ic'));
+  box.appendChild(cerca);
+  box.scrollLeft = sc;
+  if (prima) flipDorsi(box, prima);
+  return true;
+}
+
+/* lo scaffale si rifa' (un disco esce o rientra, cambia la radio): invece di saltare, i dorsi che restano scivolano dal
+   posto di prima a quello nuovo (FLIP: posizioni lette prima e dopo, poi solo transform sul compositore) */
+function chiaveDorso(d) { return d._id != null ? 'i' + d._id : (d.classList.contains('cerca') ? 'cerca' : null); }
+function posDorsi(box) {
+  var m = {}; if (!box || box.hidden || !box.firstChild) return m;
+  $$('.dorso', box).forEach(function (d) { var k = chiaveDorso(d); if (k) m[k] = d.getBoundingClientRect().left; });
+  return m;
+}
+// V = il volo (le animazioni sono sue: stessa durata totale, tornano indietro col volo); senza V: 320 ms subito
+function flipDorsi(box, prima, V, da, dur) {
+  var out = [];
+  if (!box || box.hidden || !box.animate || pocoMoto()) return out;
+  var bx = box.getBoundingClientRect();
+  $$('.dorso', box).forEach(function (d) {
+    var k = chiaveDorso(d); if (!k || prima[k] == null) return;
+    var r = d.getBoundingClientRect(), dx = prima[k] - r.left;
+    if (Math.abs(dx) < .5) return;
+    if (Math.max(r.right, r.right + dx) < bx.left - 40 || Math.min(r.left, r.left + dx) > bx.right + 40) return;   // non si vede
+    var base = d.classList.contains('inclinato') ? ' rotate(-6deg)' : '';
+    var kf = [{ transform: 'translateX(' + n1(dx) + 'px)' + base }, { transform: 'translateX(0px)' + base }];
+    try { out.push(V ? anima(V, d, kf, da, dur, 'cubic-bezier(.45,.05,.3,1)') : d.animate(kf, { duration: 320, easing: 'cubic-bezier(.3,.6,.3,1)' })); } catch (e) {}
+  });
+  return out;
 }
 
 function renderTracce(R, o) {
@@ -1834,35 +1922,60 @@ function renderCassa(R, o) {
 /* scaffale (schermo grande): i dorsi di TUTTI gli album (quello che suona sta fuori) */
 var PALETTA = [['#7a2e2e','#f3d9a3'],['#c9a227','#1d1d1d'],['#1d3557','#f1faee'],['#e9c46a','#3a2a1a'],['#2a9d8f','#fff'],['#f4a261','#3a2a1a'],['#264653','#e9c46a'],
                ['#8d99ae','#1d1d1d'],['#e76f51','#fff'],['#3d405b','#f2cc8f'],['#f2cc8f','#3d405b'],['#81b29a','#1d1d1d'],['#111','#d4af37'],['#efe6d4','#c0392b'],['#5e2b97','#fff']];
+/* la busta "fuori" (a sinistra, col disco che esce) e' quello che sta sul piatto, con Dischi e con Radio */
+function postoFuori(box, conFuori) {
+  var prima = box.classList.contains('senza-fuori');
+  if (box._pronto && prima === !conFuori) return;
+  classe(box, 'senza-fuori', !conFuori);
+  // la busta esce o rientra: i dorsi scivolano di lato (solo transform) invece di saltare di 208 px
+  if (box._pronto && !box.hidden && box.animate && !pocoMoto()) {
+    try { box.animate([{ transform: 'translateX(' + (conFuori ? -208 : 208) + 'px)' }, { transform: 'none' }], { duration: 480, easing: 'cubic-bezier(.2,.8,.2,1)' }); } catch (e) {}
+  }
+  box._pronto = true;
+}
 function renderScaffale(R, o, radioV) {
   var dorsi = $('.x-dorsi', R), fuori = $('.x-fuori', R); if (!dorsi) return;
-  // Radio: lo scaffale mostra le stazioni (la busta "fuori" e i dorsi si nascondono; i dorsi si rifanno al ritorno)
+  // Dischi o Radio: due scaffali di dorsi uguali (uno si vede, l'altro si rifa' quando torna)
   var gr = $('.x-gradio', R), vu = $('.vuoto', R.querySelector('.gr-scaffale'));
   nascondi(gr, !radioV); nascondi(dorsi, !!radioV); if (vu) nascondi(vu, !!radioV);
-  if (radioV) { nascondi(fuori, true); dorsi._k = null; renderScaffaleRadio(R, o); return; }
-  var conFuori = !!(o.albumId || o.radio || o.airplay);
-  nascondi(fuori, !conFuori); classe(dorsi, 'senza-fuori', !conFuori);
-  if (conFuori) copertina($('.x-fuori-cop', R), o.copK, o.copNome, o.copUrl);
+  var cop = coperta(o), conFuori = !!(VOLO || o.albumId || o.radio || o.airplay);
+  nascondi(fuori, !conFuori); postoFuori(radioV ? gr : dorsi, conFuori); classe(radioV ? dorsi : gr, 'senza-fuori', !conFuori);
+  if (conFuori) { copertina($('.x-fuori-cop', R), cop.k, cop.nome, cop.url); copertina($('.x-fuori-et', R), cop.k, '', cop.url, true); }
+  // mentre vola un disco gli scaffali non si rifanno: voloGrande li ha gia' rifatti al clic come saranno dopo
+  if (radioV) { dorsi._k = null; if (!VOLO) renderScaffaleRadio(R, sintonizzata(o)); return; }
+  gr._k = null;
+  if (VOLO) return;
+  rifaiDorsi(R, o.albumId);
+}
+/* i dorsi di tutti gli album tranne albumId (quello sul piatto). volo: come renderScaffaleRadio */
+function rifaiDorsi(R, albumId, volo) {
+  var dorsi = $('.x-dorsi', R); if (!dorsi) return false;
   var msg = vuotoLibreria();
-  var k = (msg || '') + '|' + S.libV + '|' + S.album.length + '|' + o.albumId;
-  if (dorsi._k === k) return; dorsi._k = k;
-  var sc = dorsi.scrollLeft; svuota(dorsi);
+  var k = (msg || '') + '|' + S.libV + '|' + S.album.length + '|' + albumId;
+  if (dorsi._k === k) return false;
+  var prima = volo ? null : posDorsi(dorsi);
+  dorsi._k = k;
+  var sc = dorsi.scrollLeft; togliPezzo(true); svuota(dorsi);
   var vecchio = $('.vuoto', R.querySelector('.gr-scaffale')); if (vecchio) vecchio.remove();
-  if (msg) { var v = el('div', 'vuoto'); v.appendChild(sim('i-usb')); v.appendChild(el('span', null, T(msg))); R.querySelector('.gr-scaffale').appendChild(v); return; }
+  if (msg) { var v = el('div', 'vuoto'); v.appendChild(sim('i-usb')); v.appendChild(el('span', null, T(msg))); R.querySelector('.gr-scaffale').appendChild(v); return true; }
   var col = colori();
   S.album.forEach(function (al, i) {
-    if (al.id === o.albumId) return;
+    if (al.id === albumId) return;
     var h = hash(al.id), p = PALETTA[h % PALETTA.length], c = col.c[al.id];
     var d = el('div', 'dorso' + (i % 24 === 23 ? ' inclinato' : ''));
     d.style.width = (13 + h % 13) + 'px'; d.style.height = (168 + (h >>> 5) % 26) + 'px';
     d.style.backgroundColor = (c && c !== 'x') ? c : p[0];
     var s = el('span', null, String(al.artista || al.titolo || '').toUpperCase());
     s.style.color = (c && c !== 'x') ? testoSu(c) : p[1];
-    d.appendChild(s); d.setAttribute('data-az', 'dorso'); d.setAttribute('role', 'button'); d.title = (al.artista ? al.artista + ' · ' : '') + al.titolo; d._d = al; d._id = al.id; d._url = al.copertina;
+    // niente title: col mouse il nome lo dice la targhetta della busta sfilata (il suggerimento del browser ci andrebbe sopra)
+    d.appendChild(s); d.setAttribute('data-az', 'dorso'); d.setAttribute('role', 'button'); d.tabIndex = 0;
+    d.setAttribute('aria-label', (al.artista ? al.artista + ' · ' : '') + al.titolo); d._d = al; d._id = al.id; d._url = al.copertina;
     dorsi.appendChild(d);
     if (!c && osservaDorsi) osservaDorsi.observe(d);
   });
   dorsi.scrollLeft = sc;
+  if (prima) flipDorsi(dorsi, prima);
+  return true;
 }
 
 /* colore medio della copertina, calcolato QUI (canvas 8x8), solo per i dorsi che si vedono, uno alla volta */
@@ -1882,6 +1995,7 @@ var osservaDorsi = ('IntersectionObserver' in window) ? new IntersectionObserver
 }, { root: null, rootMargin: '0px 200px' }) : null;
 function prossimoColore() {
   if (coloreInCorso || !codaColori.length || document.hidden) return;
+  if (VOLO) { setTimeout(prossimoColore, 300); return; }        // mentre vola un disco niente lavoro sulle immagini
   var d = codaColori.shift(); if (!d || !d._url || !d.isConnected) { prossimoColore(); return; }
   coloreInCorso = true;
   var img = new Image(), fatto = false;
@@ -1894,17 +2008,357 @@ function prossimoColore() {
   img.onload = function () {
     try {
       var cv = document.createElement('canvas'); cv.width = 8; cv.height = 8;
-      var cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, 8, 8);
+      // willReadFrequently: tela in memoria normale, getImageData non aspetta la scheda grafica (prima: fino a 0,6 s fermi)
+      var cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0, 8, 8);
       var px = cx.getImageData(0, 0, 8, 8).data, r = 0, g = 0, b = 0, n = 0;
       for (var i = 0; i < px.length; i += 4) { r += px[i]; g += px[i + 1]; b += px[i + 2]; n++; }
       var h2 = function (x) { x = Math.round(x / n); return (x < 16 ? '0' : '') + x.toString(16); };
       fine('#' + h2(r) + h2(g) + h2(b));
     } catch (e) { fine(null); }
   };
-  img.onerror = function () { fine(null); };
+  // senza copertina (204): lo si dice anche alle buste (copertina()), che cosi' non la richiedono di nuovo
+  img.onerror = function () { SENZA_COP[d._url] = 1; fine(null); };
   setTimeout(function () { fine(null); }, 6000);
   img.src = urlImg(d._url);
 }
+
+/* =====================================================================
+   DISCO SUL PIATTO (retro', 27/10/2026)
+   Col mouse un dorso si sfila dallo scaffale (si vede la parte alta della busta e il nome). Al clic su un dorso (o su
+   una busta del telefono, o su un nome della scala della radio) la richiesta parte SUBITO, come prima; intanto la busta
+   esce dallo scaffale, il disco scivola fuori e vola sul piatto, il braccio si alza e riscende quando il disco si posa.
+   Se suonava un altro disco, prima si alza dal piatto e torna nella sua busta, e la busta torna nello scaffale.
+   - Tutto nel browser: solo transform e opacity (Web Animations, sul compositore), posizioni lette UNA volta al clic
+     con getBoundingClientRect (tecnica FLIP); nessuna richiesta in piu' al server.
+   - Il giro dello stato (ogni ~1 s) non interrompe niente: le copie che volano stanno in uno strato a parte; finche'
+     vola, l'etichetta del piatto e la busta "fuori" mostrano gia' il disco nuovo (coperta()) e gli scaffali non si
+     rifanno. Se la richiesta fallisce il volo torna indietro (avviso come sempre); un clic sul disco che suona gia' non
+     lo rifa'. Con "riduci movimento" non vola niente: suona e basta.
+   - Tutte le animazioni di un volo hanno la stessa durata totale (delay + durata + endDelay): girarle all'indietro
+     insieme e' il volo all'indietro.
+   ===================================================================== */
+var VOLO = null, STRATO = null, voloN = 0;
+function pocoMoto() { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } }
+function strato() {
+  if (!STRATO) { STRATO = el('div', 'volo-strato'); STRATO.setAttribute('aria-hidden', 'true'); STRATO.setAttribute('data-no-tr', ''); document.body.appendChild(STRATO); }
+  return STRATO;
+}
+function rett(e) {
+  var r = e && e.getBoundingClientRect ? e.getBoundingClientRect() : null;
+  return (r && r.width && r.height) ? { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, l: r.left, t: r.top, r: r.right, b: r.bottom } : null;
+}
+// cosa sta sul piatto / cosa arriva: chiave e indirizzo della copertina, nome sulla busta, scritta sull'etichetta
+function datiOra(o) {
+  return { k: o.copK, nome: o.copNome, url: o.copUrl, et: o.airplay ? o.artista : (o.radio ? o.copNome : (o.b ? (o.b.artista || '') : '')),
+           id: o.radio ? sintonizzata(o) : (o.albumId || ''), tipo: o.radio ? 'radio' : (o.airplay ? 'airplay' : 'album') };
+}
+function datiAlbum(al) { return { k: al.id, nome: al.artista || al.titolo || '', url: urlCop(al.id) || al.copertina || null, et: al.artista || '', id: al.id, tipo: 'album' }; }
+function datiRadio(s) { return { k: 'r:' + s.uuid, nome: s.nome || '', url: null, et: s.nome || '', id: s.uuid, tipo: 'radio' }; }
+function coperta(o) { return VOLO ? VOLO.dati : datiOra(o); }
+function angolo(R) {                 // rotazione dell'etichetta sul piatto (la ruota e' ferma col braccio alzato)
+  try { var m = /matrix\(([^)]+)\)/.exec(getComputedStyle($('.rt-ruota', R)).transform || ''); if (m) { var p = m[1].split(','); return Math.atan2(parseFloat(p[1]), parseFloat(p[0])) * 180 / Math.PI; } } catch (e) {}
+  return 0;
+}
+function discoEl(dati, ang) {
+  var d = el('div', 'vd'), e = el('div', 'vd-et');
+  copertina(e, dati.k, '', dati.url, true);
+  if (ang) e.style.transform = 'rotate(' + ang.toFixed(1) + 'deg)';
+  d.appendChild(e); d.appendChild(el('i')); return d;
+}
+function bustaEl(dati) { var b = el('div', 'vb'); copertina(b, dati.k, dati.nome, dati.url); return b; }
+function n1(x) { return (Math.round(x * 10) / 10).toString(); }
+function n4(x) { return (Math.round(x * 10000) / 10000).toString(); }
+// busta 176x176: b = { x, y (centro), r (rotazione), ry (rotazione 3D), sx, sy (scala) }; disco 160x160 col centro in (x, y)
+var PB = 900, TAGLIO = 60;            // prospettiva della busta; gradi della busta "di taglio" nello scaffale
+function kB(f, b, op) {
+  return { offset: f, opacity: op == null ? 1 : op,
+           transform: 'translate(' + n1(b.x - 88) + 'px,' + n1(b.y - 88) + 'px) rotate(' + n1(b.r) + 'deg) perspective(' + PB + 'px) rotateY(' + n1(b.ry) + 'deg) scale(' + n4(b.sx) + ',' + n4(b.sy) + ')' };
+}
+function bS(x, y, r, ry, s) { return { x: x, y: y, r: r, ry: ry, sx: s, sy: s }; }
+function bMix(a, b, t) { var m = {}; ['x', 'y', 'r', 'ry', 'sx', 'sy'].forEach(function (k) { m[k] = a[k] + (b[k] - a[k]) * t; }); return m; }
+/* la busta di taglio dentro lo scaffale occupa ESATTAMENTE il rettangolo del dorso d (stesso centro, larga d.w, alta
+   d.h): con la prospettiva il bordo vicino si ingrandisce di PB/(PB-a) e il centro si sposta verso di lui; qui si
+   compensa (prima la copia era piu' alta del dorso del 16% e sconfinava sul legno) */
+function bTaglio(d) {
+  var th = TAGLIO * Math.PI / 180, c = Math.cos(th), s = Math.sin(th), sx = d.w / (176 * c), a = 0, i;
+  for (i = 0; i < 5; i++) { a = 88 * sx * s; sx *= d.w / (88 * sx * c * (PB / (PB + a) + PB / (PB - a))); }
+  a = 88 * sx * s;
+  return { x: d.x + 44 * sx * c * (PB / (PB - a) - PB / (PB + a)), y: d.y, r: 0, ry: TAGLIO, sx: sx, sy: d.h * (PB - a) / (176 * PB) };
+}
+function kD(f, x, y, sx, sy, op) {
+  return { offset: f, opacity: op == null ? 1 : op, transform: 'translate(' + n1(x - 80) + 'px,' + n1(y - 80) + 'px) scale(' + n4(sx) + ',' + n4(sy == null ? sx : sy) + ')' };
+}
+function bez(a, c, b, t) { var u = 1 - t; return { x: u * u * a.x + 2 * u * t * c.x + t * t * b.x, y: u * u * a.y + 2 * u * t * c.y + t * t * b.y }; }
+function anima(V, e, kf, da, dur, easing) {
+  var a = e.animate(kf, { delay: da, duration: dur, endDelay: Math.max(0, V.tot - da - dur), fill: 'both', easing: easing || 'cubic-bezier(.45,.05,.25,1)' });
+  V.anims.push(a);
+  a.onfinish = function () { controllaVolo(V); };
+  return a;
+}
+function aggiungi(V, e) { strato().appendChild(e); V.els.push(e); return e; }
+// il disco che sta sul piatto (bordo del piatto visto in prospettiva: largo T.w, alto T.h) sale e va in (P, scala 1)
+function kfDalPiatto(T, a, dentro) {
+  var fS = T.w / 160, su = { x: T.x, y: T.y - 12 }, c = { x: Math.max(T.x, a.x) + 150, y: (T.y + a.y) / 2 };
+  var kf = [kD(0, T.x, T.y, fS, T.h / 160), kD(.16, su.x, su.y, fS * 1.04)];
+  [.3, .44, .58, .7, .8].forEach(function (f) { var t = (f - .16) / .64, p = bez(su, c, a, t); kf.push(kD(f, p.x, p.y, fS * 1.04 + (1 - fS * 1.04) * t)); });
+  kf.push(kD(.9, dentro.x, dentro.y, 1, 1, 1)); kf.push(kD(1, dentro.x, dentro.y, 1, 1, 0));
+  return kf;
+}
+// il disco nuovo da P (scala s0) al piatto: arco morbido, poi si "sdraia" (prospettiva del piatto)
+function kfAlPiatto(P, s0, T, f0, kf) {
+  var fS = T.w / 160, c = { x: Math.max(P.x, T.x) + 150, y: (P.y + T.y) / 2 - 30 };
+  var fz = [.12, .24, .36, .48, .6, .72, .86].map(function (t) { return f0 + (1 - f0) * t; });
+  fz.forEach(function (f) { var t = (f - f0) / (1 - f0), p = bez(P, c, T, t); kf.push(kD(f, p.x, p.y, s0 + (fS * 1.06 - s0) * Math.min(1, t / .86))); });
+  kf.push(kD(1, T.x, T.y, fS, T.h / 160));
+  return kf;
+}
+
+/* lo scaffale che si vede si rifa' SUBITO, al clic, com'e' dopo il volo: senza il disco (o la radio) nuovo, col vecchio
+   al suo posto ma nascosto (.via) finche' la sua busta non ci rientra. I dorsi scivolano dal posto di prima al nuovo
+   (FLIP, coi tempi del volo) mentre la busta esce: la busta vecchia rientra in un buco che c'e' davvero, e quando il
+   volo finisce lo scaffale e' gia' quello giusto (prima si ridisegnava alla fine e i dorsi saltavano di 4-24 px).
+   Restituisce il rettangolo del dorso che torna (dove si posa la busta vecchia), se si vede. */
+function scaffaleDopo(R, V, sorg, dati, vec, da, dur) {
+  var radioV = fonteMostrata() === 'radio', box = $(radioV ? '.x-gradio' : '.x-dorsi', R);
+  if (!box || box.hidden) return null;
+  var tipo = radioV ? 'radio' : 'album', prima = posDorsi(box);
+  var foco = sorg === document.activeElement ? Array.prototype.indexOf.call(box.children, sorg) : -1;
+  if (!(radioV ? renderScaffaleRadio(R, dati.tipo === tipo ? dati.id : '', true) : rifaiDorsi(R, dati.tipo === tipo ? dati.id : '', true))) return null;
+  var ins = null;
+  if (vec.tipo === tipo && vec.id) $$('.dorso', box).forEach(function (d) { if (d._id === vec.id) ins = d; });
+  if (ins) { classe(ins, 'via', true); V.rientra = ins; }
+  V.flip = flipDorsi(box, prima, V, da, dur);
+  if (foco >= 0) {                             // con la tastiera: il fuoco passa al dorso che ha preso il suo posto
+    var n = box.children[Math.min(foco, box.children.length - 1)];
+    if (n === ins) n = n.nextElementSibling || n.previousElementSibling;
+    V.foco = n || null;
+  }
+  var r = ins ? rett(ins) : null, bx = rett(box);
+  return (r && bx && r.x > bx.l + 4 && r.x < bx.r - 4) ? r : null;
+}
+
+/* schermo grande: busta dallo scaffale (o dal nome sulla scala) alla busta "fuori", disco dalla busta al piatto */
+function voloGrande(sorg, dati) {
+  var R = $('#v-g-rt'), rt = $('.x-rt', R), scaf = $('.gr-scaffale', R), fuori = $('.x-fuori', R);
+  var T = rett($('.rt-disco', R)), sc = rett(scaf), src = rett(sorg);
+  if (!T || !sc || !src) return null;
+  var o = info(), vec = datiOra(o), conVecchio = !!(fuori && !fuori.hidden), ang = angolo(R), dorso = sorg.classList.contains('dorso');
+  var V = { n: ++voloN, dati: dati, tot: 0, anims: [], els: [], ok: null, finito: false, torna: false, classi: [[rt, 'volo'], [scaf, 'volo']],
+            sint: !$('.x-gsint', R).hidden, flip: [] };
+  // la busta "fuori": in basso a sinistra nello scaffale (left 22, bottom 30, 176x176, ruotata di -5 gradi)
+  var F = { x: sc.l + 22 + 88, y: sc.b - 30 - 88 }, cs = Math.cos(-5 * Math.PI / 180), sn = Math.sin(-5 * Math.PI / 180), bF = bS(F.x, F.y, -5, 0, 1);
+  var dalF = function (d) { return { x: F.x + d * cs, y: F.y + d * sn }; };      // centro del disco spostato di d px dentro la busta
+  var tB = conVecchio ? 150 : 0, dB = 540, tD = tB + dB - 60, dD = 600;
+  V.tot = tD + dD;
+  // 0. lo scaffale com'e' dopo; i dorsi scivolano mentre la busta nuova si e' gia' alzata (fino a ~820 ms)
+  var p = scaffaleDopo(R, V, sorg, dati, vec, tB + dB * .2, conVecchio ? 560 : 480);
+  // 1. il disco che sta sul piatto: torna nella sua busta (o, se non c'e' busta, si alza e sparisce)
+  var vd = aggiungi(V, discoEl(vec, ang)), vb = null;
+  vd.classList.add('vecchio');
+  if (conVecchio) {
+    vb = aggiungi(V, bustaEl(vec)); vb.classList.add('vecchia');
+    anima(V, vd, kfDalPiatto(T, dalF(62), dalF(6)), 0, 500, 'cubic-bezier(.4,.1,.35,1)');
+    // 2. la busta vecchia rientra nello scaffale, nel buco del suo dorso (o di lato, girandosi, se non si vede)
+    var kb = [kB(0, bF)], su = bS(F.x + 20, F.y - 44, -1, 28, .97);
+    kb.push(kB(.3, su));
+    if (p) {
+      var bp = bTaglio(p), sopra = { x: bp.x, y: bp.y - 70 }, cc = { x: (su.x + sopra.x) / 2, y: Math.min(su.y, sopra.y) - 50 };
+      [.45, .6, .72].forEach(function (f) { var t = (f - .3) / .5, q = bez(su, cc, sopra, t), m = bMix(su, bp, t); m.x = q.x; m.y = q.y; kb.push(kB(f, m)); });
+      kb.push(kB(.8, { x: sopra.x, y: sopra.y, r: 0, ry: bp.ry, sx: bp.sx, sy: bp.sy }));     // di taglio sopra il buco...
+      kb.push(kB(1, bp));                                                                // ...e giu', al posto del dorso
+    } else {
+      kb.push(kB(.35, bS(F.x + 30, F.y - 24, -2, 34, .95))); kb.push(kB(1, bS(F.x + 120, F.y + 6, 0, 84, .78), 0));
+    }
+    anima(V, vb, kb, 440, 440);
+  } else {
+    anima(V, vd, [kD(0, T.x, T.y, T.w / 160, T.h / 160), kD(.45, T.x, T.y - 16, T.w / 160 * 1.05, null, .85), kD(1, T.x, T.y - 40, T.w / 160 * 1.1, null, 0)], 0, 320, 'ease-out');
+  }
+  // 3. la busta nuova: esce dallo scaffale di taglio (stesso rettangolo del dorso), si gira e va al posto "fuori"
+  var nd = aggiungi(V, discoEl(dati, ang)), nb = aggiungi(V, bustaEl(dati));
+  nd.classList.add('nuovo'); nb.classList.add('nuova');
+  var alza = dorso ? Math.min(90, src.h * .42) : 0, s0 = clamp(src.h / 176, .06, 1.15);
+  var b0 = dorso ? bTaglio(src) : bS(src.x, src.y, 0, 0, s0), b1 = dorso ? bTaglio({ x: src.x, y: src.y - alza, w: src.w, h: src.h }) : bS(src.x, src.y, 0, 0, s0 * .95 + .05);
+  var cb = { x: (b1.x + F.x) / 2, y: Math.min(b1.y, F.y) - 60 };
+  var kn = [kB(0, b0), kB(.26, b1)];
+  [.4, .54, .68, .82, .92].forEach(function (f) {
+    var t = (f - .26) / .74, q = bez(b1, cb, F, t), m = bMix(b1, bF, t);
+    m.x = q.x; m.y = q.y; m.ry = b1.ry * Math.pow(1 - t, 1.3); kn.push(kB(f, m));
+  });
+  kn.push(kB(1, bF));
+  anima(V, nb, kn, tB, dB);
+  // 4. il disco nuovo scivola fuori dalla busta e vola sul piatto
+  var P0 = dalF(30), P1 = dalF(172);
+  var kd = [kD(0, P0.x, P0.y, 1, 1, 0), kD(.04, P0.x, P0.y, 1), kD(.26, P1.x, P1.y, 1)];
+  anima(V, nd, kfAlPiatto(P1, 1, T, .26, kd), tD, dD, 'cubic-bezier(.4,0,.25,1)');
+  if (dorso && sorg.isConnected) { V.via = sorg; classe(sorg, 'via', true); }      // (di solito lo scaffale rifatto l'ha gia' tolto)
+  return V;
+}
+
+/* telefono: il disco esce dalla busta scelta nella cassa e sale sul piatto (piu' breve; niente busta "fuori") */
+function voloTel(busta, dati) {
+  var R = $('#v-tel-rt'), T = rett($('.rt-disco', R));
+  if (!T || T.t < 0 || T.b > window.innerHeight || !rett(busta)) return null;      // il piatto non si vede tutto: niente volo
+  var o = info(), vec = datiOra(o), ang = angolo(R);
+  var V = { n: ++voloN, dati: dati, tot: 980, anims: [], els: [], ok: null, finito: false, torna: false, classi: [[R, 'volo']], via: busta, viaSempre: true };
+  classe(busta, 'via', true);
+  var vd = aggiungi(V, discoEl(vec, ang)); vd.classList.add('vecchio');
+  anima(V, vd, [kD(0, T.x, T.y, T.w / 160, T.h / 160), kD(.45, T.x, T.y - 14, T.w / 160 * 1.05, null, .85), kD(1, T.x, T.y - 36, T.w / 160 * 1.1, null, 0)], 0, 320, 'ease-out');
+  // la busta intanto viene avanti (transizione di .rt-busta.scelta): il disco parte quando e' quasi arrivata
+  V.tDisco = setTimeout(function () {
+    if (VOLO !== V || V.torna) return;
+    var b = rett(busta); if (!b) return;
+    var s0 = b.w * .82 / 160, P0 = { x: b.x, y: b.t + b.h * .35 }, P1 = { x: b.x, y: b.t - 30 };
+    var nd = aggiungi(V, discoEl(dati, ang)), kd = [kD(0, P0.x, P0.y, s0, s0, 0), kD(.06, P0.x, P0.y, s0), kD(.22, P1.x, P1.y, s0)];
+    nd.classList.add('nuovo');
+    var a = nd.animate(kfAlPiatto(P1, s0, T, .22, kd), { duration: V.tot - 260, fill: 'both', easing: 'cubic-bezier(.4,0,.25,1)' });
+    V.anims.push(a); a.onfinish = function () { controllaVolo(V); };
+  }, 260);
+  return V;
+}
+
+/* parte un volo (se si puo'): sorg = dorso, nome sulla scala o busta; promessa = la richiesta gia' partita */
+function vola(sorg, dati, promessa) {
+  if (pocoMoto() || aspetto() !== 'retro' || !sorg || !document.body.animate || document.hidden) return false;
+  fermaVolo(); togliPezzo(true);
+  var V = null;
+  try { V = forma() === 'grande' ? voloGrande(sorg, dati) : voloTel(sorg, dati); } catch (e) { V = null; }
+  if (!V) return false;
+  VOLO = V;
+  V.classi.forEach(function (c) { classe(c[0], c[1], true); });
+  if (V.foco) try { V.foco.focus({ preventScroll: true }); } catch (e) {}
+  S.cambioFino = Date.now() + V.tot + 40;                 // il braccio si alza subito e riscende quando il disco e' giu'
+  render();
+  promessa.then(function (r) { esitoVolo(V, !!(r && r.ok)); });
+  V.sicura = setTimeout(function () { if (VOLO === V && V.ok === null) tornaVolo(V); }, 15000);
+  // l'evento 'finish' arriva solo quando il browser disegna (scheda in secondo piano: no): un controllo leggero ogni 150 ms
+  V.tick = setInterval(function () { controllaVolo(V); }, 150);
+  return true;
+}
+function controllaVolo(V) {
+  if (VOLO !== V || !V.anims.length || !V.anims.every(function (a) { return a.playState === 'finished'; })) return;
+  if (V.torna) { chiudiVolo(V, false); return; }
+  if (V.finito) return;
+  V.finito = true;
+  if (V.ok) chiudiVolo(V, true);
+  else { S.cambioFino = Date.now() + 60000; }            // disco posato ma la risposta non e' ancora arrivata: braccio su
+}
+function esitoVolo(V, ok) {
+  if (VOLO !== V || V.ok !== null) return;
+  V.ok = ok;
+  if (!ok) tornaVolo(V);
+  else if (V.finito) chiudiVolo(V, true);
+}
+function tornaVolo(V) {                       // richiesta fallita: tutto il volo all'indietro (un po' piu' veloce)
+  if (V.torna) return;
+  V.torna = true; clearTimeout(V.tDisco);
+  V.anims.forEach(function (a) { try { a.playbackRate = -1.6; a.play(); } catch (e) {} });
+}
+function togliEls(els, dissolvi) {
+  els.forEach(function (e) {
+    var op = 0;
+    try { op = dissolvi && e.animate ? parseFloat(getComputedStyle(e).opacity) || 0 : 0; } catch (x) { op = 0; }
+    if (op < .02) { if (e.parentNode) e.parentNode.removeChild(e); return; }       // gia' invisibile (disco dentro la busta)
+    try { e.animate([{ opacity: op }, { opacity: 0 }], { duration: 170, fill: 'forwards' }); } catch (x) { op = 0; }
+    // via con un timer (non con 'finish', che senza disegno non arriva): togliendo il pezzo finiscono anche le sue animazioni
+    setTimeout(function () { if (e.parentNode) e.parentNode.removeChild(e); }, op ? 190 : 0);
+  });
+}
+function chiudiVolo(V, ok) {
+  if (VOLO !== V) return;
+  VOLO = null; clearTimeout(V.sicura); clearTimeout(V.tDisco); clearInterval(V.tick);
+  if (V.via && (!ok || V.viaSempre)) classe(V.via, 'via', false);
+  if (V.rientra) classe(V.rientra, 'via', false);    // il dorso del disco vecchio, gia' al suo posto, sotto la busta che si posa
+  S.cambioFino = 0;
+  // etichetta, busta "fuori" e scaffale dallo stato. Riuscito: lo scaffale e' gia' quello (rifatto al clic) e non si
+  // tocca; fallito: si rifa' com'era, e i dorsi sono gia' tornati al posto di prima (volo all'indietro)
+  render();
+  (V.flip || []).forEach(function (a) { try { a.cancel(); } catch (e) {} });     // finite in translateX(0): niente scatto
+  V.classi.forEach(function (c) { classe(c[0], c[1], false); });      // il disco vero e la busta vera tornano, SOTTO le copie
+  togliEls(V.els, true);                     // e le copie si dissolvono sopra (niente buco fra le due)
+  pezzoDopo();
+}
+function fermaVolo() {                        // subito, senza animazione (cambio di vista, finestra ridimensionata, altro clic)
+  var V = VOLO; if (!V) return;
+  VOLO = null; clearTimeout(V.sicura); clearTimeout(V.tDisco); clearInterval(V.tick);
+  V.anims.forEach(function (a) { try { a.cancel(); } catch (e) {} });
+  togliEls(V.els, false);
+  V.classi.forEach(function (c) { classe(c[0], c[1], false); });
+  if (V.via && (V.ok !== true || V.viaSempre)) classe(V.via, 'via', false);
+  if (V.rientra) classe(V.rientra, 'via', false);
+  S.cambioFino = 0;
+}
+
+/* col mouse (o col fuoco della tastiera): la busta dietro al dorso sfilato (la parte alta, col nome).
+   Col mouse si mette solo se il mouse si ferma sul dorso ~120 ms (una spazzata veloce non fa niente); la copertina e'
+   la stessa del campionatore dei colori (gia' in cache); un album che si sa senza copertina usa il disegno */
+var PEZZO = { d: null, el: null, prossimo: null, t: 0 }, FINE = null;
+try { FINE = window.matchMedia ? window.matchMedia('(hover: hover) and (pointer: fine)') : null; } catch (e) { FINE = null; }
+function puoPezzo(d) { return !!(d && d._d && d.isConnected && !VOLO && !d.classList.contains('via') && forma() === 'grande' && aspetto() === 'retro'); }
+function mettiPezzo(d) {
+  var box = d.parentNode, al = d._d; if (!box || !al) return;
+  clearTimeout(PEZZO.t); PEZZO.prossimo = null;
+  if (PEZZO.el) togliPezzo(true);
+  var dati = al.uuid ? datiRadio(al) : datiAlbum(al), col = al.uuid ? null : colori().c[al.id];
+  var p = el('div', 'dorso-pezzo'), c = el('div');
+  copertina(c, dati.k, '', col === 'x' ? null : dati.url, true); p.appendChild(c);
+  var t = el('em');
+  if (al.uuid) t.appendChild(el('b', null, al.nome || ''));
+  else { t.appendChild(el('b', null, al.titolo || '')); if (al.artista) t.appendChild(el('span', null, al.artista)); }
+  p.appendChild(t);
+  var x = d.offsetLeft + d.offsetWidth / 2 - 56, top = box.clientHeight - d.offsetHeight - 52;
+  x = clamp(x, box.scrollLeft + 2, Math.max(box.scrollLeft + 2, box.scrollLeft + box.clientWidth - 114));   // dentro lo scaffale
+  p.style.left = Math.round(x) + 'px'; p.style.top = Math.round(top) + 'px';
+  box.appendChild(p);
+  // la targhetta (puo' essere piu' larga della busta) resta dentro lo scaffale anche vicino ai bordi
+  var tw = t.offsetWidth, lo = box.scrollLeft + 2, hi = Math.max(lo, box.scrollLeft + box.clientWidth - tw - 2);
+  var tl = clamp(d.offsetLeft + d.offsetWidth / 2 - tw / 2, lo, hi), tt = 3;
+  // ...e non va sotto i tasti DISCHI | RADIO (che stanno davanti): si sposta a sinistra dei tasti, o se non c'e' posto sotto
+  var lg = rett($('.gr-linguette', box.parentNode)), bx = box.getBoundingClientRect();
+  if (lg) {
+    var vx = bx.left - box.scrollLeft, vy = bx.top + top;          // da coordinate dello scaffale a coordinate dello schermo
+    if (vy + tt < lg.b + 4 && vy + tt + t.offsetHeight > lg.t - 4 && vx + tl + tw > lg.l - 6) {
+      var sx = lg.l - 8 - tw - vx;
+      if (sx >= lo) tl = Math.min(tl, sx); else tt = Math.ceil(lg.b + 4 - vy);
+    }
+  }
+  t.style.left = Math.round(tl - x) + 'px'; t.style.top = tt + 'px'; t.style.transform = 'none';
+  void p.offsetWidth;                          // posizione di partenza (dietro i dorsi), poi sale con la transizione
+  classe(p, 'on', true);
+  PEZZO.d = d; PEZZO.el = p;
+}
+function togliPezzo(subito) {
+  clearTimeout(PEZZO.t); PEZZO.prossimo = null;
+  var p = PEZZO.el; PEZZO.d = null; PEZZO.el = null;
+  if (!p) return;
+  if (subito || !p.isConnected) { if (p.parentNode) p.parentNode.removeChild(p); return; }
+  classe(p, 'on', false);
+  setTimeout(function () { if (p.parentNode) p.parentNode.removeChild(p); }, 400);
+}
+function foco(d) { try { return d.matches(':focus-visible'); } catch (e) { return false; } }
+// dopo un volo: se il mouse (o il fuoco) e' gia' su un dorso, la sua busta
+function pezzoDopo() {
+  if (forma() !== 'grande' || aspetto() !== 'retro') return;
+  var d = null;
+  try { d = $('#v-g-rt .gr-dorsi:not([hidden]) .dorso:focus-visible'); } catch (e) { d = null; }
+  if (!d && FINE && FINE.matches) d = $('#v-g-rt .gr-dorsi:not([hidden]) .dorso:hover');
+  if (d && d !== PEZZO.d && puoPezzo(d)) mettiPezzo(d);
+}
+document.addEventListener('mouseover', function (e) {
+  if (!FINE || !FINE.matches) return;
+  var d = e.target && e.target.closest ? e.target.closest('.gr-dorsi .dorso') : null;
+  if (d === PEZZO.d || (d && d === PEZZO.prossimo)) return;
+  if (PEZZO.d && !foco(PEZZO.d)) togliPezzo();
+  clearTimeout(PEZZO.t); PEZZO.prossimo = null;
+  if (!puoPezzo(d)) return;
+  PEZZO.prossimo = d;
+  PEZZO.t = setTimeout(function () { PEZZO.prossimo = null; if (puoPezzo(d) && d.matches(':hover')) mettiPezzo(d); }, 120);
+});
+document.addEventListener('mouseout', function (e) { if (!e.relatedTarget) { clearTimeout(PEZZO.t); PEZZO.prossimo = null; if (PEZZO.d && !foco(PEZZO.d)) togliPezzo(); } });     // fuori dalla finestra
+document.addEventListener('focusin', function (e) {
+  var d = e.target && e.target.closest ? e.target.closest('.gr-dorsi .dorso') : null;
+  if (d && d !== PEZZO.d && d._d && foco(d) && puoPezzo(d)) mettiPezzo(d);
+});
+document.addEventListener('focusout', function (e) { if (PEZZO.d && e.target === PEZZO.d && !PEZZO.d.matches(':hover')) togliPezzo(); });
 
 /* =====================================================================
    FOGLIO DELLE USCITE
@@ -2394,6 +2848,7 @@ function mandaVolumeLocale(u, val) { var v = S.vol[u.id] || (S.vol[u.id] = {}); 
    TOCCHI: un solo ascoltatore delegato (data-az), come nvr.html
    ===================================================================== */
 function setAspetto(a) {
+  fermaVolo(); togliPezzo(true);
   scrivi('wh_musica_aspetto', a);
   H.classList.remove('a-moderna', 'a-retro'); H.classList.add('a-' + a);
   chiudiFogli(); L.sporca = true;
@@ -2414,12 +2869,27 @@ function apriRicercaRadio() {
   S.fonte = 'radio'; L.tab = 'radio'; L.pila = []; L.q = ''; L.sporca = true;
   apriFoglio('#foglio-lib'); renderLib(true);
 }
-/* tasto di preselezione / nome sulla scala / stazione dello scaffale: la stazione che suona gia' non riparte */
+/* tasto di preselezione / nome sulla scala / dorso dello scaffale: la stazione che suona gia' non riparte.
+   Schermo grande retro': la radio vola dal suo dorso (se lo scaffale delle radio si vede), se no dal nome sulla scala */
 function sintonizza(b, s) {
   var o = info();
-  if (o.radio && o.suona && sintonizzata(o) === s.uuid) return;
+  if ((o.radio && o.suona && sintonizzata(o) === s.uuid) || (VOLO && VOLO.dati.k === 'r:' + s.uuid)) return;
   b._attesa = Date.now() + 15000; classe(b, 'attesa', true);
-  comando('/api/musica/suona', { tipo: 'radio', uuid: s.uuid }, function () { b._attesa = Date.now() + 600; render(); });
+  var p = comando('/api/musica/suona', { tipo: 'radio', uuid: s.uuid }, function () { b._attesa = Date.now() + 600; render(); });
+  if (forma() === 'grande') vola(dorsoDellaRadio(s) || b, datiRadio(s), p);
+}
+function dorsoDellaRadio(s) {
+  var box = $('#v-g-rt .x-gradio'), bx = rett(box), d = null;
+  if (!box || box.hidden || !bx) return null;
+  $$('.dorso.radio', box).forEach(function (x) { if (x._id === s.uuid) d = x; });
+  var r = rett(d);
+  return (r && r.x > bx.l && r.x < bx.r) ? d : null;          // solo se si vede (lo scaffale scorre)
+}
+/* dorso di un disco: suona subito; il disco che suona gia' non riparte */
+function dorsoAlbum(b, al) {
+  var o = info();
+  if ((o.albumId === al.id && o.suona) || (VOLO && VOLO.dati.k === al.id)) return;
+  vola(b, datiAlbum(al), suonaAlbum(al, 0));
 }
 document.addEventListener('click', function (e) {
   var b = e.target.closest ? e.target.closest('[data-az]') : null;
@@ -2474,12 +2944,18 @@ document.addEventListener('click', function (e) {
         if (d.attiva) apriFoglio('#foglio-uscite'); else cambiaUscita(d, true);
         break;
       case 'busta':
+        // telefono: la busta toccata viene avanti e suona SUBITO; intanto il suo disco sale sul piatto (DISCO SUL PIATTO).
+        // La busta del disco che suona gia' si sceglie e basta
         if (!d) break;
-        S.scelta = d.i; S.sceltaToccata = Date.now(); S.cambioFino = Date.now() + 1100;
+        S.scelta = d.i; S.sceltaToccata = Date.now();
+        var oB = info();
+        if ((oB.albumId === d.album.id && oB.suona) || (VOLO && VOLO.dati.k === d.album.id)) { render(); break; }
+        var pB = suonaAlbum(d.album, 0);
         render();
-        setTimeout(function () { suonaAlbum(d.album, 0); }, 1100);
+        vola(b, datiAlbum(d.album), pB);
         break;
-      case 'dorso': if (d) suonaAlbum(d, 0); break;
+      case 'dorso': if (d) dorsoAlbum(b, d); break;
+      case 'radio-dorso': if (d) sintonizza(b, d); break;
     }
   } catch (err) { avvisa(GENERICA, true); }
 });
@@ -2561,6 +3037,11 @@ document.addEventListener('wheel', function (e) {
   var man = t.closest && t.closest('.x-manopola');
   if (man) { e.preventDefault(); manopola(e.deltaY < 0 ? 1 : -1); return; }
   var dorsi = t.closest && t.closest('.x-dorsi, .x-gradio');
+  if (!dorsi && t.closest && t.closest('#v-g-rt .gr-scaffale')) {
+    // fra un dorso e l'altro (o sopra il titolo) il contenitore non prende il mouse: si fa scorrere lo scaffale che si vede
+    dorsi = $$('#v-g-rt .gr-scaffale .gr-dorsi').filter(function (x) { return !x.hidden; })[0];
+    if (dorsi && Math.abs(e.deltaX) > Math.abs(e.deltaY)) { e.preventDefault(); dorsi.scrollLeft += e.deltaX; return; }
+  }
   if (dorsi && Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); dorsi.scrollLeft += e.deltaY; }
 }, { passive: false });
 document.addEventListener('scroll', function (e) {
@@ -2727,7 +3208,8 @@ function misura() {
   }
 }
 var misuraT = 0;
-window.addEventListener('resize', function () { clearTimeout(misuraT); misuraT = setTimeout(function () { misura(); adattaBarra(); }, 120); });
+// finestra che cambia misura: il disco che vola si posa subito (le posizioni del volo erano quelle di prima)
+window.addEventListener('resize', function () { if (VOLO) { fermaVolo(); render(); } clearTimeout(misuraT); misuraT = setTimeout(function () { misura(); adattaBarra(); }, 120); });
 window.addEventListener('orientationchange', function () { setTimeout(function () { misura(); adattaBarra(); }, 200); });
 
 /* ---------- avvio ---------- */
