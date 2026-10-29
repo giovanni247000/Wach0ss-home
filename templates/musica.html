@@ -160,7 +160,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Space+Mono:wght@400;700&display=swap" media="print" onload="this.media='all'">
 <script src="/static/vendor/lucide-1.41.0.min.js"></script>
-<script>window.MUSICA = {{ {'stanze': stanze or [], 'nvr': nvr_attivo and admin, 'admin': admin, 'aspetto': aspetto_predefinito, 'sfondo': sfondo_impianto or '', 'lingua': lingua or 'it', 'energia': inverter_attivo and true or false, 'calendari': (calendari_nome or 'Calendari') if calendari_attivo else ''}|tojson }};</script>
+<script>window.MUSICA = {{ {'stanze': stanze or [], 'nvr': nvr_attivo and admin, 'admin': admin, 'aspetto': aspetto_predefinito, 'sfondo': sfondo_impianto or '', 'lingua': lingua or 'it', 'energia': inverter_attivo and true or false, 'calendari': (calendari_nome or 'Calendari') if calendari_attivo else '', 'iniziale': iniziale or {}}|tojson }};</script>
 {% raw %}
 <script>
 /* forma della pagina PRIMA del primo disegno (come nvr.html): niente salto all'apertura.
@@ -1482,16 +1482,21 @@ function scrivi(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
 /* ---------- rete ---------- */
 var uscito = false;
+/* [VELOCE 28/10] uscita pulita (lascia(), vicino al giro dello stato): VIA.si = si sta lasciando la pagina. Le letture
+   (GET) in corso si interrompono (RETE.abort) e non ne partono altre finche' non si riprende; i comandi (POST) restano */
+var RETE = ('AbortController' in window) ? new AbortController() : null, VIA = { si: false, t: 0 };
 function api(metodo, url, corpo) {
   var o = { method: metodo, credentials: 'same-origin', cache: 'no-store', headers: { 'Accept': 'application/json' } };
+  if (RETE && metodo === 'GET') o.signal = RETE.signal;
   if (corpo !== undefined) { o.headers['Content-Type'] = 'application/json'; o.body = JSON.stringify(corpo); }
   return fetch(url, o).then(function (r) {
     return r.json().catch(function () { return null; }).then(function (d) {
-      if (r.status === 401 && !uscito) { uscito = true; location.href = '/login'; }
-      if (d && d.codice === 'spenta' && !uscito) { uscito = true; location.replace('/mobile'); }
+      if (!d && VIA.si) return { ok: false, http: 0, dati: {}, codice: 'annullata' };
+      if (r.status === 401 && !uscito) { uscito = true; lascia(true); location.href = '/login'; }
+      if (d && d.codice === 'spenta' && !uscito) { uscito = true; lascia(true); location.replace('/mobile'); }
       return { ok: !!(r.ok && d && d.ok), http: r.status, dati: d || {}, codice: (d && d.codice) || ('http' + r.status) };
     });
-  }).catch(function () { return { ok: false, http: 0, dati: {}, codice: 'rete' }; });
+  }).catch(function (e) { return { ok: false, http: 0, dati: {}, codice: (VIA.si || (e && e.name === 'AbortError')) ? 'annullata' : 'rete' }; });
 }
 function frase(r) { var c = r && r.codice; if (c === 'troppe' && r.http === 409) return 'Hai raggiunto il massimo.'; return FRASI[c] || GENERICA; }
 var toastT = 0;
@@ -1507,7 +1512,7 @@ function togliAvvisoFisso() { var t = $('#toast'); if (t && t._fisso) { t._fisso
 var S = {
   st: null, ricevuto: 0, fonte: null, libV: null, album: [], albumTot: 0, albumCarico: false, albumErr: 0,
   preferite: null, coda: [], codaK: '', brani: {}, braniK: '', scelta: -1, sceltaToccata: 0, cambioFino: 0,
-  vol: {}, uscPend: {}
+  vol: {}, uscPend: {}, colAlbum: {}
 };
 function forma() { return H.classList.contains('f-grande') ? 'grande' : 'tel'; }
 function aspetto() { return H.classList.contains('a-retro') ? 'retro' : 'moderna'; }
@@ -1519,6 +1524,91 @@ function motorePronto() { return !!(S.st && S.st.motore && S.st.motore.stato ===
 var SENZA_COP = {};
 // album senza copertina: il server risponde 204 (non 404, che il browser scrive in rosso nella console)
 function urlImg(u) { return (u && (u.indexOf('/api/musica/copertina/') === 0 || u.indexOf('/api/musica/airplay/copertina') === 0)) ? u + (u.indexOf('?') >= 0 ? '&' : '?') + 'vuota=204' : u; }
+/* [VELOCE 28/10] MINIATURE E CODA DELLE COPERTINE
+   - mini(u): la miniatura (lato 320 px, ~10-20 KB, fatta UNA volta dal server) per liste, griglie, buste, coda e busta
+     sfilata; l'originale (anche 1-2 MB) solo per la copertina grande, l'etichetta del piatto, la busta "fuori", il disco
+     che vola e la busta girata. Se l'originale non e' ancora arrivato ma la sua miniatura si', si vede subito la
+     miniatura e poi, appena c'e', l'originale (stesso aspetto, niente disegno in mezzo).
+   - Al massimo 3 copertine in arrivo insieme (IMG.max). Col tunnel in http (HTTP/1.1) il browser ha 6 connessioni per
+     server: se le copertine le prendono tutte, lo stato e la pagina nuova (uscendo) restano in coda dietro di loro.
+     Le "pigre" (griglia e righe della libreria) partono quando stanno per vedersi (IntersectionObserver), le altre
+     subito, davanti; la stessa copertina in due posti e' una richiesta sola.
+   - Partono dopo il 'load' della pagina (al massimo dopo 1,5 s): con lo stato gia' nella pagina partirebbero prima e il
+     browser la terrebbe "in caricamento" finche' il server non le ha estratte tutte.
+   - Quelle gia' arrivate in questa pagina (IMG.ok) non passano dalla coda: dalla memoria del browser, subito, senza
+     dissolvenza, come prima. Uscendo (lascia) quelle in arrivo si tolgono e la coda si ferma. */
+function mini(u) { return (u && u.indexOf('/api/musica/copertina/') === 0 && !/[?&]d=m(&|$)/.test(u)) ? u + (u.indexOf('?') >= 0 ? '&' : '?') + 'd=m' : u; }
+var IMG = { prima: [], coda: [], in_corso: [], voli: {}, ferme: [], attese: [], tAttese: 0, ok: {}, max: 3, presto: false, pronta: document.readyState === 'complete' };
+function imgPronta() { if (IMG.pronta) return; IMG.pronta = true; prossimaImg(); }
+if (!IMG.pronta) { window.addEventListener('load', imgPronta); setTimeout(imgPronta, 1500); }
+var osservaImg = ('IntersectionObserver' in window) ? new IntersectionObserver(function (voci) {
+  voci.forEach(function (v) { if (v.isIntersecting) { osservaImg.unobserve(v.target); IMG.coda.push(v.target); } });
+  prossimaImg();
+}, { rootMargin: '300px' }) : null;
+function valeImg(im) { return im._sempre || (im._staccata ? !!(im._box && im._box._cop === im._k) : im.isConnected); }
+/* [28/10 sera] una copertina "subito" la cui tessera non e' (ancora) nella pagina: non si butta, si riguarda fra poco.
+   La testa dell'album nella libreria si disegna dentro una promessa e si attacca in un'altra, DOPO il giro della coda:
+   prima la copertina si perdeva (restava il disegno). Quelle ancora fuori dopo 3 s (tessera rifatta o buttata) si lasciano */
+function aspettaImg(im) {
+  var ora = Date.now();
+  if (!im._attesa) im._attesa = ora;
+  if (ora - im._attesa > 3000) return;
+  if (IMG.attese.indexOf(im) < 0) IMG.attese.push(im);
+  if (!IMG.tAttese) IMG.tAttese = setTimeout(riguardaImg, ora - im._attesa < 50 ? 0 : 150);
+}
+function riguardaImg() {
+  IMG.tAttese = 0;
+  var a = IMG.attese; IMG.attese = [];
+  a.forEach(function (im) { if (!im.getAttribute('src') && IMG.prima.indexOf(im) < 0) IMG.prima.push(im); });
+  prossimaImg();
+}
+function caricaImg(im, src, pigra) {
+  im._src = src;
+  if (IMG.ok[src]) { im.src = src; return; }                 // gia' arrivata in questa pagina: subito, dalla memoria
+  if (pigra && osservaImg) { osservaImg.observe(im); return; }
+  IMG.prima.push(im); presto();
+}
+// la coda si guarda appena finito il disegno in corso (stesso giro): copertina() si chiama spesso su una tessera non
+// ancora nella pagina (la si attacca subito dopo); quelle che a quel punto non ci sono (tessera rifatta) si lasciano
+function presto() { if (IMG.presto) return; IMG.presto = true; Promise.resolve().then(function () { IMG.presto = false; prossimaImg(); }); }
+function avviaImg(im) {
+  var src = im._src, fatto = false, t = 0;
+  var fine = function (e) {
+    if (fatto) return; fatto = true; clearTimeout(t); im._fine = null;
+    im.removeEventListener('load', fine); im.removeEventListener('error', fine);
+    // (solo se e' ancora lei: una miniatura sostituita dall'originale prima di arrivare non e' "arrivata")
+    if (e && e.type === 'load' && im.naturalWidth && im.getAttribute('src') === src) IMG.ok[src] = 1;
+    var i = IMG.in_corso.indexOf(im); if (i >= 0) IMG.in_corso.splice(i, 1);
+    if (IMG.voli[src] && !--IMG.voli[src]) delete IMG.voli[src];
+    prossimaImg();
+  };
+  im._fine = fine;
+  im.addEventListener('load', fine); im.addEventListener('error', fine);
+  t = setTimeout(fine, 8000);                                // una copertina lenta non tiene il posto per sempre
+  IMG.in_corso.push(im); IMG.voli[src] = (IMG.voli[src] || 0) + 1;
+  im.src = src;
+}
+function prossimaImg() {
+  if (!IMG.pronta || VIA.si || document.hidden) return;
+  while (IMG.prima.length || IMG.coda.length) {
+    var dav = IMG.prima.length > 0, im = dav ? IMG.prima.shift() : IMG.coda.shift();
+    if (!im || !im._src || im.getAttribute('src')) continue;
+    if (!valeImg(im)) { if (dav && !im._staccata) aspettaImg(im); continue; }
+    // gia' arrivata o gia' in arrivo (la stessa copertina in due posti): nessun posto in piu'
+    if (!IMG.ok[im._src] && !IMG.voli[im._src] && Object.keys(IMG.voli).length >= IMG.max) { (dav ? IMG.prima : IMG.coda).unshift(im); break; }
+    avviaImg(im);
+  }
+}
+// la copertina di una busta (busta sfilata): l'originale se e' gia' arrivato (era sul piatto), se no la miniatura
+function copBusta(u) { return (u && IMG.ok[urlImg(u)]) ? u : mini(u); }
+// [28/10 sera] una copertina chiesta in anticipo, senza un posto nella pagina (tocco su un dorso): passa dalla coda
+function precaricaImg(u) {
+  var src = urlImg(u);
+  if (!u || SENZA_COP[u] || IMG.ok[src] || IMG.voli[src]) return;
+  var im = new Image(); im.decoding = 'async'; im._sempre = true;
+  im.onerror = function () { if (!im._tolta) SENZA_COP[u] = 1; };
+  caricaImg(im, src, false);
+}
 function copertina(box, chiave, nome, url, senzaNome) {
   if (!box) return;
   var k = chiave + '|' + (url || '') + '|' + (nome || '');
@@ -1534,12 +1624,21 @@ function copertina(box, chiave, nome, url, senzaNome) {
   if (im) im.remove();
   if (url && !SENZA_COP[url]) {
     im = document.createElement('img'); im.className = 'cvi'; im.alt = ''; im.decoding = 'async'; im.draggable = false;
-    if (box._lazy) im.loading = 'lazy';
     im.onload = function () { if (box._cop === k) box.classList.add('ha-img'); };
-    im.onerror = function () { SENZA_COP[url] = 1; try { im.remove(); } catch (e) {} };
+    // tolta uscendo dalla pagina (lascia): non e' "senza copertina"
+    im.onerror = function () { if (im._tolta) return; SENZA_COP[url] = 1; try { im.remove(); } catch (e) {} };
     box.insertBefore(im, box.firstChild);
-    im.src = urlImg(url);
-    if (im.complete && im.naturalWidth) box.classList.add('ha-img');     // gia' in cache: niente dissolvenza da capo
+    var src = urlImg(url), m = urlImg(mini(url));
+    if (m !== src && !IMG.ok[src] && (IMG.ok[m] || box._presto)) {
+      // l'originale non c'e' ancora ma la sua miniatura si' (lista, busta, busta sfilata): subito lei, poi l'originale.
+      // [28/10 sera] Le copie che volano e la busta girata (box._presto) la chiedono anche se non c'e': pochi KB, un
+      // giro di rete (dorso toccato su iPad o tablet: senza mouse non c'e' la busta sfilata che l'abbia gia' chiesta)
+      if (IMG.ok[m]) im.src = m; else caricaImg(im, m, false);
+      var alta = new Image(); alta.decoding = 'async'; alta._staccata = true; alta._box = box; alta._k = k;
+      alta.onload = function () { if (box._cop === k && im.isConnected && alta.naturalWidth) im.src = src; };
+      caricaImg(alta, src, false);
+    } else caricaImg(im, src, !!box._lazy && !IMG.ok[src]);
+    if (im.complete && im.naturalWidth) box.classList.add('ha-img');     // gia' in memoria: niente dissolvenza da capo
   }
 }
 
@@ -1776,7 +1875,9 @@ function renderFila(R) {
   if (msg) { fila.appendChild(vuoto(msg.indexOf('Indicizzazione') === 0 ? 'i-disco' : 'i-usb', msg)); return; }
   S.album.slice(0, 12).forEach(function (al) {
     var d = el('div', 'mp-album'); d.setAttribute('data-az', 'album'); d._d = al; d.setAttribute('role', 'button'); d.tabIndex = 0;
-    var c = el('div', 'cv'); c._lazy = true; copertina(c, al.id, al.artista || al.titolo, al.copertina); d.appendChild(c);
+    // [VELOCE] la fila ha al massimo 12 album: miniature subito (3 alla volta), anche quelle oltre il bordo della fila
+    // che scorre (un IntersectionObserver non le vedrebbe finche' non si scorre)
+    var c = el('div', 'cv'); copertina(c, al.id, al.artista || al.titolo, mini(al.copertina)); d.appendChild(c);
     d.appendChild(el('p', null, al.titolo)); fila.appendChild(d);
   });
 }
@@ -1798,7 +1899,7 @@ function renderCoda(R) {
       var c = el('div', 'cv'); r.appendChild(c); r.appendChild(el('b')); r.appendChild(el('span')); r.appendChild(el('em'));
     }
     r._d = b;
-    copertina(r.firstChild, b.album_id || b.file, b.artista, urlCop(b.album_id));
+    copertina(r.firstChild, b.album_id || b.file, b.artista, mini(urlCop(b.album_id)));
     testo(r.children[1], b.titolo); testo(r.children[2], b.artista || T('Artista sconosciuto')); testo(r.children[3], b.durata ? mmss(b.durata) : '');
     nuova[id] = r; box.appendChild(r);
   });
@@ -2050,7 +2151,7 @@ function renderCassa(R, o) {
     if (!b) {
       b = el('div', 'rt-busta'); b.setAttribute('data-az', 'busta'); b.setAttribute('role', 'button');
       b.appendChild(el('div', 'vinile'));
-      copertina(b, al.id, al.artista || al.titolo, al.copertina);
+      copertina(b, al.id, al.artista || al.titolo, mini(al.copertina));
     }
     b._d = { i: j, album: al };
     b.setAttribute('aria-label', (al.artista ? al.artista + ' · ' : '') + al.titolo);
@@ -2104,43 +2205,56 @@ function rifaiDorsi(R, albumId, volo) {
   var sc = dorsi.scrollLeft; togliPezzo(true); svuota(dorsi);
   var vecchio = $('.vuoto', R.querySelector('.gr-scaffale')); if (vecchio) vecchio.remove();
   if (msg) { var v = el('div', 'vuoto'); v.appendChild(sim('i-usb')); v.appendChild(el('span', null, T(msg))); R.querySelector('.gr-scaffale').appendChild(v); return true; }
-  var col = colori();
   S.album.forEach(function (al, i) {
     if (al.id === albumId) return;
-    var h = hash(al.id), p = PALETTA[h % PALETTA.length], c = col.c[al.id];
+    var h = hash(al.id), p = PALETTA[h % PALETTA.length], c = coloreDi(al.id), si = eColore(c);
     var d = el('div', 'dorso' + (i % 24 === 23 ? ' inclinato' : ''));
     d.style.width = (13 + h % 13) + 'px'; d.style.height = (168 + (h >>> 5) % 26) + 'px';
-    d.style.backgroundColor = (c && c !== 'x') ? c : p[0];
+    d.style.backgroundColor = si ? c : p[0];
     var s = el('span', null, String(al.artista || al.titolo || '').toUpperCase());
-    s.style.color = (c && c !== 'x') ? testoSu(c) : p[1];
+    s.style.color = si ? testoSu(c) : p[1];
     // niente title: col mouse il nome lo dice la targhetta della busta sfilata (il suggerimento del browser ci andrebbe sopra)
     d.appendChild(s); d.setAttribute('data-az', 'dorso'); d.setAttribute('role', 'button'); d.tabIndex = 0;
     d.setAttribute('aria-label', (al.artista ? al.artista + ' · ' : '') + al.titolo); d._d = al; d._id = al.id; d._url = al.copertina;
     dorsi.appendChild(d);
-    if (!c && osservaDorsi) osservaDorsi.observe(d);
+    if (c === undefined && osservaDorsi) osservaDorsi.observe(d);            // colore non ancora noto: quando si vede
   });
   dorsi.scrollLeft = sc;
   if (prima) flipDorsi(dorsi, prima);
   return true;
 }
 
-/* colore medio della copertina, calcolato QUI (canvas 8x8), solo per i dorsi che si vedono, uno alla volta */
+/* [VELOCE 28/10] COLORI DEI DORSI: il colore medio di ogni copertina lo calcola il server UNA volta (con la miniatura) e
+   lo ricorda; arriva con l'elenco degli album (al.colore) o, per i dorsi che si vedono e non ce l'hanno (e per il disco
+   che suona: luce), da /api/musica/colori a gruppi di 24, una richiesta alla volta. Prima il telefono scaricava ogni
+   copertina intera solo per farne la media su una tela 8x8. Valori: '#rrggbb'; 'x' = album senza copertina; '-' =
+   copertina che il server non sa leggere (il dorso tiene i colori disegnati, la luce la prende dall'etichetta). In
+   localStorage (wh_musica_colori, s: 2 = colori del server) restano quelli chiesti, per la prossima apertura. */
 var COLORI = null;
 function colori() {
   if (COLORI && COLORI.v === S.libV) return COLORI;
   var c = null; try { c = JSON.parse(leggi('wh_musica_colori', 'null')); } catch (e) { c = null; }
-  if (!c || typeof c !== 'object' || c.v !== S.libV || typeof c.c !== 'object') c = { v: S.libV, c: {} };
+  if (!c || typeof c !== 'object' || c.v !== S.libV || c.s !== 2 || typeof c.c !== 'object') c = { v: S.libV, s: 2, c: {} };
   COLORI = c; return c;
 }
+function eColore(c) { return typeof c === 'string' && c.charAt(0) === '#'; }
+// '#rrggbb' | 'x' | '-' | undefined (non si sa ancora)
+function coloreDi(id) {
+  var c = colori().c[id]; if (c) return c;
+  var x = S.colAlbum[id];
+  return x == null ? undefined : (x === '' ? 'x' : x);
+}
+function segnaColori(lista) { (lista || []).forEach(function (al) { if (al && al.colore != null) S.colAlbum[al.id] = al.colore; }); }
 function salvaColori() { try { var k = Object.keys(COLORI.c); if (k.length > 2000) COLORI.c = {}; scrivi('wh_musica_colori', JSON.stringify(COLORI)); } catch (e) {} }
 function testoSu(hex) { var n = parseInt(hex.slice(1), 16); var l = 0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255); return l > 150 ? '#1d1d1d' : '#f6ecdc'; }
-var codaColori = [], coloreInCorso = false;
+var codaColori = [], coloreInCorso = false, COL = { chiedi: [], ferme: [], attesa: 0, t: 0 };
 var osservaDorsi = ('IntersectionObserver' in window) ? new IntersectionObserver(function (voci) {
   voci.forEach(function (v) { if (v.isIntersecting) { osservaDorsi.unobserve(v.target); codaColori.push(v.target); } });
   prossimoColore();
 }, { root: null, rootMargin: '0px 200px' }) : null;
 /* colore medio di un'immagine gia' caricata (della stessa origine): tela 8x8. willReadFrequently: tela in memoria normale,
-   getImageData non aspetta la scheda grafica (prima: fino a 0,6 s fermi). Lo usa anche la LUCE DEL DISCO */
+   getImageData non aspetta la scheda grafica. Solo per la LUCE DEL DISCO, quando il server non ha il colore (copertina
+   che non sa leggere, AirPlay): l'etichetta del piatto e' gia' caricata, nessuna richiesta */
 function campiona(img) {
   try {
     var cv = document.createElement('canvas'); cv.width = 8; cv.height = 8;
@@ -2151,23 +2265,47 @@ function campiona(img) {
     return '#' + h2(r) + h2(g) + h2(b);
   } catch (e) { return null; }
 }
+// il colore del disco che suona (luce), se nessuno lo sa ancora: chiesto al server davanti ai dorsi
+function chiediColore(id) { if (id && COL.chiedi.indexOf(id) < 0) { COL.chiedi.push(id); prossimoColore(); } }
+function coloraDorso(d, h) { if (eColore(h) && d.isConnected) { d.style.backgroundColor = h; var s = d.firstChild; if (s) s.style.color = testoSu(h); } }
+function aspettaColori(ok) {          // dopo un gruppo riuscito subito il prossimo; senza niente di nuovo sempre piu' piano
+  COL.attesa = ok ? 0 : Math.min(8000, (COL.attesa || 250) * 2);
+  clearTimeout(COL.t); COL.t = setTimeout(function () { COL.t = 0; prossimoColore(); }, ok ? 60 : COL.attesa);
+}
 function prossimoColore() {
-  if (coloreInCorso || !codaColori.length || document.hidden) return;
-  if (VOLO) { setTimeout(prossimoColore, 300); return; }        // mentre vola un disco niente lavoro sulle immagini
-  var d = codaColori.shift(); if (!d || !d._url || !d.isConnected) { prossimoColore(); return; }
+  if (coloreInCorso || COL.t || (!codaColori.length && !COL.chiedi.length) || document.hidden || VIA.si) return;
+  if (VOLO) { COL.t = setTimeout(function () { COL.t = 0; prossimoColore(); }, 300); return; }     // mentre vola un disco: dopo
+  var ids = [], dorsi = [], chiesti = [];
+  while (COL.chiedi.length && ids.length < 24) { var x = COL.chiedi.shift(); if (coloreDi(x) === undefined && ids.indexOf(x) < 0) { ids.push(x); chiesti.push(x); } }
+  while (codaColori.length && ids.length < 24) {
+    var d = codaColori.shift();
+    if (!d || !d._id || !d.isConnected) continue;
+    var c0 = coloreDi(d._id);
+    if (c0 !== undefined) { coloraDorso(d, c0); continue; }          // arrivato intanto (con l'elenco degli album)
+    dorsi.push(d); if (ids.indexOf(d._id) < 0) ids.push(d._id);
+  }
+  if (!ids.length) return;
   coloreInCorso = true;
-  var img = new Image(), fatto = false;
-  var fine = function (hex) {
-    if (fatto) return; fatto = true; coloreInCorso = false;
-    var c = colori(); c.c[d._id] = hex || 'x'; salvaColori();
-    if (hex && d.isConnected) { d.style.backgroundColor = hex; var s = d.firstChild; if (s) s.style.color = testoSu(hex); }
-    setTimeout(prossimoColore, 60);
-  };
-  img.onload = function () { fine(campiona(img)); };
-  // senza copertina (204): lo si dice anche alle buste (copertina()), che cosi' non la richiedono di nuovo
-  img.onerror = function () { SENZA_COP[d._url] = 1; fine(null); };
-  setTimeout(function () { fine(null); }, 6000);
-  img.src = urlImg(d._url);
+  api('GET', '/api/musica/colori?id=' + ids.join('&id=')).then(function (r) {
+    coloreInCorso = false;
+    if (!r.ok) {
+      // uscendo (riprendi() riparte da qui) o errore del server: di nuovo in coda; dopo un errore si riprova piu' tardi
+      codaColori = dorsi.concat(codaColori); COL.chiedi = chiesti.concat(COL.chiedi);
+      if (r.codice !== 'annullata') aspettaColori(false);
+      return;
+    }
+    var cc = r.dati.colori || {}, man = r.dati.mancano || [], col = colori(), nuovi = 0, ora = false, o = info();
+    ids.forEach(function (id) {
+      var h = cc[id]; if (h == null) return;
+      col.c[id] = h === '' ? 'x' : h; nuovi++;
+      if (id === o.albumId || (VOLO && VOLO.dati.id === id)) ora = true;
+    });
+    dorsi.forEach(function (d) { var h = col.c[d._id]; if (h != null) coloraDorso(d, h); else if (man.indexOf(d._id) >= 0) codaColori.push(d); });
+    chiesti.forEach(function (id) { if (col.c[id] == null && man.indexOf(id) >= 0 && COL.chiedi.indexOf(id) < 0) COL.chiedi.push(id); });
+    if (nuovi) salvaColori();
+    if (ora) { try { var R = vistaAttiva(); if (R && aspetto() === 'retro' && S.st) luce(R, info()); } catch (e) {} }
+    aspettaColori(nuovi > 0);
+  });
 }
 
 /* =====================================================================
@@ -2209,11 +2347,11 @@ function angolo(R) {                 // rotazione dell'etichetta sul piatto (la 
 }
 function discoEl(dati, ang) {
   var d = el('div', 'vd'), e = el('div', 'vd-et');
-  copertina(e, dati.k, '', dati.url, true);
+  e._presto = true; copertina(e, dati.k, '', dati.url, true);
   if (ang) e.style.transform = 'rotate(' + ang.toFixed(1) + 'deg)';
   d.appendChild(e); d.appendChild(el('i')); return d;
 }
-function bustaEl(dati) { var b = el('div', 'vb'); copertina(b, dati.k, dati.nome, dati.url); return b; }
+function bustaEl(dati) { var b = el('div', 'vb'); b._presto = true; copertina(b, dati.k, dati.nome, dati.url); return b; }
 function n1(x) { return (Math.round(x * 10) / 10).toString(); }
 function n4(x) { return (Math.round(x * 10000) / 10000).toString(); }
 // busta 176x176: b = { x, y (centro), r (rotazione), ry (rotazione 3D), sx, sy (scala) }; disco 160x160 col centro in (x, y)
@@ -2468,8 +2606,8 @@ function fermaVolo() {                        // subito, senza animazione (cambi
    - La busta prende il mouse: resta fuori finche' il mouse e' sul dorso o su di lei (90 ms di tolleranza per passare
      dall'uno all'altra), e un clic sulla busta e' un clic sul dorso: il disco vola sul piatto partendo dalla busta gia'
      sfilata (staccaSfilata, voloGrande).
-   - Una spazzata veloce del mouse non fa uscire niente (attesa di 120 ms); la copertina e' quella del campionatore dei
-     colori (gia' in cache); un album che si sa senza copertina usa il disegno: nessuna richiesta nuova al server.
+   - Una spazzata veloce del mouse non fa uscire niente (attesa di 120 ms); la copertina e' la miniatura (VELOCE 28/10:
+     una richiesta piccola la prima volta, poi dalla memoria); un album che si sa senza copertina usa il disegno.
    - Telefono e tocco: niente (solo dove c'e' il mouse). "Riduci movimento": la busta compare e sparisce senza viaggio.
    ===================================================================== */
 var PEZZO = { d: null, el: null, prossimo: null, t: 0, via: 0 }, FINE = null, SFILATE = [];
@@ -2559,13 +2697,16 @@ function sfVai(s, u1) {
   }
 }
 function creaSfilata(d) {
-  var al = d._d, dati = al.uuid ? datiRadio(al) : datiAlbum(al), col = al.uuid ? null : colori().c[al.id];
+  var al = d._d, dati = al.uuid ? datiRadio(al) : datiAlbum(al), col = al.uuid ? null : coloreDi(al.id);
   var s = el('div', 'sf'), c = el('div'), t = el('em', 'sf-nome');
   s.setAttribute('aria-hidden', 'true');
   s.appendChild(el('div', 'sf-disco'));
-  copertina(c, dati.k, dati.nome, col === 'x' ? null : dati.url); s.appendChild(c);
+  // [VELOCE 28/10] la miniatura (o l'originale, se e' gia' arrivato); un album che si sa senza copertina ('x') usa il
+  // disegno. Prima la copertina era gia' in cache perche' l'aveva scaricata il campionatore dei colori; ora la prima
+  // volta la miniatura (~15 KB) arriva in un giro di rete, poi resta in memoria
+  copertina(c, dati.k, dati.nome, col === 'x' ? null : copBusta(dati.url)); s.appendChild(c);
   var im = c.querySelector('.cvi');
-  if (im && !c.classList.contains('ha-img')) {           // copertina vera in arrivo (dalla cache): fondo scuro, poi lei
+  if (im && !c.classList.contains('ha-img')) {           // copertina vera in arrivo: fondo scuro, poi lei
     classe(c, 'sf-carica', true);
     im.addEventListener('error', function () { classe(c, 'sf-carica', false); });       // non c'e': il disegno
   }
@@ -2655,6 +2796,14 @@ document.addEventListener('focusin', function (e) {
   if (d && d !== PEZZO.d && d._d && foco(d) && puoPezzo(d)) mettiPezzo(d);
 });
 document.addEventListener('focusout', function (e) { if (PEZZO.d && e.target === PEZZO.d && !sfSotto(PEZZO.d)) togliPezzo(); });
+// [28/10 sera] dito (o mouse) che preme un dorso: la miniatura della sua copertina parte subito, prima del clic. Col
+// mouse l'ha gia' chiesta la busta sfilata; col tocco (iPad, tablet) non c'e' passaggio del mouse e il disco che vola
+// partirebbe col disegno. Solo la miniatura (pochi KB): se il dito poi scorre lo scaffale si e' perso poco
+document.addEventListener('pointerdown', function (e) {
+  var d = e.target && e.target.closest ? e.target.closest('#v-g-rt .gr-dorsi .dorso') : null;
+  if (!d || !d._d || d._d.uuid || forma() !== 'grande' || aspetto() !== 'retro' || coloreDi(d._d.id) === 'x') return;
+  precaricaImg(mini(datiAlbum(d._d).url));
+}, true);
 // lo scaffale scorre (rotella, trackpad) o la finestra cambia misura: la busta non e' piu' sul suo dorso, via subito
 document.addEventListener('scroll', function (e) { if (SFILATE.length && e.target && e.target.classList && e.target.classList.contains('gr-dorsi')) togliPezzo(true); }, true);
 window.addEventListener('resize', function () { if (SFILATE.length) togliPezzo(true); });
@@ -2758,10 +2907,12 @@ function apriGira(src, daTastiera) {
   bu.setAttribute('data-az', 'gira'); bu.setAttribute('role', 'dialog'); bu.setAttribute('aria-labelledby', 'bg-tit'); bu.tabIndex = -1;
   var vv = gVinile(G), vi = el('div', 'bg-vinile' + (grande ? '' : ' tel'));
   vi.style.left = n1(vv.l) + 'px'; vi.style.top = n1(vv.t) + 'px'; vi.style.width = n1(vv.w) + 'px'; vi.style.height = n1(vv.h) + 'px';
-  if (grande) { var et = el('i'); copertina(et, dati.k, '', dati.url, true); vi.appendChild(et); }
+  if (grande) { var et = el('i'); et._presto = true; copertina(et, dati.k, '', dati.url, true); vi.appendChild(et); }
   var giro = el('div', 'bg-giro'), fr = el('div', 'bg-faccia bg-fronte'), re = el('div', 'bg-faccia bg-retro');
+  fr._presto = true;
   if (grande) copertina(fr, dati.k, dati.nome, dati.url);
-  else copertina(fr, src._d.album.id, src._d.album.artista || src._d.album.titolo, src._d.album.copertina);       // come la busta della cassa
+  // la busta della cassa (miniatura, gia' arrivata) e poi l'originale: girata e' grande (fino a 330 px)
+  else copertina(fr, src._d.album.id, src._d.album.artista || src._d.album.titolo, src._d.album.copertina);
   giro.appendChild(fr); giro.appendChild(re); bu.appendChild(vi); bu.appendChild(giro); st.appendChild(bu);
   G.el = bu; G.giro = giro; G.fronte = fr; G.retro = re; G.vinile = vi;
   GIRA = G;
@@ -2937,8 +3088,9 @@ window.addEventListener('resize', function () { if (GIRA) chiudiGira(true); });
    (b) un riflesso chiaro sui solchi del disco (due spicchi opposti, .rt-riflesso: fuori dalla ruota, non gira col disco)
    che segue il mouse (computer) o l'inclinazione (telefono, iPad: DeviceOrientation; su iPhone e iPad il permesso si chiede
    solo col tocco sull'invito "✦ INCLINA"; rifiutato = riflesso fermo).
-   - Il colore viene da quello che la pagina ha gia': il colore del campionatore dei dorsi, la copertina gia' caricata
-     sull'etichetta del piatto (tela 8x8, nessuna richiesta), il disegno delle copertine generate. Niente richieste nuove.
+   - Il colore e' quello che il server ha calcolato per i dorsi (VELOCE 28/10: con l'elenco degli album o una richiesta
+     piccola, /api/musica/colori); se il server non sa leggere la copertina (o AirPlay) quella gia' caricata sull'etichetta
+     del piatto (tela 8x8, nessuna richiesta); album senza copertina e radio: il disegno delle copertine generate.
    - Il riflesso: solo variabili CSS (--rifl-a, --rifl-o sul disco) aggiornate al massimo una volta per fotogramma
      (requestAnimationFrame) quando il mouse si muove o il telefono si inclina; niente tela a ogni fotogramma.
    - "Riduci movimento": riflesso fermo, colori e livelli senza sfumare.
@@ -2966,17 +3118,17 @@ function coloreDisegno(k) { var p = RPALETTA[hash(k) % 12]; return cromaDi(p[0])
    arrivo dalla cache): la luce resta com'e' e si riprova al giro dopo (o appena l'immagine c'e') */
 function coloreCopertina(R, d) {
   if (!d || !d.k || d.k === 'vuoto') return null;
-  var c = d.tipo === 'album' && d.id ? colori().c[d.id] : null;
-  if (c && c !== 'x') return c;
+  var c = d.tipo === 'album' && d.id ? coloreDi(d.id) : null;
+  if (eColore(c)) return c;
   if (c === 'x' || !d.url || SENZA_COP[d.url]) return coloreDisegno(d.k);
+  if (c === undefined && d.tipo === 'album' && d.id) { chiediColore(d.id); return null; }      // dal server, fra poco
   if (COP_LUCE[d.url]) return COP_LUCE[d.url];
   var img = null;
   $$('.x-etichetta > .cvi, .x-fuori-cop > .cvi', R).forEach(function (i) { if (!img && i.src && i.src.indexOf(d.url) >= 0) img = i; });
   if (!img || !img.complete) return null;
   var hex = img.naturalWidth ? campiona(img) : null;
   if (!hex) return coloreDisegno(d.k);
-  if (d.tipo === 'album' && d.id) { colori().c[d.id] = hex; salvaColori(); }      // lo stesso che darebbe il campionatore
-  else COP_LUCE[d.url] = hex;                                                       // AirPlay: una volta per copertina
+  COP_LUCE[d.url] = hex;                                   // una volta per copertina (il dorso resta coi colori disegnati)
   return hex;
 }
 var COP_LUCE = {};
@@ -3248,7 +3400,7 @@ function carica(chiave, url) {
 function intesta(h) { return el('div', 'lib-h', T(h)); }
 function cellaAlbum(al) {
   var d = el('div', 'g-album'); d.setAttribute('data-az', 'apri-album'); d._d = al; d.setAttribute('role', 'button'); d.tabIndex = 0;
-  var c = el('div', 'cv'); c._lazy = true; copertina(c, al.id, al.artista || al.titolo, al.copertina); d.appendChild(c);
+  var c = el('div', 'cv'); c._lazy = true; copertina(c, al.id, al.artista || al.titolo, mini(al.copertina)); d.appendChild(c);
   d.appendChild(el('b', null, al.titolo)); d.appendChild(el('small', null, al.artista || T('Artisti vari')));
   return d;
 }
@@ -3259,7 +3411,7 @@ function libGriglia(lista) {
 function rigaBrano(b, az, d, conCop) {
   var r = el('button', 'g-riga'); r.type = 'button'; r.setAttribute('data-az', az); r._d = d;
   var o = info(); if (o.b && o.b.file === b.file) r.classList.add('ora');
-  if (conCop !== false) { var c = el('div', 'cv'); c._lazy = true; copertina(c, b.album_id || b.file, b.artista, urlCop(b.album_id)); r.appendChild(c); }
+  if (conCop !== false) { var c = el('div', 'cv'); c._lazy = true; copertina(c, b.album_id || b.file, b.artista, mini(urlCop(b.album_id))); r.appendChild(c); }
   else r.appendChild(el('i', 'num', String(b.numero || '')));
   r.appendChild(el('b', null, b.titolo)); if (conCop !== false) r.appendChild(el('span', null, b.artista || T('Artista sconosciuto')));
   r.appendChild(el('em', null, b.durata ? mmss(b.durata) : ''));
@@ -3270,7 +3422,7 @@ function pill(testoP, az, icona, bianca) { var b = el('button', 'pill ' + (bianc
 function libAlbum(al, gen) {
   return carica('album:' + al.id, '/api/musica/libreria?vista=brani&album=' + encodeURIComponent(al.id)).then(function (d) {
     var nodi = [su(T(L.tab === 'artisti' && L.pila.length > 1 ? 'Indietro' : 'Album'))];
-    var testa = el('div', 'la-testa'), c = el('div', 'la-cop'); copertina(c, al.id, al.artista || al.titolo, al.copertina); testa.appendChild(c);
+    var testa = el('div', 'la-testa'), c = el('div', 'la-cop'); copertina(c, al.id, al.artista || al.titolo, mini(al.copertina)); testa.appendChild(c);
     var tx = el('div', 'la-testi'); tx.appendChild(el('b', null, al.titolo));
     tx.appendChild(el('small', null, [al.artista || T('Artisti vari'), al.anno].filter(function (x) { return x; }).join(' · ')));
     var ts = el('div', 'la-tasti'); var p = pill('Riproduci', 'la-play', 'f-play', true); p._d = al; ts.appendChild(p);
@@ -3400,8 +3552,10 @@ function caricaAlbum() {
   api('GET', '/api/musica/libreria?vista=album&quanti=500').then(function (r) {
     S.albumCarico = false;
     if (v !== S.libV) return;
-    if (!r.ok) { S.libV = null; S.albumRiprova = Date.now() + 10000; return; }     // si riprova fra 10 s
+    // si riprova fra 10 s (interrotta uscendo dalla pagina: subito, quando si riprende)
+    if (!r.ok) { S.libV = null; if (r.codice !== 'annullata') S.albumRiprova = Date.now() + 10000; return; }
     S.album = r.dati.album || []; S.albumTot = r.dati.totale || S.album.length;
+    S.colAlbum = {}; segnaColori(S.album);
     L.cache = {}; S.brani = {};
     render();
     if ((forma() === 'tel' && S.foglio === '#foglio-lib') || (forma() === 'grande' && aspetto() === 'moderna')) renderLib(false);
@@ -3413,7 +3567,7 @@ function caricaAltriAlbum() {
   api('GET', '/api/musica/libreria?vista=album&quanti=500&da=' + S.album.length).then(function (r) {
     S.albumCarico = false;
     if (v !== S.libV || !r.ok) return;
-    S.album = S.album.concat(r.dati.album || []); S.albumTot = r.dati.totale || S.album.length; render();
+    S.album = S.album.concat(r.dati.album || []); S.albumTot = r.dati.totale || S.album.length; segnaColori(r.dati.album); render();
   });
 }
 function caricaBrani(id) {
@@ -3443,7 +3597,7 @@ function caricaCoda() {
    GIRO DELLO STATO: ogni ~1 s, solo a pagina visibile
    ===================================================================== */
 var timer = 0, inVolo = false, errori = 0;
-function pianifica(ms) { clearTimeout(timer); timer = 0; if (document.hidden || uscito) return; timer = setTimeout(giro, ms); }
+function pianifica(ms) { clearTimeout(timer); timer = 0; if (document.hidden || uscito || VIA.si) return; timer = setTimeout(giro, ms); }
 function applica(st) {
   if (!st || !st.riproduzione) return;
   S.st = st; S.ricevuto = Date.now();
@@ -3460,17 +3614,69 @@ function applica(st) {
   render();
 }
 function giro() {
-  if (inVolo) return; inVolo = true;
+  if (inVolo || VIA.si) return; inVolo = true;
   api('GET', '/api/musica/stato').then(function (r) {
     inVolo = false;
+    if (r.codice === 'annullata') { if (!VIA.si) pianifica(0); return; }      // interrotta uscendo: non e' un errore
     if (r.ok) { if (errori >= 3) togliAvvisoFisso(); errori = 0; applica(r.dati); }
     else { errori++; if (errori === 3) avvisa('Connessione persa', true, true); }
     pianifica(errori >= 3 ? 5000 : 1000);
   });
 }
 document.addEventListener('visibilitychange', function () {
-  if (document.hidden) { clearTimeout(timer); timer = 0; }
-  else { giro(); prossimoColore(); }
+  if (document.hidden) { clearTimeout(timer); timer = 0; lascia(false); }
+  else { riprendi(); giro(); prossimoColore(); prossimaImg(); }
+});
+/* [VELOCE 28/10] USCITA PULITA: si lasciano le connessioni PRIMA che parta la richiesta della pagina nuova (clic su una
+   voce della barra, indietro, un altro indirizzo, login scaduto). Col tunnel in http il browser ha 6 connessioni per
+   server: se restano occupate da copertine e letture, la pagina nuova aspetta in coda dietro di loro (misurato: fino a
+   2 s). Si interrompono le letture in corso (RETE.abort), si tolgono le copertine in arrivo (togliendo src il browser
+   chiude la richiesta) e si svuotano le code (copertine, colori; lo stato si ferma): quello che c'era si mette da parte.
+   Safari e la WKWebView dell'app non danno un beforeunload affidabile: il clic sui collegamenti si prende in cattura,
+   prima della navigazione; in piu' pagehide e pagina nascosta. Ancora qui dopo 6 s (navigazione annullata) o un tocco
+   sulla pagina: si riprende. In ogni caso al massimo 3 copertine sono in arrivo (IMG.max): restano connessioni libere. */
+function lascia(daLink) {
+  clearTimeout(VIA.t); VIA.t = 0;
+  if (daLink) VIA.t = setTimeout(function () { VIA.t = 0; if (!document.hidden) riprendi(); }, 6000);
+  if (VIA.si) return;
+  VIA.si = true;
+  clearTimeout(timer); timer = 0;
+  try { if (RETE) RETE.abort(); } catch (e) {}
+  IMG.in_corso.slice().forEach(function (im) {
+    im._tolta = true; if (im._fine) im._fine();
+    try { im.removeAttribute('src'); } catch (e) {}
+    IMG.ferme.push(im);
+  });
+  IMG.ferme = IMG.ferme.concat(IMG.prima, IMG.coda, IMG.attese); IMG.prima = []; IMG.coda = []; IMG.attese = [];
+  clearTimeout(IMG.tAttese); IMG.tAttese = 0;
+  COL.ferme = COL.ferme.concat(codaColori); codaColori = [];
+}
+function riprendi() {
+  clearTimeout(VIA.t); VIA.t = 0;
+  if (!VIA.si || uscito) return;
+  VIA.si = false;
+  if (RETE) { try { RETE = new AbortController(); } catch (e) { RETE = null; } }
+  var f = IMG.ferme; IMG.ferme = [];
+  // (una tessera non ancora nella pagina la guarda prossimaImg: aspetta ancora un po', vedi aspettaImg)
+  f.forEach(function (im) { im._tolta = false; if ((valeImg(im) || !im._staccata) && !im.getAttribute('src') && IMG.prima.indexOf(im) < 0) IMG.prima.push(im); });
+  codaColori = COL.ferme.concat(codaColori); COL.ferme = [];
+  L.sporca = true;                         // una lettura della libreria interrotta: la si rifa'
+  prossimaImg(); prossimoColore(); pianifica(0);
+}
+document.addEventListener('click', function (e) {
+  if (e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+  if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+  var u; try { u = new URL(a.href, location.href); } catch (x) { return; }
+  if (u.origin === location.origin && u.pathname === location.pathname && u.search === location.search) return;   // solo '#': stessa pagina
+  lascia(true);
+}, true);
+window.addEventListener('beforeunload', function () { lascia(true); });
+window.addEventListener('pagehide', function () { lascia(false); });
+['pointerdown', 'keydown'].forEach(function (t) {
+  document.addEventListener(t, function (e) {
+    if (VIA.si && !document.hidden && !uscito && !(e.target && e.target.closest && e.target.closest('a[href]'))) riprendi();
+  }, true);
 });
 window.addEventListener('pageshow', function (e) {
   if (!e.persisted) return;
@@ -3482,6 +3688,7 @@ window.addEventListener('pageshow', function (e) {
   } catch (x) {}
   try { if (window.__whAspettoApp) window.__whAspettoApp(); applyBackground(leggi('core_bg_theme', '') || M.sfondo || 'notte_citta'); } catch (x) {}
   $$('[class*="x-"]').forEach(function (z) { z._k = null; });
+  riprendi();
   misura(); adattaBarra(); giro();
 });
 
@@ -3942,8 +4149,14 @@ function avvio() {
   setInterval(orologio, 20000);
   // chiavette appena infilate: il server fa subito il suo giro (al massimo una volta ogni 5 s)
   api('POST', '/api/musica/controlla', {});
+  // [VELOCE 28/10] stato e preferite arrivano gia' con la pagina (musica.py, pagina_musica): primo disegno senza
+  // aspettare un giro di rete, e l'elenco degli album parte subito. Senza (musica.py di prima): come prima
+  var ini = M.iniziale || {};
+  M.iniziale = null;
+  if (Array.isArray(ini.preferite)) S.preferite = ini.preferite;
   caricaPreferite().then(function () { $$('.x-fila').forEach(function (x) { x._k = null; }); render(); });
-  giro();
+  if (ini.stato && ini.stato.riproduzione && ini.stato.ok !== false) { applica(ini.stato); pianifica(1000); }
+  else giro();
 }
 avvio();
 })();

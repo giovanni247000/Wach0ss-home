@@ -5621,7 +5621,11 @@
   "AirPlay spento": "AirPlay off",
   "Password tolta.": "Password removed.",
   "Il ricevitore AirPlay si riavvia: l'iPhone collegato si scollega.": "The AirPlay receiver restarts: the connected iPhone gets disconnected.",
-  "Se vuoi, accendi \"Ricevi dall'iPhone\": il server diventa una cassa AirPlay e Spotify, Apple Music e le altre app suonano dall'iPhone sulle stesse casse.": "If you like, turn on \"Receive from iPhone\": the server becomes an AirPlay speaker and Spotify, Apple Music and the other apps play from the iPhone on the same speakers."
+  "Se vuoi, accendi \"Ricevi dall'iPhone\": il server diventa una cassa AirPlay e Spotify, Apple Music e le altre app suonano dall'iPhone sulle stesse casse.": "If you like, turn on \"Receive from iPhone\": the server becomes an AirPlay speaker and Spotify, Apple Music and the other apps play from the iPhone on the same speakers.",
+  "Gira la busta": "Turn the sleeve over",
+  "IN ONDA": "ON AIR",
+  "Elenco dei brani non disponibile.": "Track list not available.",
+  "Inclina per la luce": "Tilt for the light"
  },
  "sempre": {
   " non ": " not ",
@@ -7773,6 +7777,10 @@
    "Cartelle": "Folders",
    "LATO A": "SIDE A",
    "LATO B": "SIDE B",
+   "LATO C": "SIDE C",
+   "LATO D": "SIDE D",
+   "LATO": "SIDE",
+   "INCLINA": "TILT",
    "DISCHI": "RECORDS",
    "1 DISCO": "1 RECORD",
    "1 album": "1 album",

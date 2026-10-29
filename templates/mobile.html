@@ -11642,7 +11642,15 @@ if (newState === 'off' || newState === 'closed') {
     }
 
     // Esegue il controllo degli stati ogni 2 secondi
-    setInterval(syncNativeDevices, 2000);
+    // [VELOCE 28/10] mai due letture insieme: con un server o un Home Assistant lenti le richieste si accumulavano (una
+    // nuova ogni 2 s anche se la prima non era tornata) e prendevano le 6 connessioni del browser verso il server.
+    // Una lettura appesa da piu' di 15 s non blocca le successive
+    let whSyncInVolo = 0;
+    setInterval(() => {
+        if (whSyncInVolo && Date.now() - whSyncInVolo < 15000) return;
+        const mia = whSyncInVolo = Date.now();
+        Promise.resolve(syncNativeDevices()).catch(() => {}).finally(() => { if (whSyncInVolo === mia) whSyncInVolo = 0; });
+    }, 2000);
 
     // --- APPLICA COLORI E PERCENTUALI AL CARICAMENTO ---
     function applyLightStateOnLoad() {
@@ -12722,7 +12730,13 @@ document.addEventListener('keydown', function (e) {
 });
 
 // Avvio della sincronizzazione separata e protetta
-setInterval(syncAlarmStatus, 1500);
+// [VELOCE 28/10] come sopra: una lettura dell'allarme alla volta (appesa da piu' di 15 s: non blocca)
+let whAllarmeInVolo = 0;
+setInterval(() => {
+    if (whAllarmeInVolo && Date.now() - whAllarmeInVolo < 15000) return;
+    const mia = whAllarmeInVolo = Date.now();
+    Promise.resolve(syncAlarmStatus()).catch(() => {}).finally(() => { if (whAllarmeInVolo === mia) whAllarmeInVolo = 0; });
+}, 1500);
 window.addEventListener('load', syncAlarmStatus);
 
 

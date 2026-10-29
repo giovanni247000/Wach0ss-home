@@ -16477,7 +16477,9 @@ function hkbDisegna(d) {
         else if (st === 'attivo') b.push('<span class="hkb-badge attesa"><span>' + hkbEsc(hkbT('In attesa di abbinamento')) + '</span></span>');
         else if (troppi) b.push('<span class="hkb-badge errore"><span>' + hkbEsc(hkbT('Troppi tentativi')) + '</span></span>');
         else if (st === 'scaduto') b.push('<span class="hkb-badge attesa"><span>' + hkbEsc(hkbT('Abbinamento scaduto')) + '</span></span>');
-        if (d.porta) b.push('<span class="hkb-badge"><span>' + hkbEsc(hkbT('Porta')) + '</span> <b data-no-tr>' + hkbEsc(d.porta) + '</b></span>');
+        // indirizzo IP:porta su cui il ponte si annuncia (28/10/2026: per capire subito se e' la scheda giusta)
+        if (d.indirizzo && d.porta) b.push('<span class="hkb-badge"><span>' + hkbEsc(hkbT('Indirizzo')) + '</span> <b data-no-tr>' + hkbEsc(d.indirizzo + ':' + d.porta) + '</b></span>');
+        else if (d.porta) b.push('<span class="hkb-badge"><span>' + hkbEsc(hkbT('Porta')) + '</span> <b data-no-tr>' + hkbEsc(d.porta) + '</b></span>');
         if (d.giro_ms !== null && d.giro_ms !== undefined) b.push('<span class="hkb-badge"><span>' + hkbEsc(hkbT('Ciclo')) + '</span> <b data-no-tr>' + hkbEsc(Math.round(Number(d.giro_ms) || 0)) + ' ms</b></span>');
         if (d.comandi_appesi) b.push('<span class="hkb-badge errore"><span>' + hkbEsc(hkbT('Comandi appesi')) + '</span></span>');
         if (st === 'errore') b.push('<span class="hkb-badge errore"><span>' + hkbEsc(hkbT('Errore')) + '</span></span>');
