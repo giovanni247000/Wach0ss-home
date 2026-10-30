@@ -5367,6 +5367,109 @@ html.wh-scala .imp-pagina {
         </div>
         <div class="splash-text">Wach0ss Home</div>
     </div>
+<script>
+/* [AVVIO] RISERVA DEL LOGO DI AVVIO (29/10/2026): il logo blu qui sopra lo toglie il listener 'load' del blocco
+   grande ("GESTIONE SPLASH SCREEN"), che resta com'e'. Ma se una risorsa non finisce mai di caricare (immagine
+   di una telecamera, iframe di una pagina web nelle stanze, font) o se quel blocco non parte per un errore,
+   'load' non lo toglie mai e la pagina resta sul logo. Qui si toglie lo stesso: 4 s dopo DOMContentLoaded e
+   comunque al massimo 12 s dopo la sua comparsa (i timer girano anche col parser fermo su uno script lento).
+   Script a parte e in JS semplice (var, function): parte anche se il blocco grande ha un errore e sui Safari
+   vecchi. Non fa niente se il logo e' gia' tolto o nascosto ('load' arrivato, riapri(), html.wh-riapri).
+   Quando interviene scrive UNA riga console.warn "[AVVIO]" con cosa era ancora in caricamento (indirizzi senza
+   query string ne' credenziali: niente token) e, all'arrivo vero di 'load', una riga console.info. */
+(function () {
+    try {
+        var t0 = Date.now(), tDCL = 0, tLoad = 0, tolto = false, errore = '', d = document, h = d.documentElement, s, i;
+        function sec(t) { return ((t - t0) / 1000).toFixed(1); }
+        function ha(el, c) { return !!el && (' ' + el.className + ' ').indexOf(' ' + c + ' ') >= 0; }
+        function scrivi(tipo, testo) { try { if (window.console && console[tipo]) console[tipo](testo); } catch (e) {} }
+        // indirizzo accorciato: via query string, # e utente:password@; il sito solo se e' un altro
+        function corto(u) {
+            u = String(u || '');
+            if (/^(data|blob):/i.test(u)) return u.slice(0, 5) + '...';
+            u = u.split('#')[0].split('?')[0];
+            var m = /^[a-z][a-z0-9+.\-]*:\/\/([^\/]*)(.*)$/i.exec(u);
+            if (m) { m[1] = m[1].replace(/^.*@/, ''); u = (m[1] === location.host ? '' : m[1]) + (m[2] || '/'); }
+            u = u.replace(/(\/pw\/t\/)[^\/]*/, '$1...');                       // la chiave del tramite delle pagine web e' un segreto
+            return u.length > 70 ? u.slice(0, 30) + '...' + u.slice(-37) : u;
+        }
+        function elenco(a) { return a.length > 4 ? a.slice(0, 4).join(', ') + ' e altri ' + (a.length - 4) : a.join(', '); }
+        // chi ha finito (load o error) si segna sull'elemento: immagini, iframe, script, fogli di stile
+        function segna(e) { try { if (e.target && e.target.nodeType === 1) e.target.__whFine = 1; } catch (er) {} }
+        // il primo errore degli script (es. il blocco grande che non parte su un Safari vecchio)
+        function sbaglio(e) {
+            try {
+                if (errore || !e || !e.message) return;
+                errore = String(e.message).replace(/[?#][^\s'"]*/g, '').replace(/(\/pw\/t\/)[^\/\s'"]*/g, '$1...').slice(0, 120)
+                       + (e.filename ? ' (' + corto(e.filename) + ':' + (e.lineno || 0) + ')' : '');
+            } catch (er) {}
+        }
+        s = d.getElementsByTagName('script');
+        for (i = 0; i < s.length; i++) s[i].__whFine = 1;                  // quelli prima di questo sono gia' partiti
+        d.addEventListener('load', segna, true);
+        d.addEventListener('error', segna, true);
+        window.addEventListener('error', sbaglio, false);
+        // cosa non ha ancora finito di caricare
+        function inCorso() {
+            var r = [], a = [], l, x, b, k, j;
+            l = d.images;
+            for (j = 0; j < l.length; j++) {
+                x = l[j];
+                if (x.complete || x.__whFine) continue;
+                if (x.loading === 'lazy') { b = x.getBoundingClientRect(); if (!b.width || b.top > (window.innerHeight || 800) * 2) continue; }   // lontane: non frenano 'load'
+                a.push(corto(x.currentSrc || x.src));
+            }
+            if (a.length) r.push('immagini ' + elenco(a));
+            a = []; l = d.getElementsByTagName('iframe');
+            for (j = 0; j < l.length; j++) if (!l[j].__whFine) a.push(corto(l[j].src) || '(senza indirizzo)');
+            if (a.length) r.push('iframe senza load ' + elenco(a));
+            a = []; l = d.getElementsByTagName('script');
+            for (j = 0; j < l.length; j++) if (l[j].src && !l[j].__whFine) a.push(corto(l[j].src));
+            if (a.length) r.push('script ' + elenco(a));
+            a = []; l = d.getElementsByTagName('link');
+            for (j = 0; j < l.length; j++) { x = l[j]; if (/(^|\s)stylesheet(\s|$)/i.test(x.rel || '') && !x.sheet && !x.__whFine && !x.disabled) a.push(corto(x.href)); }
+            if (a.length) r.push('fogli di stile ' + elenco(a));
+            try {
+                if (d.fonts && d.fonts.status === 'loading') {
+                    a = [];
+                    if (d.fonts.forEach) d.fonts.forEach(function (f) { k = String(f.family).replace(/["']/g, ''); if (f.status === 'loading' && a.indexOf(k) < 0) a.push(k); });
+                    r.push('font ' + (a.length ? elenco(a) : '(in caricamento)'));
+                }
+            } catch (e) {}
+            return r;
+        }
+        // toglie il logo come il listener 'load' (classe hidden, via dopo 600 ms), solo se e' ancora in vista
+        function togli(motivo) {
+            var el, t, p;
+            try {
+                el = d.getElementById('splash-screen');
+                if (tolto || !el || ha(el, 'hidden') || ha(h, 'wh-riapri')) return;   // gia' tolto o nascosto
+                if (window.getComputedStyle && getComputedStyle(el, null).display === 'none') return;
+                tolto = true;
+                if (el.classList) el.classList.add('hidden'); else el.className += ' hidden';
+                setTimeout(function () { try { if (el.parentNode) el.parentNode.removeChild(el); } catch (e) {} }, 600);
+            } catch (e) {}
+            if (!tolto) return;
+            t = '[AVVIO] logo tolto dopo ' + sec(Date.now()) + ' s (' + motivo + ')';
+            try {
+                t += ': readyState ' + d.readyState + ', DOMContentLoaded ' + (tDCL ? 'a ' + sec(tDCL) + ' s' : 'non arrivato');
+                if (tLoad || d.readyState === 'complete') t += "; 'load' gia' arrivato" + (tLoad ? ' a ' + sec(tLoad) + ' s' : '') + " ma il logo era ancora li' (non e' partito il blocco script principale?)";
+                else { p = inCorso(); t += '; ancora in caricamento: ' + (p.length ? p.join('; ') : 'niente di riconoscibile (sfondi CSS, video o richieste degli script?)'); }
+                if (errore) t += '; primo errore: ' + errore;
+            } catch (e) {}
+            scrivi('warn', t);
+        }
+        function dopoDCL() { if (!tDCL) tDCL = Date.now(); setTimeout(function () { togli('4 s dopo DOMContentLoaded'); }, 4000); }
+        if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', dopoDCL, false); else dopoDCL();
+        setTimeout(function () { togli('al massimo 12 s dalla comparsa'); }, 12000);
+        window.addEventListener('load', function () {
+            tLoad = Date.now();
+            try { d.removeEventListener('load', segna, true); d.removeEventListener('error', segna, true); window.removeEventListener('error', sbaglio, false); } catch (e) {}
+            if (tolto) scrivi('info', '[AVVIO] caricamento finito dopo ' + sec(tLoad) + ' s');
+        }, false);
+    } catch (e) { /* la riserva non deve mai dare errori alla pagina */ }
+})();
+</script>
 
     <div id="app-background"><div class="nc-brilli" aria-hidden="true"><i style="--x:.09;top:6%"></i><i style="--x:.33;top:3%"></i><i style="--x:.57;top:9%"></i><i style="--x:.91;top:4%"></i><i style="--x:.21;top:17%"></i><i style="--x:.68;top:22%"></i></div></div>
 
@@ -9962,6 +10065,14 @@ setInterval(fetchRealWeather, 300000);
             document.querySelectorAll('.bottom-modal').forEach(m => m.classList.remove('active'));
             document.getElementById('app-wrapper').classList.remove('modal-active');
             document.getElementById('modal-camera-img').dataset.entity = ''; currentModalEntity = null; tvModalEntity = null; selectModalEntity = null; vacuumModalEntity = null;
+            // finestra di una Tapo chiusa (30/10/2026): prima il flusso live restava collegato in sottofondo (10 fotogrammi/s
+            // dal Raspberry) anche a finestra chiusa. Torna all'istantanea, un fotogramma vero: durante la chiusura il browser
+            // tiene l'ultimo fotogramma finche' la nuova non e' pronta (niente lampo). Cambiare src chiude il collegamento in
+            // Chrome; WebKit (Safari, app e browser dell'iPhone e dell'iPad) un MJPEG non lo chiude mai cambiando src
+            // (misurato) e con le 6 connessioni per server occupate l'istantanea restava in coda: li' il flusso resta com'era.
+            const camFin = document.getElementById('modal-camera-img');
+            const camFlusso = /^\/api\/rtsp_stream\/([^/?#]+)$/.exec(camFin.getAttribute('src') || '');
+            if (camFlusso && !/Apple/.test(navigator.vendor || '')) camFin.src = `/api/tapo_snapshot/${camFlusso[1]}?t=${Date.now()}`;
         }
 
         document.getElementById('modal-overlay').addEventListener('click', closeAllModals);
@@ -10182,6 +10293,15 @@ const entityId = card.dataset.id;
             let wsProtocol = haData.dataset.url.startsWith('https') ? 'wss://' : 'ws://';
             let rawDomain = haData.dataset.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
             const wsUrl = wsProtocol + rawDomain + '/api/websocket';
+            // Pagina in https (es. tunnel Cloudflare) e Home Assistant in http (30/10/2026): il browser blocca ws:// come
+            // contenuto non sicuro. Chrome lancia un SecurityError che fermava anche tutto il resto di questo script
+            // (telecamere, logo di avvio...), Safari scrive errori in console e onclose poteva riprovare ogni 3 s. Il WebSocket
+            // non si apre (nessun tentativo, nessuna riconnessione): gli stati arrivano con gli aggiornamenti normali.
+            // Home Assistant su localhost/127.x/[::1]: i browser lo permettono anche da https, resta come prima.
+            if (wsProtocol === 'ws://' && location.protocol === 'https:' && !/^(localhost|127\.|\[::1\])/i.test(rawDomain)) {
+                console.info("WebSocket di Home Assistant non aperto: la pagina e' in https e Home Assistant in http (" + wsUrl + "), il browser lo bloccherebbe come contenuto non sicuro. Gli stati arrivano con gli aggiornamenti normali della pagina.");
+                return;
+            }
             
             console.log("🔄 Tentativo di connessione a:", wsUrl);
             const ws = new WebSocket(wsUrl);
@@ -11436,6 +11556,9 @@ function setTimerPreset(minutes) {
 
                 fetch('/api/clear_ui_modal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: modalData.id }) }).catch(() => {});
                 delete states.ui_modal_trigger;
+                // la copia di una telecamera Tapo nell'avviso va subito in live, come prima, senza aspettare il giro di 2 s
+                // (30/10/2026: su computer il live parte solo per le immagini che si vedono, vedi camLive)
+                try { camLive(); } catch (e) {}
             }
             // -------------------------------------------------------
             // -------------------------------------------------------
@@ -11780,14 +11903,74 @@ function sendCoverCmd(action) {
     // costringere il browser a impaginare tutto a meta' parse per rispondere.
     const isDesktopCamera = window.matchMedia('(min-width: 1024px)').matches;
 
-    // 1. Su schermi grandi, convertiamo subito le Tapo al flusso live continuo originale
+    // 1. Su schermi grandi le Tapo vanno nel flusso live continuo originale (30/10/2026: dopo 'load' e solo quelle che
+    //    si vedono). Prima TUTTE le immagini Tapo della pagina (anche di stanze e zone nascoste, e i doppioni in stanza,
+    //    zona e Preferiti) passavano al flusso subito, con la pagina ancora in caricamento: un flusso MJPEG non finisce
+    //    mai, Safari non mandava 'load' (il logo lo toglieva la riserva [AVVIO] dopo 4 s, gli altri listener 'load' non
+    //    partivano) e ogni flusso teneva aperta una connessione (6 per server con l'http di casa) e il Raspberry a 10
+    //    fotogrammi/s. Ora:
+    //     - il live parte a 'load' (se 'load' tarda per altro, 4 s dopo DOMContentLoaded, come la riserva [AVVIO]);
+    //     - solo per le immagini che si vedono (camVisibile) e con la pagina in vista: camLive() rifa' i conti al cambio
+    //       di stanza o zona e a ogni giro di aggiornaTelecamere, quando la pagina va nascosta e quando torna;
+    //     - il live che non si vede piu' torna all'istantanea /api/tapo_snapshot (un fotogramma vero come all'avvio, mai
+    //       un'immagine vuota) e cambiare src chiude il collegamento; quando riparte, il browser tiene in vista l'immagine
+    //       che c'e' finche' non arriva il primo fotogramma del live;
+    //     - lo stesso per la finestra della telecamera Tapo aperta: con la pagina nascosta si ferma, al ritorno riparte;
+    //     - WebKit (Safari, app e browser dell'iPhone e dell'iPad) un MJPEG non lo chiude mai cambiando src (misurato):
+    //       fermarlo non libera niente e, con le 6 connessioni per server gia' occupate, l'istantanea e poi il live di
+    //       ritorno restavano in coda per sempre (riquadro nero). Li' un live acceso resta acceso, come prima.
+    let camLivePronto = false;          // 'load' arrivato (o 4 s dopo DOMContentLoaded)
+    const camFermaLive = !/Apple/.test(navigator.vendor || '');   // il browser chiude un MJPEG cambiando src (non WebKit)
+    function camLive() {
+        if (!isDesktopCamera) return;
+        const accesi = camLivePronto && !document.hidden, ora = Date.now();
+        const camere = whCard.telecamere();
+        for (let i = 0; i < camere.length; i++) {
+            camere[i].querySelectorAll('img.cam-snapshot[data-tapo]').forEach(img => {
+                const tapoId = img.dataset.tapo;
+                if (!tapoId) return;
+                const live = img.getAttribute('src') === `/api/rtsp_stream/${tapoId}`;
+                const serve = accesi && camVisibile(img);
+                if (serve && !live) {
+                    // istantanea rotta (telecamera mai collegata: 404, arrivato prima che ci fosse l'ascoltatore qui sotto):
+                    // prima l'immagine trasparente, il live al giro dopo (altrimenti resterebbe l'icona dell'immagine rotta)
+                    if (img.complete && !img.naturalWidth && img.getAttribute('src') !== CAM_VUOTA) { img.src = CAM_VUOTA; return; }
+                    // prima si impagina con l'immagine che ha: se la sua stanza o zona e' appena comparsa, senza questo il
+                    // browser la disegnerebbe gia' col live non ancora arrivato (riquadro nero fino al primo fotogramma)
+                    img.offsetWidth;
+                    // WebKit: un'immagine 'lazy' che parte dopo non condivide il flusso gia' aperto per la stessa telecamera
+                    // (doppioni in Preferiti/stanze/zone) e ne apre un altro (misurato): qui l'immagine si vede gia'
+                    if (!camFermaLive) img.loading = 'eager';
+                    img.src = `/api/rtsp_stream/${tapoId}`;
+                } else if (!serve && live && camFermaLive) img.src = `/api/tapo_snapshot/${tapoId}?t=${ora}`;
+            });
+        }
+        // la finestra della telecamera: per le Tapo il src dice quale telecamera (data-entity e' vuoto)
+        const fin = document.getElementById('modal-camera-img');
+        const m = fin && /^\/api\/(rtsp_stream|tapo_snapshot)\/([^/?#]+)/.exec(fin.getAttribute('src') || '');
+        if (m) {
+            const inVista = !document.hidden && !!fin.closest('.bottom-modal.active');
+            if (m[1] === 'rtsp_stream' && !inVista && camFermaLive) fin.src = `/api/tapo_snapshot/${m[2]}?t=${ora}`;
+            else if (m[1] === 'tapo_snapshot' && inVista) fin.src = `/api/rtsp_stream/${m[2]}`;
+        }
+    }
+    // istantanea che non arriva (telecamera mai collegata dall'avvio del Raspberry: 404): al suo posto un'immagine
+    // trasparente, cioe' il riquadro nero di prima, mai l'icona dell'immagine rotta. Per le card su desktop e per la
+    // finestra della telecamera (chiudendola torna all'istantanea, anche sul telefono).
+    const CAM_VUOTA = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+    document.addEventListener('error', e => {
+        const img = e.target;
+        if (!img || img.nodeName !== 'IMG' || !/^\/api\/tapo_snapshot\//.test(img.getAttribute('src') || '')) return;
+        if (img.id === 'modal-camera-img' || (isDesktopCamera && img.dataset.tapo && img.classList.contains('cam-snapshot'))) img.src = CAM_VUOTA;
+    }, true);
     if (isDesktopCamera) {
-        document.querySelectorAll('.hk-camera img.cam-snapshot[data-tapo]').forEach(img => {
-            const tapoId = img.dataset.tapo;
-            if (tapoId) {
-                img.src = `/api/rtsp_stream/${tapoId}`;
-            }
-        });
+        const camParti = () => { if (camLivePronto) return; camLivePronto = true; camLive(); };
+        if (document.readyState === 'complete') camParti();
+        else {
+            window.addEventListener('load', camParti);
+            const riserva = () => setTimeout(camParti, 4000);
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', riserva); else riserva();
+        }
     }
 
     // 2. Refresh periodico (29/09/2026: solo cio' che si vede)
@@ -11829,7 +12012,8 @@ function sendCoverCmd(action) {
     function camImmagini(solo) {
         const gruppi = new Map();
         const aggiungi = (img, entityId, tapoId) => {
-            // Su desktop, le Tapo stanno già andando in live streaming continuo. Le ignoriamo.
+            // Su desktop, le Tapo che si vedono stanno già andando in live streaming continuo (camLive); quelle che non si
+            // vedono restano ferme sull'istantanea e non serve chiederla (30/10/2026). Le ignoriamo.
             if (isDesktopCamera && tapoId) return;
             let chiave;
             if (entityId) chiave = 'e:' + entityId;
@@ -11904,6 +12088,7 @@ function sendCoverCmd(action) {
             });
     }
     function aggiornaTelecamere(subito) {
+        camLive();                                       // live delle Tapo su desktop (30/10/2026): solo quelle che si vedono
         if (document.hidden) return;                     // app in secondo piano: niente richieste
         if (!subito) giroImmagini++;
         const ora = Date.now();
@@ -11935,7 +12120,7 @@ function sendCoverCmd(action) {
         });
     }
     setInterval(() => aggiornaTelecamere(false), 2000); // Aggiorna ogni 2 secondi
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) aggiornaTelecamere(true); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) aggiornaTelecamere(true); else camLive(); });   // nascosta: i live si fermano (30/10/2026; in WebKit no, vedi camLive)
 
 // ---------- TAPPARELLA: la finestra e' il comando ----------
 // Si trascina direttamente sul vetro. Il cursore orizzontale precedente
@@ -14907,6 +15092,12 @@ document.addEventListener('visibilitychange', () => {
             if (i.zona === 'casa') return F(esce ? '{persona} esce di casa' : '{persona} arriva a casa', { persona: persona });
             return F(esce ? '{persona} esce da {zona}' : '{persona} entra in {zona}', { persona: persona, zona: nomeZona(i.zona) });
         }
+        if (i.tipo === 'volti') {
+            // [VOLTI] 30/10/2026 innesco di Wach0ss Volti: "Volti: Giovanni", "Volti: sconosciuto"... (+ " su C210")
+            const chi = i.chi === 'persona' ? F('Volti: {persona}', { persona: i.persona || '…' })
+                : T(({ conosciuto: 'Volti: persona registrata', sconosciuto: 'Volti: sconosciuto', chiunque: 'Volti: chiunque' })[i.chi] || 'Volti: …');
+            return i.telecamera ? F('{chi} su {telecamera}', { chi: chi, telecamera: i.telecamera }) : chi;
+        }
         if (i.tipo === 'stato' || i.tipo === 'durata') {
             const n = nomeDi(i.entita), c = i.confronto, durata = i.tipo === 'durata', min = i.minuti || '…';
             if (!durata && c === 'cambia') return F('{nome} cambia', { nome: n });
@@ -14948,6 +15139,7 @@ document.addEventListener('visibilitychange', () => {
         if (i.tipo === 'sole') return [i.evento === 'alba' ? 'sunrise' : 'sunset', 'c-orange'];
         if (i.tipo === 'periodico') return ['repeat', 'c-teal'];
         if (i.tipo === 'zona') return [i.evento === 'esce' ? 'log-out' : 'map-pin', 'c-green'];
+        if (i.tipo === 'volti') return ['scan-face', 'c-green'];      // [VOLTI] 30/10/2026
         const d = String(i.entita || '').split('.')[0], n = piatto((i.entita || '') + ' ' + nomeDi(i.entita));
         if (d === 'binary_sensor') return /moviment|presenz|motion|occup/.test(n) ? ['radar', 'c-green'] : ['door-open', 'c-blue'];
         if (d === 'light') return ['lightbulb', 'c-yellow'];

@@ -5625,7 +5625,86 @@
   "Gira la busta": "Turn the sleeve over",
   "IN ONDA": "ON AIR",
   "Elenco dei brani non disponibile.": "Track list not available.",
-  "Inclina per la luce": "Tilt for the light"
+  "Inclina per la luce": "Tilt for the light",
+  "Volti riconosce qualcuno": "Volti recognises someone",
+  "Quando Wach0ss Volti vede una persona": "When Wach0ss Volti sees a person",
+  "Volti ha visto qualcuno": "Volti has seen someone",
+  "Negli ultimi minuti": "In the last few minutes",
+  "Chi": "Who",
+  "una persona": "a person",
+  "una persona registrata qualsiasi": "any registered person",
+  "uno sconosciuto": "a stranger",
+  "chiunque": "anyone",
+  "una persona registrata": "a registered person",
+  "qualcuno": "someone",
+  "Tutte le telecamere": "All cameras",
+  "Cerca o scrivi un nome": "Search or type a name",
+  "Usa": "Use",
+  "nomi": "names",
+  "Negli ultimi": "In the last",
+  "negli ultimi": "in the last",
+  "Volti riconosce": "Volti recognises",
+  "Volti vede": "Volti sees",
+  "Volti ha visto": "Volti has seen",
+  "Volti: {persona}": "Volti: {persona}",
+  "Volti: persona registrata": "Volti: registered person",
+  "Volti: sconosciuto": "Volti: stranger",
+  "Volti: chiunque": "Volti: anyone",
+  "{chi} su {telecamera}": "{chi} on {telecamera}",
+  "Attiva il collegamento in Impostazioni > Integrazioni > Wach0ss Volti": "Turn on the link in Settings > Integrations > Wach0ss Volti",
+  "I nomi compaiono dopo il primo evento da Volti: intanto puoi scriverlo": "Names show up after the first event from Volti: meanwhile you can type it",
+  "Luce quando arrivo": "Light when I arrive",
+  "Quando Volti ti riconosce, si accende la luce.": "When Volti recognises you, the light comes on.",
+  "scegli chi deve riconoscere Volti": "choose who Volti must recognise",
+  "nome troppo lungo": "name too long",
+  "i minuti devono essere fra 1 e 1440": "the minutes must be between 1 and 1440",
+  "scatta quando Volti manda un evento": "fires when Volti sends an event",
+  "nessun evento recente": "no recent event",
+  "senza nome": "no name",
+  "Riconosce i volti sulle telecamere: quando vede una persona, o uno sconosciuto, fa partire le automazioni.": "Recognises faces on the cameras: when it sees a person, or a stranger, it starts the automations.",
+  "Riconoscimento dei volti: fa partire le automazioni.": "Face recognition: it starts the automations.",
+  "Collegamento spento": "Link off",
+  "Collegamento attivo": "Link on",
+  "Attiva il collegamento per far partire le automazioni quando Volti riconosce qualcuno.": "Turn on the link to start automations when Volti recognises someone.",
+  "Attiva il collegamento con Wach0ss Volti": "Turn on the link with Wach0ss Volti",
+  "Collegamento": "Link",
+  "In Volti: Collegamenti > Wach0ss Home: incolla indirizzo e chiave, poi Prova. Poi crea le automazioni con l'innesco Volti riconosce qualcuno.": "In Volti: Links > Wach0ss Home: paste the address and key, then Test. Then create the automations with the trigger Volti recognises someone.",
+  "Attiva il collegamento per vedere indirizzo e chiave.": "Turn on the link to see the address and key.",
+  "Indirizzo da incollare in Volti": "Address to paste into Volti",
+  "Chiave": "Key",
+  "Nuova chiave": "New key",
+  "Ultimi eventi": "Latest events",
+  "Quello che Volti ha mandato, il più recente in alto.": "What Volti has sent, most recent first.",
+  "Ancora nessun evento da Volti.": "No events from Volti yet.",
+  "Ultimo evento:": "Last event:",
+  "In attesa del primo evento da Volti.": "Waiting for the first event from Volti.",
+  "Chiavi sbagliate nelle ultime 24 ore:": "Wrong keys in the last 24 hours:",
+  "Eventi rifiutati per troppe richieste nelle ultime 24 ore:": "Events refused for too many requests in the last 24 hours:",
+  "di prova": "test",
+  "nessuna automazione": "no automations",
+  "Sicurezza del riconoscimento:": "Recognition confidence:",
+  "Collegamento con Volti attivato": "Link with Volti turned on",
+  "Collegamento con Volti spento": "Link with Volti turned off",
+  "Questo Wach0ss non ha ancora il collegamento con Volti: aggiorna il programma.": "This Wach0ss doesn't have the Volti link yet: update the software.",
+  "Impossibile leggere lo stato del collegamento con Volti.": "Can't read the status of the Volti link.",
+  "Creare una chiave nuova? Quella di adesso smette subito di funzionare: dovrai incollare la nuova in Volti.": "Create a new key? The current one stops working straight away: you'll have to paste the new one into Volti.",
+  "Crea la chiave nuova": "Create the new key",
+  "Chiave nuova creata: copiala in Volti": "New key created: copy it into Volti",
+  "Cancellare gli eventi ricevuti e i nomi imparati da Volti? Le automazioni restano come sono.": "Delete the events received and the names learned from Volti? The automations stay as they are.",
+  "Svuota gli eventi": "Clear the events",
+  "Eventi cancellati": "Events deleted",
+  "Rimuovere Wach0ss Volti? Il collegamento si spegne e Volti non fa più partire le automazioni. La chiave resta la stessa se lo riattivi.": "Remove Wach0ss Volti? The link turns off and Volti no longer starts automations. The key stays the same if you turn it back on.",
+  "Rimuovi Wach0ss Volti": "Remove Wach0ss Volti",
+  "dati non validi": "invalid data",
+  "servono dati JSON": "JSON data required",
+  "dati troppo grandi": "data too large",
+  "troppe richieste": "too many requests",
+  "chiave mancante o sbagliata": "missing or wrong key",
+  "collegamento con Volti spento nel Wach0ss": "link with Volti turned off in the Wach0ss",
+  "con Volti una serratura si puo' solo chiudere (un volto si imita con una foto)": "with Volti a lock can only be closed (a face can be faked with a photo)",
+  "con Volti garage, cancelli, porte e gas si possono solo chiudere (un volto si imita con una foto)": "with Volti garages, gates, doors and gas can only be closed (a face can be faked with a photo)",
+  "con Volti la centrale d'allarme non si comanda (un volto si imita con una foto)": "with Volti the alarm panel is not controlled (a face can be faked with a photo)",
+  "con Volti un pulsante non si preme (potrebbe aprire un cancello)": "with Volti a button is not pressed (it could open a gate)"
  },
  "sempre": {
   " non ": " not ",
@@ -11176,6 +11255,122 @@
   [
    "^Rimuovere la pagina web dalla stanza «(.+)»\\?$",
    "Remove the web page from the room “$1”?"
+  ],
+  [
+   "^Volti riconosce una persona registrata su (.+)$",
+   "Volti recognises a registered person on $1"
+  ],
+  [
+   "^Volti riconosce una persona registrata$",
+   "Volti recognises a registered person"
+  ],
+  [
+   "^Volti riconosce una persona su (.+)$",
+   "Volti recognises a person on $1"
+  ],
+  [
+   "^Volti riconosce una persona$",
+   "Volti recognises a person"
+  ],
+  [
+   "^Volti vede uno sconosciuto su (.+)$",
+   "Volti sees a stranger on $1"
+  ],
+  [
+   "^Volti vede uno sconosciuto$",
+   "Volti sees a stranger"
+  ],
+  [
+   "^Volti vede qualcuno su (.+)$",
+   "Volti sees someone on $1"
+  ],
+  [
+   "^Volti vede qualcuno$",
+   "Volti sees someone"
+  ],
+  [
+   "^Volti riconosce (.+) su (.+)$",
+   "Volti recognises $1 on $2"
+  ],
+  [
+   "^Volti riconosce (.+)$",
+   "Volti recognises $1"
+  ],
+  [
+   "^NON Volti ha visto (una persona registrata|uno sconosciuto|qualcuno) negli ultimi ([\\d.]+) min su (.+)$",
+   "Volti has NOT seen $*1 in the last $2 min on $3"
+  ],
+  [
+   "^NON Volti ha visto (una persona registrata|uno sconosciuto|qualcuno) negli ultimi ([\\d.]+) min$",
+   "Volti has NOT seen $*1 in the last $2 min"
+  ],
+  [
+   "^NON Volti ha visto (.+) negli ultimi ([\\d.]+) min su (.+)$",
+   "Volti has NOT seen $1 in the last $2 min on $3"
+  ],
+  [
+   "^NON Volti ha visto (.+) negli ultimi ([\\d.]+) min$",
+   "Volti has NOT seen $1 in the last $2 min"
+  ],
+  [
+   "^Volti ha visto (una persona registrata|uno sconosciuto|qualcuno) negli ultimi ([\\d.]+) min su (.+)$",
+   "Volti has seen $*1 in the last $2 min on $3"
+  ],
+  [
+   "^Volti ha visto (una persona registrata|uno sconosciuto|qualcuno) negli ultimi ([\\d.]+) min$",
+   "Volti has seen $*1 in the last $2 min"
+  ],
+  [
+   "^Volti ha visto (.+) negli ultimi ([\\d.]+) min su (.+)$",
+   "Volti has seen $1 in the last $2 min on $3"
+  ],
+  [
+   "^Volti ha visto (.+) negli ultimi ([\\d.]+) min$",
+   "Volti has seen $1 in the last $2 min"
+  ],
+  [
+   "^scatta quando Volti manda un evento(; | · |, )(.+)$",
+   "fires when Volti sends an event$1$*2"
+  ],
+  [
+   "^ultimo: (.+) su (.+) il (\\d{1,2}/\\d{1,2}) alle (\\d{1,2}:\\d{2})$",
+   "last: $*1 on $2, $3 at $4"
+  ],
+  [
+   "^ultimo: (.+) il (\\d{1,2}/\\d{1,2}) alle (\\d{1,2}:\\d{2})$",
+   "last: $*1, $2 at $3"
+  ],
+  [
+   "^ultimo: (\\d{1,2}:\\d{2}), (\\d+) min fa$",
+   "last: $1, $2 min ago"
+  ],
+  [
+   "^ultimo: (.+) su (.+) alle (\\d{1,2}:\\d{2})$",
+   "last: $*1 on $2 at $3"
+  ],
+  [
+   "^ultimo: (.+) alle (\\d{1,2}:\\d{2})$",
+   "last: $*1 at $2"
+  ],
+  [
+   "^Sconosciuto #(\\d+)$",
+   "Stranger #$1"
+  ],
+  [
+   "^con Volti una serratura si puo' solo chiudere \\(un volto si imita con una foto\\)$",
+   "with Volti a lock can only be closed (a face can be faked with a photo)"
+  ],
+  [
+   "^con Volti garage, cancelli, porte e gas si possono solo chiudere \\(un volto si imita con una foto\\)$",
+   "with Volti garages, gates, doors and gas can only be closed (a face can be faked with a photo)"
+  ],
+  [
+   "^con Volti la centrale d'allarme non si comanda \\(un volto si imita con una foto\\)$",
+   "with Volti the alarm panel is not controlled (a face can be faked with a photo)"
+  ],
+  [
+   "^con Volti un pulsante non si preme \\(potrebbe aprire un cancello\\)$",
+   "with Volti a button is not pressed (it could open a gate)"
   ]
  ],
  "contesti": [

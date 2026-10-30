@@ -5581,6 +5581,70 @@ async function myhCopiaRegistro(btn) {
     </div>
 {% endif %}{# [FUSIONE] fine della card degli inverter #}
 
+<!-- [VOLTI] 30/10/2026 card "Wach0ss Volti": il collegamento con il programma di riconoscimento dei volti (non e' un modulo:
+     c'e' sempre). API JSON proprie nel blocco VOLTI di app.py, niente /setup. CSS solo per questa card (vlt-). -->
+<style>
+        .bg-volti { color: #0E9BBE; }
+        .integration-card[data-key="volti"] [hidden] { display: none !important; }
+        .integration-card[data-key="volti"] .btn-sm:not(.primary):not(.danger) { background: #FFF; border-color: #E5E5EA; color: var(--text-main); }
+        .integration-card[data-key="volti"] .btn-sm:not(.primary):not(.danger):hover { background: #FAFAFC; border-color: #D1D1D6; }
+        .integration-card[data-key="volti"] .btn-sm:disabled { opacity: .45; cursor: not-allowed; }
+        .vlt-riga { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+        .vlt-riga .premium-input { margin-bottom: 0; flex: 1; min-width: 0; padding: 10px 12px; font: 600 0.8rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text-main); }
+        .vlt-riga .btn-sm { flex-shrink: 0; height: 38px; }
+        .vlt-vuoto { font-size: 0.8rem; color: var(--text-muted); }
+        .vlt-rifiutati { font-size: 0.78rem; line-height: 1.5; color: #A05A00; background: #FFF4E0; border-radius: 10px; padding: 8px 11px; margin-bottom: 10px; }
+        .vlt-eventi { display: flex; flex-direction: column; gap: 6px; }
+        .vlt-ev { display: flex; align-items: center; gap: 10px; background: #FAFAFC; border: 1px solid #E5E5EA; border-radius: 12px; padding: 8px 11px; }
+        .vlt-ev-ico { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: #E3F6FB; color: #0E9BBE; }
+        .vlt-ev-ico.sconosciuto { background: #FFF4E0; color: #C77800; }
+        .vlt-ev-ico svg { width: 16px; height: 16px; }
+        .vlt-ev-t { flex: 1; min-width: 0; }
+        .vlt-ev-t b { display: block; font-size: 0.86rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .vlt-ev-t small { display: block; font-size: 0.74rem; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .vlt-auto { flex-shrink: 0; font-size: 0.74rem; font-weight: 600; color: var(--text-main); text-align: right; }
+        .vlt-auto.zero { color: var(--text-muted); font-weight: 500; }
+        .vlt-tag { flex-shrink: 0; font-size: 0.66rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: #F2F2F7; color: var(--text-muted); }
+</style>
+<div class="integration-card" data-key="volti">
+        <div class="integration-header" onclick="this.parentElement.classList.toggle('open'); vltCarica();">
+            <div class="integration-title"><i data-lucide="scan-face"></i> Wach0ss Volti</div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="setup-badge bg-volti">VOLTI</div>
+                <i data-lucide="chevron-down" class="accordion-chevron" style="width:20px; height:20px;"></i>
+            </div>
+        </div>
+        <div class="integration-content">
+            <div class="nvr-stato" id="vlt-stato">
+                <div style="min-width:0;">
+                    <div class="nvr-stato-t" id="vlt-stato-t">Collegamento spento</div>
+                    <div class="nvr-stato-s" id="vlt-stato-s">Attiva il collegamento per far partire le automazioni quando Volti riconosce qualcuno.</div>
+                </div>
+                <label class="nvr-switch" title="Attiva il collegamento con Wach0ss Volti"><input type="checkbox" id="vlt-attivo" onchange="vltAttiva(this)"><span></span></label>
+            </div>
+
+            <div class="nvr-box">
+                <div class="nvr-box-h"><div><b>Collegamento</b><small>In Volti: Collegamenti &gt; Wach0ss Home: incolla indirizzo e chiave, poi Prova. Poi crea le automazioni con l'innesco Volti riconosce qualcuno.</small></div></div>
+                <div class="vlt-vuoto" id="vlt-spento">Attiva il collegamento per vedere indirizzo e chiave.</div>
+                <div id="vlt-dati" hidden>
+                    <label class="input-label" for="vlt-indirizzo">Indirizzo da incollare in Volti</label>
+                    <div class="vlt-riga"><input type="text" class="premium-input" id="vlt-indirizzo" readonly data-no-tr><button type="button" class="btn-sm" onclick="vltCopia('indirizzo', this)"><i data-lucide="copy"></i> <span>Copia</span></button></div>
+                    <label class="input-label" for="vlt-chiave">Chiave</label>
+                    <div class="vlt-riga"><input type="text" class="premium-input" id="vlt-chiave" readonly data-no-tr><button type="button" class="btn-sm" id="vlt-mostra" onclick="vltMostra()"><i data-lucide="eye"></i> <span>Mostra</span></button><button type="button" class="btn-sm" onclick="vltCopia('chiave', this)"><i data-lucide="copy"></i> <span>Copia</span></button></div>
+                    <div class="card-actions" style="margin-top: 0;"><button type="button" class="btn-sm danger" id="vlt-nuova" onclick="vltNuovaChiave(this)"><i data-lucide="refresh-cw"></i> Nuova chiave</button></div>
+                </div>
+            </div>
+
+            <div class="nvr-box">
+                <div class="nvr-box-h"><div><b>Ultimi eventi</b><small>Quello che Volti ha mandato, il più recente in alto.</small></div></div>
+                <div class="vlt-rifiutati" id="vlt-rifiutati" hidden></div>
+                <div class="vlt-eventi" id="vlt-eventi"><div class="vlt-vuoto">Ancora nessun evento da Volti.</div></div>
+                <div class="card-actions"><button type="button" class="btn-sm" onclick="vltCarica()"><i data-lucide="refresh-cw"></i> Aggiorna</button><button type="button" class="btn-sm danger" id="vlt-svuota" onclick="vltSvuota(this)"><i data-lucide="trash-2"></i> Svuota</button></div>
+            </div>
+            <div class="cam-msg" id="vlt-msg"></div>
+        </div>
+</div>
+
 {% if homekit_modulo %}<!-- MODULO: HOMEKIT (homekit.py) - card con id= e API JSON proprie: non passa da /setup -->
 <style>
         .bg-homekit { color: #FF9500; }
@@ -17503,6 +17567,206 @@ STORE_CAT_ICONE['Illuminazione'] = 'lightbulb';
 {%- endif %}
 {% if inverter_presente %}STORE_CAT_ICONE['Energia'] = 'sun';   // [INVERTER] D7 categoria nuova dello Store{% endif %}
 STORE_CAT_ICONE['Dispositivi Wi-Fi'] = 'wifi';   // [TUYA] [TPLINK] [SONOFF] categoria nuova dello Store, comune alle tre (una riga sola)
+// --- [VOLTI] 30/10/2026 voce dello Store (Videosorveglianza) e card "Wach0ss Volti": il collegamento con il programma di
+// riconoscimento dei volti, che fa partire le automazioni (innesco "Volti riconosce qualcuno"). API JSON del blocco VOLTI
+// di app.py, solo amministratore: GET /api/volti/stato, POST (solo JSON) /api/volti/impostazioni {attivo}, /api/volti/chiave,
+// /api/volti/svuota, che rispondono come lo stato. Niente polling: lo stato si legge aprendo la card e con Aggiorna; se e'
+// "installata" (= collegamento acceso) lo si rilegge una volta a ogni apertura delle Integrazioni (refreshAsyncStoreStatus).
+// Errori possibili delle rotte: 'dati non validi', 'servono dati JSON', 'dati troppo grandi', 'troppe richieste',
+// 'chiave mancante o sbagliata', 'collegamento con Volti spento nel Wach0ss', 'accesso negato', "solo l'amministratore".
+INTEGRATIONS_CATALOG.push({ key: 'volti', name: 'Wach0ss Volti', icon: 'scan-face', color: '#0E9BBE', logo: null, category: 'Videosorveglianza', desc: "Riconosce i volti sulle telecamere: quando vede una persona, o uno sconosciuto, fa partire le automazioni.", installed: false, removable: true });
+DETAIL_TITLES.volti = ["Wach0ss Volti", "Riconoscimento dei volti: fa partire le automazioni."];
+let vltStato = null;        // l'ultimo /api/volti/stato disegnato (con la chiave: solo in memoria, mai nel registro)
+let vltChiara = false;      // chiave mostrata per intero (Mostra) o nascosta (••••, si vedono solo le ultime 4 cifre come in Volti)
+function vltT(x) { return window.WH_T ? window.WH_T(x) : x; }
+function vltEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+async function vltFetch(url, corpo) {
+    const o = { credentials: 'same-origin', cache: 'no-store' };
+    if (corpo !== undefined) { o.method = 'POST'; o.headers = { 'Content-Type': 'application/json' }; o.body = JSON.stringify(corpo); }
+    const r = await fetch(url, o);
+    let d = null;
+    try { d = await r.json(); } catch (e) { d = null; }
+    if (!r.ok || !d || d.ok === false) {
+        const err = new Error((d && (d.errore || d.message || d.error)) || vltT('Errore'));
+        err.status = r.status;
+        throw err;
+    }
+    return d;
+}
+function vltMsg(testo, errore) {
+    const m = document.getElementById('vlt-msg');
+    if (!m) return;
+    m.textContent = testo || '';
+    m.style.display = testo ? 'block' : 'none';
+    m.style.color = errore ? 'var(--danger)' : '';
+}
+async function vltCarica() {
+    if (!document.getElementById('vlt-stato')) return;
+    try {
+        const d = await vltFetch('/api/volti/stato');
+        vltMsg('');
+        vltDisegna(d);
+    } catch (e) {
+        vltMsg(vltT(e.status === 404 ? 'Questo Wach0ss non ha ancora il collegamento con Volti: aggiorna il programma.' : 'Impossibile leggere lo stato del collegamento con Volti.'), true);
+    }
+}
+function vltScriviChiave() {
+    const k = (vltStato && vltStato.chiave) || '', i = document.getElementById('vlt-chiave'), b = document.getElementById('vlt-mostra');
+    if (!i || !b) return;
+    i.value = !k ? '' : (vltChiara ? k : '••••••••••••' + k.slice(-4));
+    b.innerHTML = '<i data-lucide="' + (vltChiara ? 'eye-off' : 'eye') + '"></i> <span>' + vltEsc(vltT(vltChiara ? 'Nascondi' : 'Mostra')) + '</span>';
+    if (window.lucide) lucide.createIcons({ root: b });
+}
+// una riga di "Ultimi eventi": ora, nome, telecamera, sicurezza, "di prova", quante automazioni sono partite.
+// I nomi delle persone non si traducono; quelli degli sconosciuti li scrive Volti ("Sconosciuto #7") e si traducono.
+function vltRigaEvento(e) {
+    const scon = e.tipo === 'sconosciuto', n = Number(e.automazioni) || 0;
+    const sic = (e.sicurezza === null || e.sicurezza === undefined || e.sicurezza === '' || isNaN(Number(e.sicurezza))) ? '' : Math.round(Number(e.sicurezza)) + '%';
+    const nome = scon ? vltT(e.nome || 'Sconosciuto') : (e.nome || '…');
+    const dx = e.prova ? '<span class="vlt-tag">' + vltEsc(vltT('di prova')) + '</span>'
+        : '<span class="vlt-auto' + (n ? '' : ' zero') + '">' + vltEsc(n === 0 ? vltT('nessuna automazione') : n === 1 ? vltT('1 automazione') : vltT(n + ' automazioni')) + '</span>';
+    return '<div class="vlt-ev"><span class="vlt-ev-ico' + (scon ? ' sconosciuto' : '') + '"><i data-lucide="' + (scon ? 'user-x' : 'user') + '"></i></span>'
+        + '<div class="vlt-ev-t"><b data-no-tr>' + vltEsc(nome) + '</b>'
+        + '<small data-no-tr' + (sic ? ' title="' + vltEsc(vltT('Sicurezza del riconoscimento:') + ' ' + sic) + '"' : '') + '>' + vltEsc([e.quando, e.telecamera, sic].filter(Boolean).join(' · ')) + '</small></div>' + dx + '</div>';
+}
+function vltDisegna(d) {
+    const el = (id) => document.getElementById(id);
+    const card = document.querySelector('.integration-card[data-key="volti"]');
+    if (!card || !el('vlt-stato')) return;
+    vltStato = d;
+    const on = !!d.attivo, ev = Array.isArray(d.eventi) ? d.eventi : [];
+    el('vlt-attivo').checked = on;
+    el('vlt-stato').classList.toggle('on', on);
+    el('vlt-stato-t').textContent = vltT(on ? 'Collegamento attivo' : 'Collegamento spento');
+    el('vlt-stato-s').innerHTML = !on ? vltEsc(vltT('Attiva il collegamento per far partire le automazioni quando Volti riconosce qualcuno.'))
+        : ev.length ? '<span>' + vltEsc(vltT('Ultimo evento:')) + '</span> <b data-no-tr>' + vltEsc(ev[0].quando || '') + '</b>'
+        : vltEsc(vltT('In attesa del primo evento da Volti.'));
+    // indirizzo e chiave servono solo col collegamento acceso (la chiave nasce alla prima accensione)
+    el('vlt-spento').hidden = on;
+    el('vlt-dati').hidden = !on;
+    el('vlt-indirizzo').value = d.indirizzo || d.indirizzo_pagina || '';
+    vltScriviChiave();
+    // chiavi sbagliate (e richieste oltre i limiti) delle ultime 24 ore: per capire se Volti usa una chiave vecchia
+    const rif = d.rifiutati || {}, nc = Number(rif.chiave) || 0, nl = Number(rif.limite) || 0;
+    el('vlt-rifiutati').hidden = !(nc || nl);
+    el('vlt-rifiutati').innerHTML = [nc ? '<span>' + vltEsc(vltT('Chiavi sbagliate nelle ultime 24 ore:')) + '</span> <b data-no-tr>' + nc + '</b>' : '',
+        nl ? '<span>' + vltEsc(vltT('Eventi rifiutati per troppe richieste nelle ultime 24 ore:')) + '</span> <b data-no-tr>' + nl + '</b>' : ''].filter(Boolean).join('<br>');
+    el('vlt-eventi').innerHTML = ev.length ? ev.slice(0, 10).map(vltRigaEvento).join('') : '<div class="vlt-vuoto">' + vltEsc(vltT('Ancora nessun evento da Volti.')) + '</div>';
+    el('vlt-svuota').disabled = !ev.length;
+    if (window.lucide) lucide.createIcons({ root: card });
+}
+async function vltAttiva(cb) {
+    const on = cb.checked;
+    cb.disabled = true;
+    try {
+        const d = await vltFetch('/api/volti/impostazioni', { attivo: on });
+        vltMsg('');
+        vltDisegna(d);
+        const item = INTEGRATIONS_CATALOG.find((i) => i.key === 'volti');
+        if (item) item.installed = !!d.attivo;
+        showToast(vltEsc(vltT(d.attivo ? 'Collegamento con Volti attivato' : 'Collegamento con Volti spento')), 'success');
+    } catch (e) {
+        cb.checked = !on;
+        showToast(vltEsc(vltT(e.message || 'Errore')), 'error');
+    } finally {
+        cb.disabled = false;
+    }
+}
+function vltMostra() {
+    vltChiara = !vltChiara;
+    vltScriviChiave();
+}
+// Copia: navigator.clipboard c'e' solo in https o su localhost; aperta da un indirizzo di casa (http://192.168...) la
+// pagina copia dal campo con execCommand. Se non riesce nemmeno cosi', il testo resta selezionato da copiare a mano.
+async function vltCopia(cosa, btn) {
+    const v = cosa === 'chiave' ? ((vltStato && vltStato.chiave) || '') : document.getElementById('vlt-indirizzo').value;
+    if (!v) return;
+    let ok = false;
+    try { if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(v); ok = true; } } catch (e) { ok = false; }
+    if (!ok) {
+        const t = document.createElement('textarea');
+        t.value = v; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed; left:-9999px; top:0; opacity:0;';
+        document.body.appendChild(t); t.select();
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        t.remove();
+    }
+    if (ok) {
+        const s = btn && btn.querySelector('span');
+        if (s) { s.textContent = vltT('Copiato'); setTimeout(() => { s.textContent = vltT('Copia'); }, 2000); }
+        return;
+    }
+    if (cosa === 'chiave' && !vltChiara) vltMostra();
+    const i = document.getElementById(cosa === 'chiave' ? 'vlt-chiave' : 'vlt-indirizzo');
+    if (i) { i.focus(); i.select(); }
+    showToast(vltEsc(vltT('Copia non riuscita: selezionalo a mano')), 'error');
+}
+async function vltNuovaChiave(btn) {
+    if (!await chiedi('Creare una chiave nuova? Quella di adesso smette subito di funzionare: dovrai incollare la nuova in Volti.', { titolo: 'Nuova chiave', si: 'Crea la chiave nuova', pericolo: true, icona: 'refresh-cw' })) return;
+    if (btn) btn.disabled = true;
+    try {
+        const d = await vltFetch('/api/volti/chiave', {});
+        vltDisegna(d);
+        showToast(vltEsc(vltT('Chiave nuova creata: copiala in Volti')), 'success');
+    } catch (e) {
+        showToast(vltEsc(vltT(e.message || 'Errore')), 'error');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+async function vltSvuota(btn) {
+    if (!await chiedi('Cancellare gli eventi ricevuti e i nomi imparati da Volti? Le automazioni restano come sono.', { titolo: 'Svuota gli eventi', si: 'Svuota', pericolo: true })) return;
+    if (btn) btn.disabled = true;
+    try {
+        const d = await vltFetch('/api/volti/svuota', {});
+        vltDisegna(d);
+        showToast(vltEsc(vltT('Eventi cancellati')), 'success');
+    } catch (e) {
+        if (btn) btn.disabled = false;
+        showToast(vltEsc(vltT(e.message || 'Errore')), 'error');
+    }
+}
+// "installata" = collegamento acceso: una lettura dello stato a ogni apertura delle Integrazioni, insieme alle altre
+// (true se e' cambiato rispetto a quanto gia' disegnato: allora si ridisegnano le due griglie)
+async function vltSegnaInstallata() {
+    const item = INTEGRATIONS_CATALOG.find((i) => i.key === 'volti');
+    if (!item) return false;
+    try {
+        const d = await vltFetch('/api/volti/stato');
+        const prima = !!item.installed;
+        item.installed = !!d.attivo;
+        return prima !== item.installed;
+    } catch (e) {
+        return false;
+    }
+}
+refreshAsyncStoreStatus = (function (originale) {
+    return async function () {
+        const [r, cambiata] = await Promise.all([originale.apply(this, arguments), vltSegnaInstallata()]);
+        if (cambiata) { renderInstalledGrid(); renderCatalogGrid(); }
+        return r;
+    };
+})(refreshAsyncStoreStatus);
+// Rimozione dallo Store: il collegamento si spegne (chiave ed eventi restano), poi come le altre integrazioni.
+uninstallIntegration = (function (originale) {
+    return async function (key) {
+        if (key !== 'volti') return originale.apply(this, arguments);
+        if (!await chiedi('Rimuovere Wach0ss Volti? Il collegamento si spegne e Volti non fa più partire le automazioni. La chiave resta la stessa se lo riattivi.', { titolo: 'Rimuovi Wach0ss Volti', si: 'Rimuovi', pericolo: true, icona: 'link-2-off' })) return;
+        try {
+            await vltFetch('/api/volti/impostazioni', { attivo: false });
+            showToast('Integrazione rimossa', 'success');
+            setTimeout(() => { window.location.href = window.location.pathname + '?setup=open'; }, 800);
+        } catch (e) {
+            showToast('Errore durante la rimozione', 'error');
+        }
+    };
+})(uninstallIntegration);
+openIntegrationDetail = (function (originale) {
+    return function (key) {
+        const r = originale.apply(this, arguments);
+        if (key === 'volti') vltCarica();
+        return r;
+    };
+})(openIntegrationDetail);
 let storeCategoria = '';   // '' = tutte
 let storeTesto = '';
 

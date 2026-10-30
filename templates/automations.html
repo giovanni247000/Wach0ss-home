@@ -995,6 +995,48 @@ const nomeZona = k => (zone.find(z => z.chiave === k) || {}).nome || k || '…';
 // attuale = nome gia' salvato nella regola: si puo' ancora scegliere anche se il telefono non manda piu' posizioni
 const opzioniPersone = (attuale) => (attuale && !persone.includes(attuale) ? [attuale, ...persone] : persone).map(p => ({ v: p, t: p, icona: 'user' }));
 const opzioniZone = () => zone.map(z => ({ v: z.chiave, t: z.nome, sub: (z.raggio >= 1000 ? (z.raggio / 1000) + ' km' : z.raggio + ' m'), icona: z.casa ? 'house' : 'map-pin' }));
+// [VOLTI] 30/10/2026 innesco e condizione 'volti' (Wach0ss Volti riconosce una persona o vede uno sconosciuto). I menu Persona
+// e Telecamera hanno i nomi imparati dagli eventi (GET /api/volti/stato, solo admin): si chiedono quando si disegna un passo
+// volti, poi al massimo una volta al minuto, mai a ogni disegno. Un nome nuovo si puo' sempre scrivere (scelta con 'libero').
+// Errori del server (vedi campoVolti): 'scegli chi deve riconoscere Volti', 'scegli la persona', 'nome troppo lungo',
+// 'i minuti devono essere fra 1 e 1440'. Prova a secco: 'scatta quando Volti manda un evento' ('; ultimo: ...', anche
+// 'senza nome'), 'nessun evento recente'. Tutte tradotte in lingue/en.json (frasi e modelli 'Volti ...').
+let volti = { letto: false, attivo: false, persone: [], telecamere: [], ultimo: null }, _voltiQuando = 0, _voltiInCorso = false;
+const CHI_VOLTI = [{ v: 'persona', t: 'una persona', icona: 'user' }, { v: 'conosciuto', t: 'una persona registrata qualsiasi', icona: 'users' }, { v: 'sconosciuto', t: 'uno sconosciuto', icona: 'user-x' }, { v: 'chiunque', t: 'chiunque', icona: 'scan-face' }];
+const chiaveNome = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();   // come il server: maiuscole e spazi in piu' non contano
+// attuale = nome gia' salvato nella regola: resta nel menu anche se Volti non l'ha (ancora) mandato
+function opzioniVolti(k, attuale) {
+    const tel = k === 'telecamera', nomi = (tel ? volti.telecamere : volti.persone).slice();
+    if (attuale && !nomi.includes(attuale)) nomi.unshift(attuale);
+    return (tel ? [{ v: '', t: 'Tutte le telecamere', icona: 'cctv' }] : []).concat(nomi.map(x => ({ v: x, t: x, icona: tel ? 'cctv' : 'user' })));
+}
+function caricaVolti() {
+    if (_voltiInCorso || (_voltiQuando && Date.now() - _voltiQuando < 60000)) return;
+    _voltiInCorso = true;
+    api('/api/volti/stato').then(j => { volti = { letto: true, attivo: !!j.attivo, persone: Array.isArray(j.persone) ? j.persone.map(String) : [], telecamere: Array.isArray(j.telecamere) ? j.telecamere.map(String) : [], ultimo: j.ultimo_evento || null }; })
+        .catch(() => {})        // rete o server senza Volti: menu senza nomi e niente riga d'aiuto (il nome si scrive lo stesso)
+        .finally(() => { _voltiInCorso = false; _voltiQuando = Date.now(); aggiornaVolti(); });
+}
+// arrivati i nomi: i menu delle righe volti gia' disegnate li prendono e la riga d'aiuto si aggiorna (i valori scelti restano)
+function aggiornaVolti() {
+    document.querySelectorAll('#v-costr .riga[data-tipo="volti"]').forEach(riga => {
+        ['persona', 'telecamera'].forEach(k => { const s = riga.querySelector(`.frase-riga [data-k="${k}"]`); if (s && s._cfg && s.imposta) { s._cfg.opzioni = opzioniVolti(k, s.dataset.v); s.imposta(s.dataset.v, true); } });
+        aggiornaNote(riga);
+    });
+}
+// riga d'aiuto sotto i campi: collegamento spento, oppure nessun nome ancora arrivato da Volti
+function aiutoVolti() {
+    if (!volti.letto) return '';
+    if (!volti.attivo) return 'Attiva il collegamento in Impostazioni > Integrazioni > Wach0ss Volti';
+    if (!volti.ultimo || !(volti.persone.length || volti.telecamere.length)) return 'I nomi compaiono dopo il primo evento da Volti: intanto puoi scriverlo';
+    return '';
+}
+// chi riconosce Volti, a parole: il nome della persona non si traduce (data-no-tr), le diciture si'
+const chiVolti = x => x.chi === 'persona' ? `<b data-no-tr>${esc(x.persona || '…')}</b>` : `<b>${({ conosciuto: 'una persona registrata', sconosciuto: 'uno sconosciuto', chiunque: 'qualcuno' })[x.chi] || '…'}</b>`;
+const verboVolti = x => x.chi === 'persona' || x.chi === 'conosciuto' ? 'Volti riconosce' : 'Volti vede';
+const suVolti = x => x.telecamera ? ` su <b data-no-tr>${esc(x.telecamera)}</b>` : '';
+// per le pillole (data-no-tr, gia' tradotte): "Volti: Giovanni", "Volti: sconosciuto" (come il riassunto dell'app)
+const breveVolti = x => x.chi === 'persona' ? 'Volti: ' + (x.persona || '…') : aVideo(({ conosciuto: 'Volti: persona registrata', sconosciuto: 'Volti: sconosciuto', chiunque: 'Volti: chiunque' })[x.chi] || 'Volti: …');
 let telefoni = [];   // telefoni con l'app iOS registrati sul server (/api/app/dispositivi): azione "notifica_app"
 // nome del telefono per la frase "in parole": i nomi veri non si traducono (data-no-tr), le due diciture si'
 const nomeTelefono = id => { if (!id) return '<b>tutti i telefoni</b>'; const t = telefoni.find(x => x.device_id === id); return t ? `<b data-no-tr>${esc(t.nome)}</b>` : '<b>telefono non registrato</b>'; };
@@ -1011,8 +1053,8 @@ const TILE_DOM = { light: 't-luce', cover: 't-tapp', scene: 't-scena', media_pla
 const GIORNI = ['L', 'M', 'M', 'G', 'V', 'S', 'D'], GIORNI_LUNGHI = ['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
 // catalogo dei tipi (formato config v2 invariato): [tipo, nome, icona]
 const TIPI = {
-    innesco: [['stato', 'Un dispositivo cambia', 'zap'], ['durata', 'Un dispositivo resta così per un tempo', 'hourglass'], ['orario', 'A un orario', 'clock'], ['sole', 'Alba o tramonto', 'sunset'], ['periodico', 'Ogni tot minuti', 'repeat'], ['zona', 'Una persona entra o esce da una zona', 'map-pin']],
-    condizione: [['stato', 'Stato di un dispositivo', 'toggle-right'], ['fascia', 'Fascia oraria', 'clock'], ['giorni', 'Giorni della settimana', 'calendar-days'], ['sole', 'Giorno o notte', 'sun-moon'], ['zona', 'Dove si trova una persona', 'house']],
+    innesco: [['stato', 'Un dispositivo cambia', 'zap'], ['durata', 'Un dispositivo resta così per un tempo', 'hourglass'], ['orario', 'A un orario', 'clock'], ['sole', 'Alba o tramonto', 'sunset'], ['periodico', 'Ogni tot minuti', 'repeat'], ['zona', 'Una persona entra o esce da una zona', 'map-pin'], ['volti', 'Volti riconosce qualcuno', 'scan-face']],
+    condizione: [['stato', 'Stato di un dispositivo', 'toggle-right'], ['fascia', 'Fascia oraria', 'clock'], ['giorni', 'Giorni della settimana', 'calendar-days'], ['sole', 'Giorno o notte', 'sun-moon'], ['zona', 'Dove si trova una persona', 'house'], ['volti', 'Volti ha visto qualcuno', 'scan-face']],
     azione: [['dispositivo', 'Accendi, spegni, inverti', 'power'], ['tapparella', 'Tapparella', 'blinds'], ['luce', 'Luce: luminosità e colore', 'lightbulb'], ['scena', 'Attiva uno scenario', 'clapperboard'], ['attesa', 'Aspetta', 'hourglass'], ['telegram', 'Messaggio Telegram', 'send'], ['popup', 'Avviso sull\'app', 'message-square-warning'], {% if annunci_modulo %}['notifica_app', 'Notifica sull\'app iOS', 'bell-ring'], ['annuncio', 'Annuncio vocale sui Sonos', 'megaphone'], ['regola', 'Un\'altra automazione', 'workflow']],{% else %}['notifica_app', 'Notifica sull\'app iOS', 'bell-ring'], ['regola', 'Un\'altra automazione', 'workflow']],{% endif %}
 };
 // GALLERIA dei tipi ("+ Aggiungi"): sezioni, titolo breve, spiegazione, tile
@@ -1020,11 +1062,11 @@ const GALLERIA = {
     innesco: { titolo: 'Aggiungi un innesco', sotto: 'Basta che ne scatti uno', sez: [
         ['Dispositivo', [['stato', 'Cambia stato', 'Si accende, si apre, supera un valore', 'zap', 't-disp'], ['durata', 'Resta così per…', 'Per esempio aperta da 10 minuti', 'hourglass', 't-disp']]],
         ['Tempo', [['orario', 'Orario', 'A un\'ora precisa, nei giorni che scegli', 'clock', 't-tempo'], ['sole', 'Alba o tramonto', 'Anche qualche minuto prima o dopo', 'sunset', 't-sole'], ['periodico', 'Ogni N minuti', 'Si ripete a intervalli regolari', 'repeat', 't-tempo']]],
-        ['Persone', [['zona', 'Entra o esce da una zona', 'Quando qualcuno arriva o va via', 'map-pin', 't-pers']]]] },
+        ['Persone', [['zona', 'Entra o esce da una zona', 'Quando qualcuno arriva o va via', 'map-pin', 't-pers'], ['volti', 'Volti riconosce qualcuno', 'Quando Wach0ss Volti vede una persona', 'scan-face', 't-pers']]]] },
     condizione: { titolo: 'Aggiungi una condizione', sotto: 'Devono essere vere tutte', sez: [
         ['Dispositivo', [['stato', 'Dispositivo', 'Solo se è acceso, aperto o sopra un valore', 'toggle-right', 't-cond']]],
         ['Tempo', [['fascia', 'Fascia oraria', 'Solo fra due orari', 'clock', 't-cond'], ['giorni', 'Giorni', 'Solo in certi giorni della settimana', 'calendar-days', 't-cond'], ['sole', 'Giorno o notte', 'Solo con la luce o col buio', 'sun-moon', 't-cond']]],
-        ['Persone', [['zona', 'Persona in una zona', 'Solo se qualcuno è in casa, o fuori', 'house', 't-pers']]]] },
+        ['Persone', [['zona', 'Persona in una zona', 'Solo se qualcuno è in casa, o fuori', 'house', 't-pers'], ['volti', 'Volti ha visto qualcuno', 'Negli ultimi minuti', 'scan-face', 't-pers']]]] },
     azione: { titolo: 'Aggiungi un\'azione', sotto: 'Le azioni partono in ordine', sez: [
         ['Dispositivi', [['dispositivo', 'Accendi o spegni', 'Luci, prese, gruppi, clima', 'power', 't-disp'], ['luce', 'Luce', 'Luminosità e colore', 'lightbulb', 't-luce'], ['tapparella', 'Tapparella', 'Su, giù o a una posizione', 'blinds', 't-tapp'], ['scena', 'Scenario', 'Avvia uno scenario salvato', 'clapperboard', 't-scena']]],
         ['Messaggi', [['notifica_app', 'Notifica sull\'app', 'Sui telefoni che scegli', 'bell-ring', 't-msg'], ['telegram', 'Telegram', 'Un messaggio al tuo bot', 'send', 't-msg'], ['popup', 'Avviso sull\'app', 'Un riquadro in cima alla casa', 'message-square-warning', 't-msg']{% if annunci_modulo %}, ['annuncio', 'Annuncio Sonos', 'Una frase letta ad alta voce', 'megaphone', 't-msg']{% endif %}]],
@@ -1138,7 +1180,7 @@ function tastiScelta(e) {
 function scelta(cont, cfg) {
     cont.innerHTML = ''; cont.classList.add('scelta-cont'); cont.dataset.v = cfg.valore == null ? '' : String(cfg.valore); cont._cfg = cfg;
     const b = document.createElement('button'); b.type = 'button'; b.className = 'scelta' + (cfg.larga ? ' larga' : '') + (cfg.classe ? ' ' + cfg.classe : ''); b.setAttribute('aria-haspopup', 'listbox'); b.setAttribute('aria-expanded', 'false'); cont.appendChild(b);
-    const disegna = () => { const o = cfg.opzioni.find(x => String(x.v) === cont.dataset.v); b.classList.toggle('nulla', !o); b.title = o ? o.t : (cfg.placeholder || 'Scegli…'); b.innerHTML = (o && o.icona ? `<span class="si ${o.classeIco || ''}"><i data-lucide="${o.icona}"></i></span>` : (cfg.icona ? `<span class="si"><i data-lucide="${cfg.icona}"></i></span>` : '')) + `<span class="st">${esc(o ? o.t : (cfg.placeholder || 'Scegli…'))}</span><span class="sf"><i data-lucide="chevron-down"></i></span>`; icone(b); };
+    const disegna = () => { const o = cfg.opzioni.find(x => String(x.v) === cont.dataset.v) || (cfg.libero && cont.dataset.v ? { v: cont.dataset.v, t: cont.dataset.v } : undefined); b.classList.toggle('nulla', !o); b.title = o ? o.t : (cfg.placeholder || 'Scegli…'); b.innerHTML = (o && o.icona ? `<span class="si ${o.classeIco || ''}"><i data-lucide="${o.icona}"></i></span>` : (cfg.icona ? `<span class="si"><i data-lucide="${cfg.icona}"></i></span>` : '')) + `<span class="st">${esc(o ? o.t : (cfg.placeholder || 'Scegli…'))}</span><span class="sf"><i data-lucide="chevron-down"></i></span>`; icone(b); };
     disegna();
     cont.imposta = (val, silenzioso) => { cont.dataset.v = val == null ? '' : String(val); disegna(); if (!silenzioso && cfg.onChange) cfg.onChange(cont.dataset.v); };
     b.addEventListener('click', () => {
@@ -1147,16 +1189,23 @@ function scelta(cont, cfg) {
         const titolo = cfg.titolo || (cont.closest('.ctrl') && cont.closest('.ctrl').dataset.lab) || 'Scegli';
         const p = document.createElement('div'); p.className = 'menu' + (foglio ? ' foglio' : ''); p.setAttribute('role', foglio ? 'dialog' : 'listbox'); p.setAttribute('aria-label', titolo); if (foglio) { p.setAttribute('aria-modal', 'true'); p.setAttribute('tabindex', '-1'); }
         const conCerca = cfg.cerca || cfg.opzioni.length > 8;
-        p.innerHTML = `<div class="maniglia"></div><div class="menu-titolo"><span>${esc(titolo)}</span><button type="button" class="ib" title="Chiudi" aria-label="Chiudi"><i data-lucide="x"></i></button></div>` + (conCerca ? `<div class="menu-testa"><label class="cerca"><i data-lucide="search"></i><input type="search" placeholder="Cerca" aria-label="Cerca" autocomplete="off"></label></div>` : '') + `<div class="menu-lista" role="${foglio ? 'listbox' : 'presentation'}"></div><div class="menu-piede"><span><kbd>↑</kbd><kbd>↓</kbd> scorri</span><span><kbd>↵</kbd> scegli</span><span><kbd>Esc</kbd> chiudi</span><span class="cnt"></span></div>`;
+        p.innerHTML = `<div class="maniglia"></div><div class="menu-titolo"><span>${esc(titolo)}</span><button type="button" class="ib" title="Chiudi" aria-label="Chiudi"><i data-lucide="x"></i></button></div>` + (conCerca ? `<div class="menu-testa"><label class="cerca"><i data-lucide="search"></i><input type="search" placeholder="${esc(cfg.cercaTesto || 'Cerca')}" aria-label="${esc(cfg.cercaTesto || 'Cerca')}" autocomplete="off"></label></div>` : '') + `<div class="menu-lista" role="${foglio ? 'listbox' : 'presentation'}"></div><div class="menu-piede"><span><kbd>↑</kbd><kbd>↓</kbd> scorri</span><span><kbd>↵</kbd> scegli</span><span><kbd>Esc</kbd> chiudi</span><span class="cnt"></span></div>`;
         const lista = p.querySelector('.menu-lista'), cnt = p.querySelector('.cnt'); const unita = cfg.unita || 'voci';
         const riempiLista = (q) => {
+            const grezzo = String(q || '').replace(/\s+/g, ' ').trim(); let libera = false;
             q = (q || '').toLowerCase().trim(); lista.innerHTML = ''; let gruppoCorr = null, n = 0;
             cfg.opzioni.forEach(o => { if (q && !norm(o.t + ' ' + (o.sub || '') + ' ' + (o.gruppo || '') + ' ' + aVideo(o.t) + ' ' + aVideo(o.gruppo || '')).includes(norm(q))) return; if (o.gruppo && o.gruppo !== gruppoCorr) { gruppoCorr = o.gruppo; const g = document.createElement('div'); g.className = 'gruppo'; g.setAttribute('data-no-tr', ''); g.innerHTML = evidenzia(o.gruppo, q); lista.appendChild(g); }
                 const scelto = String(o.v) === cont.dataset.v; const v = document.createElement('div'); v.className = 'voce' + (scelto ? ' scelto evid' : ''); v.setAttribute('role', 'option'); v.setAttribute('aria-selected', scelto ? 'true' : 'false');
                 v.title = o.t + (o.sub ? ' · ' + o.sub : '');
                 v.innerHTML = (o.icona ? `<span class="si ${o.classeIco || ''}"><i data-lucide="${o.icona}"></i></span>` : '') + `<span class="vn" data-no-tr>${evidenzia(o.t, q)}${o.sub ? `<small>${evidenzia(o.sub, q)}</small>` : ''}</span><span class="vc"><i data-lucide="check"></i></span>`;
                 v.addEventListener('click', () => { cont.imposta(o.v); chiudiScelta(); b.focus(); }); v.addEventListener('mousemove', () => { lista.querySelectorAll('.evid').forEach(x => x.classList.remove('evid')); v.classList.add('evid'); segnaEvid(p, v); }); lista.appendChild(v); n++; });
-            if (!n) lista.innerHTML = '<div class="nessuno">Nessun risultato</div>'; if (!lista.querySelector('.evid')) { const primo = lista.querySelector('.voce'); if (primo) primo.classList.add('evid'); } cnt.textContent = n + ' ' + aVideo(unita); icone(lista); segnaEvid(p, lista.querySelector('.evid'));
+            // [VOLTI] 30/10/2026 menu 'libero' (cfg.libero = dicitura): in fondo «Usa "nome scritto"» se non c'e' gia' fra le voci
+            if (cfg.libero && grezzo && !cfg.opzioni.some(o => chiaveNome(o.v) === chiaveNome(grezzo))) {
+                const v = document.createElement('div'); v.className = 'voce'; v.setAttribute('role', 'option'); v.setAttribute('aria-selected', 'false'); libera = true;
+                v.innerHTML = `<span class="si"><i data-lucide="plus"></i></span><span class="vn"><span>${esc(cfg.libero)}</span> <span data-no-tr>«${esc(grezzo)}»</span></span><span class="vc"><i data-lucide="check"></i></span>`;
+                v.addEventListener('click', () => { cfg.opzioni = cfg.opzioni.concat([{ v: grezzo, t: grezzo, icona: cfg.icona }]); cont.imposta(grezzo); chiudiScelta(); b.focus(); }); v.addEventListener('mousemove', () => { lista.querySelectorAll('.evid').forEach(x => x.classList.remove('evid')); v.classList.add('evid'); segnaEvid(p, v); }); lista.appendChild(v);
+            }
+            if (!n && !libera) lista.innerHTML = '<div class="nessuno">Nessun risultato</div>'; if (!lista.querySelector('.evid')) { const primo = lista.querySelector('.voce'); if (primo) primo.classList.add('evid'); } cnt.textContent = n + ' ' + aVideo(unita); icone(lista); segnaEvid(p, lista.querySelector('.evid'));
         };
         riempiLista(''); document.body.appendChild(p); icone(p);
         p.querySelector('.menu-titolo button').addEventListener('click', () => { chiudiScelta(); b.focus(); });
@@ -1395,6 +1444,7 @@ function noteInneschi(cfg) {
         if (i.tipo === 'durata') return ['hourglass', `<span>${esc(aVideo('Quando resta così per'))}</span> <b>${esc(i.minuti)} min</b>: ${n}`];
         if (i.tipo === 'periodico') return ['repeat', `<span>${esc(aVideo('Ogni'))}</span> <b>${esc(i.minuti)}</b> <span>${esc(aVideo('minuti'))}</span>`];
         if (i.tipo === 'zona') return ['map-pin', `<b data-no-tr>${esc(i.persona || '…')}</b> <span>${esc(aVideo(i.evento === 'esce' ? 'esce da' : 'entra in'))}</span> <b data-no-tr>${esc(nomeZona(i.zona))}</b>`];
+        if (i.tipo === 'volti') return ['scan-face', `<span>${esc(aVideo(verboVolti(i)))}</span> ` + (i.chi === 'persona' ? `<b data-no-tr>${esc(i.persona || '…')}</b>` : `<b>${esc(aVideo(({ conosciuto: 'una persona registrata', sconosciuto: 'uno sconosciuto', chiunque: 'qualcuno' })[i.chi] || '…'))}</b>`) + (i.telecamera ? ` <span>${esc(aVideo('su'))}</span> <b data-no-tr>${esc(i.telecamera)}</b>` : '')];
         if (i.tipo === 'sole' && !soleOggi) return ['sunset', `<span>${esc(aVideo(i.evento === 'alba' ? 'All\'alba' : 'Al tramonto'))}</span>`];
         return null;
     }).filter(Boolean);
@@ -1448,6 +1498,7 @@ function tileDi(c) {
     if (i.tipo === 'sole') return { icona: i.evento === 'alba' ? 'sunrise' : 'sunset', classe: 't-sole' };
     if (i.tipo === 'periodico') return { icona: 'repeat', classe: 't-tempo' };
     if (i.tipo === 'zona') return { icona: i.evento === 'esce' ? 'log-out' : 'log-in', classe: 't-pers' };
+    if (i.tipo === 'volti') return { icona: 'scan-face', classe: 't-pers' };
     const d = dominioDi(i.entita), n = norm((i.entita || '') + ' ' + nomeDi(i.entita)); let icona = 'zap', classe = 't-disp';
     if (d === 'binary_sensor') icona = /moviment|presenz|motion|occup/.test(n) ? 'radar' : 'door-open';
     else if (d === 'light') { icona = 'lightbulb'; classe = 't-luce'; }
@@ -1473,6 +1524,7 @@ function brevi(i) {
     if (i.tipo === 'sole') { const s = Number(i.scostamento || 0); return aVideo(i.evento === 'alba' ? 'Alba' : 'Tramonto') + (s ? ' ' + (s > 0 ? '+' : '−') + Math.abs(s) + '′' : ''); }
     if (i.tipo === 'periodico') return aVideo('Ogni') + ' ' + i.minuti + '′';
     if (i.tipo === 'zona') return (i.persona || '…') + ' ' + aVideo(i.evento === 'esce' ? 'esce' : 'entra');
+    if (i.tipo === 'volti') return breveVolti(i);
     return '…';
 }
 function breviC(c) {
@@ -1482,9 +1534,10 @@ function breviC(c) {
     else if (c.tipo === 'sole') t = aVideo(c.posizione === 'notte' ? 'Di notte' : 'Di giorno');
     else if (c.tipo === 'stato') t = nomeDi(c.entita) + valoreBreve(c.entita, c.confronto, c.valore);
     else if (c.tipo === 'zona') t = (c.persona || '…') + ' · ' + nomeZona(c.zona);
+    else if (c.tipo === 'volti') t = breveVolti(c) + ' · ' + (c.minuti === '' || c.minuti == null ? '…' : c.minuti) + '′';
     return (c.nega ? aVideo('non') + ' ' : '') + t;
 }
-const ICONA_COND = c => ({ giorni: 'calendar-days', fascia: 'clock', sole: c.posizione === 'notte' ? 'moon' : 'sun', zona: 'house' })[c.tipo] || iconaEnt(ENT.get(c.entita), c.entita);
+const ICONA_COND = c => ({ giorni: 'calendar-days', fascia: 'clock', sole: c.posizione === 'notte' ? 'moon' : 'sun', zona: 'house', volti: 'scan-face' })[c.tipo] || iconaEnt(ENT.get(c.entita), c.entita);
 function iconaAzione(a) {
     if (a.tipo === 'dispositivo') return dominioDi(a.entita) === 'group' ? 'layers' : (dominioDi(a.entita) === 'cover' ? 'blinds' : 'power');
     return ({ luce: 'lightbulb', tapparella: 'blinds', scena: 'clapperboard', attesa: 'hourglass', telegram: 'send', popup: 'message-square-warning', notifica_app: 'bell-ring', annuncio: 'megaphone', regola: 'workflow' })[a.tipo] || 'circle';
@@ -1616,7 +1669,8 @@ const MODELLI = [
     { t: 'Luce del corridoio col movimento', d: 'Accende al 40% e spegne dopo 2 minuti.', icona: 'lightbulb', tile: 't-luce', c: () => ({ inneschi: [{ tipo: 'stato', entita: '', confronto: 'diventa', valore: 'on' }], condizioni: [], azioni: [{ tipo: 'luce', entita: '', luminosita: '40', colore: '' }, { tipo: 'attesa', secondi: '120' }, { tipo: 'dispositivo', comando: 'off', entita: '' }] }) },
     { t: 'Caldo in sala', d: 'Sopra 27 °C per 10 minuti accende il ventilatore.', icona: 'thermometer', tile: 't-caldo', c: () => ({ inneschi: [{ tipo: 'durata', entita: '', confronto: '>', valore: '27', minuti: '10' }], condizioni: [], azioni: [{ tipo: 'dispositivo', comando: 'on', entita: '' }], pausa_minuti: 30 }) },
 {% if annunci_modulo %}    { t: 'Buongiorno', d: 'Alle 7 nei giorni feriali: scenario e un saluto dalle casse.', icona: 'sun', tile: 't-tempo', c: () => ({ inneschi: [{ tipo: 'orario', ora: '07:00', giorni: [0, 1, 2, 3, 4] }], condizioni: [], azioni: [{ tipo: 'scena', entita: '' }, { tipo: 'annuncio', testo: aVideo('Buongiorno! È ora di alzarsi.'), casse: [], volume: '' }] }) },
-{% endif %}];
+{% endif %}    { t: 'Luce quando arrivo', d: 'Quando Volti ti riconosce, si accende la luce.', icona: 'scan-face', tile: 't-pers', c: () => ({ inneschi: [{ tipo: 'volti', chi: 'persona', persona: '', telecamera: '' }], condizioni: [], azioni: [{ tipo: 'dispositivo', comando: 'on', entita: '' }] }) },   // [VOLTI] 30/10/2026
+];
 function disegnaModelli() {
     const m = document.getElementById('modelli'); if (m.dataset.fatto) return; m.dataset.fatto = '1';
     m.innerHTML = MODELLI.map((x, i) => `<button type="button" class="modello au-pan" onclick="daModello(${i})"><span class="tile s36 ${x.tile}"><i data-lucide="${x.icona}"></i></span><div><b>${esc(x.t)}</b><span>${esc(x.d)}</span></div></button>`).join('');
@@ -1655,6 +1709,7 @@ function fraseInnesco(i) {
     if (i.tipo === 'sole') { const s = Number(i.scostamento || 0), alba = i.evento === 'alba'; if (!s) return `è <b>${alba ? 'l\'alba' : 'il tramonto'}</b>`; return `<b>${Math.abs(s)} min ${s < 0 ? (alba ? 'prima dell\'alba' : 'prima del tramonto') : (alba ? 'dopo l\'alba' : 'dopo il tramonto')}</b>`; }
     if (i.tipo === 'periodico') return `passano <b>${esc(i.minuti)} minuti</b>`;
     if (i.tipo === 'zona') return `<b data-no-tr>${esc(i.persona || '…')}</b> ${i.evento === 'esce' ? 'esce da' : 'entra in'} <b data-no-tr>${esc(nomeZona(i.zona))}</b>`;
+    if (i.tipo === 'volti') return `${verboVolti(i)} ${chiVolti(i)}${suVolti(i)}`;
     return '…';
 }
 function fraseCondizione(c) {
@@ -1664,6 +1719,7 @@ function fraseCondizione(c) {
     else if (c.tipo === 'giorni') t = `è <b>${(c.giorni || []).map(g => esc(aVideo(GIORNI_LUNGHI[g] || ''))).join(', ') || '…'}</b>`;
     else if (c.tipo === 'sole') t = `è <b>${c.posizione === 'notte' ? 'notte' : 'giorno'}</b>`;
     else if (c.tipo === 'zona') t = `<b data-no-tr>${esc(c.persona || '…')}</b> ${c.dove === 'fuori' ? 'è fuori da' : 'è dentro'} <b data-no-tr>${esc(nomeZona(c.zona))}</b>`;
+    else if (c.tipo === 'volti') t = `Volti ha visto ${chiVolti(c)} negli ultimi <b>${esc(c.minuti === '' || c.minuti == null ? '…' : c.minuti)} min</b>${suVolti(c)}`;
     return neg ? `<i>non</i> ${t}` : t;
 }
 function fraseAzione(a) {
@@ -1724,6 +1780,20 @@ function valoreOnOff(id, k, val, tieni) { const d = dominioDi(id);
         return { k, opzioni, valore: noto || (val && tieni) ? val : 'inserito', unita: 'voci' }; }
     const on = d === 'cover' ? 'Aperta' : (d === 'binary_sensor' ? 'Attivo (aperto / rilevato)' : 'Acceso'); const off = d === 'cover' ? 'Chiusa' : (d === 'binary_sensor' ? 'Inattivo (chiuso / libero)' : 'Spento'); return { k, opzioni: [{ v: 'on', t: on, icona: 'circle-dot' }, { v: 'off', t: off, icona: 'circle' }], valore: (val || 'on') === 'off' ? 'off' : 'on' }; }
 
+// [VOLTI] 30/10/2026 campi di innesco e condizione 'volti' (stesso stile di 'zona'): chi, persona (solo con chi = una
+// persona), telecamera ('' = tutte) e, per la condizione, i minuti. Un 'chi' salvato non valido resta visibile, cosi' il
+// server lo segnala da sistemare. La persona scritta si ricorda (dataset.vp) anche passando a "chiunque" e tornando.
+function campiVolti(riga, d, m, campo, agg, condizione) {
+    caricaVolti();
+    const valido = CHI_VOLTI.some(x => x.v === d.chi), chi = valido || (d.chi != null && d.chi !== '') ? d.chi : 'persona';
+    if (d.persona != null) riga.dataset.vp = d.persona;
+    m('chi', { valore: chi, opzioni: valido || chi === 'persona' ? CHI_VOLTI : CHI_VOLTI.concat([{ v: chi, t: 'Valore non valido', sub: String(chi), icona: 'triangle-alert' }]), onChange: () => rifai(riga) }, 'Chi');
+    const persona = d.persona != null ? d.persona : (riga.dataset.vp || '');
+    if (chi === 'persona') m('persona', { valore: persona, opzioni: opzioniVolti('persona', persona), cerca: true, libero: 'Usa', cercaTesto: 'Cerca o scrivi un nome', placeholder: 'Scegli la persona', icona: 'user', unita: 'nomi' }, 'Persona');
+    m('telecamera', { valore: d.telecamera || '', opzioni: opzioniVolti('telecamera', d.telecamera || ''), cerca: true, libero: 'Usa', cercaTesto: 'Cerca o scrivi un nome', icona: 'cctv', unita: 'nomi' }, 'Telecamera');
+    if (condizione) campo('Negli ultimi', numero('minuti', d.minuti == null || d.minuti === '' ? 10 : d.minuti, 'min', 1, 1440, 1, 'Negli ultimi minuti'));
+    agg(N('volti'));
+}
 function costruisciFrase(riga, genere, tipo, d) {
     d = d || {}; const f = riga.querySelector('.frase-riga'); f.innerHTML = ''; const menu = [], sels = [];
     const agg = html => f.insertAdjacentHTML('beforeend', html);
@@ -1744,6 +1814,7 @@ function costruisciFrase(riga, genere, tipo, d) {
         else if (tipo === 'sole') { m('evento', { valore: d.evento || 'tramonto', opzioni: [{ v: 'alba', t: 'Alba', icona: 'sunrise' }, { v: 'tramonto', t: 'Tramonto', icona: 'sunset' }] }, 'Evento'); campo('Scostamento', numero('scostamento', d.scostamento == null ? 0 : d.scostamento, 'min', null, null, 5, 'Scostamento in minuti')); agg(N('sole')); }
         else if (tipo === 'periodico') campo('Ogni', numero('minuti', d.minuti == null ? 30 : d.minuti, 'minuti', 1, null, 1, 'Ogni quanti minuti'));
         else if (tipo === 'zona') { m('persona', { valore: d.persona || '', opzioni: opzioniPersone(d.persona), cerca: true, placeholder: 'Scegli la persona', icona: 'user' }, 'Persona'); m('evento', { valore: d.evento || 'entra', opzioni: [{ v: 'entra', t: 'entra in', icona: 'log-in' }, { v: 'esce', t: 'esce da', icona: 'log-out' }] }, 'Evento'); m('zona', { valore: d.zona || (zone[0] ? zone[0].chiave : ''), opzioni: opzioniZone(), placeholder: 'Scegli la zona', icona: 'map-pin', unita: 'zone' }, 'Zona'); agg(H(zone.length ? 'Le zone si disegnano nella pagina Mappa' : 'Nessuna zona: disegnale nella pagina Mappa')); }
+        else if (tipo === 'volti') campiVolti(riga, d, m, campo, agg, false);
     }
     if (genere === 'condizione') {
         campo('Al contrario', negaHTML(d.nega));
@@ -1753,6 +1824,7 @@ function costruisciFrase(riga, genere, tipo, d) {
         else if (tipo === 'giorni') campo('Giorni', giorniHTML(d.giorni && d.giorni.length ? d.giorni : [0, 1, 2, 3, 4]), 'alto');
         else if (tipo === 'sole') m('posizione', { valore: d.posizione || 'notte', opzioni: [{ v: 'giorno', t: 'giorno (fra alba e tramonto)', icona: 'sun' }, { v: 'notte', t: 'notte', icona: 'moon' }] }, 'Momento');
         else if (tipo === 'zona') { m('persona', { valore: d.persona || '', opzioni: opzioniPersone(d.persona), cerca: true, placeholder: 'Scegli la persona', icona: 'user' }, 'Persona'); m('dove', { valore: d.dove || 'dentro', opzioni: [{ v: 'dentro', t: 'è dentro', icona: 'map-pin' }, { v: 'fuori', t: 'è fuori da', icona: 'map-pin-off' }] }, 'Dove'); m('zona', { valore: d.zona || (zone[0] ? zone[0].chiave : ''), opzioni: opzioniZone(), placeholder: 'Scegli la zona', icona: 'map-pin', unita: 'zone' }, 'Zona'); }
+        else if (tipo === 'volti') campiVolti(riga, d, m, campo, agg, true);
     }
     if (genere === 'azione') {
         if (tipo === 'dispositivo') {
@@ -1843,11 +1915,13 @@ function aggiornaNote(riga) {
         if (n.dataset.nota === 'sole') { const alba = d.evento === 'alba'; const base = soleOggi ? (alba ? soleOggi.alba : soleOggi.tramonto) : null; const s = Number(d.scostamento || 0); if (!base) t = 'negativo = prima, positivo = dopo'; else { const q = sommaMinuti(base, s); t = `oggi ${alba ? 'alba' : 'tramonto'} alle ${esc(base)}` + (s && q ? ` → scatta alle ${q}` : ' → scatta a quell\'ora'); } }
         else if (n.dataset.nota === 'giorni') { const g = (d.giorni || []).map(Number).sort((a, b) => a - b); t = !g.length ? 'nessun giorno scelto: vale tutti i giorni' : (g.length === 7 ? 'tutti i giorni' : 'solo ' + g.map(x => GIORNI_LUNGHI[x].slice(0, 3)).join(', ')); }
         else if (n.dataset.nota === 'fascia') { if (d.nega) t = `cioè fuori da questa fascia: dalle ${esc(d.alle || '…')} alle ${esc(d.dalle || '…')}`; else if (d.dalle && d.alle && d.alle < d.dalle) t = 'la fascia scavalca la mezzanotte'; }
+        else if (n.dataset.nota === 'volti') t = esc(aiutoVolti());
         n.innerHTML = t; n.style.display = t ? '' : 'none'; });
 }
 function leggiRiga(riga) {
     const out = { tipo: riga.dataset.tipo };
     riga.querySelectorAll('.frase-riga [data-k]').forEach(e => { {% if annunci_modulo %}const k = e.dataset.k; if (e.classList.contains('casse')) out[k] = [...e.querySelectorAll('button.on')].map(b => b.dataset.g); else if (e.classList.contains('giorni')){% else %}const k = e.dataset.k; if (e.classList.contains('giorni')){% endif %} out[k] = [...e.querySelectorAll('button.on')].map(b => Number(b.dataset.g)); else if (e.classList.contains('nega')) out[k] = e.classList.contains('on'); else if (e.classList.contains('scelta-cont')) out[k] = e.dataset.v; else out[k] = e.value; });
+    if (out.tipo === 'volti' && out.minuti != null && String(out.minuti).trim() !== '' && !isNaN(Number(out.minuti))) out.minuti = Number(out.minuti);   // [VOLTI] un numero, come nel formato della condizione
     return out;
 }
 function rifai(riga) { const d = leggiRiga(riga); costruisciFrase(riga, riga.dataset.genere, riga.dataset.tipo, d); cambiato(); }
@@ -1882,7 +1956,7 @@ function aggiornaTesta(riga) {
     if (tit.innerHTML !== html) tit.innerHTML = html;
     let tile = info.tile, icona = info.icona;
     if (g === 'innesco') { const t = tileDi({ inneschi: [d] }); tile = t.classe; icona = t.icona; }
-    else if (g === 'condizione') { icona = ICONA_COND(d); tile = d.tipo === 'zona' ? 't-pers' : 't-cond'; }
+    else if (g === 'condizione') { icona = ICONA_COND(d); tile = d.tipo === 'zona' || d.tipo === 'volti' ? 't-pers' : 't-cond'; }
     else if (d.tipo === 'dispositivo') icona = iconaAzione(d);
     const ti = riga.querySelector('.p-tile'); if (ti.dataset.k !== tile + icona) { ti.dataset.k = tile + icona; ti.className = 'tile s36 p-tile ' + tile; ti.innerHTML = `<i data-lucide="${icona}"></i>`; icone(ti); }
     const pz = [aVideo(info.t)];
@@ -1977,7 +2051,9 @@ function aggiornaRiepilogo() {
 async function controlla() { const mio = ++_nControlla; try { const j = await api('/api/automazioni_avanzate/controlla', 'POST', { id: cId, name: document.getElementById('c-nome').value, config: leggiConfig() }); if (mio !== _nControlla) return j.errori || []; mostraErrori(j.errori || []); return j.errori || []; } catch (e) { return []; } }
 function rigaDiErrore(e) { const m = /^(innesco|condizione|azione)\s+(\d+)/i.exec(e || ''); return m ? { genere: m[1].toLowerCase(), n: Number(m[2]) } : null; }
 function rigaN(genere, n) { const lista = document.getElementById(LISTE[genere]); return lista ? lista.querySelectorAll(':scope > .riga')[n - 1] : null; }
-function campoDiErrore(riga, e) { e = (e || '').toLowerCase(); {% if annunci_modulo %}const k = riga.dataset.tipo === 'annuncio' ? (/cass/.test(e) ? 'casse' : /volume/.test(e) ? 'volume' : 'testo') : riga.dataset.tipo === 'notifica_app' ?{% else %}const k = riga.dataset.tipo === 'notifica_app' ?{% endif %} (/titolo/.test(e) ? 'titolo' : /telefon/.test(e) ? 'dispositivo' : 'testo') : /automazion/.test(e) && riga.dataset.tipo === 'regola' ? 'id' : /serratura/.test(e) ? 'comando' : /person/.test(e) ? 'persona' : /\bzona\b/.test(e) ? 'zona' : /entra o esce/.test(e) ? 'evento' : /dentro o fuori/.test(e) ? 'dove' : /dispositiv|tapparell|luce|scenario|entit|gruppo|rimosso/.test(e) ? 'entita' : /messaggio|testo|avviso/.test(e) ? 'messaggio' : /posizion/.test(e) ? 'posizione' : /minut/.test(e) ? 'minuti' : /second/.test(e) ? 'secondi' : /stato dell'allarme|valore/.test(e) ? 'valore' : /giorn/.test(e) ? 'giorni' : /orari|\bora\b/.test(e) ? 'ora' : /titolo/.test(e) ? 'titolo' : null; if (!k) return null; const s = riga.querySelector(`.frase-riga [data-k="${k}"]`); return s ? (s.querySelector('.scelta, .scegli') || s) : null; }
+// [VOLTI] 30/10/2026 campo di un errore del server su un passo 'volti' ('nome troppo lungo': la persona se e' lei a superare 80)
+function campoVolti(riga, e) { if (/chi deve|riconoscere/.test(e)) return 'chi'; if (/minut/.test(e)) return 'minuti'; if (/telecamer/.test(e)) return 'telecamera'; if (/troppo lung/.test(e)) { const p = riga.querySelector('.frase-riga [data-k="persona"]'); return p && chiaveNome(p.dataset.v).length > 80 ? 'persona' : 'telecamera'; } return /person/.test(e) ? 'persona' : null; }
+function campoDiErrore(riga, e) { e = (e || '').toLowerCase(); {% if annunci_modulo %}const k = riga.dataset.tipo === 'volti' ? campoVolti(riga, e) : riga.dataset.tipo === 'annuncio' ? (/cass/.test(e) ? 'casse' : /volume/.test(e) ? 'volume' : 'testo') : riga.dataset.tipo === 'notifica_app' ?{% else %}const k = riga.dataset.tipo === 'volti' ? campoVolti(riga, e) : riga.dataset.tipo === 'notifica_app' ?{% endif %} (/titolo/.test(e) ? 'titolo' : /telefon/.test(e) ? 'dispositivo' : 'testo') : /automazion/.test(e) && riga.dataset.tipo === 'regola' ? 'id' : /serratura/.test(e) ? 'comando' : /person/.test(e) ? 'persona' : /\bzona\b/.test(e) ? 'zona' : /entra o esce/.test(e) ? 'evento' : /dentro o fuori/.test(e) ? 'dove' : /dispositiv|tapparell|luce|scenario|entit|gruppo|rimosso/.test(e) ? 'entita' : /messaggio|testo|avviso/.test(e) ? 'messaggio' : /posizion/.test(e) ? 'posizione' : /minut/.test(e) ? 'minuti' : /second/.test(e) ? 'secondi' : /stato dell'allarme|valore/.test(e) ? 'valore' : /giorn/.test(e) ? 'giorni' : /orari|\bora\b/.test(e) ? 'ora' : /titolo/.test(e) ? 'titolo' : null; if (!k) return null; const s = riga.querySelector(`.frase-riga [data-k="${k}"]`); return s ? (s.querySelector('.scelta, .scegli') || s) : null; }
 let mostraErroriInline = false, _apriErrori = false;
 function mostraErrori(errori) {
     const box = document.getElementById('c-errori'); box.hidden = !errori.length; document.getElementById('c-tuttook').hidden = !!errori.length;
