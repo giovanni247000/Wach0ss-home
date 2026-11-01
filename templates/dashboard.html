@@ -475,6 +475,33 @@
         .mesh-link-chip .mesh-name { color: var(--text-muted); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .mesh-link-chip .chip-x { width: 20px; height: 20px; border-radius: 50%; border: none; background: #F2F2F7; color: var(--text-muted); cursor: pointer; font-size: 0.95rem; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
         .mesh-link-chip .chip-x:hover { background: #FFE5E5; color: var(--danger); }
+        /* [STANZE+DISPOSITIVI] 31/10/2026 "Mostra anche i dispositivi": si accende dal menu del tasto "3D attiva" o "Pagina web"
+           (voce con l'interruttore qui sotto). Acceso, in cima al pannello compare la barra con l'interruttore e i tasti
+           Sopra/Sotto (interruttore come quelli delle integrazioni, tasti come Vista/Modifica del visore 3D). Spento non
+           c'e' niente di nuovo nel pannello: il visore 3D e la pagina web restano dove e come erano */
+        .amb-menu-insieme .amb-menu-sw { position: relative; width: 34px; height: 20px; margin-left: auto; border-radius: 20px; background: #D1D1D6; flex-shrink: 0; transition: 0.2s; }
+        .amb-menu-insieme .amb-menu-sw::after { content: ''; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; background: #FFF; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: 0.2s; }
+        .amb-menu-insieme[aria-checked="true"] .amb-menu-sw { background: var(--success); }
+        .amb-menu-insieme[aria-checked="true"] .amb-menu-sw::after { transform: translateX(14px); }
+        .amb-insieme { order: -2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px;
+            background: #FFFFFF; border: 1px solid #E5E5EA; border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 14px; box-shadow: var(--shadow-sm); }
+        .amb-insieme-si { display: flex; align-items: center; gap: 12px; flex: 1 1 260px; min-width: 0; margin: 0; cursor: pointer; }
+        .amb-insieme-testo { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .amb-insieme-testo b { font-size: 0.88rem; font-weight: 600; color: var(--text-main); }
+        .amb-insieme-testo small { font-size: 0.74rem; color: var(--text-muted); line-height: 1.35; }
+        .amb-insieme-pos { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .amb-insieme-cosa { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+        .amb-seg { display: inline-flex; gap: 6px; }
+        .amb-seg button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid #E5E5EA;
+            background: #FFFFFF; color: var(--text-main); font-family: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-sm); transition: var(--transition-smooth); }
+        .amb-seg button svg { width: 15px; height: 15px; }
+        .amb-seg button:hover { border-color: var(--accent); color: var(--accent); }
+        .amb-seg button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #FFFFFF; box-shadow: 0 4px 12px rgba(10,132,255,0.3); }
+        .amb-seg button[aria-pressed="true"]:hover { background: #005bb5; border-color: #005bb5; color: #FFFFFF; }
+        body.amb-non-letta #amb-insieme { display: none !important; }
+        /* con i dispositivi il pannello ha la griglia E il 3D / la pagina web: nessuno dei due si deve schiacciare (nella colonna
+           flessibile il visore 3D, overflow hidden, si riduceva a pochi pixel) */
+        .amb-insieme-on > #dashboard-3d-container, .amb-insieme-on > #dashboard-grid-container, .amb-insieme-on > #pw-pannello { flex-shrink: 0; }
         #loading-3d-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-main); font-weight: 600; font-size: 1rem; background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: var(--radius-sm); border: 1px solid #E5E5EA;}
 
         /* =========================================================
@@ -8633,6 +8660,7 @@ async function saveConfig(syncFromDom = true) {
                 if (pwQui) { targetGrid.innerHTML = ''; libSegnaGriglia(null); }   // [PAGINAWEB] come la 3D: la griglia nascosta non tiene card
                 else libCostruisciGriglia(contextData);
             }
+            ambInsiemeApplica(contextData, pwQui);                 // [STANZE+DISPOSITIVI] barra e griglia dei posti con 3D o pagina web
             renderMeshLinks();
             libIcone(btnToggle3D);
             libAggiornaSezioni();                                  // anche la stanza "qui" evidenziata nella barra
@@ -9172,13 +9200,13 @@ function animate() {
         function libRidisegnaGriglia() {
             if (libTrascinamento) { libGrigliaInAttesa = true; return; }
             const ctx = libContestoAttivo();
-            if (!ctx || libVista3D(ctx)) return;
+            if (!ctx || (libVista3D(ctx) && ctx.mostra_dispositivi !== true)) return;   // [STANZE+DISPOSITIVI] 3D con i dispositivi: la griglia c'e'
             libCostruisciGriglia(ctx);
         }
         // ordine dalla griglia, senza perdere niente: gli id della configurazione che la griglia non mostra restano in coda
         function libLeggiGriglia() {
             const ctx = libContestoGriglia();
-            if (!ctx || libVista3D(ctx)) return;
+            if (!ctx || (libVista3D(ctx) && ctx.mostra_dispositivi !== true)) return;   // [STANZE+DISPOSITIVI] idem
             const inGriglia = [];
             targetGrid.querySelectorAll(':scope > .hk-card-source[data-id]').forEach(c => {
                 const id = c.dataset.id;
@@ -9200,6 +9228,7 @@ function animate() {
         function libAggiuntaInGriglia(evt) {
             const item = evt.item, id = item.dataset.id;
             if (!id) { item.remove(); checkEmptyState(); return; }
+            if (ambInsiemeSul3D(evt)) { item.remove(); checkEmptyState(); return; }   // [STANZE+DISPOSITIVI] lasciata sul 3D: solo il collegamento
             const gia = Array.from(targetGrid.querySelectorAll(':scope > .hk-card-source')).find(c => c !== item && c.dataset.id === id);
             if (gia) {
                 item.remove();
@@ -10428,6 +10457,7 @@ async function deleteGroupEntity(groupId) {
                     ? voce('openFloorplanEditor();', 'pencil-ruler', 'Modifica planimetria', 'Apre l’editor con il modello attuale') +
                       voce('if (window.reset3DView) window.reset3DView();', 'scan', 'Ripristina la vista', 'Riporta la telecamera al punto di partenza') +
                       voce('ambScegliFile3D();', 'upload', 'Sostituisci con un file .glb', 'Importa un altro modello dal computer') +
+                      '<div class="amb-menu-sep"></div>' + ambInsiemeVoce(ctx, '3d') +   // [STANZE+DISPOSITIVI]
                       '<div class="amb-menu-sep"></div>' +
                       voce('ambChiediRimozione3D();', 'trash-2', 'Rimuovi planimetria 3D', 'Torna alla griglia dei dispositivi', ' amb-menu-danger')
                     : voce('openFloorplanEditor();', 'pencil-ruler', 'Disegna con l’editor', 'Crea la planimetria direttamente qui') +
@@ -10457,12 +10487,119 @@ async function deleteGroupEntity(groupId) {
             // stessi passi di toggle3DMode() originale, senza il confirm() del browser
             const ctx = ambContesto(); if (!ctx) return;
             ctx.has_3d = false; ctx.model_url = ''; ctx.mesh_mapping = {};
+            if (!(ctx.web && ctx.web.url)) { delete ctx.mostra_dispositivi; delete ctx.posizione_vista; }   // [STANZE+DISPOSITIVI]
             if (window.animationFrameId) cancelAnimationFrame(window.animationFrameId);
             if (window.__resize3D) window.__resize3D.disconnect();
             if (window.renderer3D) { window.renderer3D.dispose(); document.getElementById('dashboard-3d-container').innerHTML = ''; }
             await saveConfig(false);          // i dispositivi del posto sono gia' nella configurazione
             updateWorkspaceView();
             showToast('Planimetria 3D rimossa', 'success');
+        }
+        // =====================================================================
+        // --- [STANZE+DISPOSITIVI] 31/10/2026 "Mostra anche i dispositivi" ---
+        // Nei posti (stanza o zona) con la planimetria 3D o la pagina web. Si accende dalla voce con l'interruttore nel menu
+        // del tasto "3D attiva" o "Pagina web". Acceso: in cima al pannello la barra con l'interruttore e la scelta Sopra /
+        // Sotto (dove sta il 3D o la pagina web rispetto alle tessere nell'app) e la griglia del posto (i suoi device_ids: si
+        // trascinano dall'elenco come nelle altre stanze), sotto il 3D o la pagina web oppure sopra, come nell'app.
+        // Chiavi del posto: mostra_dispositivi: true e posizione_vista: 'sotto' (assente = sopra); spento = chiave tolta,
+        // cioe' com'era prima. Si salvano col resto (POST /api/config).
+        // Spento il pannello e' quello di prima: niente barra (nasce la prima volta che si accende), il visore 3D resta alto
+        // e al suo posto come oggi.
+        // =====================================================================
+        var ambInsiemeTipo;                                     // '3d' | 'web' | vuoto: il posto mostrato (lo aggiorna ambInsiemeApplica)
+        function ambInsiemeApplica(ctx, pwQui) {
+            const tipo = !ctx ? '' : (pwQui ? 'web' : (libVista3D(ctx) ? '3d' : ''));
+            ambInsiemeTipo = tipo;
+            const griglia = document.getElementById('dashboard-grid-container');
+            let barra = document.getElementById('amb-insieme');
+            const si = !!tipo && ctx.mostra_dispositivi === true, sotto = si && ctx.posizione_vista === 'sotto';
+            if (!si) {                                          // spento, o posto senza 3D e senza pagina web: come prima
+                if (barra && barra.style.display !== 'none') barra.style.display = 'none';
+                if (griglia && griglia.style.order) griglia.style.order = '';
+                if (griglia) griglia.parentElement.classList.toggle('amb-insieme-on', false);
+                if (tipo && griglia && griglia.style.display !== 'none') {   // appena spento qui: via la griglia (i device_ids restano)
+                    griglia.style.display = 'none';
+                    if (targetGrid.firstChild || 'stanza' in targetGrid.dataset) { targetGrid.innerHTML = ''; libSegnaGriglia(null); }
+                }
+                return;
+            }
+            if (!barra) barra = ambInsiemeCrea();
+            const casella = barra.querySelector('#amb-insieme-si');
+            if (!casella.checked) casella.checked = true;
+            const cosaEl = barra.querySelector('#amb-insieme-cosa');
+            if (cosaEl._tipo !== tipo) { cosaEl._tipo = tipo; cosaEl.textContent = tipo === '3d' ? 'Planimetria 3D' : 'Pagina web'; }
+            barra.querySelectorAll('.amb-seg button').forEach(b => {
+                const premuto = ((b.dataset.pos === 'sotto') === sotto) ? 'true' : 'false';
+                if (b.getAttribute('aria-pressed') !== premuto) b.setAttribute('aria-pressed', premuto);
+                if (b._tipo !== tipo) {
+                    b._tipo = tipo;
+                    b.title = tipo === '3d' ? (b.dataset.pos === 'sotto' ? 'Planimetria 3D sotto i dispositivi' : 'Planimetria 3D sopra i dispositivi')
+                                            : (b.dataset.pos === 'sotto' ? 'Pagina web sotto i dispositivi' : 'Pagina web sopra i dispositivi');
+                }
+            });
+            if (barra.style.display) barra.style.display = '';
+            griglia.parentElement.classList.toggle('amb-insieme-on', true);
+            griglia.style.display = 'block';                    // la griglia del posto, come nelle altre stanze
+            griglia.style.order = sotto ? '-1' : '';            // tessere prima del 3D / della pagina web, come nell'app
+            libCostruisciGriglia(ctx);
+        }
+        function ambInsiemeCrea() {
+            const b = document.createElement('div');
+            b.id = 'amb-insieme'; b.className = 'amb-insieme';
+            b.innerHTML =
+                '<label class="amb-insieme-si"><span class="nvr-switch"><input type="checkbox" id="amb-insieme-si" checked><span></span></span>' +
+                '<span class="amb-insieme-testo"><b>Mostra anche i dispositivi</b><small id="amb-insieme-nota">' + "Trascina nella griglia i dispositivi da mostrare nell'app" + '</small></span></label>' +
+                '<div class="amb-insieme-pos" id="amb-insieme-pos" role="group" aria-label="Posizione rispetto ai dispositivi">' +
+                '<span class="amb-insieme-cosa" id="amb-insieme-cosa"></span><div class="amb-seg">' +
+                '<button type="button" data-pos="sopra" aria-pressed="true"><i data-lucide="arrow-up-to-line"></i><span>Sopra</span></button>' +
+                '<button type="button" data-pos="sotto" aria-pressed="false"><i data-lucide="arrow-down-to-line"></i><span>Sotto</span></button></div></div>';
+            b.querySelector('#amb-insieme-si').addEventListener('change', (e) => ambInsiemeCambia(e.target.checked));
+            b.querySelectorAll('.amb-seg button').forEach(t => t.addEventListener('click', () => ambInsiemePosizione(t.dataset.pos)));
+            const area = document.getElementById('dashboard-grid-container').parentElement;   // lo scorrimento del pannello destro
+            area.insertBefore(b, area.firstChild);
+            libIcone(b);
+            return b;
+        }
+        // voce con l'interruttore nei menu dei tasti "3D attiva" (tipo '3d') e "Pagina web" (tipo 'web'): un clic accende o spegne.
+        // Con le stanze non lette e' disattivata (come la barra, nascosta in quel caso: non si salverebbe)
+        function ambInsiemeVoce(ctx, tipo) {
+            const si = !!ctx && ctx.mostra_dispositivi === true;
+            return '<button type="button" class="amb-menu-voce amb-menu-insieme" role="menuitemcheckbox" aria-checked="' + (si ? 'true' : 'false') + '"' + (libConfigLetta ? '' : ' disabled') +
+                (tipo === 'web' ? ' data-pw="insieme"' : ' onclick="ambChiudiMenu(); ambInsiemeInverti();"') + '>' +
+                '<i data-lucide="layout-grid"></i><div><span>Mostra anche i dispositivi</span><small>' +
+                (tipo === 'web' ? "Nell'app: tessere e pagina web insieme" : "Nell'app: tessere e planimetria insieme") +
+                '</small></div><span class="amb-menu-sw" aria-hidden="true"></span></button>';
+        }
+        function ambInsiemeInverti() {
+            const ctx = libContestoAttivo();
+            if (ctx) ambInsiemeCambia(ctx.mostra_dispositivi !== true);
+        }
+        async function ambInsiemeCambia(si) {
+            const ctx = libContestoAttivo(), tipo = ambInsiemeTipo;
+            if (!ctx || !tipo) return;
+            if (si) ctx.mostra_dispositivi = true; else delete ctx.mostra_dispositivi;
+            ambInsiemeApplica(ctx, tipo === 'web');
+            if (tipo === 'web' && window.pwMostra) pwMostra(ctx);   // pannello della pagina web: avviso giallo e frase in testa
+            if (await saveConfig(false)) showToast('Impostazioni aggiornate', 'success');
+        }
+        async function ambInsiemePosizione(pos) {
+            const ctx = libContestoAttivo(), tipo = ambInsiemeTipo;
+            if (!ctx || !tipo || ctx.mostra_dispositivi !== true || (pos === 'sotto') === (ctx.posizione_vista === 'sotto')) return;
+            if (pos === 'sotto') ctx.posizione_vista = 'sotto'; else delete ctx.posizione_vista;
+            ambInsiemeApplica(ctx, tipo === 'web');
+            if (await saveConfig(false)) showToast('Impostazioni aggiornate', 'success');
+        }
+        // card dell'elenco lasciata sul modello 3D col 3D e la griglia insieme: passando sopra la griglia Sortable ce l'aveva
+        // gia' messa, ma e' un collegamento all'oggetto 3D (lo fa l'onEnd dell'elenco, con lo stesso controllo), non una card
+        // della griglia. Senza l'opzione la griglia dei posti 3D e' nascosta: qui non si arriva col visore in vista.
+        function ambInsiemeSul3D(evt) {
+            const c = document.getElementById('dashboard-3d-container'), e = evt && evt.originalEvent;
+            if (!c || c.style.display === 'none' || !e) return false;
+            let x = e.clientX, y = e.clientY;
+            if (e.type && e.type.includes('touch') && e.changedTouches && e.changedTouches[0]) { x = e.changedTouches[0].clientX; y = e.changedTouches[0].clientY; }
+            if (x === undefined || y === undefined) return false;
+            const r = c.getBoundingClientRect();
+            return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
         }
         // =====================================================================
         // --- TRASCINAMENTO (Safari, iPad) E PROVA DALLA LIBRERIA ---
@@ -18667,6 +18804,10 @@ async function removeCloudflareTunnel() {
         if (!r.ok && r.motivo !== 'stanza' && r.motivo !== 'zona') { showToast('Modifica non salvata: riprova.', 'error'); return; }
         const posto = postoDi(stanza, zona);
         if (posto) delete posto.web;
+        if (posto && !libVista3D(posto) && ('mostra_dispositivi' in posto || 'posizione_vista' in posto)) {   // [STANZE+DISPOSITIVI]
+            delete posto.mostra_dispositivi; delete posto.posizione_vista;
+            await saveConfig(false);
+        }
         if (pw.nuova === stanza + '\n' + zona) pw.nuova = null;
         showToast('Pagina web tolta: qui torna la griglia', 'success');
         updateWorkspaceView();
@@ -18764,7 +18905,13 @@ async function removeCloudflareTunnel() {
         const titolo = (activeSubRoom ? 'Pagina web della zona «' : 'Pagina web della stanza «') + (activeSubRoom || activeRoom) + '»';
         if ($('pw-titolo').textContent !== titolo) $('pw-titolo').textContent = titolo;
         $('pw-rimuovi').style.display = ha ? '' : 'none';
-        $('pw-nota-disp').style.display = (ctx.device_ids || []).length ? '' : 'none';
+        $('pw-nota-disp').style.display = (ctx.device_ids || []).length && ctx.mostra_dispositivi !== true ? '' : 'none';   // [STANZE+DISPOSITIVI]
+        const pwIntro = $('pw-titolo').nextElementSibling, pwInsieme = ctx.mostra_dispositivi === true;   // [STANZE+DISPOSITIVI] frase in testa:
+        if (pwIntro && !!pwIntro._whInsieme !== pwInsieme) {   // si tocca solo quando l'opzione cambia (spenta resta quella del modello)
+            pwIntro._whInsieme = pwInsieme;
+            pwIntro.textContent = pwInsieme ? "Insieme alle tessere dei dispositivi, sul telefono qui si vede una pagina web con lo sfondo dell'app."
+                                            : "Al posto della griglia dei dispositivi, sul telefono qui si vede una pagina web con lo sfondo dell'app.";
+        }
         p.style.display = '';
         return true;
     };
@@ -18785,7 +18932,7 @@ async function removeCloudflareTunnel() {
             (ha ? '<small data-no-tr>' + ambEsc(host) + '</small>' : '<small>Nessuna pagina web qui</small>') + '</div></div>' +
             (ha
                 ? '<button type="button" class="amb-menu-voce" data-pw="apri"><i data-lucide="external-link"></i><div><span>' + "Apri l'indirizzo in una nuova scheda" + '</span></div></button>' +
-                  '<div class="amb-menu-sep"></div>' +
+                  '<div class="amb-menu-sep"></div>' + ambInsiemeVoce(ctx, 'web') + '<div class="amb-menu-sep"></div>' +   // [STANZE+DISPOSITIVI]
                   '<button type="button" class="amb-menu-voce amb-menu-danger" data-pw="rimuovi"><i data-lucide="trash-2"></i><div><span>Rimuovi pagina web</span><small>Torna alla griglia dei dispositivi</small></div></button>'
                 : '<button type="button" class="amb-menu-voce" data-pw="aggiungi"' + (tre ? ' disabled' : '') + '><i data-lucide="plus"></i><div><span>Aggiungi pagina web</span>' +
                   (tre ? '<small>Togli prima la planimetria 3D</small>' : '') + '</div></button>');
@@ -18799,7 +18946,8 @@ async function removeCloudflareTunnel() {
                 const u = $('pw-url'); if (u) u.focus();
             } else if (a === 'apri') {
                 if (/^https?:\/\//i.test(ctx.web.url)) window.open(ctx.web.url, '_blank', 'noopener');
-            } else chiediRimozione();
+            } else if (a === 'insieme') ambInsiemeInverti();   // [STANZE+DISPOSITIVI]
+            else chiediRimozione();
         });
         ambMostraMenu(m, btn, btn, true);
     };

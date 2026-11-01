@@ -260,6 +260,17 @@
             {%- if wh_sotto.web %}{% set whweb.serve = true %}{% endif -%}
         {%- endfor -%}
     {%- endfor -%}
+    {#- [STANZE+DISPOSITIVI] 31/10/2026 posti (stanze o zone) col 3D o con la pagina web che mostrano ANCHE le tessere dei
+        dispositivi (interruttore della dashboard, chiave mostra_dispositivi; il 3D o la pagina web sta sopra di
+        serie, sotto con posizione_vista 'sotto'). Il loro stile e i loro script entrano solo se almeno un posto la usa
+        (whdisp.serve; whdisp.tre = almeno uno col 3D): senza, la pagina e' identica a prima. Un posto con l'opzione ma
+        senza dispositivi resta com'era (solo il 3D o la pagina web, nessuno stacco in piu'). -#}
+    {%- set whdisp = namespace(serve=false, tre=false) -%}
+    {%- for wh_stanza in layout.values() -%}
+        {%- for wh_posto in [wh_stanza] + (wh_stanza.sub_rooms.values() | list) -%}
+            {%- if wh_posto.mostra_dispositivi and wh_posto.devices and (wh_posto.web or (wh_posto.has_3d and wh_posto.model_url)) %}{% set whdisp.serve = true %}{% if not wh_posto.web %}{% set whdisp.tre = true %}{% endif %}{% endif -%}
+        {%- endfor -%}
+    {%- endfor -%}
     {%- if paginaweb_attivo and request.args.get('pw_bozza') %}{% set whweb.serve = true %}{% endif -%}
     {%- if wh3d.serve %}
     <script src="/static/vendor/three-r128.min.js"></script>
@@ -4010,7 +4021,25 @@ body.wh-personalizza .cr-cam .cr-cam-riga:first-child { padding-right: 62px; }
 }
 </style>
 {%- endif %}
-<style>
+{% if whdisp.serve %}<style id="wh-insieme-stile">
+/* =========================================================================
+   [STANZE+DISPOSITIVI] 31/10/2026 stanza o zona con la planimetria 3D o la pagina web E le tessere dei dispositivi
+   (interruttore della dashboard, chiave mostra_dispositivi). Questo foglio entra SOLO se almeno un posto la usa e ogni regola sta sotto
+   .wh-con-dispositivi (il contenitore di quel posto): le altre stanze non cambiano.
+   Le tessere sono la griglia di sempre (render_devices, figlia diretta del contenitore come nelle altre stanze): stesse
+   card, stessi comandi, stesse viste Plancia e Cruscotto. Il 3D e la pagina web sono quelli di sempre.
+   ========================================================================= */
+/* 3D o pagina web SOTTO le tessere: lo stesso stacco che hanno quando stanno sopra (il loro margine sotto, 20/30 px) */
+.wh-con-dispositivi > .grid-hk ~ .room-3d-container, .wh-con-dispositivi > .grid-hk ~ .wh-web { margin-top: 20px; }
+/* Finestra della pagina web: alta come il 3D (circa meta' schermo) invece di tutto lo schermo, cosi' le tessere restano
+   in vista e si raggiungono scorrendo fuori dalla finestra */
+.wh-con-dispositivi > .wh-web .pw-vista { height: min(var(--pw-h, 100vh), max(320px, 50vh)); }
+@media (min-width: 1024px) {
+    .wh-con-dispositivi > .grid-hk ~ .room-3d-container, .wh-con-dispositivi > .grid-hk ~ .wh-web { margin-top: 30px; }
+    .wh-con-dispositivi > .wh-web .pw-vista { height: min(var(--pw-h, 100vh), max(420px, 55vh)); }
+}
+</style>
+{% endif %}<style>
 /* =========================================================================
    MODALITA' LEGGERA  (Impostazioni > Dashboard & Sfondo > PRESTAZIONI)
    Vale SOLO quando <html> ha la classe wh-leggera: con l'interruttore spento
@@ -5723,7 +5752,20 @@ html.wh-scala .imp-pagina {
                     {% endif %}
                 {% endfor %}
             </div>
-            {% endmacro %}
+            {% endmacro %}{# [STANZE+DISPOSITIVI] 31/10/2026 posto col 3D o la pagina web E le tessere: la vista (lo stesso div di
+               sempre) sopra (di serie) o sotto la griglia di sempre (render_devices, stessa chiave delle altre stanze) #}{% macro render_insieme(dati, stanza, zona, chiave, custom_icons) %}
+{%- if dati.posizione_vista == 'sotto' %}
+                            {{ render_devices(dati.devices, custom_icons, chiave) }}
+{%- endif %}
+{%- if dati.web %}
+                            <div class="wh-web" data-stanza="{{ stanza }}" data-zona="{{ zona }}" data-modo="{{ dati.web.modo }}"></div>
+{%- else %}
+                            <div class="room-3d-container" data-model="{{ dati.model_url }}" data-mapping='{{ dati.mesh_mapping | tojson | forceescape }}'></div>
+{%- endif %}
+{%- if dati.posizione_vista != 'sotto' %}
+                            {{ render_devices(dati.devices, custom_icons, chiave) }}
+{%- endif %}
+{% endmacro %}
             
             {% for room_name, room_data in layout.items() %}
             {% set room_idx = loop.index %}
@@ -5751,8 +5793,9 @@ html.wh-scala .imp-pagina {
                 {% endif %}
 
                 <div>
-                    <div id="content-{{ room_idx }}-main" class="sub-room-content active">
-                        {% if room_data.web %}
+                    {% set wh_insieme = room_data.mostra_dispositivi and room_data.devices and (room_data.web or (room_data.has_3d and room_data.model_url)) %}<div id="content-{{ room_idx }}-main" class="sub-room-content active{% if wh_insieme %} wh-con-dispositivi{% endif %}">
+                        {% if wh_insieme %}{{ render_insieme(room_data, room_name, '', room_name, custom_icons) }}
+                        {% elif room_data.web %}
                             <div class="wh-web" data-stanza="{{ room_name }}" data-zona="" data-modo="{{ room_data.web.modo }}"></div>
                         {% elif room_data.has_3d and room_data.model_url %}
                             <div class="room-3d-container" data-model="{{ room_data.model_url }}" data-mapping='{{ room_data.mesh_mapping | tojson | forceescape }}'></div>
@@ -5763,8 +5806,9 @@ html.wh-scala .imp-pagina {
 
                     {% if room_data.sub_rooms %}
                         {% for sub_name, sub_data in room_data.sub_rooms.items() %}
-                            <div id="content-{{ room_idx }}-sub-{{ loop.index0 }}" class="sub-room-content">
-                                {% if sub_data.web %}
+                            {% set wh_insieme_z = sub_data.mostra_dispositivi and sub_data.devices and (sub_data.web or (sub_data.has_3d and sub_data.model_url)) %}<div id="content-{{ room_idx }}-sub-{{ loop.index0 }}" class="sub-room-content{% if wh_insieme_z %} wh-con-dispositivi{% endif %}">
+                                {% if wh_insieme_z %}{{ render_insieme(sub_data, room_name, sub_name, room_name ~ '/' ~ sub_name, custom_icons) }}
+                                {% elif sub_data.web %}
                                     <div class="wh-web" data-stanza="{{ room_name }}" data-zona="{{ sub_name }}" data-modo="{{ sub_data.web.modo }}"></div>
                                 {% elif sub_data.has_3d and sub_data.model_url %}
                                     <div class="room-3d-container" data-model="{{ sub_data.model_url }}" data-mapping='{{ sub_data.mesh_mapping | tojson | forceescape }}'></div>
@@ -8969,10 +9013,40 @@ function applyBackground(bg) {
             }).catch(function () {});
         }
 
-        function creaVista3D(container) {
+{% if whdisp.tre %}        // [STANZE+DISPOSITIVI] 31/10/2026 planimetria 3D insieme alle tessere: quando una tessera di QUESTO posto cambia stato
+        // (tocco, lettura ogni 2 s, WebSocket) l'oggetto 3D collegato alla stessa entita' si accende o si spegne come lei.
+        // Prima lo seguiva solo il WebSocket di Home Assistant: toccando una tessera Shelly/KNX/Tuya l'oggetto restava com'era.
+        // Nessuna lettura in piu': si guarda solo la classe state-* delle tessere della sua griglia (MutationObserver).
+        function whInsieme3D(container) {
+            const griglia = container.parentNode.querySelector(':scope > .grid-hk');
+            if (!griglia || !window.MutationObserver) return;
+            const segui = function (card) {
+                if (!/\bstate-/.test(card.className)) return;   // tessera senza stato (es. sensori): l'oggetto lo guida il WebSocket
+                const id = card.getAttribute('data-id');
+                const maglie = (id && window.threeMeshes) ? window.threeMeshes[id] : null;
+                if (!maglie || !maglie.length || !window.THREE) return;
+                const acceso = card.classList.contains('state-on') || card.classList.contains('state-playing');
+                const colore = acceso ? 0xffd60a : 0x000000;
+                if (window.roomLights && window.roomLights[id]) window.roomLights[id].intensity = acceso ? 2 : 0;
+                maglie.forEach(function (m) {
+                    (Array.isArray(m.material) ? m.material : [m.material]).forEach(function (x) {
+                        if (x && x.emissive && x.emissive.getHex() !== colore) x.emissive = new THREE.Color(colore);
+                    });
+                });
+            };
+            new MutationObserver(function (cambi) {
+                for (let i = 0; i < cambi.length; i++) {
+                    const t = cambi[i].target;
+                    if (t.parentNode === griglia && t.classList.contains('hk-card')) segui(t);
+                }
+            }).observe(griglia, { attributes: true, attributeFilter: ['class'], subtree: true });
+        }
+
+{% endif %}        function creaVista3D(container) {
                 if (container.dataset.vista3dPronta) return;
                 container.dataset.vista3dPronta = '1';
-                const modelUrl = container.dataset.model;
+{% if whdisp.tre %}                if (container.parentNode && container.parentNode.classList.contains('wh-con-dispositivi')) whInsieme3D(container);   // [STANZE+DISPOSITIVI]
+{% endif %}                const modelUrl = container.dataset.model;
                 if(!modelUrl) return;
                 modelli3dInCorso.add(modelUrl);
 
@@ -20441,7 +20515,10 @@ function hkOsserva(card) {
     }
     // sul telefono la Finestra prende lo schermo: la barra del posto va subito sotto l'area sicura
     function portaSu(p) {
-        if (grande()) return;
+{% if whdisp.serve %}        // [STANZE+DISPOSITIVI] pagina web insieme alle tessere: la stanza si apre dall'alto come le altre (con le tessere
+        // sopra la pagina, scorrendo da sola fino a lei le nasconderebbe)
+        if (p.parentNode && p.parentNode.classList.contains('wh-con-dispositivi')) return;
+{% endif %}        if (grande()) return;
         var b = p.querySelector('.pw-barra');
         if (!b) return;
         requestAnimationFrame(function () {
